@@ -576,7 +576,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), printFlag);
 
          printOut("", verbosity>1);
-         return new FileDecompressResult(0, this.cis.getRead());
+         return new FileDecompressResult(0, read);
       }
       
       public void dispose()
