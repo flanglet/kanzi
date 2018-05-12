@@ -901,11 +901,11 @@ public final class TextCodec implements ByteFunction
    // 0x01 => CR+LF transform
    private static int computeStats(byte[] block, final int srcIdx, final int srcEnd, int[] freqs)
    {
-      for (int i=0; i<65536; i++)
+      for (int i=0; i<freqs.length; i++)
          freqs[i] = 0;
 
       int prv = 0;
-      freqs[65536+block[srcIdx]&0xFF]++;
+      freqs[65536+(block[srcIdx]&0xFF)]++;
       freqs[block[srcIdx]&0xFF]++;
 
       for (int i=srcIdx+1; i<srcEnd; i++)
