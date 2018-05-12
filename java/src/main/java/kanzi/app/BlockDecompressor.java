@@ -246,7 +246,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                }
                else if ((inputIsDir == true) && ("NONE".equalsIgnoreCase(oName) == false))
                {
-                  oName = formattedOutName + iName.substring(formattedInName.length()) + ".knz";
+                  oName = formattedOutName + iName.substring(formattedInName.length()) + ".bak";
                }
                
                taskCtx.put("fileSize", fileSize);

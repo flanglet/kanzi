@@ -353,7 +353,7 @@ public class TPAQPredictor implements Predictor
       }
 
       this.pr = p + ((p-2048) >>> 31);
-}
+   }
 
 
    private void findMatch()
