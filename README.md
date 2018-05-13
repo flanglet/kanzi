@@ -30,7 +30,7 @@ Use at your own risk. Always keep a backup of your files.
 Silesia corpus benchmark
 -------------------------
 
-i7-7700K @4.20GHz, 32GB RAM, Ubuntu 16.10
+i7-7700K @4.20GHz, 32GB RAM, Ubuntu 16.04
 
 Java Hotspot 10.0.1
 
