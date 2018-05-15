@@ -428,7 +428,7 @@ public class TPAQPredictor implements Predictor
    static class Mixer
    {
       private static final int BEGIN_LEARN_RATE = 60 << 7;
-      int END_LEARN_RATE = 14 << 7;  // 8 << 7 for text, else 14 << 7
+      static final int END_LEARN_RATE = 14 << 7;  // 8 << 7 for text, else 14 << 7
 
       private int pr;  // squashed prediction
       private int skew; 

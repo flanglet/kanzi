@@ -20,10 +20,10 @@ import java.util.Arrays;
 
 public class Global
 {
-   public final static int INFINITE_VALUE = 0;
+   public static final int INFINITE_VALUE = 0;
   
    // array with 256 elements: int(Math.log2(x-1))
-   public static int[] LOG2 = new int[] 
+   public static final int[] LOG2 = new int[] 
    {
       0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4,
       4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5,
@@ -97,7 +97,7 @@ public class Global
    
 
    // array with 256 elements: 1024*Math.sin(x) x in [0..Math.PI[
-   public static final int[] SIN_1024 =
+   private static final int[] SIN_1024 =
    {
          0,   12,   25,   37,   50,   62,   75,   87,  100,  112,  125,  137,  150,  162,  175,  187, 
        199,  212,  224,  236,  248,  260,  273,  285,  297,  309,  321,  333,  344,  356,  368,  380, 
@@ -118,7 +118,7 @@ public class Global
    };
 
    // array with 256 elements: 1024*Math.cos(x) x in [0..Math.PI[
-   public static final int[] COS_1024 =
+   private static final int[] COS_1024 =
    {
        1024,  1023,  1023,  1023,  1022,  1022,  1021,  1020,  1019,  1017,  1016,  1014,  1012,  1010,  1008,  1006, 
        1004,  1001,   999,   996,   993,   990,   986,   983,   979,   976,   972,   968,   964,   959,   955,   950, 
