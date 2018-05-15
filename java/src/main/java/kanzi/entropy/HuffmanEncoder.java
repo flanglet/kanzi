@@ -205,26 +205,26 @@ public class HuffmanEncoder implements EntropyEncoder
     
     static void computeInPlaceSizesPhase2(int[] data, int n) 
     {
-        int level_top = n - 2; //root
+        int levelTop = n - 2; //root
         int depth = 1;
         int i = n;
-        int total_nodes_at_level = 2;
+        int totalNodesAtLevel =  2;
 
         while (i > 0) 
         {
-           int k = level_top;
+           int k = levelTop;
 
-           while ((k>0) && (data[k-1]>=level_top))
+           while ((k>0) && (data[k-1]>=levelTop))
               k--;
 
-           final int internal_nodes_at_level = level_top - k;
-           final int leaves_at_level = total_nodes_at_level - internal_nodes_at_level;
+           final int internalNodesAtLevel = levelTop - k;
+           final int leaves_at_level = totalNodesAtLevel - internalNodesAtLevel;
 
            for (int j=0; j<leaves_at_level; j++)
               data[--i] = depth;
 
-           total_nodes_at_level = internal_nodes_at_level << 1;
-           level_top = k;
+           totalNodesAtLevel = internalNodesAtLevel << 1;
+           levelTop = k;
            depth++;
         }
     }

@@ -1265,7 +1265,7 @@ public final class TextCodec implements ByteFunction
             continue;
          }
 
-         if ((isDelimiter(cur)) && (nbWords<maxWords) && (i>=anchor+1)) // At least 2 letters
+         if ((isDelimiter(cur)) && (i>=anchor+1)) // At least 2 letters
          {
             dict[nbWords] = new DictEntry(words, anchor, h, nbWords, i-anchor);
             nbWords++;
