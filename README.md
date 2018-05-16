@@ -73,9 +73,9 @@ enwik8
 
 i7-7700K @4.20GHz, 32GB RAM, Ubuntu 18.04
 
-g++ version 7.3.0
+Java Hotspot 10.0.1
 
-Kanzi version 1.4 C++ implementation. Block size is 100 MB. 1 thread
+Kanzi version 1.4 Java implementation. Block size is 100 MB. 1 thread
 
 
 |        Compressor           | Encoding (sec)  | Decoding (sec)  |    Size          |
