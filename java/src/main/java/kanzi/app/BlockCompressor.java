@@ -313,7 +313,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                taskCtx.put("outputName", oName);
                taskCtx.put("jobs", jobsPerTask[n++]);
                FileCompressTask task = new FileCompressTask(taskCtx, this.listeners);
-               queue.offer(task);               
+               
+               if (queue.offer(task) == false)
+                  throw new RuntimeException("Could not create a compression task");
             }
        
             List<FileCompressWorker> workers = new ArrayList<>(this.jobs);

@@ -254,7 +254,9 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                taskCtx.put("outputName", oName);
                taskCtx.put("jobs", jobsPerTask[n++]);
                FileDecompressTask task = new FileDecompressTask(taskCtx, this.listeners);
-               queue.offer(task);               
+               
+               if (queue.offer(task) == false)
+                  throw new RuntimeException("Could not create a decompression task");
             }
 
             List<FileDecompressWorker> workers = new ArrayList<>(this.jobs);
