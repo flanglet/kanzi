@@ -449,13 +449,12 @@ public class TPAQPredictor implements Predictor
       // Adjust weights to minimize coding cost of last prediction
       void update(int bit)
       {
-         int err = (bit<<12) - this.pr;
+         final int err = (((bit<<12) - this.pr) * this.learnRate) >> 7;
          
          if (err == 0)
             return;
 
          // Quickly decaying learn rate 
-         err = (err*this.learnRate) >> 7;
          this.learnRate += ((END_LEARN_RATE-this.learnRate)>>31);            
          this.skew += err;
     
@@ -483,11 +482,10 @@ public class TPAQPredictor implements Predictor
          this.p7 = p7;
 
          // Neural Network dot product (sum weights*inputs)
-         int p = this.w0*p0 + this.w1*p1 + this.w2*p2 + this.w3*p3 +
-                 this.w4*p4 + this.w5*p5 + this.w6*p6 + this.w7*p7 +
-                 this.skew;
-
-         this.pr = Global.squash((p+65536)>>17);
+         this.pr = Global.squash((this.w0*p0 + this.w1*p1 + this.w2*p2 + this.w3*p3 +
+                                  this.w4*p4 + this.w5*p5 + this.w6*p6 + this.w7*p7 +
+                                  this.skew  + 65536) >> 17);
+         
          return this.pr;
       }
    }
