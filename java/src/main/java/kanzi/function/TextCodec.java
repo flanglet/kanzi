@@ -648,11 +648,11 @@ public final class TextCodec implements ByteFunction
       int log;
       
       if (blockSize >= 1<<28)
-         log = 28;
+         log = 26;
       else if (blockSize < 1<<10)
-         log = 10;
+         log = 8;
       else
-         log = Global.log2(3*blockSize/2);
+         log = Global.log2(blockSize/4);
 
       // Select an appropriate initial dictionary size
       int dSize = 1<<12;
@@ -816,14 +816,14 @@ public final class TextCodec implements ByteFunction
             DictEntry e2 = null;
 
             // Check for hash collisions
-            if ((e1 != null) && ((e1.length != length) || (e1.hash != h1)))
+            if ((e1 != null) && (((e1.data>>>24) != length) || (e1.hash != h1)))
                e1 = null;
 
             if (e1 == null)
             {
                e2 = this.dictMap[h2 & this.hashMask];
 
-               if ((e2 != null) && ((e2.length != length) || (e2.hash != h2)))
+               if ((e2 != null) && (((e2.data>>>24) != length) || (e2.hash != h2)))
                   e2 = null;
             }
 
@@ -842,15 +842,14 @@ public final class TextCodec implements ByteFunction
                {
                   e = this.dictList[words];
 
-                  if (e.idx >= this.staticDictSize)
+                  if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                   {
                      // Evict and reuse old entry
                      this.dictMap[e.hash & this.hashMask] = null;
                      e.buf = src;
                      e.pos = delimAnchor + 1;
                      e.hash = h1;
-                     e.idx = words;
-                     e.length = (short) length;
+                     e.data = (length<<24) | words;
                   }
 
                   this.dictMap[h1 & this.hashMask] = e;
@@ -877,8 +876,8 @@ public final class TextCodec implements ByteFunction
                   break;
 
                dst[dstIdx++] = (e == e1) ? ESCAPE_TOKEN1 : ESCAPE_TOKEN2;
-               dstIdx = emitWordIndex(dst, dstIdx, e.idx);
-               emitAnchor += e.length;
+               dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF);
+               emitAnchor += (e.data>>>24);
             }
          }
 
@@ -1121,7 +1120,7 @@ public final class TextCodec implements ByteFunction
             // Check for hash collisions
             if (e != null)
             {
-               if ((e.length != length) || (e.hash != h1))
+               if (((e.data>>>24) != length) || (e.hash != h1))
                   e = null;
                else if (sameWords(e, src, delimAnchor+2, length-1) == false)
                   e = null;
@@ -1134,15 +1133,14 @@ public final class TextCodec implements ByteFunction
                {
                   e = this.dictList[words];
 
-                  if (e.idx >= this.staticDictSize)
+                  if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                   {
                      // Evict and reuse old entry
                      this.dictMap[e.hash & this.hashMask] = null;
                      e.buf = src;
                      e.pos = delimAnchor + 1;
                      e.hash = h1;
-                     e.idx = words;
-                     e.length = (short) length;
+                     e.data = (length<<24) | words;
                   }
 
                   this.dictMap[h1 & this.hashMask] = e;
@@ -1184,13 +1182,14 @@ public final class TextCodec implements ByteFunction
             }
 
             final DictEntry e = this.dictList[idx];
+            final int length = e.data >>> 24;
 
             // Sanity check
-            if ((e.pos < 0) || (dstIdx+e.length >= dstEnd))
+            if ((e.pos < 0) || (dstIdx+length >= dstEnd))
                break;
 
             // Add space if only delimiter between 2 words (not an escaped delimiter)
-            if ((wordRun == true) && (e.length > 1))
+            if ((wordRun == true) && (length > 1))
                dst[dstIdx++] = ' ';
 
             // Emit word
@@ -1204,10 +1203,10 @@ public final class TextCodec implements ByteFunction
                dst[dstIdx++] = isUpperCase(e.buf[e.pos]) ? (byte) (e.buf[e.pos]+32) : (byte) (e.buf[e.pos]-32);
             }
             
-            for (int n=e.pos+1, l=e.pos+e.length; n<l; n++, dstIdx++)
+            for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
                dst[dstIdx] = e.buf[n];
 
-            if (e.length > 1)
+            if (length > 1)
             {
                // Regular word entry
                wordRun = true;
@@ -1346,8 +1345,7 @@ public final class TextCodec implements ByteFunction
    {
       int hash; // full word hash
       int pos;  // position in text
-      int idx; // index in dictionary
-      short length; // length in text
+      int data; // packed word length (8 MSB) + index in dictionary (24 LSB)
       byte[] buf;  // text data
 
 
@@ -1356,16 +1354,16 @@ public final class TextCodec implements ByteFunction
          this.buf = buf;
          this.pos = pos;
          this.hash = hash;
-         this.idx = idx;
-         this.length = (short) length;
+         this.data = (length << 24) | idx;
       }
 
       @Override
       public String toString()
       {
-         StringBuilder sb = new StringBuilder(this.length);
+         final int length = this.data >>> 24;
+         StringBuilder sb = new StringBuilder(length);
 
-         for (int i=0; i<this.length; i++)
+         for (int i=0; i<length; i++)
             sb.append((char) this.buf[this.pos+i]);
 
          return sb.toString();
