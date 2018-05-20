@@ -55,6 +55,7 @@ public class CompressedOutputStream extends OutputStream
    private static final int TRANSFORMS_MASK          = 0x10;
    private static final int MIN_BITSTREAM_BLOCK_SIZE = 1024;
    private static final int MAX_BITSTREAM_BLOCK_SIZE = 1024*1024*1024;
+   private static final int DEFAULT_BUFFER_SIZE      = 1024*1024;
    private static final int SMALL_BLOCK_SIZE         = 15;
    private static final byte[] EMPTY_BYTE_ARRAY      = new byte[0];
    private static final int MAX_CONCURRENCY          = 64;
@@ -118,8 +119,7 @@ public class CompressedOutputStream extends OutputStream
       if ((tasks > 1) && (threadPool == null))
          throw new IllegalArgumentException("The thread pool cannot be null when the number of jobs is "+tasks);
 
-      final int bufferSize = (bSize <= 65536) ? bSize : 65536;
-      this.obs = new DefaultOutputBitStream(os, bufferSize);
+      this.obs = new DefaultOutputBitStream(os, DEFAULT_BUFFER_SIZE);
       this.entropyType = EntropyCodecFactory.getType(entropyCodec);
       this.transformType = new ByteFunctionFactory().getType(transform);
       this.blockSize = bSize;
