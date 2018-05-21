@@ -260,7 +260,7 @@ public class Kanzi
 
                printOut("   -j, --jobs=<jobs>", true);
                printOut("        maximum number of jobs the program may start concurrently", true);
-               printOut("        (default is 1, maximum is 32).\n", true);
+               printOut("        (default is 1, maximum is 64).\n", true);
                printOut("", true);
 
                if (mode != 'd')
