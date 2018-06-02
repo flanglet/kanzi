@@ -93,6 +93,9 @@ public class ANSRangeEncoder implements EntropyEncoder
    // Compute cumulated frequencies and encode header
    private int updateFrequencies(int[][] frequencies, int lr)
    {
+      if (frequencies == null)
+         return -1;
+
       int res = 0;
       final int endk = 255*this.order + 1;
       this.bitstream.writeBits(lr-8, 3); // logRange

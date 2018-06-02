@@ -80,7 +80,7 @@ public final class RangeEncoder implements EntropyEncoder
     }
 
     
-   protected int updateFrequencies(int[] frequencies, int size, int lr)
+   private int updateFrequencies(int[] frequencies, int size, int lr)
    {
       if ((frequencies == null) || (frequencies.length != 256))
          return -1;

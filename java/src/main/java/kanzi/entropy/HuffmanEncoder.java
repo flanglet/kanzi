@@ -79,10 +79,10 @@ public class HuffmanEncoder implements EntropyEncoder
 
     
    // Rebuild Huffman codes
-   public boolean updateFrequencies(int[] frequencies) throws BitStreamException
+   private int updateFrequencies(int[] frequencies) throws BitStreamException
    {
      if ((frequencies == null) || (frequencies.length != 256))
-        return false;
+        return -1;
 
      int count = 0;
 
@@ -139,7 +139,7 @@ public class HuffmanEncoder implements EntropyEncoder
         this.codes[r] |= (this.sizes[r] << 24);           
      }
 
-     return true;
+     return count;
    }
 
 
@@ -296,8 +296,8 @@ public class HuffmanEncoder implements EntropyEncoder
 
          for (int i=endChunk8; i<endChunk; i++)
          {
-           final int val = c[array[i]&0xFF];
-           bs.writeBits(val, val >>> 24);
+            final int val = c[array[i]&0xFF];
+            bs.writeBits(val, val >>> 24);
          }
 
          startChunk = endChunk;
@@ -310,7 +310,7 @@ public class HuffmanEncoder implements EntropyEncoder
    @Override
    public OutputBitStream getBitStream()
    {
-     return this.bitstream;
+      return this.bitstream;
    }
 
    
