@@ -288,7 +288,7 @@ public class ANSRangeEncoder implements EntropyEncoder
 
 
    // Compute chunk frequencies, cumulated frequencies and encode chunk header
-   private void rebuildStatistics(byte[] block, int start, int end, int lr)
+   private int rebuildStatistics(byte[] block, int start, int end, int lr)
    {
       final int endj = 255*this.order + 1;
 
@@ -321,7 +321,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          }
       }
 
-      this.updateFrequencies(this.freqs, lr);
+      return this.updateFrequencies(this.freqs, lr);
    }
 
 
