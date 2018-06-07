@@ -81,25 +81,35 @@ public class EntropyCodecFactory
       {
          case HUFFMAN_TYPE:
             return new HuffmanEncoder(obs);
+            
          case ANS0_TYPE:
             return new ANSRangeEncoder(obs, 0);
+            
          case ANS1_TYPE:
             return new ANSRangeEncoder(obs, 1);
+            
          case RANGE_TYPE:
             return new RangeEncoder(obs);
+            
          case PAQ_TYPE:
             return new BinaryEntropyEncoder(obs, new PAQPredictor());
+            
          case FPAQ_TYPE:
             return new BinaryEntropyEncoder(obs, new FPAQPredictor());
+            
          case CM_TYPE:
             return new BinaryEntropyEncoder(obs, new CMPredictor());
+            
          case TPAQ_TYPE: 
             return new BinaryEntropyEncoder(obs, new TPAQPredictor(ctx));
+            
          case TPAQX_TYPE:  
             ctx.put("extra", true);
             return new BinaryEntropyEncoder(obs, new TPAQPredictor(ctx));
+            
          case NONE_TYPE:
             return new NullEntropyEncoder(obs);
+            
          default :
             throw new IllegalArgumentException("Unknown entropy codec type: " + (char) entropyType);
       }
@@ -112,24 +122,34 @@ public class EntropyCodecFactory
       {
          case HUFFMAN_TYPE:
             return "HUFFMAN";
+            
          case ANS0_TYPE:
             return "ANS0";
+            
          case ANS1_TYPE:
             return "ANS1";
+            
          case RANGE_TYPE:
             return "RANGE";
+            
          case PAQ_TYPE:
             return "PAQ";
+            
          case FPAQ_TYPE:
             return "FPAQ";
+            
          case CM_TYPE:
             return "CM";
+            
          case TPAQ_TYPE:
             return "TPAQ";
+            
          case TPAQX_TYPE:
             return "TPAQX";
+            
          case NONE_TYPE:
             return "NONE";
+            
          default :
             throw new IllegalArgumentException("Unknown entropy codec type: " + (char) entropyType);
       }
@@ -143,38 +163,38 @@ public class EntropyCodecFactory
       
       switch(name)
       {
-      case "HUFFMAN":
-          return HUFFMAN_TYPE; 
+         case "HUFFMAN":
+             return HUFFMAN_TYPE; 
 
-      case "ANS0":
-          return ANS0_TYPE; 
+         case "ANS0":
+             return ANS0_TYPE; 
 
-      case "ANS1":
-          return ANS1_TYPE; 
+         case "ANS1":
+             return ANS1_TYPE; 
 
-      case "FPAQ":
-          return FPAQ_TYPE;
+         case "FPAQ":
+             return FPAQ_TYPE;
 
-      case "PAQ":
-          return PAQ_TYPE;
+         case "PAQ":
+             return PAQ_TYPE;
 
-      case "RANGE":
-          return RANGE_TYPE; 
+         case "RANGE":
+             return RANGE_TYPE; 
 
-      case "CM":
-          return CM_TYPE; 
+         case "CM":
+             return CM_TYPE; 
 
-      case "NONE":
-          return NONE_TYPE;
+         case "NONE":
+             return NONE_TYPE;
 
-      case "TPAQ":
-          return TPAQ_TYPE;      
+         case "TPAQ":
+             return TPAQ_TYPE;      
 
-      case "TPAQX":
-          return TPAQX_TYPE;
+         case "TPAQX":
+             return TPAQX_TYPE;
 
-      default:
-         throw new IllegalArgumentException("Unsupported entropy codec type: " + name); 
+         default:
+            throw new IllegalArgumentException("Unsupported entropy codec type: " + name); 
       }
    } 
    
