@@ -20,6 +20,10 @@ import java.util.Arrays;
 
 public class Global
 {
+   private Global() 
+   {      
+   }
+   
    public static final int INFINITE_VALUE = 0;
   
    // array with 256 elements: int(Math.log2(x-1))
@@ -90,10 +94,10 @@ public class Global
    };
 
 
-   public final static int PI_1024 = 3217;
-   public final static int PI_1024_MULT2 = PI_1024 << 1;
-   private final static int SMALL_RAD_ANGLE_1024 = 256; // arbitrarily set to 0.25 rad
-   private final static int CONST1 = 326; // 326 >> 12 === 1/(4*Math.PI)
+   public static final int PI_1024 = 3217;
+   private static final int PI_1024_MULT2 = PI_1024 << 1;
+   private static final int SMALL_RAD_ANGLE_1024 = 256; // arbitrarily set to 0.25 rad
+   private static final int CONST1 = 326; // 326 >> 12 === 1/(4*Math.PI)
    
 
    // array with 256 elements: 1024*Math.sin(x) x in [0..Math.PI[
@@ -199,7 +203,7 @@ public class Global
    
    
    // Return 1024 * 10 * log10(x)
-   public static int ten_log10(int x) throws ArithmeticException
+   public static int tenLog10(int x) throws ArithmeticException
    {
       if (x <= 0)
          throw new ArithmeticException("Cannot calculate log of a negative or null value");

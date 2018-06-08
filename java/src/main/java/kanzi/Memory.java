@@ -20,6 +20,10 @@ import java.nio.ByteOrder;
 
 public class Memory
 {
+   private Memory()
+   {         
+   }
+   
    private static final int SHIFT64_7  = (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN) ?  56 : 0;
    private static final int SHIFT64_6  = (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN) ?  48 : 8;
    private static final int SHIFT64_5  = (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN) ?  40 : 16;
@@ -39,6 +43,10 @@ public class Memory
    // Read, write big endian, regardless of CPU endianness
    public static class BigEndian
    {
+      private BigEndian()
+      {         
+      }
+
       public static long readLong64(byte[] buf, int offset)
       {
          return ((((long) buf[offset+7]) & 0xFF) << SHIFT64_7) |
@@ -101,6 +109,11 @@ public class Memory
    // Read, write little endian, regardless of CPU endianness
    public static class LittleEndian
    {     
+      private LittleEndian()
+      {         
+      }
+      
+      
       public static long readLong64(byte[] buf, int offset)
       {
          return ((((long) buf[offset+7]) & 0xFF) << SHIFT64_0) |
@@ -158,6 +171,7 @@ public class Memory
          buf[offset+1] = (byte) (val >> SHIFT16_0);   
       }  
    }
+   
    
    public static void main(String[] args)
    {

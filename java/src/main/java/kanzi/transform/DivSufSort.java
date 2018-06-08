@@ -32,7 +32,7 @@ public final class DivSufSort
     private static final int TR_INSERTIONSORT_THRESHOLD = 8;
 
 
-    private final static int[] SQQ_TABLE =
+    private static final int[] SQQ_TABLE =
     {
          0,   16,   22,   27,   32,   35,   39,   42,   45,   48,   50,   53,   55,   57,   59,   61,
         64,   65,   67,   69,   71,   73,   75,   76,   78,   80,   81,   83,   84,   86,   87,   89,
@@ -52,7 +52,7 @@ public final class DivSufSort
        247,  248,  248,  249,  249,  250,  250,  251,  251,  252,  252,  253,  253,  254,  254,  255
     };
 
-    private final static int[] LOG_TABLE =
+    private static final int[] LOG_TABLE =
     {
         -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
         4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
@@ -491,7 +491,7 @@ public final class DivSufSort
         int depth, int n, boolean lastSuffix)
     {
         if (lastSuffix == true)
-          first++;
+           first++;
 
         int limit = 0;
         int middle = last;
@@ -530,8 +530,8 @@ public final class DivSufSort
             }
             else
             {
-                curBufSize = bufSize;
-                curBuf = buf;
+               curBufSize = bufSize;
+               curBuf = buf;
             }
 
             int k = SS_BLOCKSIZE;

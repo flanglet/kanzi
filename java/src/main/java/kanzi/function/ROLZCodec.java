@@ -132,7 +132,6 @@ public final class ROLZCodec implements ByteFunction
    }
 
 
-
    @Override
    public boolean forward(SliceByteArray input, SliceByteArray output)
    {
@@ -193,7 +192,7 @@ public final class ROLZCodec implements ByteFunction
             re.encodeBit(LITERAL_FLAG);
             re.encodeByte(src[startChunk+1]);
          }
-
+         
          while (srcIdx < endChunk)
          {
             this.litPredictor.setContext(src[srcIdx-1]);
@@ -214,10 +213,10 @@ public final class ROLZCodec implements ByteFunction
                final int matchIdx = match >> 8;
                this.matchPredictor.setContext(src[srcIdx-1]);
                re.setContext(MATCH_FLAG);
-                             
+               
                for (int shift=this.logPosChecks-1; shift>=0; shift--)
                   re.encodeBit((matchIdx>>shift) & 1);
-
+               
                srcIdx += (matchLen + MIN_MATCH);
             }
          }
@@ -583,8 +582,7 @@ public final class ROLZCodec implements ByteFunction
          final int idx = this.ctx + this.c1;
          this.p1[idx] -= (((this.p1[idx] - (-bit&0xFFFF)) >> 3) + bit);
          this.p2[idx] -= (((this.p2[idx] - (-bit&0xFFFF)) >> 6) + bit);
-         this.c1 <<= 1;
-         this.c1 += bit;
+         this.c1 = (this.c1<<1) + bit;
 
          if (this.c1 >= this.size)
             this.c1 = 1;
