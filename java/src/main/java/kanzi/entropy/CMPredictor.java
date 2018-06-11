@@ -66,8 +66,8 @@ public class CMPredictor implements Predictor
    public void update(int bit)
    { 
       final int[] counter1_ = this.counter1[this.ctx];
-      this.ctx <<= 1;
       final int[] counter2_ = this.counter2[this.ctx|this.runMask];
+      this.ctx <<= 1;
       
       if (bit == 0)
       {
@@ -94,7 +94,7 @@ public class CMPredictor implements Predictor
          if (this.c1 == this.c2)
          {
             this.run++;
-            this.runMask = (2-this.run) >>> 31;
+            this.runMask = (this.run > 2) ? 256 : 0;
          }
          else
          {
@@ -112,7 +112,7 @@ public class CMPredictor implements Predictor
       final int[] pc1 = this.counter1[this.ctx];
       final int p = (13*pc1[256]+14*pc1[this.c1]+5*pc1[this.c2]) >> 5;
       this.idx = p >>> 12;
-      final int[] pc2 = this.counter2[(this.ctx<<1)|this.runMask];
+      final int[] pc2 = this.counter2[this.ctx|this.runMask];
       final int x1 = pc2[this.idx];
       final int x2 = pc2[this.idx+1];
       final int ssep = x1 + (((x2-x1)*(p&4095)) >> 12);

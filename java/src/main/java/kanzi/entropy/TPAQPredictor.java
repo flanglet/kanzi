@@ -350,13 +350,15 @@ public class TPAQPredictor implements Predictor
       int p = this.mixer.get(p0, p1, p2, p3, p4, p5, p6, p7);
 
       // SSE (Secondary Symbol Estimation)
-      if ((this.sse0 == null) || (this.binCount < (this.pos>>2)))
+      if ((this.sse0 == null) || (this.binCount < (this.pos>>3)))
       {
          p = this.sse1.get(bit, p, c | (this.c4&0xFF00));
       }
       else 
       {
-         p = this.sse0.get(bit, p, this.c0);
+         if (this.binCount >= (this.pos>>2))            
+            p = this.sse0.get(bit, p, this.c0);
+         
          p = (3 * this.sse1.get(bit, p, this.c0 | (this.c4&0xFF00)) + p + 2) >> 2;
       }
 
