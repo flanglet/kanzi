@@ -50,6 +50,9 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    private static final int DEFAULT_BUFFER_SIZE = 65536;
    private static final int DEFAULT_CONCURRENCY = 1;
    private static final int MAX_CONCURRENCY = 64;
+   private static final String STDOUT = "STDOUT";
+   private static final String STDIN = "STDIN";
+   private static final String NONE = "NONE";
 
    private int verbosity;
    private final boolean overwrite;
@@ -134,7 +137,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       printOut("Overwrite set to "+this.overwrite, printFlag);
       printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);      
     
-      if ((this.jobs>1) && ("STDOUT".equalsIgnoreCase(this.outputName)))
+      if ((this.jobs>1) && (STDOUT.equalsIgnoreCase(this.outputName)))
       {
          System.err.println("Cannot output to STDOUT with multiple jobs");
          return Error.ERR_CREATE_FILE;
@@ -156,8 +159,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          boolean inputIsDir;
          String formattedOutName = this.outputName;
          String formattedInName = this.inputName;
-         boolean specialOutput = ("NONE".equalsIgnoreCase(formattedOutName)) || 
-            ("STDOUT".equalsIgnoreCase(formattedOutName));
+         boolean specialOutput = (NONE.equalsIgnoreCase(formattedOutName)) || 
+            (STDOUT.equalsIgnoreCase(formattedOutName));
          
          if (Files.isDirectory(Paths.get(this.inputName))) 
          {
@@ -244,7 +247,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                {
                   oName = iName + ".bak";
                }
-               else if ((inputIsDir == true) && ("NONE".equalsIgnoreCase(oName) == false))
+               else if ((inputIsDir == true) && (NONE.equalsIgnoreCase(oName) == false))
                {
                   oName = formattedOutName + iName.substring(formattedInName.length()) + ".bak";
                }
@@ -389,11 +392,11 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             notifyListeners(array, evt);
          }
 
-         if ("NONE".equalsIgnoreCase(outputName))
+         if (NONE.equalsIgnoreCase(outputName))
          {
             this.os = new NullOutputStream();
          }
-         else if ("STDOUT".equalsIgnoreCase(outputName))
+         else if (STDOUT.equalsIgnoreCase(outputName))
          {
             this.os = System.out;
          }
@@ -460,7 +463,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
          try
          {
-            is = ("STDIN").equalsIgnoreCase(inputName) ? System.in :
+            is = (STDIN.equalsIgnoreCase(inputName)) ? System.in :
                new FileInputStream(new File(inputName));
 
             try

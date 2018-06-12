@@ -38,4 +38,8 @@ public final class Error
    public static final int ERR_INVALID_PARAM       = 18;
    public static final int ERR_CRC_CHECK           = 19;
    public static final int ERR_UNKNOWN             = 127;
+   
+   private Error()
+   {      
+   }
 }

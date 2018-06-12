@@ -1120,7 +1120,7 @@ public final class TextCodec implements ByteFunction
             // Check for hash collisions
             if (e != null)
             {
-               if (((e.data>>>24) != length) || (e.hash != h1))
+               if ((e.hash != h1) || ((e.data>>>24) != length))
                   e = null;
                else if (sameWords(e, src, delimAnchor+2, length-1) == false)
                   e = null;

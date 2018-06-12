@@ -50,7 +50,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private static final int DEFAULT_BUFFER_SIZE = 65536;
    private static final int DEFAULT_BLOCK_SIZE  = 1024*1024; 
    private static final int DEFAULT_CONCURRENCY = 1;
-   private static final int MAX_CONCURRENCY = 64;   
+   private static final int MAX_CONCURRENCY = 64;  
+   private static final String STDOUT = "STDOUT";
+   private static final String STDIN = "STDIN";
+   private static final String NONE = "NONE";
    
    private int verbosity;
    private final boolean overwrite;
@@ -173,9 +176,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
       if (this.level < 0)
       {
-         String etransform = ("NONE".equals(this.transform)) ? "no" : this.transform;
+         String etransform = (NONE.equals(this.transform)) ? "no" : this.transform;
          printOut("Using " + etransform + " transform (stage 1)", printFlag);
-         String ecodec = ("NONE".equals(this.codec)) ? "no" : this.codec;
+         String ecodec = (NONE.equals(this.codec)) ? "no" : this.codec;
          printOut("Using " + ecodec + " entropy codec (stage 2)", printFlag);
       }
       else
@@ -185,7 +188,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
       printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);      
 
-      if ((this.jobs>1) && ("STDOUT".equalsIgnoreCase(this.outputName)))
+      if ((this.jobs>1) && (STDOUT.equalsIgnoreCase(this.outputName)))
       {
          System.err.println("Cannot output to STDOUT with multiple jobs");
          return Error.ERR_CREATE_FILE;
@@ -209,8 +212,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          boolean inputIsDir;
          String formattedOutName = this.outputName;
          String formattedInName = this.inputName;
-         boolean specialOutput = ("NONE".equalsIgnoreCase(formattedOutName)) || 
-            ("STDOUT".equalsIgnoreCase(formattedOutName));
+         boolean specialOutput = (NONE.equalsIgnoreCase(formattedOutName)) || 
+            (STDOUT.equalsIgnoreCase(formattedOutName));
          
          if (Files.isDirectory(Paths.get(formattedInName))) 
          {
@@ -484,11 +487,11 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          try
          {  
-            if (outputName.equalsIgnoreCase("NONE"))
+            if (NONE.equalsIgnoreCase(outputName))
             {
                os = new NullOutputStream(); 
             }
-            else if (outputName.equalsIgnoreCase("STDOUT"))
+            else if (STDOUT.equalsIgnoreCase(outputName))
             {
                os = System.out;
             }
@@ -564,7 +567,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          try
          {
-            this.is = (inputName.equalsIgnoreCase("STDIN")) ? System.in : new FileInputStream(inputName);
+            this.is = (STDIN.equalsIgnoreCase(inputName)) ? System.in : new FileInputStream(inputName);
          }
          catch (Exception e)
          {
