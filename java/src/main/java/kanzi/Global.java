@@ -308,12 +308,14 @@ public class Global
     }
 
 
+    // Limitation: fails for Integer.MIN_VALUE
     public static int clip0_255(int x)
     {
         return (x >= 255) ? 255 : positiveOrNull(x);
     }
 
     
+    // Limitation: fails for Integer.MIN_VALUE
     public static int abs(int x)
     {
         // Patented (!) :  return (x ^ (x >> 31)) - (x >> 31);
@@ -321,19 +323,29 @@ public class Global
     }
 
 
+    // Limitation: fails for Integer.MIN_VALUE
     public static int positiveOrNull(int x)
     {
-       // return (x & ((-x) >> 31));
-        return (x & ~(x >> 31));
+        return x & ~(x >> 31);
     }
     
     
+    // return 1 or 0
+    // Limitation: fails for Integer.MIN_VALUE
+    public static int isNotNullFlag(int x)
+    {
+        return (x >>> 31) ^ (-x >>> 31);
+    }
+    
+    
+    // Limitation: fails for Integer.MIN_VALUE
     public static boolean isPowerOf2(int x)
     {
         return (x & (x-1)) == 0;
     }
-
     
+
+    // Limitation: fails for Integer.MIN_VALUE
     public static int resetLSB(int x)
     {
         return x & (x-1);
@@ -341,6 +353,7 @@ public class Global
     
     
     // Least significant bit
+    // Limitation: fails for Integer.MIN_VALUE
     public static int lsb(int x)
     {
         return x & -x;
@@ -348,6 +361,7 @@ public class Global
     
     
     // Most significant bit
+    // Limitation: fails for Integer.MIN_VALUE
     public static int msb(int x)
     {
         x |= (x >> 1);
@@ -358,7 +372,8 @@ public class Global
         return x & ~(x >> 1);
     }
 
-
+    
+    // Limitation: fails for Integer.MIN_VALUE and Integer.MAX_VALUE
     public static int roundUpPowerOfTwo(int x)
     {
         x--;
