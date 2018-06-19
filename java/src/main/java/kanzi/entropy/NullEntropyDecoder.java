@@ -17,7 +17,6 @@ package kanzi.entropy;
 
 import kanzi.EntropyDecoder;
 import kanzi.InputBitStream;
-import kanzi.Memory;
 
 
 // Null entropy encoder and decoder
@@ -42,24 +41,11 @@ public final class NullEntropyDecoder implements EntropyDecoder
        if ((block == null) || (blkptr + len > block.length) || (blkptr < 0) || (len < 0))
           return -1;
 
-       final int len8 = len & -8;
-       final int end8 = blkptr + len8;
-       int i = blkptr;
-
-       while (i < end8)
-       {
-          Memory.BigEndian.writeLong64(block, i, this.bitstream.readBits(64));
-          i += 8;
-       }
-
-       while (i < blkptr + len)
-          block[i++] = (byte) this.bitstream.readBits(8);
-
-       return len;
+       return this.bitstream.readBits(block, blkptr, 8*len) >> 3;
     }
 
 
-    public  byte decodeByte()
+    public byte decodeByte()
     {
        return (byte) this.bitstream.readBits(8);
     }

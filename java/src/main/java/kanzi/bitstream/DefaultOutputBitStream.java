@@ -69,17 +69,17 @@ public final class DefaultOutputBitStream implements OutputBitStream
       }
    }
 
-   
+
    // Write 'count' (in [1..64]) bits. Trigger exception if stream is closed
    @Override
    public int writeBits(long value, int count)
    {
       if (count == 0)
          return 0;
-      
+
       if (count > 64)
          throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1..64])");
-      
+
       value &= (-1L >>> -count);
       final int remaining = this.bitIndex + 1 - count;
 
@@ -95,13 +95,91 @@ public final class DefaultOutputBitStream implements OutputBitStream
          // Not enough spots available in 'current'
          this.current |= (value >>> -remaining);
          this.pushCurrent();
-         
+
          if (remaining != 0)
          {
             this.current = (value << remaining);
-            this.bitIndex += remaining; 
+            this.bitIndex += remaining;
          }
       }
+
+      return count;
+   }
+
+
+   @Override
+   public int writeBits(byte[] bits, int start, int count)
+   {
+      if (this.isClosed() == true)
+         throw new BitStreamException("Stream closed", BitStreamException.STREAM_CLOSED);
+
+      if (count == 0)
+         return 0;
+
+      if (count > (bits.length-start)<<3)
+         throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1.." +
+            ((bits.length-start)<<3) + "])");
+
+      int remaining = count;
+
+      // Byte aligned cursor ?
+      if (((this.bitIndex+1) & 7) == 0)
+      {
+         // Fill up this.current
+         while ((this.bitIndex != 63) && (remaining >= 8))
+         {
+            this.writeBits((long) bits[start], 8);
+            start++;
+            remaining -= 8;
+         }
+
+         // Copy bits array to internal buffer
+         while ((remaining>>3) >= this.buffer.length-this.position)
+         {
+            System.arraycopy(bits, start, this.buffer, this.position, this.buffer.length-this.position);
+            start += (this.buffer.length-this.position);
+            remaining -= ((this.buffer.length-this.position)<<3);
+            this.position = this.buffer.length;
+            this.flush();
+         }
+
+         final int r = (remaining>>6) << 3;
+
+         if (r > 0)
+         {
+            System.arraycopy(bits, start, this.buffer, this.position, r);
+            this.position += r;
+            start += r;
+            remaining -= (r<<3);
+         }
+      }
+      else
+      {
+         // Not byte aligned
+         final int r = 63 - this.bitIndex;
+
+         while (remaining >= 64)
+         {
+            final long value = Memory.BigEndian.readLong64(bits, start);
+            this.current |= (value >>> r);
+            this.pushCurrent();
+            this.current = (value << -r);
+            this.bitIndex -= r;
+            start += 8;
+            remaining -= 64;
+         }
+      }
+
+      // Last bytes  
+      while (remaining >= 8)
+      {
+         this.writeBits((long) (bits[start]&0xFF), 8);
+         start++;
+         remaining -= 8;
+      }
+
+      if (remaining > 0)
+         this.writeBits((long) (bits[start]>>>(8-remaining)), remaining);
 
       return count;
    }
@@ -194,7 +272,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
    public long written()
    {
       // Number of bits flushed + bytes written in memory + bits written in memory
-      return this.written + (this.position << 3) + (63 - this.bitIndex);
+      return this.written + (this.position<<3) + (63-this.bitIndex);
    }
 
 

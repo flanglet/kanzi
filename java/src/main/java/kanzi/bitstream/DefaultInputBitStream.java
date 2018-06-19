@@ -135,6 +135,84 @@ public final class DefaultInputBitStream implements InputBitStream
       return res;
    }
 
+
+   @Override
+   public int readBits(byte[] bits, int start, int count) throws BitStreamException
+   {
+      if (this.isClosed() == true)
+         throw new BitStreamException("Stream closed", BitStreamException.STREAM_CLOSED);
+
+      if ((count <= 0) || (count > (bits.length-start)<<3))
+         throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1.." +
+           ((bits.length-start)<<3) + "])");
+
+      int remaining = count;
+
+      // Byte aligned cursor ?
+      if (((this.bitIndex+1) & 7) == 0)
+      {
+         if (this.bitIndex < 0)
+            this.pullCurrent();
+
+         // Empty this.current
+         while ((this.bitIndex >= 0) && (remaining >= 8))
+         {
+            bits[start] = (byte) this.readBits(8);
+            start++;
+            remaining -= 8;
+         }
+
+         // Copy internal buffer to bits array
+         while ((remaining>>3) > this.maxPosition+1-this.position)
+         {
+            System.arraycopy(this.buffer, this.position, bits, start, this.maxPosition+1-this.position);
+            start += (this.maxPosition+1-this.position);
+            remaining -= ((this.maxPosition+1-this.position)<<3);
+            this.readFromInputStream(this.buffer.length);
+         }
+
+         final int r = (remaining>>6) << 3;
+
+         if (r > 0)
+         {
+            System.arraycopy(this.buffer, this.position, bits, start, r);
+            this.position += r;
+            start += r;
+            remaining -= (r<<3);
+         }
+      }
+      else
+      {
+         // Not byte aligned
+         final int r = 63 - this.bitIndex;
+
+         while (remaining >= 64)
+         {
+            long v = this.current & ((1L<<(this.bitIndex+1))-1);
+            this.pullCurrent();
+            v <<= r;
+            this.bitIndex -= r;
+            v |= (this.current >>> (this.bitIndex+1));
+            Memory.BigEndian.writeLong64(bits, start, v);
+            start += 8;
+            remaining -= 64;
+         }
+      }
+
+      // Last bytes
+      while (remaining >= 8)
+      {
+         bits[start] = (byte) this.readBits(8);
+         start++;
+         remaining -= 8;
+      }
+
+      if (remaining > 0)
+         bits[start] = (byte) (this.readBits(remaining)<<(8-remaining));
+
+      return count;
+   }
+
    
    // Pull 64 bits of current value from buffer.
    private void pullCurrent()

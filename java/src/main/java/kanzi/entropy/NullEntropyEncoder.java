@@ -15,77 +15,51 @@ limitations under the License.
 
 package kanzi.entropy;
 
-import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
-import kanzi.Memory;
 import kanzi.OutputBitStream;
 
 
 // Null entropy encoder and decoder
 // Pass through that writes the data directly to the bitstream
-// Helpful to debug
 public final class NullEntropyEncoder implements EntropyEncoder
 {
-    private final OutputBitStream bitstream;
+   private final OutputBitStream bitstream;
 
 
-    public NullEntropyEncoder(OutputBitStream bitstream)
-    {
-       if (bitstream == null)
-          throw new NullPointerException("Invalid null bitstream parameter");
+   public NullEntropyEncoder(OutputBitStream bitstream)
+   {
+      if (bitstream == null)
+         throw new NullPointerException("Invalid null bitstream parameter");
 
-       this.bitstream = bitstream;
-    }
+      this.bitstream = bitstream;
+   }
 
 
-    @Override
-    public int encode(byte[] block, int blkptr, int len)
-    {
-        if ((block == null) || (blkptr + len > block.length) || (blkptr < 0) || (len < 0))
-           return -1;
+   @Override
+   public int encode(byte[] block, int blkptr, int len)
+   {
+      if ((block == null) || (blkptr+len > block.length) || (blkptr < 0) || (len < 0))
+         return -1;
 
-        final int len8 = len & -8;
-        final int end8 = blkptr + len8;
-        int i = blkptr;
+      return this.bitstream.writeBits(block, blkptr, 8*len) >> 3;
+   }
 
-        try
-        {
-           while (i < end8)
-           {            
-              this.bitstream.writeBits(Memory.BigEndian.readLong64(block, i), 64);
-              i += 8;
-           }
-           
-           while (i < blkptr + len)
-           {            
-              this.bitstream.writeBits(block[i], 8);
-              i++;
-           }
-        }
-        catch (BitStreamException e)
-        {
-           return i - blkptr;
-        }
 
-        return len;
-    }
+   public void encodeByte(byte val)
+   {
+      this.bitstream.writeBits(val, 8);
+   }
 
-    
-    public void encodeByte(byte val)
-    {
-       this.bitstream.writeBits(val, 8);
-    }
-    
-    
-    @Override
-    public OutputBitStream getBitStream()
-    {
-       return this.bitstream;
-    }
 
-  
-    @Override
-    public void dispose() 
-    {
-    }
+   @Override
+   public OutputBitStream getBitStream()
+   {
+      return this.bitstream;
+   }
+
+
+   @Override
+   public void dispose() 
+   {
+   }
 }
