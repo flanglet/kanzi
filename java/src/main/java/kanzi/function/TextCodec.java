@@ -904,17 +904,38 @@ public final class TextCodec implements ByteFunction
          freqs[i] = 0;
 
       int prv = 0;
-      freqs[65536+(block[srcIdx]&0xFF)]++;
-      freqs[block[srcIdx]&0xFF]++;
+      final int end = srcIdx + ((srcEnd-srcIdx) & -4);
 
-      for (int i=srcIdx+1; i<srcEnd; i++)
+      // Unroll loop
+      for (int i=srcIdx; i<end; i+=4)
+      {
+         int cur;
+         cur = block[i] & 0xFF;
+         freqs[65536+cur]++;
+         freqs[(prv<<8)+cur]++;
+         prv = cur;
+         cur = block[i+1] & 0xFF;
+         freqs[65536+cur]++;
+         freqs[(prv<<8)+cur]++;
+         prv = cur;
+         cur = block[i+2] & 0xFF;
+         freqs[65536+cur]++;
+         freqs[(prv<<8)+cur]++;
+         prv = cur;
+         cur = block[i+3] & 0xFF;
+         freqs[65536+cur]++;
+         freqs[(prv<<8)+cur]++;
+         prv = cur;
+      }
+
+      for (int i=end; i<srcEnd; i++)
       {
          final int cur = block[i] & 0xFF;
          freqs[65536+cur]++;
          freqs[(prv<<8)+cur]++;
          prv = cur;
       }
-
+      
       int nbTextChars = 0;
 
       for (int i=32; i<128; i++)
