@@ -36,7 +36,6 @@ import kanzi.entropy.ExpGolombEncoder;
 import kanzi.entropy.FPAQPredictor;
 import kanzi.entropy.HuffmanDecoder;
 import kanzi.entropy.HuffmanEncoder;
-import kanzi.entropy.PAQPredictor;
 import kanzi.Predictor;
 import kanzi.entropy.RangeDecoder;
 import kanzi.entropy.RangeEncoder;
@@ -156,9 +155,6 @@ public class TestEntropyCodec
       System.out.println("\n\nTestCMCodec");
       Assert.assertTrue(testCorrectness("CM"));
       //testSpeed("CM");
-      System.out.println("\n\nTestPAQCodec");
-      Assert.assertTrue(testCorrectness("PAQ"));
-      //testSpeed("PAQ");
       System.out.println("\n\nTestTPAQCodec");
       Assert.assertTrue(testCorrectness("TPAQ"));
       //testSpeed("TPAQ");
@@ -173,9 +169,6 @@ public class TestEntropyCodec
    
    private static Predictor getPredictor(String type)
    {
-      if (type.equals("PAQ"))
-         return new PAQPredictor();
-
       if (type.equals("TPAQ"))
          return new TPAQPredictor(null);
 
@@ -195,7 +188,6 @@ public class TestEntropyCodec
       {
          case "FPAQ":
          case "CM":
-         case "PAQ":
          case "TPAQ":
             return new BinaryEntropyEncoder(obs, getPredictor(name));
 
@@ -230,7 +222,6 @@ public class TestEntropyCodec
       {
          case "FPAQ":
          case "CM":
-         case "PAQ":
          case "TPAQ":             
             Predictor pred = getPredictor(name);
 

@@ -27,7 +27,7 @@ public class EntropyCodecFactory
    public static final byte NONE_TYPE    = 0; // No compression
    public static final byte HUFFMAN_TYPE = 1; // Huffman
    public static final byte FPAQ_TYPE    = 2; // Fast PAQ (order 0)
-   public static final byte PAQ_TYPE     = 3; // PAQ (stripped from many models for speed)
+   public static final byte PAQ_TYPE     = 3; 
    public static final byte RANGE_TYPE   = 4; // Range
    public static final byte ANS0_TYPE    = 5; // Asymmetric Numerical System order 0
    public static final byte CM_TYPE      = 6; // Context Model
@@ -53,8 +53,6 @@ public class EntropyCodecFactory
             return new ANSRangeDecoder(ibs, 1);
          case RANGE_TYPE:
             return new RangeDecoder(ibs);
-         case PAQ_TYPE:
-            return new BinaryEntropyDecoder(ibs, new PAQPredictor());
          case FPAQ_TYPE:
             return new BinaryEntropyDecoder(ibs, new FPAQPredictor());
          case CM_TYPE:
@@ -90,9 +88,6 @@ public class EntropyCodecFactory
             
          case RANGE_TYPE:
             return new RangeEncoder(obs);
-            
-         case PAQ_TYPE:
-            return new BinaryEntropyEncoder(obs, new PAQPredictor());
             
          case FPAQ_TYPE:
             return new BinaryEntropyEncoder(obs, new FPAQPredictor());
@@ -131,9 +126,6 @@ public class EntropyCodecFactory
             
          case RANGE_TYPE:
             return "RANGE";
-            
-         case PAQ_TYPE:
-            return "PAQ";
             
          case FPAQ_TYPE:
             return "FPAQ";
@@ -174,9 +166,6 @@ public class EntropyCodecFactory
 
          case "FPAQ":
              return FPAQ_TYPE;
-
-         case "PAQ":
-             return PAQ_TYPE;
 
          case "RANGE":
              return RANGE_TYPE; 
