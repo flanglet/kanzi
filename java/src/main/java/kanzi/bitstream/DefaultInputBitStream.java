@@ -27,7 +27,7 @@ public final class DefaultInputBitStream implements InputBitStream
    private final InputStream is;
    private final byte[] buffer;
    private int position;  // index of current byte (consumed if bitIndex == -1)
-   private int bitIndex;  // index of current bit to read
+   private int availBits; // bits not consumed in current
    private long read;
    private boolean closed;
    private int maxPosition;
@@ -50,7 +50,7 @@ public final class DefaultInputBitStream implements InputBitStream
 
       this.is = is;
       this.buffer = new byte[bufferSize];
-      this.bitIndex = -1;
+      this.availBits = 0;
       this.maxPosition = -1;
    }
 
@@ -59,12 +59,11 @@ public final class DefaultInputBitStream implements InputBitStream
    @Override
    public int readBit() throws BitStreamException
    {
-      if (this.bitIndex < 0)
+      if (this.availBits == 0)
          this.pullCurrent(); // Triggers an exception if stream is closed
 
-      final int bit = (int) ((this.current >> this.bitIndex) & 1);
-      this.bitIndex--;
-      return bit;
+      this.availBits--;
+      return (int) (this.current >> this.availBits) & 1;
    }
 
 
@@ -108,28 +107,27 @@ public final class DefaultInputBitStream implements InputBitStream
          throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1..64])");
 
       long res;
-      int remaining = count - this.bitIndex - 1;
+      int remaining = count - this.availBits;
 
       if (remaining <= 0)
       {         
          // Enough spots available in 'current'     
-         if (this.bitIndex < 0)
+         if (this.availBits == 0)
          {
             this.pullCurrent();
-            remaining -= (this.bitIndex-63); // adjust if bitIndex != 63 (end of stream)
+            remaining -= (this.availBits-64); // adjust if bitIndex != 63 (end of stream)
          }
          
          res = (this.current >>> -remaining) & (-1L >>> -count);
-         this.bitIndex -= count;
+         this.availBits -= count;
       }
       else
       {
          // Not enough spots available in 'current'
-         res = this.current & ((1L<<(this.bitIndex+1))-1);
+         res = this.current & ((1L<<this.availBits)-1);
          this.pullCurrent();
-         res <<= remaining;
-         this.bitIndex -= remaining;
-         res |= (this.current >>> (this.bitIndex+1));
+         this.availBits -= remaining;
+         res = (res << remaining) | (this.current >>> this.availBits);
       }
 
       return res;
@@ -149,13 +147,13 @@ public final class DefaultInputBitStream implements InputBitStream
       int remaining = count;
 
       // Byte aligned cursor ?
-      if (((this.bitIndex+1) & 7) == 0)
+      if ((this.availBits & 7) == 0)
       {
-         if (this.bitIndex < 0)
+         if (this.availBits == 0)
             this.pullCurrent();
 
          // Empty this.current
-         while ((this.bitIndex >= 0) && (remaining >= 8))
+         while ((this.availBits > 0) && (remaining >= 8))
          {
             bits[start] = (byte) this.readBits(8);
             start++;
@@ -184,15 +182,14 @@ public final class DefaultInputBitStream implements InputBitStream
       else
       {
          // Not byte aligned
-         final int r = 63 - this.bitIndex;
+         final int r = 64 - this.availBits;
 
          while (remaining >= 64)
          {
-            long v = this.current & ((1L<<(this.bitIndex+1))-1);
+            long v = this.current & ((1L<<this.availBits)-1);
             this.pullCurrent();
-            v <<= r;
-            this.bitIndex -= r;
-            v |= (this.current >>> (this.bitIndex+1));
+            this.availBits -= r;
+            v = (v << r) | (this.current >>> this.availBits);
             Memory.BigEndian.writeLong64(bits, start, v);
             start += 8;
             remaining -= 64;
@@ -224,7 +221,7 @@ public final class DefaultInputBitStream implements InputBitStream
       {
          // End of stream: overshoot max position => adjust bit index
          int shift = (this.maxPosition - this.position) << 3;
-         this.bitIndex = shift + 7;
+         this.availBits = shift + 8;
          long val = 0;
 
          while (this.position <= this.maxPosition)
@@ -239,7 +236,7 @@ public final class DefaultInputBitStream implements InputBitStream
       {
          // Regular processing, buffer length is multiple of 8
          this.current = Memory.BigEndian.readLong64(this.buffer, this.position);
-         this.bitIndex = 63;
+         this.availBits = 64;
          this.position += 8;
       }       
    }
@@ -255,7 +252,7 @@ public final class DefaultInputBitStream implements InputBitStream
 
       // Reset fields to force a readFromInputStream() and trigger an exception
       // on readBit() or readBits()
-      this.bitIndex = -1;
+      this.availBits = 0;
       this.maxPosition = -1;
    }
 
@@ -264,7 +261,7 @@ public final class DefaultInputBitStream implements InputBitStream
    @Override
    public long read()
    {
-      return this.read + (this.position<<3) - (this.bitIndex+1);
+      return this.read + (this.position<<3) - this.availBits;
    }
 
 
@@ -274,7 +271,7 @@ public final class DefaultInputBitStream implements InputBitStream
       if (this.isClosed() == true)
          return false;
 
-      if ((this.position < this.maxPosition) || (this.bitIndex >= 0))
+      if ((this.position < this.maxPosition) || (this.availBits > 0))
          return true;
 
       try
