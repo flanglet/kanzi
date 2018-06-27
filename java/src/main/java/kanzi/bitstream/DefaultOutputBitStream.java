@@ -28,7 +28,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
    private byte[] buffer;
    private boolean closed;
    private int position;  // index of current byte in buffer
-   private int bitIndex;  // index of current bit to write in current
+   private int availBits; // bits not consumed in current
    private long written;
    private long current;  // cached bits
 
@@ -49,7 +49,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
 
       this.os = os;
       this.buffer = new byte[bufferSize];
-      this.bitIndex = 63;
+      this.availBits = 64;
    }
 
 
@@ -57,15 +57,15 @@ public final class DefaultOutputBitStream implements OutputBitStream
    @Override
    public void writeBit(int bit)
    {
-      if (this.bitIndex <= 0) // bitIndex = -1 if stream is closed => force pushCurrent()
+      if (this.availBits <= 1) // availBits = 0 if stream is closed => force pushCurrent()
       {
          this.current |= (bit & 1);
          this.pushCurrent();
       }
       else
       {
-         this.current |= ((long) (bit & 1) << this.bitIndex);
-         this.bitIndex--;
+         this.availBits--;
+         this.current |= ((long) (bit & 1) << this.availBits);
       }
    }
 
@@ -81,14 +81,14 @@ public final class DefaultOutputBitStream implements OutputBitStream
          throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1..64])");
 
       value &= (-1L >>> -count);
-      final int remaining = this.bitIndex + 1 - count;
+      final int remaining = this.availBits - count;
 
       // Pad the current position in buffer
       if (remaining > 0)
       {
          // Enough spots available in 'current'
          this.current |= (value << remaining);
-         this.bitIndex -= count;
+         this.availBits -= count;
       }
       else
       {
@@ -99,7 +99,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
          if (remaining != 0)
          {
             this.current = (value << remaining);
-            this.bitIndex += remaining;
+            this.availBits += remaining;
          }
       }
 
@@ -123,10 +123,10 @@ public final class DefaultOutputBitStream implements OutputBitStream
       int remaining = count;
 
       // Byte aligned cursor ?
-      if (((this.bitIndex+1) & 7) == 0)
+      if ((this.availBits & 7) == 0)
       {
          // Fill up this.current
-         while ((this.bitIndex != 63) && (remaining >= 8))
+         while ((this.availBits != 64) && (remaining >= 8))
          {
             this.writeBits((long) bits[start], 8);
             start++;
@@ -156,7 +156,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
       else
       {
          // Not byte aligned
-         final int r = 63 - this.bitIndex;
+         final int r = 64 - this.availBits;
 
          while (remaining >= 64)
          {
@@ -164,7 +164,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
             this.current |= (value >>> r);
             this.pushCurrent();
             this.current = (value << -r);
-            this.bitIndex -= r;
+            this.availBits -= r;
             start += 8;
             remaining -= 64;
          }
@@ -189,7 +189,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
    private void pushCurrent()
    {
       Memory.BigEndian.writeLong64(this.buffer, this.position, this.current);
-      this.bitIndex = 63;
+      this.availBits = 64;
       this.current = 0;
       this.position += 8;
 
@@ -226,14 +226,14 @@ public final class DefaultOutputBitStream implements OutputBitStream
       if (this.isClosed() == true)
          return;
 
-      final int savedBitIndex = this.bitIndex;
+      final int savedBitIndex = this.availBits;
       final int savedPosition = this.position;
       final long savedCurrent = this.current;
 
       try
       {
          // Push last bytes (the very last byte may be incomplete)
-         final int size = ((63 - this.bitIndex) + 7) >> 3;
+         final int size = ((64 - this.availBits) + 7) >> 3;
          this.pushCurrent();
          this.position -= (8 - size);
          this.flush();
@@ -242,7 +242,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
       {
          // Revert fields to allow subsequent attempts in case of transient failure
          this.position = savedPosition;
-         this.bitIndex = savedBitIndex;
+         this.availBits = savedBitIndex;
          this.current = savedCurrent;
          throw e;
       }
@@ -261,7 +261,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
 
       // Reset fields to force a flush() and trigger an exception
       // on writeBit() or writeBits()
-      this.bitIndex = -1;
+      this.availBits = 0;
       this.buffer = new byte[8];
       this.written -= 64; // adjust for method written()
    }
@@ -272,7 +272,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
    public long written()
    {
       // Number of bits flushed + bytes written in memory + bits written in memory
-      return this.written + (this.position<<3) + (63-this.bitIndex);
+      return this.written + (this.position<<3) + (64-this.availBits);
    }
 
 

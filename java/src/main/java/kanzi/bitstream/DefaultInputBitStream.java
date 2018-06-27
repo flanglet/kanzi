@@ -186,11 +186,10 @@ public final class DefaultInputBitStream implements InputBitStream
 
          while (remaining >= 64)
          {
-            long v = this.current & ((1L<<this.availBits)-1);
+            final long v = this.current & ((1L<<this.availBits)-1);
             this.pullCurrent();
             this.availBits -= r;
-            v = (v << r) | (this.current >>> this.availBits);
-            Memory.BigEndian.writeLong64(bits, start, v);
+            Memory.BigEndian.writeLong64(bits, start, (v<<r) | (this.current>>>this.availBits));
             start += 8;
             remaining -= 64;
          }
