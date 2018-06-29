@@ -44,7 +44,7 @@ import kanzi.Global;
    int get(int bit, int pr, int ctx)
    {
       // Update probability based on error and learning rate
-      final int g = (bit<<16) + (bit<<this.rate) - (bit<<1);
+      final int g = (bit<<16) + (bit<<this.rate) - (bit<<3);
       this.data[this.index] += ((g-this.data[this.index]) >> this.rate);
       this.data[this.index+1] += ((g-this.data[this.index+1]) >> this.rate);
       pr = Global.STRETCH[pr];
