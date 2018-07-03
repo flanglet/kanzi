@@ -44,7 +44,7 @@ import kanzi.Global;
    int get(int bit, int pr, int ctx)
    {
       // Update probability based on error and learning rate
-      final int g = (bit<<16) + (bit<<this.rate) - (bit<<3);
+      final int g = (-bit & 65528) + (bit<<this.rate);
       this.data[this.index] += ((g-this.data[this.index]) >> this.rate);
 
       // Find index: 33*ctx + quantized prediction in [0..32]
