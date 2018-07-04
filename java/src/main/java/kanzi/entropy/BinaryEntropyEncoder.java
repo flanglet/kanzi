@@ -18,7 +18,9 @@ package kanzi.entropy;
 
 import kanzi.Predictor;
 import kanzi.EntropyEncoder;
+import kanzi.Memory;
 import kanzi.OutputBitStream;
+import kanzi.SliceByteArray;
 
 
 // This class is a generic implementation of a boolean entropy encoder
@@ -34,8 +36,9 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    private long high;
    private final OutputBitStream bitstream;
    private boolean disposed;
-   
+   private SliceByteArray sba;
 
+   
    public BinaryEntropyEncoder(OutputBitStream bitstream, Predictor predictor)
    {
       if (bitstream == null)
@@ -48,21 +51,39 @@ public class BinaryEntropyEncoder implements EntropyEncoder
       this.high = TOP;
       this.bitstream = bitstream;
       this.predictor = predictor;
+      this.sba = new SliceByteArray(new byte[0], 0);
    }
 
 
    @Override
-   public int encode(byte[] array, int blkptr, int len)
+   public int encode(byte[] array, int blkptr, int count)
    {
-      if ((array == null) || (blkptr + len > array.length) || (blkptr < 0) || (len < 0))
+      if ((array == null) || (blkptr + count > array.length) || (blkptr < 0) || (count < 0))
          return -1;
-
-      final int end = blkptr + len;
       
+      // Add some margin to avoid reallocating each time a block is bigger
+      // Pay attention to potential int overflow
+      if (this.sba.array.length < count+(count>>4))
+         this.sba.array = new byte[count+(count>>4)];
+      
+      this.sba.index = 0;
+      final int end = blkptr + count;
+
       for (int i=blkptr; i<end; i++)
          this.encodeByte(array[i]);
+    
+      EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
+      int n = 0;
       
-      return len;
+      while (this.sba.index > 0)
+      {
+         final int sz = Math.min(this.sba.index, 1<<28);
+         this.bitstream.writeBits(this.sba.array, n, 8*sz);
+         n += sz;
+         this.sba.index -= sz;
+      }
+      
+      return count;
    }
 
 
@@ -86,9 +107,11 @@ public class BinaryEntropyEncoder implements EntropyEncoder
       final long split = (((this.high - this.low) >>> 4) * this.predictor.get()) >>> 8;
         
       // Update fields with new interval bounds
-      this.high -= (-bit & (this.high - this.low - split));
-      this.low += (~-bit & -~split);
-            
+      if (bit == 0)
+         this.low = this.low + split + 1;
+      else 
+         this.high = this.low + split;
+	
       // Update predictor
       this.predictor.update(bit);
             
@@ -100,9 +123,10 @@ public class BinaryEntropyEncoder implements EntropyEncoder
 
    private void flush()
    {
-      this.bitstream.writeBits(this.high >>> 24, 32);
+      Memory.BigEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high>>>24));
+      this.sba.index += 4;
       this.low <<= 32;
-      this.high = (this.high << 32) | MASK_0_32;
+      this.high = (this.high<<32) | MASK_0_32;
    }
 
 

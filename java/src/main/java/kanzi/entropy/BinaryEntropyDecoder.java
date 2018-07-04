@@ -19,6 +19,8 @@ package kanzi.entropy;
 import kanzi.Predictor;
 import kanzi.EntropyDecoder;
 import kanzi.InputBitStream;
+import kanzi.Memory;
+import kanzi.SliceByteArray;
 
 
 // This class is a generic implementation of a boolean entropy decoder
@@ -35,6 +37,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder
    private long current;
    private final InputBitStream bitstream;
    private boolean initialized;
+   private SliceByteArray sba;
 
 
    public BinaryEntropyDecoder(InputBitStream bitstream, Predictor predictor)
@@ -49,25 +52,45 @@ public class BinaryEntropyDecoder implements EntropyDecoder
       this.low = 0L;
       this.high = TOP;
       this.bitstream = bitstream;
-      this.predictor = predictor;
+      this.predictor = predictor;      
+      this.sba = new SliceByteArray(new byte[0], 0);
    }
 
 
    @Override
-   public int decode(byte[] array, int blkptr, int len)
+   public int decode(byte[] array, int blkptr, int count)
    {
-     if ((array == null) || (blkptr + len > array.length) || (blkptr < 0) || (len < 0))
-        return -1;
+      if ((array == null) || (blkptr + count > array.length) || (blkptr < 0) || (count < 0))
+         return -1;
+
+      int length = EntropyUtils.readVarInt(this.bitstream);
+      int n = 0;
+
+      // Add some margin to avoid reallocating each time a block is bigger
+      // Pay attention to potential int overflow
+      if (this.sba.array.length < length+(length>>4))
+         this.sba.array = new byte[length+(length>>4)];
       
-     if (this.isInitialized() == false)
-        this.initialize();
+      // Deferred initialization: the bitstream may not be ready at build time
+      // Initialize 'current' with bytes read from the bitstream
+      if (this.isInitialized() == false)
+         this.initialize();
+      
+      while (length > 0)
+      {
+         final int sz = Math.min(length, 1<<28);
+         this.bitstream.readBits(this.sba.array, n, 8*sz);
+         n += sz;
+         length -= sz;
+      }
+      
+      this.sba.index = 0;
+      final int end = blkptr + count;
+      
+      for (int i=blkptr; i<end; i++)
+         array[i] = this.decodeByte();
 
-     final int end = blkptr + len;
-
-     for (int i=blkptr; i<end; i++)
-        array[i] = this.decodeByte();
-     
-     return len;
+      return count;
    }
    
 
@@ -133,9 +156,11 @@ public class BinaryEntropyDecoder implements EntropyDecoder
 
    protected void read()
    {
-      this.low = (this.low << 32) & MASK_0_56;           
-      this.high = ((this.high << 32) | MASK_0_32) & MASK_0_56;    
-      this.current = ((this.current << 32) | this.bitstream.readBits(32)) & MASK_0_56;
+      this.low = (this.low<<32) & MASK_0_56;           
+      this.high = ((this.high<<32) | MASK_0_32) & MASK_0_56;        
+      final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
+      this.current = ((this.current<<32) | val) & MASK_0_56;
+      this.sba.index += 4;
    }
 
 

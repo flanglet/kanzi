@@ -502,6 +502,53 @@ public class EntropyUtils
    }
 
 
+   public static int writeVarInt(OutputBitStream bs, int value)
+   {
+      if (bs == null)
+         throw new NullPointerException("Invalid null bitstream parameter");
+  
+      int w = 0;
+      boolean more;
+      
+      do 
+      {        
+         if (value >= 128)
+            bs.writeBits(0x80|(value&0x7F), 8);
+         else
+            bs.writeBits(value, 8);
+         
+         more = value >= 128;
+         value >>= 7;
+         w++;
+      }
+      while ((more == true) && (w < 4));
+
+      return w;
+   }
+   
+   
+   public static int readVarInt(InputBitStream bs)
+   {
+      if (bs == null)
+         throw new NullPointerException("Invalid null bitstream parameter");
+      
+      int res = 0;
+      boolean more;
+      int shift = 0;
+      
+      do
+      {
+         final int val = (int) bs.readBits(8);
+         res = ((val&0x7F) << shift) | res;
+         more = val >= 128;
+         shift += 7;
+      }
+      while ((more == true) && (shift < 28));
+      
+      return res;
+   }
+   
+    
    private static class FreqSortData implements Comparable<FreqSortData>
    {
       final int symbol;
