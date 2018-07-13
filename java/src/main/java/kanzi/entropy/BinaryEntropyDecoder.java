@@ -60,37 +60,42 @@ public class BinaryEntropyDecoder implements EntropyDecoder
    @Override
    public int decode(byte[] array, int blkptr, int count)
    {
-      if ((array == null) || (blkptr + count > array.length) || (blkptr < 0) || (count < 0))
+      if ((array == null) || (blkptr + count > array.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
          return -1;
 
-      int length = EntropyUtils.readVarInt(this.bitstream);
-      int n = 0;
-
-      // Add some margin to avoid reallocating each time a block is bigger
-      // Pay attention to potential int overflow
-      if (this.sba.array.length < length+(length>>4))
-         this.sba.array = new byte[length+(length>>4)];
-      
-      // Deferred initialization: the bitstream may not be ready at build time
-      // Initialize 'current' with bytes read from the bitstream
-      if (this.isInitialized() == false)
-         this.initialize();
-      
-      while (length > 0)
-      {
-         final int sz = Math.min(length, 1<<28);
-         this.bitstream.readBits(this.sba.array, n, 8*sz);
-         n += sz;
-         length -= sz;
-      }
-      
-      this.sba.index = 0;
+      int startChunk = blkptr;
       final int end = blkptr + count;
-      
-      for (int i=blkptr; i<end; i++)
-         array[i] = this.decodeByte();
+      int length = count;
 
-      return count;
+      if (count >= 1<<26)
+      {
+         // If the block is big (>=64MB), split the decoding to avoid allocating
+         // too much memory.
+         length = (count < (1<<29)) ? count >> 3 : count >> 4;
+      }  
+      
+      // Split block into chunks, read bit array from bitstream and decode chunk
+      while (startChunk < end)
+      {
+         final int chunkSize = startChunk+length < end ? length : end-startChunk;
+       
+         if (this.sba.array.length < chunkSize)
+            this.sba.array = new byte[chunkSize];
+
+         final int szBytes = EntropyUtils.readVarInt(this.bitstream);                 
+         this.current = this.bitstream.readBits(56);
+         this.initialized = true;
+         this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
+         this.sba.index = 0;
+         final int endChunk = startChunk + chunkSize;
+
+         for (int i=startChunk; i<endChunk; i++)
+           array[i] = this.decodeByte();
+         
+         startChunk = endChunk;
+      }
+
+      return count;   
    }
    
 

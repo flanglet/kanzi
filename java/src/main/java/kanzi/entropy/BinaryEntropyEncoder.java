@@ -58,35 +58,45 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    @Override
    public int encode(byte[] array, int blkptr, int count)
    {
-      if ((array == null) || (blkptr + count > array.length) || (blkptr < 0) || (count < 0))
+      if ((array == null) || (blkptr + count > array.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
          return -1;
-      
-      // Add some margin to avoid reallocating each time a block is bigger
-      // Pay attention to potential int overflow
-      if (this.sba.array.length < count+(count>>4))
-         this.sba.array = new byte[count+(count>>4)];
-      
-      this.sba.index = 0;
-      final int end = blkptr + count;
 
-      for (int i=blkptr; i<end; i++)
-         this.encodeByte(array[i]);
-    
-      EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
-      int n = 0;
-      
-      while (this.sba.index > 0)
+      int startChunk = blkptr;
+      final int end = blkptr + count;
+      int length = count;
+
+      if (count >= 1<<26)
       {
-         final int sz = Math.min(this.sba.index, 1<<28);
-         this.bitstream.writeBits(this.sba.array, n, 8*sz);
-         n += sz;
-         this.sba.index -= sz;
+         // If the block is big (>=64MB), split the decoding to avoid allocating
+         // too much memory.
+         length = (count < (1<<29)) ? count >> 3 : count >> 4;
+      }  
+
+      // Split block into chunks, encode chunk and write bit array to bitstream
+      while (startChunk < end)
+      {
+         final int chunkSize = startChunk+length < end ? length : end-startChunk;
+        
+         if (this.sba.array.length < chunkSize)
+            this.sba.array = new byte[chunkSize];
+         
+         this.sba.index = 0;
+
+         for (int i=startChunk; i<startChunk+chunkSize; i++)
+            this.encodeByte(array[i]);
+
+         EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
+         this.bitstream.writeBits(this.sba.array, 0, 8*this.sba.index); 
+         startChunk += chunkSize;
+
+         if (startChunk < end)         
+            this.bitstream.writeBits(this.low | MASK_0_24, 56);         
       }
-      
+
       return count;
    }
-
-
+   
+   
    public final void encodeByte(byte val)
    {
       this.encodeBit((val >> 7) & 1);
