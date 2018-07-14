@@ -58,14 +58,17 @@ public class BinaryEntropyDecoder implements EntropyDecoder
 
 
    @Override
-   public int decode(byte[] array, int blkptr, int count)
+   public int decode(byte[] block, int blkptr, int count)
    {
-      if ((array == null) || (blkptr + count > array.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
-         return -1;
+      if (block == null)
+         throw new NullPointerException("Invalid null block parameter");
+
+      if ((blkptr + count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
+         throw new IllegalArgumentException("Invalid block pointer or count parameter");
 
       int startChunk = blkptr;
       final int end = blkptr + count;
-      int length = count;
+      int length = (count < 64) ? 64 : count;
 
       if (count >= 1<<26)
       {
@@ -79,8 +82,8 @@ public class BinaryEntropyDecoder implements EntropyDecoder
       {
          final int chunkSize = startChunk+length < end ? length : end-startChunk;
        
-         if (this.sba.array.length < chunkSize)
-            this.sba.array = new byte[chunkSize];
+         if (this.sba.array.length < (chunkSize*9)>>3)
+            this.sba.array = new byte[(chunkSize*9)>>3];
 
          final int szBytes = EntropyUtils.readVarInt(this.bitstream);                 
          this.current = this.bitstream.readBits(56);
@@ -90,7 +93,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder
          final int endChunk = startChunk + chunkSize;
 
          for (int i=startChunk; i<endChunk; i++)
-           array[i] = this.decodeByte();
+            block[i] = this.decodeByte();
          
          startChunk = endChunk;
       }

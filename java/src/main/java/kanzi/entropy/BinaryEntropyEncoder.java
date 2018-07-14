@@ -56,18 +56,21 @@ public class BinaryEntropyEncoder implements EntropyEncoder
 
 
    @Override
-   public int encode(byte[] array, int blkptr, int count)
+   public int encode(byte[] block, int blkptr, int count)
    {
-      if ((array == null) || (blkptr + count > array.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
-         return -1;
+      if (block == null)
+         throw new NullPointerException("Invalid null block parameter");
+
+      if ((blkptr + count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
+         throw new IllegalArgumentException("Invalid block pointer or count parameter");
 
       int startChunk = blkptr;
       final int end = blkptr + count;
-      int length = count;
+      int length = (count < 64) ? 64 : count;
 
       if (count >= 1<<26)
       {
-         // If the block is big (>=64MB), split the decoding to avoid allocating
+         // If the block is big (>=64MB), split the encoding to avoid allocating
          // too much memory.
          length = (count < (1<<29)) ? count >> 3 : count >> 4;
       }  
@@ -77,13 +80,13 @@ public class BinaryEntropyEncoder implements EntropyEncoder
       {
          final int chunkSize = startChunk+length < end ? length : end-startChunk;
         
-         if (this.sba.array.length < chunkSize)
-            this.sba.array = new byte[chunkSize];
+         if (this.sba.array.length < (chunkSize*9)>>3)
+            this.sba.array = new byte[(chunkSize*9)>>3];
          
          this.sba.index = 0;
 
          for (int i=startChunk; i<startChunk+chunkSize; i++)
-            this.encodeByte(array[i]);
+            this.encodeByte(block[i]);
 
          EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
          this.bitstream.writeBits(this.sba.array, 0, 8*this.sba.index); 
