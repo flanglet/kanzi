@@ -190,6 +190,7 @@ public class TPAQPredictor implements Predictor
    private int ctx4;
    private int ctx5;
    private int ctx6;
+   private boolean extra;
    
    
    public TPAQPredictor()
@@ -203,15 +204,14 @@ public class TPAQPredictor implements Predictor
       int statesSize = 1 << 28;
       int mixersSize = 1 << 12;
       int hashSize = HASH_SIZE;
-      boolean extraPerf = false;
       int extraMem = 0;
       
       if (ctx != null)
       {
          // If extra mode, add more memory for states table, hash table
          // and add second SSE
-         extraPerf = (Boolean) ctx.getOrDefault("extra", false);
-         extraMem = (extraPerf == true) ? 1 : 0;
+         this.extra = (Boolean) ctx.getOrDefault("extra", false);
+         extraMem = (this.extra == true) ? 1 : 0;
          
          // Block size requested by the user
          // The user can request a big block size to force more states
@@ -258,8 +258,8 @@ public class TPAQPredictor implements Predictor
       this.statesMask = this.bigStatesMap.length - 1;
       this.mixersMask = this.mixers.length - 1;
       this.hashMask = this.hashes.length - 1;
-      this.sse0 = (extraPerf == true) ? new LogisticAdaptiveProbMap(256, 7) : null;
-      this.sse1 = new LogisticAdaptiveProbMap(65536, 7);
+      this.sse0 = (this.extra == true) ? new LogisticAdaptiveProbMap(256, 7) : null;
+      this.sse1 = (this.extra == true) ? new LogisticAdaptiveProbMap(65536, 7) : null;
    }
 
  
@@ -350,16 +350,19 @@ public class TPAQPredictor implements Predictor
       int p = this.mixer.get(p0, p1, p2, p3, p4, p5, p6, p7);
 
       // SSE (Secondary Symbol Estimation)
-      if ((this.sse0 == null) || (this.binCount < (this.pos>>3)))
+      if (this.extra == true)
       {
-         p = this.sse1.get(bit, p, c | (this.c4&0xFF00));
-      }
-      else 
-      {
-         if (this.binCount >= (this.pos>>2))            
-            p = this.sse0.get(bit, p, this.c0);
-         
-         p = (3 * this.sse1.get(bit, p, this.c0 | (this.c4&0xFF00)) + p + 2) >> 2;
+         if (this.binCount < (this.pos>>3))
+         {
+            p = this.sse1.get(bit, p, c | (this.c4&0xFF00));
+         }
+         else 
+         {
+            if (this.binCount >= (this.pos>>2))            
+               p = this.sse0.get(bit, p, this.c0);
+
+            p = (3 * this.sse1.get(bit, p, this.c0 | (this.c4&0xFF00)) + p + 2) >> 2;
+         }
       }
 
       this.pr = p + ((p-2048) >>> 31);
