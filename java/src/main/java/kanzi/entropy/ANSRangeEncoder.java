@@ -174,19 +174,19 @@ public class ANSRangeEncoder implements EntropyEncoder
 
    // Dynamically compute the frequencies for every chunk of data in the block
    @Override
-   public int encode(byte[] block, int blkptr, int len)
+   public int encode(byte[] block, int blkptr, int count)
    {
-      if ((block == null) || (blkptr+len > block.length) || (blkptr < 0) || (len < 0))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
-      if (len == 0)
+      if (count == 0)
          return 0;
 
-      final int end = blkptr + len;
-      int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+      final int end = blkptr + count;
+      int sizeChunk = (this.chunkSize == 0) ? count : this.chunkSize;
       
-      if (sz >= MAX_CHUNK_SIZE)
-         sz = MAX_CHUNK_SIZE;
+      if (sizeChunk >= MAX_CHUNK_SIZE)
+         sizeChunk = MAX_CHUNK_SIZE;
       
       int startChunk = blkptr;
       final int endk = 255*this.order + 1;
@@ -200,12 +200,12 @@ public class ANSRangeEncoder implements EntropyEncoder
       }
 
       // Add some padding
-      if (this.buffer.length < sz+(sz>>3))
-         this.buffer = new byte[sz+(sz>>3)];
+      if (this.buffer.length < sizeChunk+(sizeChunk>>3))
+         this.buffer = new byte[sizeChunk+(sizeChunk>>3)];
 
       while (startChunk < end)
       {
-         final int endChunk = (startChunk+sz < end) ? startChunk+sz : end;
+         final int endChunk = (startChunk+sizeChunk < end) ? startChunk+sizeChunk : end;
          int lr = this.logRange;
 
          // Lower log range if the size of the data chunk is small
@@ -217,7 +217,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          startChunk = endChunk;
       }
 
-      return len;
+      return count;
    }
 
 

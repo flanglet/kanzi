@@ -89,19 +89,19 @@ public class ANSRangeDecoder implements EntropyDecoder
 
 
    @Override
-   public int decode(byte[] block, int blkptr, int len)
+   public int decode(byte[] block, int blkptr, int count)
    {
-      if ((block == null) || (blkptr + len > block.length) || (blkptr < 0) || (len < 0))
+      if ((block == null) || (blkptr + count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
-      if (len == 0)
+      if (count == 0)
          return 0;
 
-      final int end = blkptr + len;
-      int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+      final int end = blkptr + count;
+      int sizeChunk = (this.chunkSize == 0) ? count : this.chunkSize;
       
-      if (sz >= MAX_CHUNK_SIZE)
-         sz = MAX_CHUNK_SIZE;
+      if (sizeChunk >= MAX_CHUNK_SIZE)
+         sizeChunk = MAX_CHUNK_SIZE;
       
       int startChunk = blkptr;
       final int endk = 255*this.order + 1;
@@ -115,20 +115,20 @@ public class ANSRangeDecoder implements EntropyDecoder
       }
 
       // Add some padding
-      if (this.buffer.length < sz+(sz>>3))
-         this.buffer = new byte[sz+(sz>>3)];
+      if (this.buffer.length < sizeChunk+(sizeChunk>>3))
+         this.buffer = new byte[sizeChunk+(sizeChunk>>3)];
 
       while (startChunk < end)
       {
          if (this.decodeHeader(this.freqs) == 0)
             return startChunk - blkptr;
       
-         final int endChunk = (startChunk + sz < end) ? startChunk + sz : end;
+         final int endChunk = (startChunk+sizeChunk < end) ? startChunk + sizeChunk : end;
          this.decodeChunk(block, startChunk, endChunk);        
          startChunk = endChunk;
       }
 
-      return len;
+      return count;
    }
 
    
