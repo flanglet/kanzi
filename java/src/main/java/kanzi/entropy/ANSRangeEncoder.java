@@ -28,6 +28,7 @@ public class ANSRangeEncoder implements EntropyEncoder
    private static final int ANS_TOP = 1 << 23;
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
    private static final int DEFAULT_LOG_RANGE = 13; // max possible for ANS_TOP=1<23
+   private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final OutputBitStream bitstream;
    private final int[][] alphabet;
@@ -64,8 +65,8 @@ public class ANSRangeEncoder implements EntropyEncoder
       if ((chunkSize != 0) && (chunkSize < 1024))
          throw new IllegalArgumentException("The chunk size must be at least 1024");
 
-      if (chunkSize > 1<<30)
-         throw new IllegalArgumentException("The chunk size must be at most 2^30");
+      if (chunkSize > MAX_CHUNK_SIZE)
+         throw new IllegalArgumentException("The chunk size must be at most 2^27");
 
       if ((logRange < 8) || (logRange > 16))
          throw new IllegalArgumentException("Invalid range: "+logRange+" (must be in [8..16])");
@@ -105,7 +106,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          final int[] f = frequencies[k];
          final Symbol[] symb = this.symbols[k];
          final int[] alphabet_ = this.alphabet[k];
-         int alphabetSize = this.eu.normalizeFrequencies(f, alphabet_, f[256], 1<<lr);
+         final int alphabetSize = this.eu.normalizeFrequencies(f, alphabet_, f[256], 1<<lr);
 
          if (alphabetSize > 0)
          {
@@ -182,7 +183,11 @@ public class ANSRangeEncoder implements EntropyEncoder
          return 0;
 
       final int end = blkptr + len;
-      final int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+      int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+      
+      if (sz >= MAX_CHUNK_SIZE)
+         sz = MAX_CHUNK_SIZE;
+      
       int startChunk = blkptr;
       final int endk = 255*this.order + 1;
 
@@ -194,12 +199,13 @@ public class ANSRangeEncoder implements EntropyEncoder
             syms[i] = new Symbol();
       }
 
-      if (this.buffer.length < 2*sz)
-         this.buffer = new byte[2*sz];
+      // Add some padding
+      if (this.buffer.length < sz+(sz>>3))
+         this.buffer = new byte[sz+(sz>>3)];
 
       while (startChunk < end)
       {
-         final int endChunk = (startChunk + sz < end) ? startChunk + sz : end;
+         final int endChunk = (startChunk+sz < end) ? startChunk+sz : end;
          int lr = this.logRange;
 
          // Lower log range if the size of the data chunk is small
@@ -218,7 +224,7 @@ public class ANSRangeEncoder implements EntropyEncoder
    private void encodeChunk(byte[] block, int start, int end)
    {
       int st = ANS_TOP;
-      int n = 0;
+      int n = this.buffer.length - 1;
 
       if (this.order == 0)
       {
@@ -231,7 +237,7 @@ public class ANSRangeEncoder implements EntropyEncoder
 
             while (st >= sym.xMax)
             {
-               this.buffer[n++] = (byte) st;
+               this.buffer[n--] = (byte) st;
                st >>>= 8;
             }
 
@@ -253,7 +259,7 @@ public class ANSRangeEncoder implements EntropyEncoder
 
             while (st >= sym.xMax)
             {
-               this.buffer[n++] = (byte) st;
+               this.buffer[n--] = (byte) st;
                st >>>= 8;
             }
 
@@ -270,7 +276,7 @@ public class ANSRangeEncoder implements EntropyEncoder
 
          while (st >= sym.xMax)
          {
-            this.buffer[n++] = (byte) st;
+            this.buffer[n--] = (byte) st;
             st >>>= 8;
          }
 
@@ -278,12 +284,16 @@ public class ANSRangeEncoder implements EntropyEncoder
          st = (int) (st + sym.bias + q*sym.cmplFreq);
       }
 
+      n++;
+      
+      // Write chunk size
+      EntropyUtils.writeVarInt(this.bitstream, this.buffer.length-n);
+
       // Write final ANS state
       this.bitstream.writeBits(st, 32);
 
       // Write encoded data to bitstream
-      for (n--; n>=0; n--)
-         this.bitstream.writeBits(this.buffer[n], 8);
+      this.bitstream.writeBits(this.buffer, n, 8*(this.buffer.length-n));
    }
 
 

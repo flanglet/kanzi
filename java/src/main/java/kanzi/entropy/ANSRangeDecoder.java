@@ -28,12 +28,14 @@ public class ANSRangeDecoder implements EntropyDecoder
 {
    private static final int ANS_TOP = 1 << 23;
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
+   private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final InputBitStream bitstream;
    private final int[][] alphabet;
    private final int[][] freqs;
    private final byte[][] f2s; // mapping frequency -> symbol
    private final Symbol[][] symbols;
+   private byte[] buffer;
    private final int chunkSize;
    private final int order;
    private int logRange;
@@ -63,8 +65,8 @@ public class ANSRangeDecoder implements EntropyDecoder
       if ((chunkSize != 0) && (chunkSize < 1024))
          throw new IllegalArgumentException("The chunk size must be at least 1024");
 
-      if (chunkSize > 1<<30)
-         throw new IllegalArgumentException("The chunk size must be at most 2^30");
+      if (chunkSize > MAX_CHUNK_SIZE)
+         throw new IllegalArgumentException("The chunk size must be at most 2^27");
 
       this.bitstream = bs;
       this.chunkSize = chunkSize;
@@ -74,6 +76,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.freqs = new int[dim][256];
       this.f2s = new byte[dim][256];
       this.symbols = new Symbol[dim][256];
+      this.buffer = new byte[0];
       
       for (int i=0; i<dim; i++)
       {
@@ -95,7 +98,11 @@ public class ANSRangeDecoder implements EntropyDecoder
          return 0;
 
       final int end = blkptr + len;
-      final int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+      int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+      
+      if (sz >= MAX_CHUNK_SIZE)
+         sz = MAX_CHUNK_SIZE;
+      
       int startChunk = blkptr;
       final int endk = 255*this.order + 1;
       
@@ -106,6 +113,10 @@ public class ANSRangeDecoder implements EntropyDecoder
          for (int i=0; i<256; i++)
             syms[i] = new Symbol();
       }
+
+      // Add some padding
+      if (this.buffer.length < sz+(sz>>3))
+         this.buffer = new byte[sz+(sz>>3)];
 
       while (startChunk < end)
       {
@@ -123,9 +134,14 @@ public class ANSRangeDecoder implements EntropyDecoder
    
    protected void decodeChunk(byte[] block, int start, final int end)
    {
+      // Read chunk size
+      final int sz = EntropyUtils.readVarInt(this.bitstream) & (MAX_CHUNK_SIZE-1);
+           
       // Read initial ANS state
       int st = (int) this.bitstream.readBits(32);
-      final int mask = (1 << this.logRange) - 1;
+      this.bitstream.readBits(this.buffer, 0, 8*sz);
+      int n = 0;
+      final int mask = (1<<this.logRange) - 1;
 
       if (this.order == 0)
       {
@@ -144,7 +160,7 @@ public class ANSRangeDecoder implements EntropyDecoder
 
             // Normalize
             while (st < ANS_TOP) 
-               st = (st<<8) | (int) this.bitstream.readBits(8);           
+               st = (st<<8) | (this.buffer[n++] & 0xFF);         
          }
       }
       else
@@ -163,11 +179,11 @@ public class ANSRangeDecoder implements EntropyDecoder
 
             // Normalize
             while (st < ANS_TOP)
-               st = (st<<8) | (int) this.bitstream.readBits(8);
+               st = (st<<8) | (this.buffer[n++] & 0xFF);
 
             prv = cur;
          }             
-      }
+      } 
    }
    
 
