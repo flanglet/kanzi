@@ -278,6 +278,10 @@ public class EntropyUtils
       {
          int alphabetSize = 1 << (int) ibs.readBits(5);
          
+         if (alphabetSize > alphabet.length)
+            throw new BitStreamException("Invalid bitstream: incorrect alphabet size: " + alphabetSize,
+               BitStreamException.INVALID_STREAM);
+         
          // Read missing symbols
          for (int i=0; i<count; i+=ckSize)
          {
