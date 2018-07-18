@@ -305,7 +305,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       for (int j=0; j<endj; j++)
       {
          final int[] f = this.freqs[j];
-
+         
          for (int i=f.length-1; i>=0; i--)
             f[i] = 0;
       }
@@ -314,8 +314,21 @@ public class ANSRangeEncoder implements EntropyEncoder
       {
          final int[] f = this.freqs[0];
          f[256] = end - start;
+         final int end8 = start + ((end-start) & -8);
 
-         for (int i=start; i<end; i++)
+         for (int i=start; i<end8; i+=8)
+         {
+            f[block[i]&0xFF]++;
+            f[block[i+1]&0xFF]++;
+            f[block[i+2]&0xFF]++;
+            f[block[i+3]&0xFF]++;
+            f[block[i+4]&0xFF]++;
+            f[block[i+5]&0xFF]++;
+            f[block[i+6]&0xFF]++;
+            f[block[i+7]&0xFF]++;
+         }
+         
+         for (int i=end8; i<end; i++)
             f[block[i]&0xFF]++;
       }
       else
