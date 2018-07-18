@@ -195,7 +195,7 @@ public final class DebugInputBitStream implements InputBitStream
    {
       count = this.delegate.readBits(bits, start, count);
       
-      for (int i=start; i<=start+(count>>3); i++)
+      for (int i=start; i<start+(count>>3); i++)
       {
          for (int j=7; j>=0; j--)
          {

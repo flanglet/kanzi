@@ -144,6 +144,9 @@ public final class DefaultInputBitStream implements InputBitStream
          throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1.." +
            ((bits.length-start)<<3) + "])");
 
+      if (count == 0)
+         return 0;
+      
       int remaining = count;
 
       // Byte aligned cursor ?

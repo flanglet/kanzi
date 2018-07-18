@@ -195,7 +195,7 @@ public final class DebugOutputBitStream implements OutputBitStream
    {
       int res = this.delegate.writeBits(bits, start, count);
 
-      for (int i=start; i<=start+(count>>3); i++)
+      for (int i=start; i<start+(count>>3); i++)
       {
          for (int j=7; j>=0; j--)
          {
