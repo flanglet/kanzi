@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.function;
 
+import java.util.Map;
 import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
 import kanzi.transform.BWT;
@@ -44,6 +45,12 @@ public class BWTBlockCodec implements ByteFunction
    }
    
 
+   public BWTBlockCodec(Map<String, Object> ctx)
+   {
+      this.bwt = new BWT(ctx);   
+   }
+   
+
    // Return true if the compression chain succeeded. In this case, the input data 
    // may be modified. If the compression failed, the input data is returned unmodified.
    @Override
@@ -66,11 +73,9 @@ public class BWTBlockCodec implements ByteFunction
 
       while (1<<log <= blockSize)
          log++; 
-              
-      log--;
       
       // Estimate header size based on block size
-      final int headerSizeBytes1 = (chunks*(2+log)+7) >>> 3;
+      final int headerSizeBytes1 = chunks * ((2+log+7) >>> 3);
       output.index += headerSizeBytes1;
       output.length -= headerSizeBytes1;
      
@@ -89,10 +94,8 @@ public class BWTBlockCodec implements ByteFunction
             pIndexSizeBits++;          
 
          // Compute block size based on primary index
-         headerSizeBytes2 += (2+pIndexSizeBits);
+         headerSizeBytes2 += ((2+pIndexSizeBits+7) >>> 3);
       }
-      
-      headerSizeBytes2 = (headerSizeBytes2+7) >>> 3;
       
       if (headerSizeBytes2 != headerSizeBytes1)
       {
