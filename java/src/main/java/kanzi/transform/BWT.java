@@ -332,9 +332,13 @@ public class BWT implements ByteTransform
          final int step = count / chunks;
          List<Callable<Integer>> tasks = new ArrayList<>(chunks);
          
-         for (int i=chunks-1; i>=0; i--, idx-=step)
-            tasks.add(new InverseRegularChunkTask(data, output, buckets_, this.getPrimaryIndex(i), 
+         for (int i=chunks-1; i>=0; i--)
+         {
+            tasks.add(new InverseRegularChunkTask(data, output, buckets_, pIdx, 
                idx, dstIdx+i*step));
+            idx -= step;
+            pIdx = this.getPrimaryIndex(i);
+         }
 
          try
          {
@@ -417,6 +421,7 @@ public class BWT implements ByteTransform
       // Build inverse
       if ((chunks == 1) || (this.pool == null))
       {
+         // Shortcut for 1 chunk scenario
          int val1 = data1[pIdx];
          byte val2 = data2[pIdx];
          output[idx--] = val2;
@@ -431,12 +436,18 @@ public class BWT implements ByteTransform
       }
       else
       {
+         // Several chunks may be decoded concurrently (depending on the availaibility
+         // of jobs in the pool).
          final int step = count / chunks;
          List<Callable<Integer>> tasks = new ArrayList<>(chunks);
-       
-         for (int i=chunks-1; i>=0; i--, idx-=step)
+
+         for (int i=chunks-1; i>=0; i--) 
+         {
             tasks.add(new InverseBigChunkTask(data1, data2, output, buckets_, 
-               this.getPrimaryIndex(i), idx, dstIdx+i*step));
+               pIdx, idx, dstIdx+i*step));
+            idx -= step;
+            pIdx = this.getPrimaryIndex(i);
+         }
 
          try
          {

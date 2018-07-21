@@ -87,7 +87,7 @@ public class BWTBlockCodec implements ByteFunction
       
       for (int i=0; i<chunks; i++)
       {
-         int primaryIndex = this.bwt.getPrimaryIndex(i);
+         final int primaryIndex = this.bwt.getPrimaryIndex(i);
          int pIndexSizeBits = 6;
 
          while ((1<<pIndexSizeBits) <= primaryIndex)
@@ -110,7 +110,7 @@ public class BWTBlockCodec implements ByteFunction
       
       for (int i=0; i<chunks; i++)
       {
-         int primaryIndex = this.bwt.getPrimaryIndex(i);
+         final int primaryIndex = this.bwt.getPrimaryIndex(i);
          int pIndexSizeBits = 6;
 
          while ((1<<pIndexSizeBits) <= primaryIndex)
