@@ -22,6 +22,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import kanzi.ByteTransform;
+import kanzi.Global;
 import kanzi.SliceByteArray;
 
 
@@ -60,7 +61,7 @@ import kanzi.SliceByteArray;
 //
 // See https://code.google.com/p/libdivsufsort/source/browse/wiki/SACA_Benchmarks.wiki
 // for respective performance of different suffix sorting algorithms.
-///
+//
 // This implementation extends the canonical algorithm to use up to MAX_CHUNKS primary 
 // indexes (based on input block size). Each primary index corresponds to a data chunk.
 // Chunks may be inverted concurrently.
@@ -77,6 +78,7 @@ public class BWT implements ByteTransform
    private final int[] primaryIndexes;
    private DivSufSort saAlgo;
    private final ExecutorService pool;
+   private final int jobs;
 
     
    // Static allocation of memory
@@ -87,6 +89,7 @@ public class BWT implements ByteTransform
       this.buckets = new int[256];
       this.primaryIndexes = new int[8];
       this.pool = null;
+      this.jobs = 1;
    }
 
 
@@ -107,6 +110,7 @@ public class BWT implements ByteTransform
       this.buckets = new int[256];
       this.primaryIndexes = new int[8]; 
       this.pool = (tasks == 1) ? null : threadPool;
+      this.jobs = tasks;
    }
    
    
@@ -313,7 +317,7 @@ public class BWT implements ByteTransform
       int idx = dstIdx + count - 1;
 
       // Build inverse
-      if ((chunks == 1) || (this.pool == null))
+      if ((chunks == 1) || (this.jobs == 1))
       {
          // Shortcut for 1 chunk scenario
          int ptr = data[pIdx];
@@ -330,16 +334,22 @@ public class BWT implements ByteTransform
          // Several chunks may be decoded concurrently (depending on the availaibility
          // of jobs in the pool).
          final int step = count / chunks;
-         List<Callable<Integer>> tasks = new ArrayList<>(chunks);
-         
-         for (int i=chunks-1; i>=0; i--)
-         {
-            tasks.add(new InverseRegularChunkTask(data, output, buckets_, pIdx, 
-               idx, dstIdx+i*step));
-            idx -= step;
-            pIdx = this.getPrimaryIndex(i);
-         }
+         final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
+         List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
+         final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
+         int c = chunks - 1;          
 
+         // Create one task per job
+         for (int j=0; j<nbTasks; j++) 
+         {
+            // Each task decodes jobsPerTask[j] chunks
+            final int end = dstIdx + c*step;
+            tasks.add(new InverseRegularChunkTask(output, dstIdx, pIdx, idx, step, c, c-jobsPerTask[j]));
+            pIdx = this.getPrimaryIndex(c);
+            c -= jobsPerTask[j];
+            idx = end - 1;
+         }                
+  
          try
          {
             // Wait for completion of all concurrent tasks
@@ -419,7 +429,7 @@ public class BWT implements ByteTransform
       int idx = dstIdx + count - 1;
 
       // Build inverse
-      if ((chunks == 1) || (this.pool == null))
+      if ((chunks == 1) || (this.jobs == 1))
       {
          // Shortcut for 1 chunk scenario
          int val1 = data1[pIdx];
@@ -435,18 +445,24 @@ public class BWT implements ByteTransform
          }      
       }
       else
-      {
+      {        
          // Several chunks may be decoded concurrently (depending on the availaibility
          // of jobs in the pool).
          final int step = count / chunks;
-         List<Callable<Integer>> tasks = new ArrayList<>(chunks);
+         final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
+         List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
+         final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
+         int c = chunks - 1;          
 
-         for (int i=chunks-1; i>=0; i--) 
+         // Create one task per job
+         for (int j=0; j<nbTasks; j++) 
          {
-            tasks.add(new InverseBigChunkTask(data1, data2, output, buckets_, 
-               pIdx, idx, dstIdx+i*step));
-            idx -= step;
-            pIdx = this.getPrimaryIndex(i);
+            // Each task decodes jobsPerTask[j] chunks
+            final int end = dstIdx + c*step;
+            tasks.add(new InverseBigChunkTask(output, dstIdx, pIdx, idx, step, c, c-jobsPerTask[j]));
+            pIdx = this.getPrimaryIndex(c);
+            c -= jobsPerTask[j];
+            idx = end - 1;
          }
 
          try
@@ -482,86 +498,115 @@ public class BWT implements ByteTransform
    }
  
    
-   static class InverseBigChunkTask implements Callable<Integer>
+   // Process one or several chunk(s)
+   class InverseBigChunkTask implements Callable<Integer>
    {
       private final byte[] output;
-      private final int[] data1;
-      private final byte[] data2;
-      private final int[] buckets;
-      private final int start;
-      private final int end;
-      private final int pIdx;
+      private final int dstIdx;
+      private final int startIdx;
+      private final int step;
+      private final int startChunk;
+      private final int endChunk;
+      private final int pIdx0;
 
 
-      public InverseBigChunkTask(int[] data1, byte[] data2, byte[] output, int[] buckets, 
-         int pIdx, int start, int end)
+      public InverseBigChunkTask(byte[] output, int dstIdx,
+         int pIdx0, int startIdx, int step, int startChunk, int endChunk)
       {
-         this.data1 = data1;
-         this.data2 = data2;
          this.output = output;
-         this.buckets = buckets;
-         this.start = start;
-         this.end = end;
-         this.pIdx = pIdx;  
+         this.dstIdx = dstIdx;
+         this.pIdx0 = pIdx0;  
+         this.startIdx = startIdx;
+         this.step = step;
+         this.startChunk = startChunk;
+         this.endChunk = endChunk;
       }
       
       
       @Override
       public Integer call() throws Exception
       {
-         int idx = this.start;
-         int val1 = this.data1[this.pIdx];
-         byte val2 = this.data2[this.pIdx];
-         this.output[idx--] = val2;
+         final int[] data1 = BWT.this.buffer1;	
+         final byte[] data2 = BWT.this.buffer2;
+         final int[] buckets = BWT.this.buckets;	
+         int pIdx = this.pIdx0;
+         int idx = this.startIdx;
+         
+         // Process each chunk sequentially
+         for (int i=this.startChunk; i>this.endChunk; i--)	
+         {	
+            int val1 = data1[pIdx];	
+            byte val2 = data2[pIdx];	
+            this.output[idx--] = val2;	
+            final int endIdx = this.dstIdx + i*this.step;	
 
-         for (; idx>=this.end; idx--)
-         {
-            final int n = val1 + this.buckets[val2&0xFF];
-            val1 = this.data1[n];
-            val2 = this.data2[n];
-            this.output[idx] = val2;
-         }   
+            for (; idx>=endIdx; idx--)	
+            {	
+               final int n = val1 + buckets[val2&0xFF];	
+               val1 = data1[n];	
+               val2 = data2[n];	
+               this.output[idx] = val2;	
+            }   	
+
+            pIdx = BWT.this.getPrimaryIndex(i);	
+            idx = endIdx - 1;	
+         } 
 
          return 0;
       }
    }
    
    
-   static class InverseRegularChunkTask implements Callable<Integer>
+   // Process one or several chunk(s)
+   class InverseRegularChunkTask implements Callable<Integer>
    {
       private final byte[] output;
-      private final int[] data;
-      private final int[] buckets;
-      private final int start;
-      private final int end;
-      private final int pIdx;
+      private final int dstIdx;
+      private final int startIdx;
+      private final int step;
+      private final int startChunk;
+      private final int endChunk;
+      private final int pIdx0;
 
 
-      public InverseRegularChunkTask(int[] data, byte[] output, int[] buckets, 
-         int pIdx, int start, int end)
+      public InverseRegularChunkTask(byte[] output, int dstIdx,
+         int pIdx0, int startIdx, int step, int startChunk, int endChunk)
       {
-         this.data = data;
          this.output = output;
-         this.buckets = buckets;
-         this.start = start;
-         this.end = end;
-         this.pIdx = pIdx;
+         this.dstIdx = dstIdx;
+         this.pIdx0 = pIdx0;  
+         this.startIdx = startIdx;
+         this.step = step;
+         this.startChunk = startChunk;
+         this.endChunk = endChunk;
       }
       
       
       @Override
       public Integer call() throws Exception
-      {
-         int idx = this.start;
-         int ptr = this.data[pIdx];
-         this.output[idx--] = (byte) ptr; 
+      {        
+         final int[] data = BWT.this.buffer1;
+         final int[] buckets = BWT.this.buckets;	
+         int pIdx = this.pIdx0;
+         int idx = this.startIdx;
+         
+         // Process each chunk sequentially
+         for (int i=this.startChunk; i>this.endChunk; i--)	
+         {	
+            int ptr = data[pIdx];	
+            this.output[idx--] = (byte) ptr; 
+            final int endIdx = this.dstIdx + i*this.step;	
 
-         for (; idx>=this.end; idx--)
-         {
-            ptr = this.data[(ptr>>>8) + this.buckets[ptr&0xFF]];
-            this.output[idx] = (byte) ptr;
+            for (; idx>=endIdx; idx--)	
+            {	
+               ptr = data[(ptr>>>8) + buckets[ptr&0xFF]];
+               this.output[idx] = (byte) ptr;
+            }   	
+
+            pIdx = BWT.this.getPrimaryIndex(i);	
+            idx = endIdx - 1;	
          }
-
+         
          return 0;
       }      
    }   

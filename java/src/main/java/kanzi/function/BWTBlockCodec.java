@@ -170,7 +170,7 @@ public class BWTBlockCodec implements ByteFunction
 
          this.bwt.setPrimaryIndex(i, primaryIndex);
       }
-      
+    
       // Apply inverse Transform            
       return this.bwt.inverse(input, output);      
    }
