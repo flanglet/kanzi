@@ -284,8 +284,7 @@ public class RLT implements ByteFunction
                   if (srcIdx + 1 >= srcEnd)
                      break;
 
-                  run = src[srcIdx++] & 0xFF;
-                  run = (run<<8) | (src[srcIdx++]&0xFF);
+                  run = (((src[srcIdx++]&0xFF))<<8) | (src[srcIdx++]&0xFF);
                   run += RUN_LEN_ENCODE2;
                }
                else if (run >= RUN_LEN_ENCODE1)
@@ -303,11 +302,22 @@ public class RLT implements ByteFunction
                   break;
                }
                
-               // Emit length times the previous byte
-               while (--run >= 0)
-                  dst[dstIdx++] = prev;
+               // Emit 'run' times the previous byte               
+               while (run >= 4)
+               {
+                  dst[dstIdx] = prev;
+                  dst[dstIdx+1] = prev;
+                  dst[dstIdx+2] = prev;
+                  dst[dstIdx+3] = prev;
+                  dstIdx += 4;
+                  run -= 4;
+               }
 
-               run = 0;
+               while (run > 0)
+               {
+                  dst[dstIdx++] = prev;
+                  run--;
+               }
             }
          }
          else

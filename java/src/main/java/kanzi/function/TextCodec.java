@@ -76,7 +76,7 @@ public final class TextCodec implements ByteFunction
             }
          }
       }
-      
+
       return res;
    }
 

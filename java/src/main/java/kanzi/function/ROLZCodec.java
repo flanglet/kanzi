@@ -94,9 +94,9 @@ public final class ROLZCodec implements ByteFunction
       final int maxMatch = (sba.length-pos >= MAX_MATCH) ? MAX_MATCH : sba.length-pos;
 
       // Check all recorded positions
-      for (int i=0; i<this.posChecks; i++)
+      for (int i=counter; i>counter-this.posChecks; i--)
       {
-         int ref = this.matches[base+((counter-i)&this.maskChecks)];
+         int ref = this.matches[base+(i&this.maskChecks)];
 
          if (ref == 0)
             break;
@@ -114,10 +114,10 @@ public final class ROLZCodec implements ByteFunction
 
          while ((n < maxMatch) && (buf[ref+n] == buf[pos+n]))
             n++;
-
+            
          if (n > bestLen)
          {
-            bestIdx = i;
+            bestIdx = counter - i;
             bestLen = n;
 
             if (bestLen == maxMatch)
@@ -324,7 +324,7 @@ public final class ROLZCodec implements ByteFunction
                int matchLen = rd.decodeByte() & 0xFF;
 
                // Sanity check
-               if (dstIdx + matchLen > dstEnd)
+               if (dstIdx + matchLen + 3 > dstEnd)
                {
                   output.index = dstIdx;
                   break;
@@ -345,6 +345,17 @@ public final class ROLZCodec implements ByteFunction
                dst[dstIdx+2] = dst[ref+2];
                dstIdx += 3;
                ref += 3;
+
+               while (matchLen >= 4)
+               {
+                  dst[dstIdx] = dst[ref];
+                  dst[dstIdx+1] = dst[ref+1];
+                  dst[dstIdx+2] = dst[ref+2];
+                  dst[dstIdx+3] = dst[ref+3];
+                  dstIdx += 4;
+                  ref += 4;
+                  matchLen -= 4;
+               }
 
                while (matchLen != 0)
                {
@@ -384,7 +395,6 @@ public final class ROLZCodec implements ByteFunction
    static class ROLZEncoder
    {
       private static final long TOP        = 0x00FFFFFFFFFFFFFFL;
-      private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
       private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
 
       private final Predictor[] predictors;
@@ -433,7 +443,7 @@ public final class ROLZCodec implements ByteFunction
          this.predictor.update(bit);
 
          // Write unchanged first 32 bits to bitstream
-         while (((this.low ^ this.high) & MASK_24_56) == 0)
+         while (((this.low ^ this.high) >>> 24) == 0)
          {
             Memory.BigEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high>>>32));
             this.sba.index += 4;
@@ -458,7 +468,6 @@ public final class ROLZCodec implements ByteFunction
    static class ROLZDecoder
    {
       private static final long TOP        = 0x00FFFFFFFFFFFFFFL;
-      private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
       private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
       private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
 
@@ -523,7 +532,7 @@ public final class ROLZCodec implements ByteFunction
          this.predictor.update(bit);
 
          // Read 32 bits from bitstream
-         while (((this.low ^ this.high) & MASK_24_56) == 0)
+         while (((this.low ^ this.high) >>> 24) == 0)
          {
             this.low = (this.low << 32) & MASK_0_56;
             this.high = ((this.high << 32) | MASK_0_32) & MASK_0_56;
