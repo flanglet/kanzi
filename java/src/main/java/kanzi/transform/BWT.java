@@ -337,16 +337,16 @@ public class BWT implements ByteTransform
          final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
          List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
          final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
-         int c = chunks - 1;          
+         int c = chunks;          
 
          // Create one task per job
          for (int j=0; j<nbTasks; j++) 
          {
             // Each task decodes jobsPerTask[j] chunks
-            final int end = dstIdx + c*step;
-            tasks.add(new InverseRegularChunkTask(output, dstIdx, pIdx, idx, step, c, c-jobsPerTask[j]));
-            pIdx = this.getPrimaryIndex(c);
+            final int end = dstIdx + (c-jobsPerTask[j])*step;
+            tasks.add(new InverseRegularChunkTask(output, dstIdx, pIdx, idx, step, c-1, c-1-jobsPerTask[j]));
             c -= jobsPerTask[j];
+            pIdx = this.getPrimaryIndex(c);
             idx = end - 1;
          }                
   
@@ -452,16 +452,16 @@ public class BWT implements ByteTransform
          final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
          List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
          final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
-         int c = chunks - 1;          
+         int c = chunks;          
 
          // Create one task per job
          for (int j=0; j<nbTasks; j++) 
          {
             // Each task decodes jobsPerTask[j] chunks
-            final int end = dstIdx + c*step;
-            tasks.add(new InverseBigChunkTask(output, dstIdx, pIdx, idx, step, c, c-jobsPerTask[j]));
-            pIdx = this.getPrimaryIndex(c);
+            final int end = dstIdx + (c-jobsPerTask[j])*step;
+            tasks.add(new InverseBigChunkTask(output, dstIdx, pIdx, idx, step, c-1, c-1-jobsPerTask[j]));
             c -= jobsPerTask[j];
+            pIdx = this.getPrimaryIndex(c);
             idx = end - 1;
          }
 
@@ -549,7 +549,6 @@ public class BWT implements ByteTransform
             }   	
 
             pIdx = BWT.this.getPrimaryIndex(i);	
-            idx = endIdx - 1;	
          } 
 
          return 0;
@@ -603,8 +602,7 @@ public class BWT implements ByteTransform
                this.output[idx] = (byte) ptr;
             }   	
 
-            pIdx = BWT.this.getPrimaryIndex(i);	
-            idx = endIdx - 1;	
+            pIdx = BWT.this.getPrimaryIndex(i);		
          }
          
          return 0;
