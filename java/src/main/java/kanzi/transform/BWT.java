@@ -432,16 +432,15 @@ public class BWT implements ByteTransform
       if ((chunks == 1) || (this.jobs == 1))
       {
          // Shortcut for 1 chunk scenario
-         int val1 = data1[pIdx];
-         byte val2 = data2[pIdx];
-         output[idx--] = val2;
+         byte val = data2[pIdx];
+         output[idx--] = val;
+         int n = data1[pIdx] + buckets_[val&0xFF];
 
          for (; idx>=dstIdx; idx--)
          {
-            final int n = val1 + buckets_[val2&0xFF];
-            val1 = data1[n];
-            val2 = data2[n];
-            output[idx] = val2;
+            val = data2[n];
+            output[idx] = val;
+            n = data1[n] + buckets_[val&0xFF];
          }      
       }
       else
@@ -535,17 +534,16 @@ public class BWT implements ByteTransform
          // Process each chunk sequentially
          for (int i=this.startChunk; i>this.endChunk; i--)	
          {	
-            int val1 = data1[pIdx];	
-            byte val2 = data2[pIdx];	
-            this.output[idx--] = val2;	
-            final int endIdx = this.dstIdx + i*this.step;	
+            byte val = data2[pIdx];	
+            this.output[idx--] = val;	
+            final int endIdx = this.dstIdx + i*this.step;
+            int n = data1[pIdx] + buckets[val&0xFF];	
 
             for (; idx>=endIdx; idx--)	
             {	
-               final int n = val1 + buckets[val2&0xFF];	
-               val1 = data1[n];	
-               val2 = data2[n];	
-               this.output[idx] = val2;	
+               val = data2[n];	
+               this.output[idx] = val;	
+               n = data1[n] + buckets[val&0xFF];	
             }   	
 
             pIdx = BWT.this.getPrimaryIndex(i);	
