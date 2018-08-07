@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import kanzi.ByteTransform;
 import kanzi.Global;
+import kanzi.Memory;
 import kanzi.SliceByteArray;
 
 
@@ -377,16 +378,12 @@ public class BWT implements ByteTransform
       final int dstIdx = dst.index;
 
       // Lazy dynamic memory allocations
-      if (this.buffer1.length < count)
-         this.buffer1 = new int[count];
-
-      if (this.buffer2.length < count)
-         this.buffer2 = new byte[count];
+      if (this.buffer2.length < 5*count)
+         this.buffer2 = new byte[5*count];
 
       // Aliasing
       final int[] buckets_ = this.buckets;
-      final int[] data1 = this.buffer1;
-      final byte[] data2 = this.buffer2;
+      final byte[] data = this.buffer2;
 
       // Initialize histogram
       for (int i=0; i<256; i++)
@@ -398,23 +395,23 @@ public class BWT implements ByteTransform
       // Start with the primary index position
       int pIdx = this.getPrimaryIndex(0);
       final byte val0 = input[srcIdx+pIdx];
-      data1[pIdx] = buckets_[val0&0xFF];
-      data2[pIdx] = val0;
+      Memory.LittleEndian.writeInt32(data, 5*pIdx, buckets_[val0&0xFF]);
+      data[5*pIdx+4] = val0;
       buckets_[val0&0xFF]++;
 
       for (int i=0; i<pIdx; i++)
       {
          final byte val = input[srcIdx+i];
-         data1[i] = buckets_[val&0xFF];
-         data2[i] = val;
+         Memory.LittleEndian.writeInt32(data, 5*i, buckets_[val&0xFF]);
+         data[5*i+4] = val;
          buckets_[val&0xFF]++;
       }
 
       for (int i=pIdx+1; i<count; i++)
       {
          final byte val = input[srcIdx+i];
-         data1[i] = buckets_[val&0xFF];
-         data2[i] = val;
+         Memory.LittleEndian.writeInt32(data, 5*i, buckets_[val&0xFF]);
+         data[5*i+4] = val;
          buckets_[val&0xFF]++;
       }
 
@@ -432,16 +429,16 @@ public class BWT implements ByteTransform
       if ((chunks == 1) || (this.jobs == 1))
       {
          // Shortcut for 1 chunk scenario
-         byte val = data2[pIdx];
+         byte val = data[5*pIdx+4];
          output[idx--] = val;
-         int n = data1[pIdx] + buckets_[val&0xFF];
+         int n = Memory.LittleEndian.readInt32(data, 5*pIdx) + buckets_[val&0xFF];
 
          for (; idx>=dstIdx; idx--)
          {
-            val = data2[n];
+            val = data[5*n+4];
             output[idx] = val;
-            n = data1[n] + buckets_[val&0xFF];
-         }      
+            n = Memory.LittleEndian.readInt32(data, 5*n) + buckets_[val&0xFF];	
+         }
       }
       else
       {        
@@ -524,9 +521,8 @@ public class BWT implements ByteTransform
       
       @Override
       public Integer call() throws Exception
-      {
-         final int[] data1 = BWT.this.buffer1;	
-         final byte[] data2 = BWT.this.buffer2;
+      {	
+         final byte[] data = BWT.this.buffer2;
          final int[] buckets = BWT.this.buckets;	
          int pIdx = this.pIdx0;
          int idx = this.startIdx;
@@ -534,16 +530,16 @@ public class BWT implements ByteTransform
          // Process each chunk sequentially
          for (int i=this.startChunk; i>this.endChunk; i--)	
          {	
-            byte val = data2[pIdx];	
+            byte val = data[5*pIdx+4];	
             this.output[idx--] = val;	
             final int endIdx = this.dstIdx + i*this.step;
-            int n = data1[pIdx] + buckets[val&0xFF];	
+            int n = Memory.LittleEndian.readInt32(data, 5*pIdx) + buckets[val&0xFF];	
 
             for (; idx>=endIdx; idx--)	
             {	
-               val = data2[n];	
+               val = data[5*n+4];	
                this.output[idx] = val;	
-               n = data1[n] + buckets[val&0xFF];	
+               n = Memory.LittleEndian.readInt32(data, 5*n) + buckets[val&0xFF];	
             }   	
 
             pIdx = BWT.this.getPrimaryIndex(i);	
