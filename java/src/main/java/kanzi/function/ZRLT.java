@@ -55,7 +55,7 @@ public final class ZRLT implements ByteFunction
       int dstIdx = output.index;
       final int srcEnd = srcIdx + count;
       final int dstEnd = dst.length;
-      final int dstEnd2 = dstEnd - 2;
+
       int runLength = 1;
 
       if (dstIdx < dstEnd)
@@ -70,7 +70,7 @@ public final class ZRLT implements ByteFunction
                srcIdx++;
 
                if ((srcIdx < srcEnd) && (runLength < ZRLT_MAX_RUN))
-                   continue;
+                  continue;
             }
 
             if (runLength > 1)
@@ -96,23 +96,23 @@ public final class ZRLT implements ByteFunction
 
             if (val >= 0xFE)
             {
-               if (dstIdx >= dstEnd2)
+               if (dstIdx >= dstEnd - 2)
                   break;
 
                dst[dstIdx] = (byte) 0xFF;
-               dstIdx++;
-               dst[dstIdx] = (byte) (val - 0xFE);
+               dst[dstIdx+1] = (byte) (val - 0xFE);
+               dstIdx += 2;
             }
             else
             {
-               if (dstIdx >= dstEnd)
+               if (dstIdx >= dstEnd - 1)
                   break;
 
                dst[dstIdx] = (byte) (val + 1);
+               dstIdx++;
             }
 
             srcIdx++;
-            dstIdx++;
 
             if (dstIdx >= dstEnd)
                break;
@@ -170,15 +170,13 @@ public final class ZRLT implements ByteFunction
                   srcIdx++;
 
                   if (srcIdx >= srcEnd)
-                      break;
-
-                  val = src[srcIdx] & 0xFF;
+                     break;
                }
-               while (val <= 1);
+               while ((val = src[srcIdx] & 0xFF) <= 1);
 
                continue;
             }
-
+            
             // Regular data processing
             if (val == 0xFF)
             {

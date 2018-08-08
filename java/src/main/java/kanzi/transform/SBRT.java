@@ -87,9 +87,9 @@ public class SBRT implements ByteTransform
       final int[] s2r = this.symbols;
       final int[] r2s = this.ranks;
 
-      final int mask1 = (this.mode == MODE_TIMESTAMP) ? 0 : -1;
-      final int mask2 = (this.mode == MODE_MTF) ? 0 : -1;
-      final int shift = (this.mode == MODE_RANK) ? 1 : 0;
+      final int m1 = (this.mode == MODE_TIMESTAMP) ? 0 : -1;
+      final int m2 = (this.mode == MODE_MTF) ? 0 : -1;
+      final int s = (this.mode == MODE_RANK) ? 1 : 0;
 
       for (int i=0; i<256; i++) 
       { 
@@ -104,12 +104,12 @@ public class SBRT implements ByteTransform
          final int c = src[srcIdx+i] & 0xFF;
          int r = s2r[c];
          dst[dstIdx+i] = (byte) r;
-         q[c] = ((i & mask1) + (p[c] & mask2)) >> shift;
+         final int qc = ((i & m1) + (p[c] & m2)) >> s;
          p[c] = i;
-         final int curVal = q[c];
+         q[c] = qc;
 
          // Move up symbol to correct rank 
-         while ((r > 0) && (q[r2s[r-1]] <= curVal))
+         while ((r > 0) && (q[r2s[r-1]] <= qc))
          { 
             r2s[r] = r2s[r-1];
             s2r[r2s[r]] = r; 
@@ -152,9 +152,9 @@ public class SBRT implements ByteTransform
       final int[] q = this.curr;
       final int[] r2s = this.ranks;
 
-      final int mask1 = (this.mode == MODE_TIMESTAMP) ? 0 : -1;
-      final int mask2 = (this.mode == MODE_MTF) ? 0 : -1;
-      final int shift = (this.mode == MODE_RANK) ? 1 : 0;
+      final int m1 = (this.mode == MODE_TIMESTAMP) ? 0 : -1;
+      final int m2 = (this.mode == MODE_MTF) ? 0 : -1;
+      final int s = (this.mode == MODE_RANK) ? 1 : 0;
 
       for (int i=0; i<256; i++) 
       {
@@ -168,12 +168,12 @@ public class SBRT implements ByteTransform
          int r = src[srcIdx+i] & 0xFF;
          final int c = r2s[r];
          dst[dstIdx+i] = (byte) c;
-         q[c] = ((i & mask1) + (p[c] & mask2)) >> shift;
+         final int qc = ((i & m1) + (p[c] & m2)) >> s;
          p[c] = i;
-         final int curVal = q[c];
+         q[c] = qc;
 
          // Move up symbol to correct rank 
-         while ((r > 0) && (q[r2s[r-1]] <= curVal)) 
+         while ((r > 0) && (q[r2s[r-1]] <= qc)) 
          {
             r2s[r] = r2s[r-1];
             r--;
