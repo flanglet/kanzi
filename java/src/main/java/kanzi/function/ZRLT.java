@@ -56,7 +56,7 @@ public final class ZRLT implements ByteFunction
       final int srcEnd = srcIdx + count;
       final int dstEnd = dst.length;
 
-      int runLength = 1;
+      int runLength = 0;
 
       if (dstIdx < dstEnd)
       {
@@ -73,8 +73,10 @@ public final class ZRLT implements ByteFunction
                   continue;
             }
 
-            if (runLength > 1)
+            if (runLength > 0)
             {
+               runLength++;
+               
                // Encode length
                int log2 = (runLength<=256) ? Global.LOG2[runLength-1] : 31-Integer.numberOfLeadingZeros(runLength);
                
@@ -88,7 +90,7 @@ public final class ZRLT implements ByteFunction
                   dst[dstIdx++] = (byte) ((runLength >> log2) & 1);
                }
 
-               runLength = 1;
+               runLength = 0;
                continue;
             }
 
@@ -96,7 +98,7 @@ public final class ZRLT implements ByteFunction
 
             if (val >= 0xFE)
             {
-               if (dstIdx >= dstEnd - 2)
+               if (dstIdx >= dstEnd - 1)
                   break;
 
                dst[dstIdx] = (byte) 0xFF;
@@ -105,7 +107,7 @@ public final class ZRLT implements ByteFunction
             }
             else
             {
-               if (dstIdx >= dstEnd - 1)
+               if (dstIdx >= dstEnd)
                   break;
 
                dst[dstIdx] = (byte) (val + 1);
@@ -113,15 +115,12 @@ public final class ZRLT implements ByteFunction
             }
 
             srcIdx++;
-
-            if (dstIdx >= dstEnd)
-               break;
          }
       }
 
       input.index = srcIdx;
       output.index = dstIdx;
-      return (srcIdx == srcEnd) && (runLength == 1);
+      return (srcIdx == srcEnd) && (runLength == 0);
    }
 
 
