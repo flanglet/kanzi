@@ -215,7 +215,7 @@ public class TPAQPredictor implements Predictor
          
          // Block size requested by the user
          // The user can request a big block size to force more states
-         final int rbsz = (Integer) ctx.get("blockSize");
+         final int rbsz = (Integer) ctx.getOrDefault("blockSize", 1024*1024);
 
          if (rbsz >= 64*1024*1024)
             statesSize = 1 << 29;
@@ -227,7 +227,7 @@ public class TPAQPredictor implements Predictor
          // Actual size of the current block
          // Too many mixers hurts compression for small blocks.
          // Too few mixers hurts compression for big blocks.
-         final int absz = (Integer) ctx.get("size");
+         final int absz = (Integer) ctx.getOrDefault("size", rbsz);
 
          if (absz >= 16 * 1024 * 1024)
             mixersSize = 1 << 16;
