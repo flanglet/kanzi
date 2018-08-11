@@ -363,9 +363,10 @@ public class EntropyUtils
          if (histo[i] == 0)
             continue;
          
-         sum += ((histo[i]*(logLength1024-Global.log2_1024(histo[i]))) >> 3);
+         final long count = histo[i];
+         sum += ((count*(logLength1024-Global.log2_1024(histo[i]))) >> 3);
       }
-      
+
       return (int) (sum / length);
    }
 
