@@ -28,7 +28,7 @@ public class HuffmanEncoder implements EntropyEncoder
    private static final int DEFAULT_CHUNK_SIZE = 1 << 16; // 64 KB by default
    private static final int MAX_SYMBOL_SIZE = 24;
 
-   private final OutputBitStream bitstream;
+   private final OutputBitStream bs;
    private final int[] freqs;
    private final int[] codes;
    private final int[] ranks;
@@ -59,7 +59,7 @@ public class HuffmanEncoder implements EntropyEncoder
       if (chunkSize > 1<<30)
          throw new IllegalArgumentException("The chunk size must be at most 2^30");
 
-      this.bitstream = bitstream;
+      this.bs = bitstream;
       this.freqs = new int[256];
       this.sizes = new short[256];
       this.ranks = new int[256];
@@ -81,65 +81,65 @@ public class HuffmanEncoder implements EntropyEncoder
    // Rebuild Huffman codes
    private int updateFrequencies(int[] frequencies) throws BitStreamException
    {
-     if ((frequencies == null) || (frequencies.length != 256))
-        return -1;
+      if ((frequencies == null) || (frequencies.length != 256))
+         return -1;
 
-     int count = 0;
+      int count = 0;
 
-     for (int i=0; i<256; i++)
-     {
-        this.sizes[i] = 0;
-        this.codes[i] = 0;
+      for (int i=0; i<256; i++)
+      {
+         this.sizes[i] = 0;
+         this.codes[i] = 0;
 
-        if (frequencies[i] > 0)
-           this.ranks[count++] = i;
-     }
+         if (frequencies[i] > 0)
+            this.ranks[count++] = i;
+      }
 
-     try
-     {
-        if (count == 1)
-        {
-           this.sranks[0] = this.ranks[0];
-           this.sizes[this.ranks[0]] = 1;
-        }
-        else   
-        {
-           this.computeCodeLengths(frequencies, count);
-        }
-     }
-     catch (IllegalArgumentException e)
-     {
-        // Happens when a very rare symbol cannot be coded to due code length limit
-        throw new BitStreamException(e.getMessage(), BitStreamException.INVALID_STREAM);
-     }
+      try
+      {
+         if (count == 1)
+         {
+            this.sranks[0] = this.ranks[0];
+            this.sizes[this.ranks[0]] = 1;
+         }
+         else   
+         {
+            this.computeCodeLengths(frequencies, count);
+         }
+      }
+      catch (IllegalArgumentException e)
+      {
+         // Happens when a very rare symbol cannot be coded to due code length limit
+         throw new BitStreamException(e.getMessage(), BitStreamException.INVALID_STREAM);
+      }
 
-     EntropyUtils.encodeAlphabet(this.bitstream, this.ranks, count);
+      EntropyUtils.encodeAlphabet(this.bs, this.ranks, count);
 
-     // Transmit code lengths only, frequencies and codes do not matter
-     // Unary encode the length difference
-     ExpGolombEncoder egenc = new ExpGolombEncoder(this.bitstream, true);
-     short prevSize = 2;
+      // Transmit code lengths only, frequencies and codes do not matter
+      // Unary encode the length difference
+      ExpGolombEncoder egenc = new ExpGolombEncoder(this.bs, true);
+      short prevSize = 2;
 
-     for (int i=0; i<count; i++)
-     {
-        final short currSize = this.sizes[this.ranks[i]];
-        egenc.encodeByte((byte) (currSize - prevSize));
-        prevSize = currSize;
-     }
+      for (int i=0; i<count; i++)
+      {
+         final short currSize = this.sizes[this.ranks[i]];
+         egenc.encodeByte((byte) (currSize - prevSize));
+         prevSize = currSize;
+      }
 
-     // Create canonical codes 
-     if (HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.sranks, count) < 0)
-        throw new BitStreamException("Could not generate codes: max code length (24 bits) exceeded",
-                                     BitStreamException.INVALID_STREAM);
+      // Create canonical codes 
+      if (HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.sranks, count) < 0)
+         throw new BitStreamException("Could not generate codes: max code length (24 bits) exceeded",
+                                      BitStreamException.INVALID_STREAM);
 
-     // Pack size and code (size <= MAX_SYMBOL_SIZE bits)
-     for (int i=0; i<count; i++)
-     {
-        final int r = this.ranks[i];
-        this.codes[r] |= (this.sizes[r] << 24);           
-     }
+      // Pack size and code (size <= MAX_SYMBOL_SIZE bits)
+      for (int i=0; i<count; i++)
+      {
+         final int r = this.ranks[i];
+         this.codes[r] |= (this.sizes[r] << 24);           
+      }
 
-     return count;
+      return count;
    }
 
 
@@ -271,33 +271,33 @@ public class HuffmanEncoder implements EntropyEncoder
          // Rebuild Huffman codes
          this.updateFrequencies(frequencies);
          final int[] c = this.codes;
-         final OutputBitStream bs = this.bitstream;
+         final OutputBitStream bitstream = this.bs;
 
          for (int i=startChunk; i<endChunk8; i+=8)
          {
             int val;
             val = c[array[i]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
             val = c[array[i+1]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
             val = c[array[i+2]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
             val = c[array[i+3]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
             val = c[array[i+4]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
             val = c[array[i+5]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
             val = c[array[i+6]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
             val = c[array[i+7]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
          }
 
          for (int i=endChunk8; i<endChunk; i++)
          {
             final int val = c[array[i]&0xFF];
-            bs.writeBits(val, val >>> 24);
+            bitstream.writeBits(val, val >>> 24);
          }
 
          startChunk = endChunk;
@@ -310,7 +310,7 @@ public class HuffmanEncoder implements EntropyEncoder
    @Override
    public OutputBitStream getBitStream()
    {
-      return this.bitstream;
+      return this.bs;
    }
 
    
