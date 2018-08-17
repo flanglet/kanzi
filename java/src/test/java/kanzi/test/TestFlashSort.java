@@ -16,15 +16,16 @@ limitations under the License.
 package kanzi.test;
 
 import kanzi.util.sort.FlashSort;
+import org.junit.Assert;
 import org.junit.Test;
 
 
 public class TestFlashSort extends TestAbstractSort
 {
     @Test
-    public void testFlashSort(String[] args)
+    public void testFlashSort()
     {
-        testCorrectness("FlashSort", new FlashSort(), 20);
+        Assert.assertTrue(testCorrectness("FlashSort", new FlashSort(), 20));
         testSpeed("FlashSort", new FlashSort(), 10000);
     }    
 }

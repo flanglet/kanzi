@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.test;
 
 import kanzi.util.sort.BucketSort;
+import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -24,7 +25,7 @@ public class TestBucketSort extends TestAbstractSort
     @Test
     public void testBucketSort()
     {
-        testCorrectness("BucketSort", new BucketSort(8), 20);
+        Assert.assertTrue(testCorrectness("BucketSort", new BucketSort(8), 20));
         testSpeed("BucketSort", new BucketSort(16), 50000, 0xFFFF);
     }    
 }

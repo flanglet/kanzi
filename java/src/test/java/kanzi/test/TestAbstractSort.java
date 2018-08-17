@@ -21,7 +21,7 @@ import kanzi.IntSorter;
 
 public class TestAbstractSort 
 {  
-    public static void testCorrectness(String sortName, IntSorter sorter, int iters)
+    public static boolean testCorrectness(String sortName, IntSorter sorter, int iters)
     {
         System.out.println("\n\nTest" + sortName);
 
@@ -60,10 +60,12 @@ public class TestAbstractSort
                 if ((i > 0) && (array[i] < array[i-1]))
                 {
                    System.err.println("Error at position "+(i-ii));
-                   System.exit(1);
+                   return false;
                 }
             }
         }
+        
+        return true;
     }
 
   

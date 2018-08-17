@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.test;
 
 import kanzi.util.sort.InsertionSort;
+import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -24,7 +25,7 @@ public class TestInsertionSort extends TestAbstractSort
     @Test
     public void testInsertionSort()
     {
-        testCorrectness("InsertionSort", new InsertionSort(), 20);
+        Assert.assertTrue(testCorrectness("InsertionSort", new InsertionSort(), 20));
         testSpeed("InsertionSort", new InsertionSort(), 2000);
     }    
 }

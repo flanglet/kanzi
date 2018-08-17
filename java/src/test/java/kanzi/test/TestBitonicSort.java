@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.test;
 
 import kanzi.util.sort.BitonicSort;
+import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -24,7 +25,7 @@ public class TestBitonicSort extends TestAbstractSort
     @Test
     public void testBitonicSort()
     {
-        testCorrectness("BitonicSort", new BitonicSort(), 20);
+        Assert.assertTrue(testCorrectness("BitonicSort", new BitonicSort(), 20));
         testSpeed("BitonicSort", new BitonicSort(), 4000);
     }    
 }

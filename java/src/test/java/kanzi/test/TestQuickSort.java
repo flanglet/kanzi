@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.test;
 
 import kanzi.util.sort.QuickSort;
+import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -24,7 +25,7 @@ public class TestQuickSort extends TestAbstractSort
     @Test
     public void testQuickSort()
     {
-        testCorrectness("QuickSort", new QuickSort(), 20);
+        Assert.assertTrue(testCorrectness("QuickSort", new QuickSort(), 20));
         testSpeed("QuickSort", new QuickSort(), 10000);
     }    
 }

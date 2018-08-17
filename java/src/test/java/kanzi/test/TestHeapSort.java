@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.test;
 
 import kanzi.util.sort.HeapSort;
+import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -24,7 +25,7 @@ public class TestHeapSort extends TestAbstractSort
     @Test
     public void testHeapSort()
     {
-        testCorrectness("HeapSort", new HeapSort(), 20);
+        Assert.assertTrue(testCorrectness("HeapSort", new HeapSort(), 20));
         testSpeed("HeapSort", new HeapSort(), 10000);
     }
 }
