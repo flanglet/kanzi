@@ -138,9 +138,11 @@ public class CompressedInputStream extends InputStream
 
       // Read entropy codec
       this.entropyType = (int) this.ibs.readBits(5);
+      this.ctx.put("codec", EntropyCodecFactory.getName(this.entropyType));      
 
       // Read transforms: 8*6 bits
       this.transformType = this.ibs.readBits(48);
+      this.ctx.put("transform", new ByteFunctionFactory().getName(this.transformType));      
 
       // Read block size
       this.blockSize = (int) this.ibs.readBits(26) << 4;
