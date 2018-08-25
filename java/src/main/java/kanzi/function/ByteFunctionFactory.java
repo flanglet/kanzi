@@ -186,7 +186,17 @@ public class ByteFunctionFactory
          case RANK_TYPE:
             return new SBRT(SBRT.MODE_RANK);
             
-         case DICT_TYPE:
+         case DICT_TYPE:            
+            String entropyType = (String) ctx.getOrDefault("codec", "NONE");
+            entropyType = entropyType.toUpperCase();
+            int textCodecType  = 1;
+            
+            // Select text encoding based on entropy codec.
+            if (entropyType.equals("NONE") || entropyType.equals("ANS0") ||
+                entropyType.equals("HUFFMAN") || entropyType.equals("RANGE"))
+               textCodecType = 2;
+               
+            ctx.put("textcodec", textCodecType);
             return new TextCodec(ctx);
             
          case X86_TYPE:
