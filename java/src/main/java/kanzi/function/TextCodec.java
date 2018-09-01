@@ -75,18 +75,6 @@ public final class TextCodec implements ByteFunction
       return res;
    }
 
-   private static final boolean[] TEXT_CHARS = initTextChars();
-
-   private static boolean[] initTextChars()
-   {
-       boolean[] res = new boolean[256];
-
-       for (int i=0; i<256; i++)
-          res[i] = isLowerCase((byte) i) || isUpperCase((byte) i);
-
-       return res;
-   }
-
    // Default dictionary
    // 1024 of the most common English words with at least 2 chars.
    // Each char is 6 bit encoded: 0 to 31. Add 32 to a letter starting a word (MSB).
@@ -662,7 +650,7 @@ public final class TextCodec implements ByteFunction
 
    private static boolean isText(byte val)
    {
-      return TEXT_CHARS[val&0xFF];
+      return isLowerCase(val) || isUpperCase(val);
    }
 
 
@@ -1002,7 +990,7 @@ public final class TextCodec implements ByteFunction
                // Compute hashes
                // h1 -> hash of word chars
                // h2 -> hash of word chars with first char case flipped
-               byte val = src[delimAnchor+1];
+               final byte val = src[delimAnchor+1];
                final int caseFlag = isUpperCase(val) ? 32 : -32;
                int h1 = HASH1*HASH1 ^ val*HASH2;
                int h2 = HASH1*HASH1 ^ (val+caseFlag)*HASH2;
@@ -1028,7 +1016,7 @@ public final class TextCodec implements ByteFunction
                {
                   DictEntry e2 =this.dictMap[h2 & this.hashMask];
 
-                  if ((e2 == null) || (((e2.data>>>24) == length) && (e2.hash == h2)))
+                  if ((e2 != null) && ((e2.data>>>24) == length) && (e2.hash == h2))
                      e = e2;
                }
 
@@ -1519,7 +1507,7 @@ public final class TextCodec implements ByteFunction
                // Compute hashes
                // h1 -> hash of word chars
                // h2 -> hash of word chars with first char case flipped
-               byte val = src[delimAnchor+1];
+               final byte val = src[delimAnchor+1];
                final int caseFlag = isUpperCase(val) ? 32 : -32;
                int h1 = HASH1*HASH1 ^ val*HASH2;
                int h2 = HASH1*HASH1 ^ (val+caseFlag)*HASH2;
@@ -1545,7 +1533,7 @@ public final class TextCodec implements ByteFunction
                {
                   DictEntry e2 = this.dictMap[h2 & this.hashMask];
 
-                  if ((e2 == null) || (((e2.data>>>24) == length) && (e2.hash == h2)))
+                  if ((e2 != null) && ((e2.data>>>24) == length) && (e2.hash == h2))
                      e = e2;
                }
                
@@ -1638,13 +1626,13 @@ public final class TextCodec implements ByteFunction
             if (dstIdx >= dstEnd)
                break;
 
-            final byte cur = src[i];
+            final byte cur = src[i];           
 
             switch (cur)
             {
                case ESCAPE_TOKEN1:
                   dst[dstIdx++] = ESCAPE_TOKEN1;
-                  dst[dstIdx++] = ESCAPE_TOKEN1;
+                  dst[dstIdx++] = ESCAPE_TOKEN1;                  
                   break;
 
                case CR :
@@ -1659,7 +1647,7 @@ public final class TextCodec implements ByteFunction
 
                   dst[dstIdx++] = cur;
             }
-         }
+         }                                    
 
          return dstIdx;
       }
