@@ -193,22 +193,11 @@ public class EntropyUtils
 
          // Write deltas for this chunk
          for (int j=i; (j<count) && (j<i+ckSize); j++)
-            encodeSize(obs, log, diffs[j]);
+            // Encode size
+            obs.writeBits(diffs[j], log);
       } 
       
       return count;
-   }
-   
-   
-   private static void encodeSize(OutputBitStream obs, int log, int val)
-   {
-      obs.writeBits(val, log);
-   }
-      
-      
-   private static long decodeSize(InputBitStream ibs, int log)
-   {
-      return ibs.readBits(log);            
    }
    
    
@@ -290,7 +279,7 @@ public class EntropyUtils
             // Read deltas for this chunk
             for (int j=i; (j<count) && (j<i+ckSize); j++)
             {
-               final int next = symbol + (int) decodeSize(ibs, log);
+               final int next = symbol + (int) ibs.readBits(log);
 
                while ((symbol < next) && (n < alphabetSize))
                {
@@ -317,7 +306,7 @@ public class EntropyUtils
             // Read deltas for this chunk
             for (int j=i; (j<count) && (j<i+ckSize); j++)
             {
-               symbol += (int) decodeSize(ibs, log);
+               symbol += (int) ibs.readBits(log);
                alphabet[j] = symbol;
                symbol++;
             }

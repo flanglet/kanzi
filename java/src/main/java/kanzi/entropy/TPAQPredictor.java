@@ -32,7 +32,7 @@ public class TPAQPredictor implements Predictor
    private static final int MASK_BUFFER = BUFFER_SIZE - 1;
    private static final int MASK_80808080 = 0x80808080;
    private static final int MASK_F0F0F0F0 = 0xF0F0F0F0;
-   private static final int HASH = 200002979;
+   private static final int HASH = 0x7FEB352D;
 
    ///////////////////////// state table ////////////////////////
    // States represent a bit history within some context.
