@@ -174,16 +174,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       printOut("Overwrite set to " + this.overwrite, printFlag);
       printOut("Checksum set to " +  this.checksum, printFlag);
 
-      if (this.level < 0)
+      if (printFlag == true)
       {
          String etransform = (NONE.equals(this.transform)) ? "no" : this.transform;
          printOut("Using " + etransform + " transform (stage 1)", printFlag);
          String ecodec = (NONE.equals(this.codec)) ? "no" : this.codec;
          printOut("Using " + ecodec + " entropy codec (stage 2)", printFlag);
-      }
-      else
-      {
-         printOut("Compression level set to " +  this.level, printFlag);
       }
 
       printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);      

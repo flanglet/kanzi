@@ -169,27 +169,12 @@ public class CompressedInputStream extends InputStream
 
          try
          {
-            String w1 = new ByteFunctionFactory().getName(this.transformType);
+            String w1 = EntropyCodecFactory.getName(this.entropyType);
 
             if ("NONE".equals(w1))
                w1 = "no";
 
-            sb.append("Using ").append(w1).append(" transform (stage 1)").append("\n");
-         }
-         catch (IllegalArgumentException e)
-         {
-            throw new kanzi.io.IOException("Invalid bitstream, unknown transform type: "+
-                    this.transformType, Error.ERR_INVALID_CODEC);
-         }
-
-        try
-         {
-            String w2 = EntropyCodecFactory.getName(this.entropyType);
-
-            if ("NONE".equals(w2))
-               w2 = "no";
-
-            sb.append("Using ").append(w2).append(" entropy codec (stage 2)");
+            sb.append("Using ").append(w1).append(" entropy codec (stage 1)").append("\n");
          }
          catch (IllegalArgumentException e)
          {
@@ -197,7 +182,22 @@ public class CompressedInputStream extends InputStream
                     this.entropyType , Error.ERR_INVALID_CODEC);
          }
         
-         // Protect against future concurrent modification of the list of block listeners
+         try
+         {
+            String w2 = new ByteFunctionFactory().getName(this.transformType);
+
+            if ("NONE".equals(w2))
+               w2 = "no";
+
+            sb.append("Using ").append(w2).append(" transform (stage 2)").append("\n");
+         }
+         catch (IllegalArgumentException e)
+         {
+            throw new kanzi.io.IOException("Invalid bitstream, unknown transform type: "+
+                    this.transformType, Error.ERR_INVALID_CODEC);
+         }
+
+         // Protect against future concurrent modification of the block listeners list
          Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
          Event evt = new Event(Event.Type.AFTER_HEADER_DECODING, 0, sb.toString());
          notifyListeners(blockListeners, evt);        
