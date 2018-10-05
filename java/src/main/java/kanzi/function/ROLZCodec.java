@@ -175,7 +175,7 @@ public final class ROLZCodec implements ByteFunction
          this.counters[i] = 0;
 
       while (startChunk < srcEnd)
-      {
+      {        
          for (int i=0; i<this.matches.length; i++)
             this.matches[i] = 0;
 
@@ -202,7 +202,7 @@ public final class ROLZCodec implements ByteFunction
             if (match == -1)
             {
                re.encodeBit(LITERAL_FLAG);
-               re.encodeByte(src[srcIdx]);
+               re.encodeByte(src[srcIdx]);  
                srcIdx++;
             }
             else
@@ -220,7 +220,7 @@ public final class ROLZCodec implements ByteFunction
                srcIdx += (matchLen + MIN_MATCH);
             }
          }
-
+         
          startChunk = endChunk;
       }
 
@@ -387,7 +387,8 @@ public final class ROLZCodec implements ByteFunction
    @Override
    public int getMaxEncodedLength(int srcLength)
    {
-      return srcLength * 5 / 4;
+      final int res = (srcLength*5) >> 2;
+      return (res >= 32) ? res : 32;
    }
 
 
@@ -582,7 +583,7 @@ public final class ROLZCodec implements ByteFunction
 
       void setContext(byte ctx)
       {
-         this.ctx = (ctx & 0xFF) << this.logSize;
+         this.ctx = (ctx&0xFF) << this.logSize;
       }
 
       @Override
