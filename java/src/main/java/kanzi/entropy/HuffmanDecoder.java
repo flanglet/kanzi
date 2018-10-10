@@ -145,59 +145,58 @@ public class HuffmanDecoder implements EntropyDecoder
    // The fast decoding table contains all the prefixes with DECODING_BATCH_SIZE bits.
    private void buildDecodingTables(int count)
    {
-       for (int i=this.fdTable.length-1; i>=0; i--)
-          this.fdTable[i] = 0;
+      for (int i=this.fdTable.length-1; i>=0; i--)
+         this.fdTable[i] = 0;
 
-       for (int i=this.sdTable.length-1; i>=0; i--)
-          this.sdTable[i] = 0;
+      for (int i=this.sdTable.length-1; i>=0; i--)
+         this.sdTable[i] = 0;
 
-       for (int i=this.sdtIndexes.length-1; i>=0; i--)
-          this.sdtIndexes[i] = SYMBOL_ABSENT;
+      for (int i=this.sdtIndexes.length-1; i>=0; i--)
+         this.sdtIndexes[i] = SYMBOL_ABSENT;
 
-       int len = 0;
+      int len = 0;
 
-       for (int i=0; i<count; i++)
-       {
-          final int r = this.ranks[i];
-          final int code = this.codes[r];
+      for (int i=0; i<count; i++)
+      {
+         final int r = this.ranks[i];
+         final int code = this.codes[r];
 
-          if (this.sizes[r] > len)
-          {
-             len = this.sizes[r];
-             this.sdtIndexes[len] = i - code;
-          }
+         if (this.sizes[r] > len)
+         {
+            len = this.sizes[r];
+            this.sdtIndexes[len] = i - code;
+         }
 
-          // Fill slow decoding table
-          final int val = (this.sizes[r] << 8) | r;
-          this.sdTable[i] = val;
-          int idx, end;
+         // Fill slow decoding table
+         final int val = (this.sizes[r] << 8) | r;
+         this.sdTable[i] = val;
 
-          // Fill fast decoding table
-          // Find location index in table
-          if (len < DECODING_BATCH_SIZE)
-          {
-             idx = code << (DECODING_BATCH_SIZE - len);
-             end = idx + (1 << (DECODING_BATCH_SIZE - len));
-          }
-          else
-          {
-             idx = code >>> (len - DECODING_BATCH_SIZE);
-             end = idx + 1;
-          }
+         // Fill fast decoding table
+         // Find location index in table
+         if (len < DECODING_BATCH_SIZE)
+         {
+            int idx = code << (DECODING_BATCH_SIZE - len);
+            final int end = idx + (1 << (DECODING_BATCH_SIZE - len));
 
-          // All DECODING_BATCH_SIZE bit values read from the bit stream and
-          // starting with the same prefix point to symbol r
-          while (idx < end)
-             this.fdTable[idx++] = val;
-       }
+            // All DECODING_BATCH_SIZE bit values read from the bit stream and
+            // starting with the same prefix point to symbol r
+            while (idx < end)
+               this.fdTable[idx++] = val;
+         }
+         else
+         {
+            final int idx = code >>> (len - DECODING_BATCH_SIZE);
+            this.fdTable[idx] = val;
+         }
+      }
    }
 
 
    // Use fastDecodeByte until the near end of chunk or block.
    @Override
-   public int decode(byte[] array, int blkptr, int len)
+   public int decode(byte[] block, int blkptr, int len)
    {
-      if ((array == null) || (blkptr + len > array.length) || (blkptr < 0) || (len < 0))
+      if ((block == null) || (blkptr + len > block.length) || (blkptr < 0) || (len < 0))
         return -1;
 
       if (len == 0)
@@ -223,25 +222,25 @@ public class HuffmanDecoder implements EntropyDecoder
             endPaddingSize++;
 
          final int endChunk = (startChunk + sz < end) ? startChunk + sz : end;
-         final int endChunk1 = (endChunk - endPaddingSize) & -8;
+         final int endChunk8 = (endChunk - endPaddingSize) & -8;
          int i = startChunk;
 
          // Fast decoding (read DECODING_BATCH_SIZE bits at a time)
-         for ( ; i<endChunk1; i+=8)
+         for ( ; i<endChunk8; i+=8)
          {
-            array[i]   = this.fastDecodeByte();
-            array[i+1] = this.fastDecodeByte();
-            array[i+2] = this.fastDecodeByte();
-            array[i+3] = this.fastDecodeByte();
-            array[i+4] = this.fastDecodeByte();
-            array[i+5] = this.fastDecodeByte();
-            array[i+6] = this.fastDecodeByte();
-            array[i+7] = this.fastDecodeByte();
+            block[i]   = this.fastDecodeByte();
+            block[i+1] = this.fastDecodeByte();
+            block[i+2] = this.fastDecodeByte();
+            block[i+3] = this.fastDecodeByte();
+            block[i+4] = this.fastDecodeByte();
+            block[i+5] = this.fastDecodeByte();
+            block[i+6] = this.fastDecodeByte();
+            block[i+7] = this.fastDecodeByte();
          }
 
          // Fallback to regular decoding (read one bit at a time)
          for ( ; i<endChunk; i++)
-            array[i] = this.slowDecodeByte(0, 0);
+            block[i] = this.slowDecodeByte(0, 0);
 
          startChunk = endChunk;
       }
