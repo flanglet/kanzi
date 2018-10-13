@@ -1297,6 +1297,7 @@ public final class TextCodec implements ByteFunction
 
                final DictEntry e = this.dictList[idx];
                final int length = e.data >>> 24;
+               final byte[] buf = e.buf;
 
                // Sanity check
                if ((e.pos < 0) || (dstIdx+length >= dstEnd))
@@ -1309,19 +1310,19 @@ public final class TextCodec implements ByteFunction
                // Emit word
                if (cur != ESCAPE_TOKEN2)
                {
-                  dst[dstIdx++] = (byte) e.buf[e.pos];
+                  dst[dstIdx++] = (byte) buf[e.pos];
                }
                else
                {
                   // Flip case of first character
-                  dst[dstIdx++] = isUpperCase(e.buf[e.pos]) ? (byte) (e.buf[e.pos]+32) : (byte) (e.buf[e.pos]-32);
+                  dst[dstIdx++] = isUpperCase(buf[e.pos]) ? (byte) (buf[e.pos]+32) : (byte) (buf[e.pos]-32);
                }
-
-               for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
-                  dst[dstIdx] = e.buf[n];
 
                if (length > 1)
                {
+                  for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
+                     dst[dstIdx] = buf[n];
+
                   // Regular word entry
                   wordRun = true;
                   delimAnchor = srcIdx;
@@ -1813,6 +1814,7 @@ public final class TextCodec implements ByteFunction
 
                final DictEntry e = this.dictList[idx];
                final int length = e.data >>> 24;
+               final byte[] buf = e.buf;
 
                // Sanity check
                if ((e.pos < 0) || (dstIdx+length >= dstEnd))
@@ -1825,19 +1827,19 @@ public final class TextCodec implements ByteFunction
                // Emit word
                if ((cur & 0x20) == 0)
                {
-                  dst[dstIdx++] = (byte) e.buf[e.pos];
+                  dst[dstIdx++] = (byte) buf[e.pos];
                }
                else
                {
                   // Flip case of first character
-                  dst[dstIdx++] = isUpperCase(e.buf[e.pos]) ? (byte) (e.buf[e.pos]+32) : (byte) (e.buf[e.pos]-32);
+                  dst[dstIdx++] = isUpperCase(buf[e.pos]) ? (byte) (buf[e.pos]+32) : (byte) (e.buf[e.pos]-32);
                }
-
-               for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
-                  dst[dstIdx] = e.buf[n];
 
                if (length > 1)
                {
+                  for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
+                     dst[dstIdx] = buf[n];
+
                   // Regular word entry
                   wordRun = true;
                   delimAnchor = srcIdx;
