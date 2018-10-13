@@ -416,10 +416,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
              return "TEXT+ROLZ&NONE";
              
           case 3 :
-             return "BWT+RANK+ZRLT&ANS0";
+             return "TEXT+BWT+RANK+ZRLT&ANS0";
              
           case 4 :
-             return "BWT+RANK+ZRLT&FPAQ";
+             return "TEXT+BWT+RANK+ZRLT&FPAQ";
              
           case 5 :
              return "BWT&CM";

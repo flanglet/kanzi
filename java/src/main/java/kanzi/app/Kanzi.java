@@ -244,7 +244,7 @@ public class Kanzi
                   printOut("        set the compression level [0..6]", true);
                   printOut("        Providing this option forces entropy and transform.", true);
                   printOut("        0=None&None (store), 1=TEXT+LZ4&HUFFMAN, 2=TEXT+ROLZ", true);
-                  printOut("        3=BWT+RANK+ZRLT&ANS0, 4=BWT+RANK+ZRLT&FPAQ, 5=BWT&CM", true);
+                  printOut("        3=TEXT+BWT+RANK+ZRLT&ANS0, 4=TEXT+BWT+RANK+ZRLT&FPAQ, 5=BWT&CM", true);
                   printOut("        6=X86+RLT+TEXT&TPAQ, 7=X86+RLT+TEXT&TPAQX\n", true);
                   printOut("   -e, --entropy=<codec>", true);
                   printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
