@@ -191,7 +191,7 @@ public final class DebugInputBitStream implements InputBitStream
         
     
    @Override
-   public int readBits(byte[] bits, int start, int count) throws BitStreamException
+   public synchronized int readBits(byte[] bits, int start, int count) throws BitStreamException
    {
       count = this.delegate.readBits(bits, start, count);
       
