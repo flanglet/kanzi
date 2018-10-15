@@ -69,11 +69,20 @@ public class Kanzi
             System.exit(kanzi.Error.ERR_CREATE_COMPRESSOR);
          }
 
-         final int code = bc.call();
+         int code = bc.call();
 
-         if (code != 0)
-            bc.dispose();
-
+         try
+         {
+            if (code != 0)
+               bc.dispose();
+         }
+         catch (Exception e)
+         {
+            String inputName = String.valueOf(map.get("inputName"));
+            System.err.println("Compression failure for '" + inputName+"' : " + e.getMessage());
+            code = kanzi.Error.ERR_WRITE_FILE;
+         }
+         
          System.exit(code);
       }
 
@@ -91,11 +100,20 @@ public class Kanzi
             System.exit(kanzi.Error.ERR_CREATE_DECOMPRESSOR);
          }
 
-         final int code = bd.call();
-
-         if (code != 0)
-            bd.dispose();
-
+         int code = bd.call();
+         
+         try
+         {
+            if (code != 0)
+               bd.dispose();
+         }
+         catch (Exception e)
+         {
+            String inputName = String.valueOf(map.get("inputName"));
+            System.err.println("Decompression failure for '" + inputName+"' : " + e.getMessage());
+            code = kanzi.Error.ERR_WRITE_FILE;
+         }
+         
          System.exit(code);
       }
 

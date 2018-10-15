@@ -685,29 +685,13 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       }     
       
       
-      public void dispose()
+      public void dispose() throws IOException
       {
-         try
-         {
-            if (this.is != null)
-               this.is.close();
-         }
-         catch (IOException ioe)
-         {
-            /* ignore */
-         }
+         if (this.is != null)
+            this.is.close();
 
-         try
-         {
-            if (this.cos != null)
-               this.cos.close();
-         }
-         catch (IOException ioe)
-         {
-            String inputName = (String) this.ctx.get("inputName");
-            System.err.println("Compression failure for '" + inputName+"' : " + ioe.getMessage());
-            System.exit(Error.ERR_WRITE_FILE);
-         }
+         if (this.cos != null)
+            this.cos.close();
       }      
    }
     

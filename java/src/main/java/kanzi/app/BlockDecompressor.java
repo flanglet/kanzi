@@ -584,29 +584,13 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          return new FileDecompressResult(0, read);
       }
       
-      public void dispose()
+      public void dispose() throws IOException
       {
-         try
-         {
-            if (this.cis != null)
-               this.cis.close();
-         }
-         catch (IOException ioe)
-         {
-            String inputName = (String) this.ctx.get("inputName");
-            System.err.println("Decompression failure for '" + inputName+"' : " + ioe.getMessage());
-            System.exit(Error.ERR_WRITE_FILE);
-         }
+         if (this.cis != null)
+            this.cis.close();
 
-         try
-         {
-            if (this.os != null)
-               this.os.close();
-         }
-         catch (IOException ioe)
-         {
-            /* ignore */
-         }
+         if (this.os != null)
+            this.os.close();
       }
    }
    
