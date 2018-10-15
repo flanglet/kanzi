@@ -594,7 +594,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          catch (IOException ioe)
          {
             String inputName = (String) this.ctx.get("inputName");
-            System.err.println("Compression failure for '" + inputName+"' : " + ioe.getMessage());
+            System.err.println("Decompression failure for '" + inputName+"' : " + ioe.getMessage());
             System.exit(Error.ERR_WRITE_FILE);
          }
 
