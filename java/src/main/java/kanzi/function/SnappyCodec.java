@@ -62,13 +62,12 @@ public final class SnappyCodec implements ByteFunction
 
      if (n < 60)
      {
-        dst[dstIdx] = (byte) ((n<<2) | TAG_LITERAL);
-        dstIdx++;
+        dst[dstIdx++] = (byte) ((n<<2) | TAG_LITERAL);
         res = len + 1;
         
         if (len <= 16)
         {
-           int i0 = 0;
+           int k = 0;
            
            if (len >= 8) 
            {
@@ -80,11 +79,11 @@ public final class SnappyCodec implements ByteFunction
               dst[dstIdx+5] = src[srcIdx+5];
               dst[dstIdx+6] = src[srcIdx+6];
               dst[dstIdx+7] = src[srcIdx+7];  
-              i0 = 8;
+              k = 8;
            }
            
-           for (int i=i0; i<len; i++)
-              dst[dstIdx+i] = src[srcIdx+i];
+           for ( ; k<len; k++)
+              dst[dstIdx+k] = src[srcIdx+k];
            
            return res;
         }

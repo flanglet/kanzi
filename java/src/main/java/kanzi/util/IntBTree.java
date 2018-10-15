@@ -410,27 +410,17 @@ public final class IntBTree
    }
 
 
-   public int[] toArray(int[] array)
+   public int[] toArray(int[] data)
    {
       if (this.root == null)
          return new int[0];
 
-      if ((array == null) || (array.length < this.size))
-         array = new int[this.size];
+      if ((data == null) || (data.length < this.size))
+         data = new int[this.size];
 
-      final int[] res = array;
-
-      Callback cb = new Callback()
-      {
-         @Override
-         public int call(IntBTNode node, int[] values, int idx, boolean reverse)
-         {
-            return node.values(values, idx, reverse);
-         }
-      };
-
-      scanAndCall(this.root, res, 0, cb, false);
-      return res;
+      final Callback cb = new CallbackImpl();
+      scanAndCall(this.root, data, 0, cb, false);
+      return data;
    }
 
 
@@ -440,17 +430,8 @@ public final class IntBTree
       if (this.size() == 0)
          return "[]";
       
-      int[] res = new int[this.size()];
-      
-      Callback cb = new Callback()
-      {
-         @Override
-         public int call(IntBTNode node, int[] values, int idx, boolean reverse)
-         {
-            return node.values(values, idx, reverse);
-         }
-      };
-      
+      final int[] res = new int[this.size()];  
+      final Callback cb = new CallbackImpl(); 
       scanAndCall(this.root, res, 0, cb, false);
       StringBuilder sb = new StringBuilder(res.length*5);
       sb.append('[');
@@ -510,6 +491,21 @@ public final class IntBTree
          }
          
          return idx;
+      }
+   }
+
+
+   private static class CallbackImpl implements Callback
+   {
+      public CallbackImpl()
+      {
+      }
+
+
+      @Override
+      public int call(IntBTNode node, int[] values, int idx, boolean reverse)
+      {
+         return node.values(values, idx, reverse);
       }
    }
 
