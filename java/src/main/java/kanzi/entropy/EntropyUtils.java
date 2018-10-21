@@ -501,23 +501,17 @@ public class EntropyUtils
       if (bs == null)
          throw new NullPointerException("Invalid null bitstream parameter");
   
-      int w = 0;
-      boolean more;
+      int res = 0;
       
-      do 
+      while ((value >= 128) && (res < 4))
       {        
-         if (value >= 128)
-            bs.writeBits(0x80|(value&0x7F), 8);
-         else
-            bs.writeBits(value, 8);
-         
-         more = value >= 128;
+         bs.writeBits(0x80|(value&0x7F), 8);
          value >>= 7;
-         w++;
+         res++;
       }
-      while ((more == true) && (w < 4));
-
-      return w;
+      
+      bs.writeBits(value, 8);
+      return res;
    }
    
    
@@ -526,18 +520,16 @@ public class EntropyUtils
       if (bs == null)
          throw new NullPointerException("Invalid null bitstream parameter");
       
-      int res = 0;
-      boolean more;
-      int shift = 0;
+      int val = (int) bs.readBits(8);
+      int res = val & 0x7F;
+      int shift = 7;
       
-      do
+      while ((val >= 128) && (shift < 28))
       {
-         final int val = (int) bs.readBits(8);
-         res = ((val&0x7F) << shift) | res;
-         more = val >= 128;
+         val = (int) bs.readBits(8);
+         res |= ((val&0x7F) << shift);
          shift += 7;
       }
-      while ((more == true) && (shift < 28));
       
       return res;
    }
