@@ -164,7 +164,7 @@ public final class ROLZCodec implements ByteFunction
       Memory.BigEndian.writeInt32(dst, dstIdx, count);
       dstIdx += 4;
       int sizeChunk = (count <= CHUNK_SIZE) ? count : CHUNK_SIZE;
-      int startChunk = 0;
+      int startChunk = srcIdx;
       SliceByteArray sba1 = new SliceByteArray(dst, dstIdx);
       this.litPredictor.reset();
       this.matchPredictor.reset();
@@ -181,16 +181,16 @@ public final class ROLZCodec implements ByteFunction
 
          final int endChunk = (startChunk+sizeChunk < srcEnd) ? startChunk+sizeChunk : srcEnd;
          final SliceByteArray sba2 = new SliceByteArray(src, endChunk, startChunk);
-         srcIdx = startChunk + 2;
+         srcIdx = startChunk;
          this.litPredictor.setContext((byte) 0);
          re.setContext(LITERAL_FLAG);
          re.encodeBit(LITERAL_FLAG);
-         re.encodeByte(src[startChunk]);
+         re.encodeByte(src[srcIdx++]);
 
          if (startChunk+1 < srcEnd)
          {
             re.encodeBit(LITERAL_FLAG);
-            re.encodeByte(src[startChunk+1]);
+            re.encodeByte(src[srcIdx++]);
          }
          
          while (srcIdx < endChunk)
@@ -202,7 +202,7 @@ public final class ROLZCodec implements ByteFunction
             if (match == -1)
             {
                re.encodeBit(LITERAL_FLAG);
-               re.encodeByte(src[srcIdx]);  
+               re.encodeByte(src[srcIdx]); 
                srcIdx++;
             }
             else
@@ -220,7 +220,7 @@ public final class ROLZCodec implements ByteFunction
                srcIdx += (matchLen + MIN_MATCH);
             }
          }
-         
+
          startChunk = endChunk;
       }
 
@@ -265,8 +265,8 @@ public final class ROLZCodec implements ByteFunction
       final byte[] src = input.array;
       final byte[] dst = output.array;
       int srcIdx = input.index;
-      final int srcEnd = srcIdx + count - 4;
-      final int dstEnd = Memory.BigEndian.readInt32(src, srcIdx);
+      final int srcEnd = srcIdx + count;
+      final int dstEnd = output.index + Memory.BigEndian.readInt32(src, srcIdx);
       srcIdx += 4;
       int sizeChunk = (dstEnd < CHUNK_SIZE) ? dstEnd : CHUNK_SIZE;
       int startChunk = output.index;
@@ -324,7 +324,7 @@ public final class ROLZCodec implements ByteFunction
                int matchLen = rd.decodeByte() & 0xFF;
 
                // Sanity check
-               if (dstIdx + matchLen + 3 > dstEnd)
+               if (dstIdx+matchLen+3 > dstEnd)
                {
                   output.index = dstIdx;
                   break;
@@ -340,7 +340,7 @@ public final class ROLZCodec implements ByteFunction
                int ref = output.index + this.matches[base+((this.counters[key]-matchIdx)&this.maskChecks)];
 
                // Copy
-               dst[dstIdx] = dst[ref];
+               dst[dstIdx]   = dst[ref];
                dst[dstIdx+1] = dst[ref+1];
                dst[dstIdx+2] = dst[ref+2];
                dstIdx += 3;
@@ -348,7 +348,7 @@ public final class ROLZCodec implements ByteFunction
 
                while (matchLen >= 4)
                {
-                  dst[dstIdx] = dst[ref];
+                  dst[dstIdx]   = dst[ref];
                   dst[dstIdx+1] = dst[ref+1];
                   dst[dstIdx+2] = dst[ref+2];
                   dst[dstIdx+3] = dst[ref+3];
@@ -380,7 +380,7 @@ public final class ROLZCodec implements ByteFunction
 
       rd.dispose();   
       input.index = sba.index;
-      return input.index == srcEnd + 4;
+      return input.index == srcEnd;
    }
 
 
@@ -488,7 +488,7 @@ public final class ROLZCodec implements ByteFunction
          this.current  = 0;
 
          for (int i=0; i<8; i++)
-            this.current = (this.current << 8) | (long) (this.sba.array[this.sba.index+i] &0xFF);
+            this.current = (this.current<<8) | (long) (this.sba.array[this.sba.index+i] &0xFF);
 
          this.sba.index += 8;
          this.predictors = predictors;
