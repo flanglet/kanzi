@@ -145,7 +145,7 @@ public class CompressedInputStream extends InputStream
       this.ctx.put("transform", new ByteFunctionFactory().getName(this.transformType));      
 
       // Read block size
-      this.blockSize = (int) this.ibs.readBits(26) << 4;
+      this.blockSize = (int) this.ibs.readBits(28) << 4;
       this.ctx.put("blockSize", this.blockSize);
 
       if ((this.blockSize < MIN_BITSTREAM_BLOCK_SIZE) || (this.blockSize > MAX_BITSTREAM_BLOCK_SIZE))
@@ -159,7 +159,7 @@ public class CompressedInputStream extends InputStream
       this.nbInputBlocks = (int) this.ibs.readBits(6);
       
       // Read reserved bits
-      this.ibs.readBits(5);   
+      this.ibs.readBits(3);   
 
       if (this.listeners.size() > 0)
       {
