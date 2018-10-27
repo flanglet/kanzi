@@ -99,6 +99,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       Integer iBlockSize = (Integer) map.remove("block");
       this.blockSize = (iBlockSize == null) ? DEFAULT_BLOCK_SIZE : iBlockSize;
       
+      if (this.blockSize > 1024*1024*1024)
+         throw new IllegalArgumentException("Maximum block size is 1 GB (1073741824 bytes), got "+this.blockSize+" bytes");
+      
       // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)          
       ByteFunctionFactory bff = new ByteFunctionFactory();      
       this.transform = (strTransf == null) ? "BWT+RANK+ZRLT" : bff.getName(bff.getType(strTransf));
