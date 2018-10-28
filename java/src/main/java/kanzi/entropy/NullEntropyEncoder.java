@@ -36,15 +36,24 @@ public final class NullEntropyEncoder implements EntropyEncoder
 
 
    @Override
-   public int encode(byte[] block, int blkptr, int len)
+   public int encode(byte[] block, int blkptr, int count)
    {
-      if ((block == null) || (blkptr+len > block.length) || (blkptr < 0) || (len < 0))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
-      return this.bitstream.writeBits(block, blkptr, 8*len) >> 3;
+      int res = 0;
+
+      while (count > 0) 
+      {
+	      final int ckSize = (count < 1<<23) ? count : 1<<23;
+         res += (this.bitstream.writeBits(block, blkptr, 8*ckSize) >> 3);
+	      count -= ckSize;
+      }
+
+      return res;
    }
 
-
+   
    public void encodeByte(byte val)
    {
       this.bitstream.writeBits(val, 8);
