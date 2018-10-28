@@ -97,11 +97,11 @@ public final class SliceByteArray
     public String toString()
     {
         StringBuilder builder = new StringBuilder(100);
-        builder.append("[");
+        builder.append("[ data=");
         builder.append(String.valueOf(this.array));
-        builder.append(","); 
+        builder.append(", len="); 
         builder.append(this.length); 
-        builder.append(","); 
+        builder.append(", idx="); 
         builder.append(this.index); 
         builder.append("]"); 
         return builder.toString();
