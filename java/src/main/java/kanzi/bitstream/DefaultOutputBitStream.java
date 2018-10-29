@@ -116,9 +116,9 @@ public final class DefaultOutputBitStream implements OutputBitStream
       if (count == 0)
          return 0;
 
-      if (count > (bits.length-start)<<3)
+      if ((count>>3) > bits.length-start)
          throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1.." +
-            ((bits.length-start)<<3) + "])");
+            (((long)(bits.length-start))<<3) + "])");
 
       int remaining = count;
 

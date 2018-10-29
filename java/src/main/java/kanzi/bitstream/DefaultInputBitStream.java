@@ -140,9 +140,9 @@ public final class DefaultInputBitStream implements InputBitStream
       if (this.isClosed() == true)
          throw new BitStreamException("Stream closed", BitStreamException.STREAM_CLOSED);
 
-      if ((count < 0) || (count > (bits.length-start)<<3))
+      if ((count < 0) || ((count>>3) > bits.length-start))
          throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1.." +
-           ((bits.length-start)<<3) + "])");
+           (((long)(bits.length-start))<<3) + "])");
 
       if (count == 0)
          return 0;
