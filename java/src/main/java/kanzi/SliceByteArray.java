@@ -122,6 +122,6 @@ public final class SliceByteArray
        if (sa.length < 0)
           return false;
        
-       return (sa.index + sa.length <= sa.array.length);
+       return (sa.index <= sa.array.length);
     }    
 }
