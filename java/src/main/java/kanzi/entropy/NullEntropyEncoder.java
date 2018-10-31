@@ -43,11 +43,12 @@ public final class NullEntropyEncoder implements EntropyEncoder
 
       int res = 0;
 
-      while (count > 0) 
+      while (count > 0)
       {
-	      final int ckSize = (count < 1<<23) ? count : 1<<23;
+         final int ckSize = (count < 1<<23) ? count : 1<<23;
          res += (this.bitstream.writeBits(block, blkptr, 8*ckSize) >> 3);
-	      count -= ckSize;
+         blkptr += ckSize;
+         count -= ckSize;
       }
 
       return res;

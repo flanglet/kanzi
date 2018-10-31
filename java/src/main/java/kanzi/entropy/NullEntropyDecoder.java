@@ -47,6 +47,7 @@ public final class NullEntropyDecoder implements EntropyDecoder
       {
          final int ckSize = (count < 1<<23) ? count : 1<<23;
          res += (this.bitstream.readBits(block, blkptr, 8*ckSize) >> 3);
+         blkptr += ckSize;
          count -= ckSize;
       }
 
