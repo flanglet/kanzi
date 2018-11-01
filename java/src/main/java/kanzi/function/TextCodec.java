@@ -31,6 +31,7 @@ public final class TextCodec implements ByteFunction
    private static final int THRESHOLD4 = THRESHOLD3 * 128;
    private static final int MAX_DICT_SIZE = 1 << 19;
    private static final int MAX_WORD_LENGTH = 32;
+   private static final int MAX_BLOCK_SIZE = 1 << 30; //1 GB
    public static final int LOG_HASHES_SIZE = 24; // 16 MB
    public static final byte LF = 0x0A;
    public static final byte CR = 0x0D;
@@ -710,19 +711,16 @@ public final class TextCodec implements ByteFunction
       return res;
    }
 
-   
+
    // return status (8 bits):
    // 0x80 => not text
    // 0x01 => CR+LF transform
-   public static int computeStats(byte[] block, final int srcIdx, final int srcEnd, int[][] freqs)
+   public static int computeStats(byte[] block, final int srcIdx, final int srcEnd)
    {
-      for (int i=0; i<257; i++)
-      {
-         final int[] f = freqs[i];
+      final int[][] freqs = new int[257][256];
          
-         for (int j=0; j<256; j++)
-            f[j] = 0;
-      }
+      for (int i=0; i<257; i++)
+         freqs[i] = new int[256];
       
       int prv = 0;
       final int srcEnd4 = srcIdx + ((srcEnd-srcIdx) & -4);
@@ -821,13 +819,19 @@ public final class TextCodec implements ByteFunction
    @Override
    public boolean forward(SliceByteArray src, SliceByteArray dst)
    {
-      return this.delegate.forward(src, dst);
+      if (src.length > MAX_BLOCK_SIZE)
+         throw new IllegalArgumentException("The max TextCodec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
+
+      return this.delegate.forward(src, dst);   
    }
 
 
    @Override
    public boolean inverse(SliceByteArray src, SliceByteArray dst)
    {
+      if (src.length > MAX_BLOCK_SIZE)
+         throw new IllegalArgumentException("The max TextCodec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
+
       return this.delegate.inverse(src, dst);
    }
    
@@ -838,13 +842,11 @@ public final class TextCodec implements ByteFunction
    {
       private final DictEntry[] dictMap;
       private DictEntry[] dictList;
-      private final int[][] freqs;
       private final int staticDictSize;
       private final int logHashSize;
       private final int hashMask;
       private boolean isCRLF; // EOL = CR+LF ?
       private int dictSize;
-
 
 
       public TextCodec1()
@@ -853,12 +855,7 @@ public final class TextCodec implements ByteFunction
          this.dictSize = THRESHOLD2*4;
          this.dictMap = new DictEntry[1<<this.logHashSize];
          this.dictList = new DictEntry[this.dictSize];
-         this.hashMask = (1 << this.logHashSize) - 1;
-         this.freqs = new int[257][256];
-         
-         for (int i=0; i<257; i++)
-            this.freqs[i] = new int[256];
-         
+         this.hashMask = (1 << this.logHashSize) - 1;        
          System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          int nbWords = STATIC_DICT_WORDS;
  
@@ -873,12 +870,7 @@ public final class TextCodec implements ByteFunction
       {
          // Actual block size
          final int blockSize = (Integer) ctx.getOrDefault("size", 0);
-         int log = 8;
-         
-         if (blockSize >= 1<<28)
-            log = 26;
-         else if (blockSize >= 1<<10)
-            log = Global.log2(blockSize/4);
+         int log = (blockSize >= 1<<10)? Math.min(Global.log2(blockSize/4), 26) : 8;
 
          // Select an appropriate initial dictionary size
          int dSize = 1<<12;
@@ -896,11 +888,6 @@ public final class TextCodec implements ByteFunction
          this.dictMap = new DictEntry[1<<this.logHashSize];
          this.dictList = new DictEntry[this.dictSize];
          this.hashMask = (1 << this.logHashSize) - 1;
-         this.freqs = new int[257][256];
-         
-         for (int i=0; i<257; i++)
-            this.freqs[i] = new int[256];
-
          System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          int nbWords = STATIC_DICT_WORDS;
 
@@ -910,6 +897,24 @@ public final class TextCodec implements ByteFunction
          this.staticDictSize = nbWords + 2;
       }
 
+
+      private void reset()
+      {
+         // Clear and populate hash map
+         for (int i=0; i<this.dictMap.length; i++)
+            this.dictMap[i] = null;
+         
+         for (int i=0; i<this.staticDictSize; i++)
+         {
+            DictEntry e = this.dictList[i];
+            this.dictMap[e.hash&this.hashMask] = e;
+         }
+
+         // Pre-allocate all dictionary entries
+         for (int i=this.staticDictSize; i<this.dictSize; i++)
+            this.dictList[i] = new DictEntry(null, -1, 0, i, 0);
+      }
+      
 
       @Override
       public boolean forward(SliceByteArray input, SliceByteArray output)
@@ -921,17 +926,17 @@ public final class TextCodec implements ByteFunction
             return false;
 
          final int count = input.length;
-         final byte[] src = input.array;
-         final byte[] dst = output.array;
 
          if (output.length - output.index < this.getMaxEncodedLength(count))
             return false;
 
+         final byte[] src = input.array;
+         final byte[] dst = output.array;
          int srcIdx = input.index;
          int dstIdx = output.index;
-
          final int srcEnd = input.index + count;
-         int mode = computeStats(src, srcIdx, srcEnd, this.freqs);
+         
+         int mode = computeStats(src, srcIdx, srcEnd);
 
          // Not text ?
          if ((mode & 0x80) != 0)
@@ -947,20 +952,10 @@ public final class TextCodec implements ByteFunction
             return true;
          }
 
-         // Populate hash map
-         for (int i=0; i<this.staticDictSize; i++)
-         {
-            DictEntry e = this.dictList[i];
-            this.dictMap[e.hash & this.hashMask] = e;
-         }
-
-         // Pre-allocate all dictionary entries
-         for (int i=this.staticDictSize; i<this.dictSize; i++)
-            this.dictList[i] = new DictEntry(null, -1, 0, i, 0);
-
+         this.reset();
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd3 = dstEnd - 3;
-         int delimAnchor = isText(src[srcIdx]) ? srcIdx - 1 : srcIdx; // previous delimiter
+         int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int emitAnchor = input.index; // never less than input.index
          int words = this.staticDictSize;
 
@@ -977,7 +972,7 @@ public final class TextCodec implements ByteFunction
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
-            byte cur = src[srcIdx];
+            final byte cur = src[srcIdx];
 
             if (isText(cur))
             {
@@ -1004,7 +999,7 @@ public final class TextCodec implements ByteFunction
 
                // Check word in dictionary
                final int length = srcIdx - delimAnchor - 1;
-               DictEntry e1 = this.dictMap[h1 & this.hashMask];
+               DictEntry e1 = this.dictMap[h1&this.hashMask];
 
                // Check for hash collisions
                if ((e1 != null) && (((e1.data>>>24) != length) || (e1.hash != h1)))
@@ -1014,7 +1009,7 @@ public final class TextCodec implements ByteFunction
 
                if (e == null)
                {
-                  DictEntry e2 =this.dictMap[h2 & this.hashMask];
+                  DictEntry e2 = this.dictMap[h2&this.hashMask];
 
                   if ((e2 != null) && ((e2.data>>>24) == length) && (e2.hash == h2))
                      e = e2;
@@ -1036,14 +1031,14 @@ public final class TextCodec implements ByteFunction
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
                         // Evict and reuse old entry
-                        this.dictMap[e.hash & this.hashMask] = null;
+                        this.dictMap[e.hash&this.hashMask] = null;
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
                         e.data = (length<<24) | words;
                      }
 
-                     this.dictMap[h1 & this.hashMask] = e;
+                     this.dictMap[h1&this.hashMask] = e;
                      words++;
 
                      // Dictionary full ? Expand or reset index to end of static dictionary
@@ -1189,20 +1184,10 @@ public final class TextCodec implements ByteFunction
             return true;
          }
 
-         // Populate hash map
-         for (int i=0; i<this.staticDictSize; i++)
-         {
-            DictEntry e = this.dictList[i];
-            this.dictMap[e.hash & this.hashMask] = e;
-         }
-
-         // Pre-allocate all dictionary entries
-         for (int i=this.staticDictSize; i<this.dictSize; i++)
-            this.dictList[i] = new DictEntry(null, -1, 0, i, 0);
-
+         this.reset();
          final int srcEnd = input.index + count;
          final int dstEnd = dst.length;
-         int delimAnchor = isText(src[srcIdx]) ? srcIdx - 1 : srcIdx; // previous delimiter
+         int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
          final boolean _isCRLF = (src[srcIdx++] & 0x01) != 0;
@@ -1229,7 +1214,7 @@ public final class TextCodec implements ByteFunction
 
                // Lookup word in dictionary
                final int length = srcIdx - delimAnchor - 1;
-               DictEntry e = this.dictMap[h1 & this.hashMask];
+               DictEntry e = this.dictMap[h1&this.hashMask];
 
                // Check for hash collisions
                if (e != null)
@@ -1250,14 +1235,14 @@ public final class TextCodec implements ByteFunction
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
                         // Evict and reuse old entry
-                        this.dictMap[e.hash & this.hashMask] = null;
+                        this.dictMap[e.hash&this.hashMask] = null;
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
                         e.data = (length<<24) | words;
                      }
 
-                     this.dictMap[h1 & this.hashMask] = e;
+                     this.dictMap[h1&this.hashMask] = e;
                      words++;
 
                      // Dictionary full ? Expand or reset index to end of static dictionary
@@ -1331,13 +1316,13 @@ public final class TextCodec implements ByteFunction
                {
                   // Escape entry
                   wordRun = false;
-                  delimAnchor = srcIdx - 1;
+                  delimAnchor = srcIdx-1;
                }
             }
             else
             {
                wordRun = false;
-               delimAnchor = srcIdx - 1;
+               delimAnchor = srcIdx-1;
 
                if ((_isCRLF == true) && (cur == LF))
                   dst[dstIdx++] = CR;
@@ -1367,7 +1352,6 @@ public final class TextCodec implements ByteFunction
    {
       private final DictEntry[] dictMap;
       private DictEntry[] dictList;
-      private final int[][] freqs;
       private final int staticDictSize;
       private final int logHashSize;
       private final int hashMask;
@@ -1382,11 +1366,6 @@ public final class TextCodec implements ByteFunction
          this.dictMap = new DictEntry[1<<this.logHashSize];
          this.dictList = new DictEntry[this.dictSize];
          this.hashMask = (1 << this.logHashSize) - 1;
-         this.freqs = new int[257][256];
-         
-         for (int i=0; i<257; i++)
-            this.freqs[i] = new int[256];
-
          System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          this.staticDictSize = STATIC_DICT_WORDS;
       }
@@ -1396,12 +1375,7 @@ public final class TextCodec implements ByteFunction
       {
          // Actual block size
          final int blockSize = (Integer) ctx.getOrDefault("size", 0);
-         int log = 8;
-         
-         if (blockSize >= 1<<28)
-            log = 26;
-         else if (blockSize >= 1<<10)
-            log = Global.log2(blockSize/4);
+         int log = (blockSize >= 1<<10)? Math.min(Global.log2(blockSize/4), 26) : 8;
 
          // Select an appropriate initial dictionary size
          int dSize = 1<<12;
@@ -1419,16 +1393,29 @@ public final class TextCodec implements ByteFunction
          this.dictMap = new DictEntry[1<<this.logHashSize];
          this.dictList = new DictEntry[this.dictSize];
          this.hashMask = (1 << this.logHashSize) - 1;
-         this.freqs = new int[257][256];
-         
-         for (int i=0; i<257; i++)
-            this.freqs[i] = new int[256];
-
          System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          this.staticDictSize = STATIC_DICT_WORDS;
       }
 
 
+      private void reset()
+      {
+         // Clear and populate hash map
+         for (int i=0; i<this.dictMap.length; i++)
+            this.dictMap[i] = null;
+         
+         for (int i=0; i<this.staticDictSize; i++)
+         {
+            DictEntry e = this.dictList[i];
+            this.dictMap[e.hash&this.hashMask] = e;
+         }
+
+         // Pre-allocate all dictionary entries
+         for (int i=this.staticDictSize; i<this.dictSize; i++)
+            this.dictList[i] = new DictEntry(null, -1, 0, i, 0);
+      }
+      
+      
       @Override
       public boolean forward(SliceByteArray input, SliceByteArray output)
       {
@@ -1439,17 +1426,17 @@ public final class TextCodec implements ByteFunction
             return false;
 
          final int count = input.length;
-         final byte[] src = input.array;
-         final byte[] dst = output.array;
 
          if (output.length - output.index < this.getMaxEncodedLength(count))
             return false;
 
+         final byte[] src = input.array;
+         final byte[] dst = output.array;
          int srcIdx = input.index;
          int dstIdx = output.index;
 
          final int srcEnd = input.index + count;
-         int mode = computeStats(src, srcIdx, srcEnd, this.freqs);
+         int mode = computeStats(src, srcIdx, srcEnd);
 
          // Not text ?
          if ((mode & 0x80) != 0)
@@ -1465,20 +1452,10 @@ public final class TextCodec implements ByteFunction
             return true;
          }
 
-         // Populate hash map
-         for (int i=0; i<this.staticDictSize; i++)
-         {
-            DictEntry e = this.dictList[i];
-            this.dictMap[e.hash & this.hashMask] = e;
-         }
-
-         // Pre-allocate all dictionary entries
-         for (int i=this.staticDictSize; i<this.dictSize; i++)
-            this.dictList[i] = new DictEntry(null, -1, 0, i, 0);
-
+         this.reset();
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd3 = dstEnd - 3;
-         int delimAnchor = isText(src[srcIdx]) ? srcIdx - 1 : srcIdx; // previous delimiter
+         int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int emitAnchor = input.index; // never less than input.index
          int words = this.staticDictSize;
 
@@ -1495,7 +1472,7 @@ public final class TextCodec implements ByteFunction
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
-            byte cur = src[srcIdx];
+            final byte cur = src[srcIdx];
 
             if (isText(cur))
             {
@@ -1522,7 +1499,7 @@ public final class TextCodec implements ByteFunction
 
                // Check word in dictionary
                final int length = srcIdx - delimAnchor - 1;
-               DictEntry e1 = this.dictMap[h1 & this.hashMask];              
+               DictEntry e1 = this.dictMap[h1&this.hashMask];              
 
                // Check for hash collisions
                if ((e1 != null) && (((e1.data>>>24) != length) || (e1.hash != h1)))
@@ -1532,7 +1509,7 @@ public final class TextCodec implements ByteFunction
                
                if (e1 == null)
                {
-                  DictEntry e2 = this.dictMap[h2 & this.hashMask];
+                  DictEntry e2 = this.dictMap[h2&this.hashMask];
 
                   if ((e2 != null) && ((e2.data>>>24) == length) && (e2.hash == h2))
                      e = e2;
@@ -1554,14 +1531,14 @@ public final class TextCodec implements ByteFunction
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
                         // Evict and reuse old entry
-                        this.dictMap[e.hash & this.hashMask] = null;
+                        this.dictMap[e.hash&this.hashMask] = null;
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
                         e.data = (length<<24) | words;
                      }
 
-                     this.dictMap[h1 & this.hashMask] = e;
+                     this.dictMap[h1&this.hashMask] = e;
                      words++;
 
                      // Dictionary full ? Expand or reset index to end of static dictionary
@@ -1596,7 +1573,6 @@ public final class TextCodec implements ByteFunction
 
          // Emit last symbols
          dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, srcEnd-1, dstEnd);
-
          output.index = dstIdx;
          input.index = srcIdx;
          return srcIdx == srcEnd;
@@ -1624,7 +1600,7 @@ public final class TextCodec implements ByteFunction
       {
          for (int i=srcIdx; i<=srcEnd; i++)
          {
-            if (dstIdx >= dstEnd)
+            if (dstIdx >= dstEnd-1)
                break;
 
             final byte cur = src[i];           
@@ -1707,20 +1683,10 @@ public final class TextCodec implements ByteFunction
             return true;
          }
 
-         // Populate hash map
-         for (int i=0; i<this.staticDictSize; i++)
-         {
-            DictEntry e = this.dictList[i];
-            this.dictMap[e.hash & this.hashMask] = e;
-         }
-
-         // Pre-allocate all dictionary entries
-         for (int i=this.staticDictSize; i<this.dictSize; i++)
-            this.dictList[i] = new DictEntry(null, -1, 0, i, 0);
-
+         this.reset();
          final int srcEnd = input.index + count;
          final int dstEnd = dst.length;
-         int delimAnchor = isText(src[srcIdx]) ? srcIdx - 1 : srcIdx; // previous delimiter
+         int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
          final boolean _isCRLF = (src[srcIdx++] & 0x01) != 0;
@@ -1747,7 +1713,7 @@ public final class TextCodec implements ByteFunction
 
                // Lookup word in dictionary
                final int length = srcIdx - delimAnchor - 1;
-               DictEntry e = this.dictMap[h1 & this.hashMask];
+               DictEntry e = this.dictMap[h1&this.hashMask];
 
                // Check for hash collisions
                if (e != null)
@@ -1768,14 +1734,14 @@ public final class TextCodec implements ByteFunction
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
                         // Evict and reuse old entry
-                        this.dictMap[e.hash & this.hashMask] = null;
+                        this.dictMap[e.hash&this.hashMask] = null;
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
                         e.data = (length<<24) | words;
                      }
 
-                     this.dictMap[h1 & this.hashMask] = e;
+                     this.dictMap[h1&this.hashMask] = e;
                      words++;
 
                      // Dictionary full ? Expand or reset index to end of static dictionary
@@ -1848,7 +1814,7 @@ public final class TextCodec implements ByteFunction
                {
                   // Escape entry
                   wordRun = false;
-                  delimAnchor = srcIdx - 1;
+                  delimAnchor = srcIdx-1;
                }
             }
             else
@@ -1866,7 +1832,7 @@ public final class TextCodec implements ByteFunction
                }
 
                wordRun = false;
-               delimAnchor = srcIdx - 1;
+               delimAnchor = srcIdx-1;
             }
          }
 
