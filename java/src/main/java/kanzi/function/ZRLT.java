@@ -27,7 +27,7 @@ import kanzi.SliceByteArray;
 
 public final class ZRLT implements ByteFunction
 {
-   private static final int ZRLT_MAX_RUN = Integer.MAX_VALUE;
+   private static final int ZRLT_MAX_RUN = Integer.MAX_VALUE - 1;
 
 
    public ZRLT()
