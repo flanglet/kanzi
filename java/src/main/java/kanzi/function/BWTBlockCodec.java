@@ -36,6 +36,8 @@ import kanzi.transform.BWT;
 
 public class BWTBlockCodec implements ByteFunction
 {
+   private static final int BWT_MAX_HEADER_SIZE = 8 * 4;
+
    private final BWT bwt;
 
    
@@ -168,7 +170,8 @@ public class BWTBlockCodec implements ByteFunction
             primaryIndex |= ((input.array[input.index++] & 0xFF) << shift);
          }
 
-         this.bwt.setPrimaryIndex(i, primaryIndex);
+         if (this.bwt.setPrimaryIndex(i, primaryIndex) == false)
+            return false;
       }
     
       // Apply inverse Transform            
@@ -180,6 +183,6 @@ public class BWTBlockCodec implements ByteFunction
    public int getMaxEncodedLength(int srcLen)
    {
       // Return input buffer size + max header size
-      return srcLen + 4*8; 
+      return srcLen + BWT_MAX_HEADER_SIZE; 
    }
 }

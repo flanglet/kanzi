@@ -28,7 +28,7 @@ import kanzi.SliceByteArray;
 
 public class BWTS implements ByteTransform
 {
-   private static final int MAX_BLOCK_SIZE = 1024*1024*1024; // 1 GB (30 bits)
+   private static final int MAX_BLOCK_SIZE = 512*1024*1024; // 512 MB (libsufsort limit)
 
    private int[] buffer1;
    private int[] buffer2;
@@ -56,8 +56,10 @@ public class BWTS implements ByteTransform
 
       final int count = src.length;
 
+      // Not a recoverable error: instead of silently fail the transform,
+      // issue a fatal error.
       if (count > maxBlockSize())
-         return false;
+         throw new IllegalArgumentException("The max BWTS block size is "+maxBlockSize()+", got "+count);
 
       if (dst.index + count > dst.array.length)
          return false;
@@ -209,8 +211,10 @@ public class BWTS implements ByteTransform
 
       final int count = src.length;
 
+      // Not a recoverable error: instead of silently fail the transform,
+      // issue a fatal error.
       if (count > maxBlockSize())
-         return false;
+         throw new IllegalArgumentException("The max BWTS block size is "+maxBlockSize()+", got "+count);
 
       if (dst.index + count > dst.array.length)
          return false;
@@ -278,7 +282,7 @@ public class BWTS implements ByteTransform
   }
     
     
-   private static int maxBlockSize() 
+   public static int maxBlockSize() 
    {
       return MAX_BLOCK_SIZE;      
    }       
