@@ -69,8 +69,7 @@ import kanzi.SliceByteArray;
 
 public class BWT implements ByteTransform
 {
-   private static final int MAX_BLOCK_SIZE = 1024*1024*1024; // 1 GB (30 bits)
-   private static final int BWT_MAX_HEADER_SIZE  = 4;
+   private static final int MAX_BLOCK_SIZE = 512*1024*1024; // 512 MB
    private static final int MAX_CHUNKS = 8;
 
    private int[] buffer1;   // Only used in inverse
@@ -144,8 +143,10 @@ public class BWT implements ByteTransform
 
       final int count = src.length;
 
+      // Not a recoverable error: instead of silently fail the transform,
+      // issue a fatal error.
       if (count > maxBlockSize())
-         return false;
+         throw new IllegalArgumentException("The max BWT block size is "+maxBlockSize()+", got "+count);
 
       if (dst.index + count > dst.array.length)
          return false;
@@ -236,18 +237,20 @@ public class BWT implements ByteTransform
    public boolean inverse(SliceByteArray src, SliceByteArray dst)
    {
       if ((!SliceByteArray.isValid(src)) || (!SliceByteArray.isValid(dst)))
-          return false;
+         return false;
 
       if (src.array == dst.array)
-          return false;
+         return false;
 
       final int count = src.length;
 
+      // Not a recoverable error: instead of silently fail the transform,
+      // issue a fatal error.
       if (count > maxBlockSize())
-          return false;
+         throw new IllegalArgumentException("The max BWT block size is "+maxBlockSize()+", got "+count);
 
       if (dst.index + count > dst.array.length)
-          return false;      
+         return false;      
 
       if (count < 2)
       {
@@ -257,10 +260,14 @@ public class BWT implements ByteTransform
          return true;
       }
 
-      if (count >= 1<<24)
-         return this.inverseBigBlock(src, dst, count);
+      // Find the fastest way to implement inverse based on block size
+      if (count < 1<<24)
+          return inverseRegularBlock(src, dst, count);
 
-      return this.inverseRegularBlock(src, dst, count);
+      if (5*(long) count >= 1L<<31)
+         return inverseHugeBlock(src, dst, count);
+
+      return inverseBigBlock(src, dst, count);
    }
 
 
@@ -369,7 +376,7 @@ public class BWT implements ByteTransform
    }
 
 
-   // When count >= 1<<24
+   // When count >= 1<<24 and 5*count < 1<<31
    private boolean inverseBigBlock(SliceByteArray src, SliceByteArray dst, int count)
    {
       final byte[] input = src.array;
@@ -478,10 +485,124 @@ public class BWT implements ByteTransform
       return true;
    }
 
-
-   private static int maxBlockSize() 
+   
+   // When 5*count >= 1<<31
+   private boolean inverseHugeBlock(SliceByteArray src, SliceByteArray dst, int count)
    {
-      return MAX_BLOCK_SIZE - BWT_MAX_HEADER_SIZE;      
+      final byte[] input = src.array;
+      final byte[] output = dst.array;
+      final int srcIdx = src.index;
+      final int dstIdx = dst.index;
+
+      // Lazy dynamic memory allocations
+      if (this.buffer1.length < count)
+         this.buffer1 = new int[count];
+
+      if (this.buffer2.length < count)
+         this.buffer2 = new byte[count];
+
+      // Aliasing
+      final int[] buckets_ = this.buckets;
+      final int[] data1 = this.buffer1;
+      final byte[] data2 = this.buffer2;
+
+      // Initialize histogram
+      for (int i=0; i<256; i++)
+         buckets_[i] = 0;
+
+      final int chunks = getBWTChunks(count);
+
+      // Build arrays
+      // Start with the primary index position
+      int pIdx = this.getPrimaryIndex(0);
+      final byte val0 = input[srcIdx+pIdx];
+      data1[pIdx] = buckets_[val0&0xFF];
+      data2[pIdx] = val0;
+      buckets_[val0&0xFF]++;
+
+      for (int i=0; i<pIdx; i++)
+      {
+         final byte val = input[srcIdx+i];
+         data1[i] = buckets_[val&0xFF];
+         data2[i] = val;
+         buckets_[val&0xFF]++;
+      }
+
+      for (int i=pIdx+1; i<count; i++)
+      {
+         final byte val = input[srcIdx+i];
+         data1[i] = buckets_[val&0xFF];
+         data2[i] = val;
+         buckets_[val&0xFF]++;
+      }
+
+      // Create cumulative histogram
+      for (int i=0, sum=0; i<256; i++)
+      {
+         final int tmp = buckets_[i];
+         buckets_[i] = sum;
+         sum += tmp;
+      }
+
+      int idx = dstIdx + count - 1;
+
+      // Build inverse
+      if ((chunks == 1) || (this.jobs == 1))
+      {
+         // Shortcut for 1 chunk scenario
+         byte val = data2[pIdx];
+         output[idx--] = val;
+         int n = data1[pIdx] + buckets_[val&0xFF];
+
+         for (; idx>=dstIdx; idx--)
+         {
+            val = data2[n];
+            output[idx] = val;
+            n = data1[n] + buckets_[val&0xFF];
+         }      
+      }
+      else
+      {        
+         // Several chunks may be decoded concurrently (depending on the availaibility
+         // of jobs in the pool).
+         final int step = count / chunks;
+         final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
+         List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
+         final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
+         int c = chunks;          
+
+         // Create one task per job
+         for (int j=0; j<nbTasks; j++) 
+         {
+            // Each task decodes jobsPerTask[j] chunks
+            final int end = dstIdx + (c-jobsPerTask[j])*step;
+            tasks.add(new InverseHugeChunkTask(output, dstIdx, pIdx, idx, step, c-1, c-1-jobsPerTask[j]));
+            c -= jobsPerTask[j];
+            pIdx = this.getPrimaryIndex(c);
+            idx = end - 1;
+         }
+
+         try
+         {
+            // Wait for completion of all concurrent tasks
+            for (Future<Integer> result : this.pool.invokeAll(tasks))
+               result.get();
+         }
+         catch (Exception e)
+         {
+            return false;            
+         }               
+      }
+
+      src.index += count;
+      dst.index += count;
+      return true;
+   }
+
+   
+   public static int maxBlockSize() 
+   {
+      return MAX_BLOCK_SIZE;      
    } 
 
 
@@ -602,4 +723,61 @@ public class BWT implements ByteTransform
          return 0;
       }      
    }   
+   
+   // Process one or several chunk(s)
+   class InverseHugeChunkTask implements Callable<Integer>
+   {
+      private final byte[] output;
+      private final int dstIdx;
+      private final int startIdx;
+      private final int step;
+      private final int startChunk;
+      private final int endChunk;
+      private final int pIdx0;
+
+
+      public InverseHugeChunkTask(byte[] output, int dstIdx,
+         int pIdx0, int startIdx, int step, int startChunk, int endChunk)
+      {
+         this.output = output;
+         this.dstIdx = dstIdx;
+         this.pIdx0 = pIdx0;  
+         this.startIdx = startIdx;
+         this.step = step;
+         this.startChunk = startChunk;
+         this.endChunk = endChunk;
+      }
+      
+      
+      @Override
+      public Integer call() throws Exception
+      {
+         final int[] data1 = BWT.this.buffer1;	
+         final byte[] data2 = BWT.this.buffer2;
+         final int[] buckets = BWT.this.buckets;	
+         int pIdx = this.pIdx0;
+         int idx = this.startIdx;
+         
+         // Process each chunk sequentially
+         for (int i=this.startChunk; i>this.endChunk; i--)	
+         {	
+            byte val = data2[pIdx];	
+            this.output[idx--] = val;	
+            final int endIdx = this.dstIdx + i*this.step;
+            int n = data1[pIdx] + buckets[val&0xFF];	
+
+            for (; idx>=endIdx; idx--)	
+            {	
+               val = data2[n];	
+               this.output[idx] = val;	
+               n = data1[n] + buckets[val&0xFF];	
+            }   	
+
+            pIdx = BWT.this.getPrimaryIndex(i);	
+         } 
+
+         return 0;
+      }
+   }
+   
 }
