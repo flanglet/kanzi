@@ -342,7 +342,8 @@ public class BWT implements ByteTransform
       {
          // Several chunks may be decoded concurrently (depending on the availaibility
          // of jobs in the pool).
-         final int step = count / chunks;
+         final int st = count / chunks;
+         final int step = (chunks*st == count) ? st : st+1;
          final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
          List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
          final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
@@ -452,7 +453,8 @@ public class BWT implements ByteTransform
       {        
          // Several chunks may be decoded concurrently (depending on the availaibility
          // of jobs in the pool).
-         final int step = count / chunks;
+         final int st = count / chunks;
+         final int step = (chunks*st == count) ? st : st+1;
          final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
          List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
          final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
@@ -566,7 +568,8 @@ public class BWT implements ByteTransform
       {        
          // Several chunks may be decoded concurrently (depending on the availaibility
          // of jobs in the pool).
-         final int step = count / chunks;
+         final int st = count / chunks;
+         final int step = (chunks*st == count) ? st : st+1;
          final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
          List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
          final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
