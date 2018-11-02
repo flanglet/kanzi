@@ -69,9 +69,7 @@ import kanzi.SliceByteArray;
 
 public class BWT implements ByteTransform
 {
-
-   private static final int MAX_BLOCK_SIZE = 512*1024*1024; // 512 MB 
-
+   private static final int MAX_BLOCK_SIZE = 1024*1024*1024; // 1 GB 
    private static final int MAX_CHUNKS = 8;
 
    private int[] buffer1;   // Only used in inverse
@@ -201,7 +199,8 @@ public class BWT implements ByteTransform
       }
       else
       {
-         final int step = count / chunks;
+         final int st = count / chunks;
+         final int step = (chunks*st == count) ? st : st+1;
 
          for (; n<count; n++) 
          {      

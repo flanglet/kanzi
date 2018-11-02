@@ -28,7 +28,7 @@ import kanzi.SliceByteArray;
 
 public class BWTS implements ByteTransform
 {
-   private static final int MAX_BLOCK_SIZE = 512*1024*1024; // 512 MB (libsufsort limit)
+   private static final int MAX_BLOCK_SIZE = 1024*1024*1024; // 1 GB 
 
    private int[] buffer1;
    private int[] buffer2;
