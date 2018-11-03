@@ -54,20 +54,20 @@ public final class DivSufSort
 
    private static final int[] LOG_TABLE =
    {
-       -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-       4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-       5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-       6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-       6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7,
-       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
+      -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+      4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+      5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+      6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+      6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7,
+      7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+      7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+      7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+      7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+      7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
    };
 
    private int[] sa;
-   private int[] buffer;
+   private short[] buffer;
    private final int[] bucketA;
    private final int[] bucketB;
    private final Stack ssStack;
@@ -80,7 +80,7 @@ public final class DivSufSort
      this.bucketA = new int[256];
      this.bucketB = new int[65536];
      this.sa = new int[0];
-     this.buffer = new int[0];
+     this.buffer = new short[0];
      this.ssStack = new Stack(SS_MISORT_STACKSIZE);
      this.trStack = new Stack(TR_STACKSIZE);
      this.mergeStack = new Stack(SS_SMERGE_STACKSIZE);
@@ -107,10 +107,10 @@ public final class DivSufSort
    {
        // Lazy dynamic memory allocation
        if (this.buffer.length < length)
-          this.buffer = new int[length];
+          this.buffer = new short[length];
 
        for (int i=0; i<length; i++)
-          this.buffer[i] = input[start+i] & 0xFF;
+          this.buffer[i] = (short) (input[start+i] & 0xFF);
 
        this.sa = sa;
        this.reset();
@@ -197,14 +197,14 @@ public final class DivSufSort
    {
       // Lazy dynamic memory allocation
       if (this.buffer.length < length)
-         this.buffer = new int[length];
+         this.buffer = new short[length];
 
       for (int i=0; i<length; i++)
-         this.buffer[i] = input[start+i] & 0xFF;
+         this.buffer[i] = (short) (input[start+i] & 0xFF);
 
       this.sa = sa;
       this.reset();
-      int m = this.sortTypeBstar(this.bucketA, this.bucketB, length);
+      final int m = this.sortTypeBstar(this.bucketA, this.bucketB, length);
       return this.constructBWT(this.bucketA, this.bucketB, length, m);
    }
 
