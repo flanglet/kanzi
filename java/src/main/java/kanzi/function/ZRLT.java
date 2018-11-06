@@ -27,9 +27,6 @@ import kanzi.SliceByteArray;
 
 public final class ZRLT implements ByteFunction
 {
-   private static final int ZRLT_MAX_RUN = Integer.MAX_VALUE - 1;
-
-
    public ZRLT()
    {
    }
@@ -66,7 +63,7 @@ public final class ZRLT implements ByteFunction
             {
                runLength = 1;
 
-               while ((srcIdx+runLength < srcEnd) && (src[srcIdx+runLength] == src[srcIdx]) && (runLength < ZRLT_MAX_RUN))
+               while ((srcIdx+runLength < srcEnd) && (src[srcIdx+runLength] == src[srcIdx]))
                   runLength++;
      
                srcIdx += runLength;
@@ -136,6 +133,7 @@ public final class ZRLT implements ByteFunction
 
       if (srcIdx < srcEnd)
       {
+mainLoop:         
          while (dstIdx < dstEnd)
          {
             if (runLength > 1)
@@ -158,7 +156,7 @@ public final class ZRLT implements ByteFunction
                   srcIdx++;
 
                   if (srcIdx >= srcEnd)
-                     break;
+                     break mainLoop;
                }
                while ((val = src[srcIdx] & 0xFF) <= 1);
 
