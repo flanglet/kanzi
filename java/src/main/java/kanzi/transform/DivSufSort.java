@@ -269,7 +269,7 @@ public final class DivSufSort
          {
             if (s != 0)
                this.sa[i] = ~s;
-            else 
+            else
                pIdx = i;
 
             continue;
@@ -377,7 +377,7 @@ public final class DivSufSort
          // Sort the type B* substrings using ssSort.
          final int bufSize = n - m - m;
          c0 = 254;
-
+  
          for (int j=m; j>0; c0--)
          {
             final int idx = c0 << 8;
@@ -386,13 +386,13 @@ public final class DivSufSort
             {
                final int i = bucketB[idx+c1];
 
-               if (j > i + 1) 
-                   this.ssSort(pab, i, j, m, bufSize, 2, n, arr[i] == m - 1);
+               if (j > i+1) 
+                  this.ssSort(pab, i, j, m, bufSize, 2, n, arr[i] == m-1);
 
                j = i;
             }
          }
-
+          
          // Compute ranks of type B* substrings.
          for (int i=m-1; i>=0; i--)
          {
@@ -410,16 +410,16 @@ public final class DivSufSort
                arr[i+1] = i - j;
 
                if (i <= 0)
-                   break;
+                  break;
             }
 
             final int j = i;
 
             do
             {
-                arr[i] = ~arr[i];
-                arr[m+arr[i]] = j;
-                i--;
+               arr[i] = ~arr[i];
+               arr[m+arr[i]] = j;
+               i--;
             }
             while (arr[i] < 0);
 
@@ -521,7 +521,7 @@ public final class DivSufSort
       for (a=first; middle-a>SS_BLOCKSIZE; a+=SS_BLOCKSIZE, i++)
       {
          this.ssMultiKeyIntroSort(pa, a, a+SS_BLOCKSIZE, depth);
-         int curBufSize = last - (a + SS_BLOCKSIZE);
+         int curBufSize = last - (a+SS_BLOCKSIZE);
          final int curBuf;
 
          if (curBufSize > bufSize)
@@ -1230,7 +1230,7 @@ public final class DivSufSort
    {
       final int[] arr = this.sa;
 
-      for (int i=last-2; i >= first; i--)
+      for (int i=last-2; i>=first; i--)
       {
          final int t = pa + arr[i];
          int j = i + 1;
@@ -1737,9 +1737,9 @@ public final class DivSufSort
 
    private void swapInSA(int a, int b)
    {
-       final int tmp = this.sa[a];
-       this.sa[a] = this.sa[b];
-       this.sa[b] = tmp;
+      final int tmp = this.sa[a];
+      this.sa[a] = this.sa[b];
+      this.sa[b] = tmp;
    }
 
 
