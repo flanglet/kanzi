@@ -51,8 +51,7 @@ public final class ZRLT implements ByteFunction
       int srcIdx = input.index;
       int dstIdx = output.index;
       final int srcEnd = srcIdx + count;
-      final int dstEnd = dst.length;
-
+      final int dstEnd = output.length;
       int runLength = 0;
 
       if (dstIdx < dstEnd)
@@ -72,7 +71,7 @@ public final class ZRLT implements ByteFunction
                runLength++;
                int log2 = (runLength<=256) ? Global.LOG2[runLength-1] : 31-Integer.numberOfLeadingZeros(runLength);
                
-               if (dstIdx >= dstEnd - log2)
+               if (dstIdx >= dstEnd-log2)
                   break;
 
                // Write every bit as a byte except the most significant one
@@ -94,12 +93,15 @@ public final class ZRLT implements ByteFunction
                   break;
 
                dst[dstIdx] = (byte) 0xFF;
-               dst[dstIdx+1] = (byte) (val - 0xFE);
+               dst[dstIdx+1] = (byte) (val-0xFE);
                dstIdx += 2;
             }
             else
             {
-               dst[dstIdx] = (byte) (val + 1);
+               if (dstIdx >= dstEnd)
+                  break;
+
+               dst[dstIdx] = (byte) (val+1);
                dstIdx++;
             }
 
@@ -128,7 +130,7 @@ public final class ZRLT implements ByteFunction
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int srcEnd = srcIdx + count;
-      final int dstEnd = dst.length;
+      final int dstEnd = output.length;
       int runLength = 1;
 
       if (srcIdx < srcEnd)
@@ -171,11 +173,11 @@ mainLoop:
                if (srcIdx >= srcEnd)
                   break;
 
-               dst[dstIdx] = (byte) (0xFE + src[srcIdx]);
+               dst[dstIdx] = (byte) (0xFE+src[srcIdx]);
             }
             else
             {
-               dst[dstIdx] = (byte) (val - 1);
+               dst[dstIdx] = (byte) (val-1);
             }
 
             srcIdx++;
