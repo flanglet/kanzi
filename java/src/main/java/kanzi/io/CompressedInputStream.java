@@ -736,7 +736,8 @@ public class CompressedInputStream extends InputStream
          }
          catch (Exception e)
          {
-            return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK, e.getMessage());
+            return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK, 
+               "Error in block "+currentBlockId+": "+e.getMessage());
          }
          finally
          {

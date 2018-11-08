@@ -704,7 +704,8 @@ public class CompressedOutputStream extends OutputStream
          }
          catch (Exception e)
          {
-            return new Status(currentBlockId, Error.ERR_PROCESS_BLOCK, e.getMessage());
+            return new Status(currentBlockId, Error.ERR_PROCESS_BLOCK, 
+               "Error in block "+currentBlockId+": "+e.getMessage());
          }
          finally
          {

@@ -522,6 +522,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          }
          catch (kanzi.io.IOException e)
          {
+            System.err.println("An unexpected condition happened. Exiting ...");
             System.err.println(e.getMessage());
             return new FileDecompressResult(e.getErrorCode(), this.cis.getRead());
          }

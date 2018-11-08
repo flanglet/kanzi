@@ -616,6 +616,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          }
          catch (kanzi.io.IOException e)
          {
+            System.err.println("An unexpected condition happened. Exiting ...");
             System.err.println(e.getMessage());
             return new FileCompressResult(e.getErrorCode(), read, this.cos.getWritten());
          }
