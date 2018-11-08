@@ -169,9 +169,9 @@ public final class SnappyCodec implements ByteFunction
   @Override
   public boolean forward(SliceByteArray input, SliceByteArray output)
   {
-     if ((!SliceByteArray.isValid(input)) || (!SliceByteArray.isValid(output)))
-        return false;
-
+     if (input.length == 0)
+        return true;
+      
      if (input.array == output.array)
         return false;
    
@@ -368,9 +368,9 @@ public final class SnappyCodec implements ByteFunction
   @Override
   public boolean inverse(SliceByteArray input, SliceByteArray output)
   {
-     if ((!SliceByteArray.isValid(input)) || (!SliceByteArray.isValid(output)))
-        return false;
-
+     if (input.length == 0)
+        return true;
+      
      if (input.array == output.array)
         return false;
    

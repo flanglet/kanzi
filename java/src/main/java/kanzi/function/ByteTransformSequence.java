@@ -44,17 +44,10 @@ public class ByteTransformSequence implements ByteFunction
    @Override
    public boolean forward(SliceByteArray src, SliceByteArray dst)
    {  
-      // Check for null buffers. Let individual transforms decide on buffer equality
-      if ((src == null) || (dst == null))
-         return false;
-
-      if ((src.array == null) || (dst.array == null))
-         return false;
-
-      int count = src.length;
-      
-      if (count == 0)
+      if (src.length == 0)
          return true;
+      
+      int count = src.length;
       
       if ((count < 0) || (count+src.index > src.array.length))
          return false;
@@ -123,16 +116,10 @@ public class ByteTransformSequence implements ByteFunction
    @Override
    public boolean inverse(SliceByteArray src, SliceByteArray dst)
    {      
-      if ((src == null) || (dst == null))
-         return false;
-
-      if ((src.array == null) || (dst.array == null))
-         return false;
+      if (src.length == 0)
+         return true;
 
       int count = src.length;
-     
-      if (count == 0)
-         return true;
 
       if ((count < 0) || (count+src.index > src.array.length))
          return false;

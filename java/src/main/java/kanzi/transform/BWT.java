@@ -135,9 +135,9 @@ public class BWT implements ByteTransform
    @Override
    public boolean forward(SliceByteArray src, SliceByteArray dst)
    {
-      if ((!SliceByteArray.isValid(src)) || (!SliceByteArray.isValid(dst)))
-         return false;
-
+      if (src.length == 0)
+         return true;
+      
       if (src.array == dst.array)
          return false;
 
@@ -237,9 +237,9 @@ public class BWT implements ByteTransform
    @Override
    public boolean inverse(SliceByteArray src, SliceByteArray dst)
    {
-      if ((!SliceByteArray.isValid(src)) || (!SliceByteArray.isValid(dst)))
-         return false;
-
+      if (src.length == 0)
+         return true;
+      
       if (src.array == dst.array)
          return false;
 
