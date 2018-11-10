@@ -819,6 +819,12 @@ public final class TextCodec implements ByteFunction
    @Override
    public boolean forward(SliceByteArray src, SliceByteArray dst)
    {
+      if (src.length == 0)
+         return true;
+
+      if (src.array == dst.array)
+         return false;
+
       if (src.length > MAX_BLOCK_SIZE)
          throw new IllegalArgumentException("The max TextCodec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
 
@@ -829,6 +835,12 @@ public final class TextCodec implements ByteFunction
    @Override
    public boolean inverse(SliceByteArray src, SliceByteArray dst)
    {
+      if (src.length == 0)
+         return true;
+
+      if (src.array == dst.array)
+         return false;
+
       if (src.length > MAX_BLOCK_SIZE)
          throw new IllegalArgumentException("The max TextCodec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
 
@@ -919,12 +931,6 @@ public final class TextCodec implements ByteFunction
       @Override
       public boolean forward(SliceByteArray input, SliceByteArray output)
       {
-         if (input.length == 0)
-            return true;
-      
-         if (input.array == output.array)
-            return false;
-
          final int count = input.length;
 
          if (output.length - output.index < this.getMaxEncodedLength(count))
@@ -1162,12 +1168,6 @@ public final class TextCodec implements ByteFunction
       @Override
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
-         if (input.length == 0)
-            return true;
-         
-         if (input.array == output.array)
-            return false;
-
          final int count = input.length;
          int srcIdx = input.index;
          int dstIdx = output.index;
@@ -1419,12 +1419,6 @@ public final class TextCodec implements ByteFunction
       @Override
       public boolean forward(SliceByteArray input, SliceByteArray output)
       {
-         if (input.length == 0)
-            return true;
-      
-         if (input.array == output.array)
-            return false;
-
          final int count = input.length;
 
          if (output.length - output.index < this.getMaxEncodedLength(count))
@@ -1661,12 +1655,6 @@ public final class TextCodec implements ByteFunction
       @Override
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
-         if (input.length == 0)
-            return true;
-      
-         if (input.array == output.array)
-            return false;
-
          final int count = input.length;
          int srcIdx = input.index;
          int dstIdx = output.index;
