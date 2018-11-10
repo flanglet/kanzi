@@ -87,7 +87,8 @@ public class ByteTransformSequence implements ByteFunction
          // Apply forward transform            
          if (transform.forward(sa1, sa2) == false)
          {
-            // Transform failed (probably due to lack of space in output). Revert
+            // Transform failed. Either it does not apply to this type
+            // of data or a recoverable error occured => revert
             if (sa1.array != sa2.array)
                System.arraycopy(sa1.array, savedIIdx, sa2.array, savedOIdx, count);
 
