@@ -948,7 +948,7 @@ public final class TextCodec implements ByteFunction
          if ((mode & 0x80) != 0)
             return false;
 
-         if (count <= 16)
+         if (count <= 64)
          {
             for (int i=0; i<count; i++)
                dst[dstIdx++] = src[srcIdx++];
@@ -960,7 +960,7 @@ public final class TextCodec implements ByteFunction
 
          this.reset();
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
-         final int dstEnd3 = dstEnd - 3;
+         final int dstEnd4 = dstEnd - 4;
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int emitAnchor = input.index; // never less than input.index
          int words = this.staticDictSize;
@@ -976,7 +976,7 @@ public final class TextCodec implements ByteFunction
             emitAnchor++;
          }
 
-         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
+         while (srcIdx < srcEnd)
          {
             final byte cur = src[srcIdx];
 
@@ -1008,7 +1008,7 @@ public final class TextCodec implements ByteFunction
                DictEntry e1 = this.dictMap[h1&this.hashMask];
 
                // Check for hash collisions
-               if ((e1 != null) && (((e1.data>>>24) != length) || (e1.hash != h1)))
+               if ((e1 != null) && (((e1.hash != h1) || (e1.data>>>24) != length)))
                   e1 = null;
 
                DictEntry e = e1;
@@ -1062,14 +1062,12 @@ public final class TextCodec implements ByteFunction
                   if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
                      dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor, dstEnd);
 
-                  emitAnchor = delimAnchor + 1;
-
-                  if (dstIdx >= dstEnd3)
+                  if (dstIdx >= dstEnd4)
                      break;
 
                   dst[dstIdx++] = (e == e1) ? ESCAPE_TOKEN1 : ESCAPE_TOKEN2;
                   dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF);
-                  emitAnchor += (e.data>>>24);
+                  emitAnchor = delimAnchor + 1 + (e.data>>>24);
                }
             }
 
@@ -1174,7 +1172,7 @@ public final class TextCodec implements ByteFunction
          final byte[] src = input.array;
          final byte[] dst = output.array;
 
-         if (count <= 16)
+         if (count <= 64)
          {
             for (int i=0; i<count; i++)
                dst[dstIdx++] = src[srcIdx++];
@@ -1428,19 +1426,19 @@ public final class TextCodec implements ByteFunction
          final byte[] dst = output.array;
          int srcIdx = input.index;
          int dstIdx = output.index;
-
          final int srcEnd = input.index + count;
+         
          int mode = computeStats(src, srcIdx, srcEnd);
 
          // Not text ?
          if ((mode & 0x80) != 0)
             return false;
 
-         if (count <= 16)
+         if (count <= 64)
          {
             for (int i=0; i<count; i++)
                dst[dstIdx++] = src[srcIdx++];
-
+            
             input.index = srcIdx;
             output.index = dstIdx;
             return true;
@@ -1464,7 +1462,7 @@ public final class TextCodec implements ByteFunction
             emitAnchor++;
          }
 
-         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
+         while (srcIdx < srcEnd)
          {
             final byte cur = src[srcIdx];
 
@@ -1496,7 +1494,7 @@ public final class TextCodec implements ByteFunction
                DictEntry e1 = this.dictMap[h1&this.hashMask];              
 
                // Check for hash collisions
-               if ((e1 != null) && (((e1.data>>>24) != length) || (e1.hash != h1)))
+               if ((e1 != null) && (((e1.hash != h1) || (e1.data>>>24) != length)))
                   e1 = null;
 
                DictEntry e = e1;
@@ -1550,13 +1548,11 @@ public final class TextCodec implements ByteFunction
                   if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
                      dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor, dstEnd);
 
-                  emitAnchor = delimAnchor + 1;
-
                   if (dstIdx >= dstEnd3)
                      break;
 
                   dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF, ((e == e1) ? 0 : 32));
-                  emitAnchor += (e.data>>>24);
+                  emitAnchor = delimAnchor + 1 + (e.data>>>24);
                }
             }
 
@@ -1661,7 +1657,7 @@ public final class TextCodec implements ByteFunction
          final byte[] src = input.array;
          final byte[] dst = output.array;
 
-         if (count <= 16)
+         if (count <= 64)
          {
             for (int i=0; i<count; i++)
                dst[dstIdx++] = src[srcIdx++];
