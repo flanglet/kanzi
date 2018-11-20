@@ -22,7 +22,7 @@ import kanzi.InputBitStream;
 import kanzi.OutputBitStream;
 
 
-public class EntropyCodecFactory 
+public class EntropyCodecFactory
 {
    public static final byte NONE_TYPE    = 0; // No compression
    public static final byte HUFFMAN_TYPE = 1; // Huffman
@@ -34,8 +34,8 @@ public class EntropyCodecFactory
    public static final byte TPAQ_TYPE    = 7; // Tangelo PAQ
    public static final byte ANS1_TYPE    = 8; // Asymmetric Numerical System order 1
    public static final byte TPAQX_TYPE   = 9; // Tangelo PAQ Extra
-   
-   
+
+
    public EntropyDecoder newDecoder(InputBitStream ibs, Map<String, Object> ctx, int entropyType)
    {
       if (ibs == null)
@@ -47,29 +47,37 @@ public class EntropyCodecFactory
          // Rebuild the entropy decoder to reset block statistics
          case HUFFMAN_TYPE:
             return new HuffmanDecoder(ibs);
+            
          case ANS0_TYPE:
             return new ANSRangeDecoder(ibs, 0);
+            
          case ANS1_TYPE:
             return new ANSRangeDecoder(ibs, 1);
+            
          case RANGE_TYPE:
             return new RangeDecoder(ibs);
+            
          case FPAQ_TYPE:
             return new BinaryEntropyDecoder(ibs, new FPAQPredictor());
+            
          case CM_TYPE:
             return new BinaryEntropyDecoder(ibs, new CMPredictor());
+            
          case TPAQ_TYPE:
             return new BinaryEntropyDecoder(ibs, new TPAQPredictor(ctx));
+            
          case TPAQX_TYPE:
-            ctx.put("extra", true);
             return new BinaryEntropyDecoder(ibs, new TPAQPredictor(ctx));
+            
          case NONE_TYPE:
             return new NullEntropyDecoder(ibs);
+            
          default:
             throw new IllegalArgumentException("Unsupported entropy codec type: " + (char) entropyType);
       }
-   } 
-   
-   
+   }
+
+
    public EntropyEncoder newEncoder(OutputBitStream obs, Map<String, Object> ctx, int entropyType)
    {
       if (obs == null)
@@ -79,113 +87,112 @@ public class EntropyCodecFactory
       {
          case HUFFMAN_TYPE:
             return new HuffmanEncoder(obs);
-            
+
          case ANS0_TYPE:
             return new ANSRangeEncoder(obs, 0);
-            
+
          case ANS1_TYPE:
             return new ANSRangeEncoder(obs, 1);
-            
+
          case RANGE_TYPE:
             return new RangeEncoder(obs);
-            
+
          case FPAQ_TYPE:
             return new BinaryEntropyEncoder(obs, new FPAQPredictor());
-            
+
          case CM_TYPE:
             return new BinaryEntropyEncoder(obs, new CMPredictor());
-            
-         case TPAQ_TYPE: 
+
+         case TPAQ_TYPE:
             return new BinaryEntropyEncoder(obs, new TPAQPredictor(ctx));
-            
-         case TPAQX_TYPE:  
-            ctx.put("extra", true);
+
+         case TPAQX_TYPE:
             return new BinaryEntropyEncoder(obs, new TPAQPredictor(ctx));
-            
+
          case NONE_TYPE:
             return new NullEntropyEncoder(obs);
-            
+
          default :
             throw new IllegalArgumentException("Unknown entropy codec type: " + (char) entropyType);
       }
    }
-   
-   
+
+
    public static String getName(int entropyType)
    {
       switch (entropyType)
       {
          case HUFFMAN_TYPE:
             return "HUFFMAN";
-            
+
          case ANS0_TYPE:
             return "ANS0";
-            
+
          case ANS1_TYPE:
             return "ANS1";
-            
+
          case RANGE_TYPE:
             return "RANGE";
-            
+
          case FPAQ_TYPE:
             return "FPAQ";
-            
+
          case CM_TYPE:
             return "CM";
-            
+
          case TPAQ_TYPE:
             return "TPAQ";
-            
+
          case TPAQX_TYPE:
             return "TPAQX";
-            
+
          case NONE_TYPE:
             return "NONE";
-            
+
          default :
             throw new IllegalArgumentException("Unknown entropy codec type: " + (char) entropyType);
       }
    }
-   
+
 
    public static int getType(String name)
    {
       // Strings in switch not supported in JDK 6
       name = String.valueOf(name).toUpperCase();
-      
+
       switch(name)
       {
          case "HUFFMAN":
-             return HUFFMAN_TYPE; 
+             return HUFFMAN_TYPE;
 
          case "ANS0":
-             return ANS0_TYPE; 
+             return ANS0_TYPE;
 
          case "ANS1":
-             return ANS1_TYPE; 
+             return ANS1_TYPE;
 
          case "FPAQ":
              return FPAQ_TYPE;
 
          case "RANGE":
-             return RANGE_TYPE; 
+             return RANGE_TYPE;
 
          case "CM":
-             return CM_TYPE; 
+             return CM_TYPE;
 
          case "NONE":
              return NONE_TYPE;
 
          case "TPAQ":
-             return TPAQ_TYPE;      
+             return TPAQ_TYPE;
 
          case "TPAQX":
              return TPAQX_TYPE;
 
          default:
-            throw new IllegalArgumentException("Unsupported entropy codec type: " + name); 
+            throw new IllegalArgumentException("Unsupported entropy codec type: " + name);
       }
-   } 
-   
+   }
+
 }
 

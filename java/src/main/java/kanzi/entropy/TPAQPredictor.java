@@ -210,7 +210,8 @@ public class TPAQPredictor implements Predictor
       {
          // If extra mode, add more memory for states table, hash table
          // and add second SSE
-         this.extra = (Boolean) ctx.getOrDefault("extra", false);
+         String codec = (String) ctx.getOrDefault("codec", "NONE");
+         this.extra = "TPAQX".equals(codec);
          extraMem = (this.extra == true) ? 1 : 0;
          
          // Block size requested by the user
