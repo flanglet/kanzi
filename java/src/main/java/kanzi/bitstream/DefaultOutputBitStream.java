@@ -113,9 +113,6 @@ public final class DefaultOutputBitStream implements OutputBitStream
       if (this.isClosed() == true)
          throw new BitStreamException("Stream closed", BitStreamException.STREAM_CLOSED);
 
-      if (count == 0)
-         return 0;
-
       if ((count>>3) > bits.length-start)
          throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1.." +
             (((long)(bits.length-start))<<3) + "])");
