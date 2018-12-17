@@ -34,58 +34,64 @@ public class TestFunctions
    {
       if (args.length == 0)
       {
-          args = new String[] { "-TYPE=ALL" };
+         args = new String[] { "-TYPE=ALL" };
       }
 
       String type = args[0].toUpperCase();
 
       if (type.startsWith("-TYPE=")) 
       {
-          type = type.substring(6);
-          System.out.println("Transform: " + type);
+         type = type.substring(6);
+         System.out.println("Transform: " + type);
 
-          if (type.equals("ALL"))
-          {
-             System.out.println("\n\nTestLZ4");
-             
-             if (testCorrectness("LZ4") == false)
-                System.exit(1);
-             
-             testSpeed("LZ4");
-             System.out.println("\n\nTestROLZ");
-             
-             if (testCorrectness("ROLZ") == false)
-                System.exit(1);
-             
-             testSpeed("ROLZ"); 
-             System.out.println("\n\nTestSnappy");
-             
-             if (testCorrectness("SNAPPY") == false)
-                System.exit(1);
-             
-             testSpeed("SNAPPY");
-             System.out.println("\n\nTestZRLT");
-             
-             if (testCorrectness("ZRLT") == false)
-                System.exit(1);
-             
-             testSpeed("ZRLT");
-             System.out.println("\n\nTestRLT");
-             
-             if (testCorrectness("RLT") == false)
-                System.exit(1);
-             
-             testSpeed("RLT");                 
-           }
-          else
-          {
-             System.out.println("Test" + type);
-             
-             if (testCorrectness(type) == false)
-                System.exit(1);
-             
-             testSpeed(type);
-          }
+         if (type.equals("ALL"))
+         {
+            System.out.println("\n\nTestLZ4");
+
+            if (testCorrectness("LZ4") == false)
+               System.exit(1);
+
+            testSpeed("LZ4");
+            System.out.println("\n\nTestROLZ");
+
+            if (testCorrectness("ROLZ") == false)
+               System.exit(1);
+
+            testSpeed("ROLZ"); 
+            System.out.println("\n\nTestROLZX");
+
+            if (testCorrectness("ROLZX") == false)
+               System.exit(1);
+
+            testSpeed("ROLZX"); 
+            System.out.println("\n\nTestSnappy");
+
+            if (testCorrectness("SNAPPY") == false)
+               System.exit(1);
+
+            testSpeed("SNAPPY");
+            System.out.println("\n\nTestZRLT");
+
+            if (testCorrectness("ZRLT") == false)
+               System.exit(1);
+
+            testSpeed("ZRLT");
+            System.out.println("\n\nTestRLT");
+
+            if (testCorrectness("RLT") == false)
+               System.exit(1);
+
+            testSpeed("RLT");                 
+         }
+         else
+         {
+            System.out.println("Test" + type);
+
+            if (testCorrectness(type) == false)
+               System.exit(1);
+
+            testSpeed(type);
+         }
       }        
    }
 
@@ -99,6 +105,9 @@ public class TestFunctions
       System.out.println("\n\nTestROLZ");
       Assert.assertTrue(testCorrectness("ROLZ"));
       //testSpeed("ROLZ");   
+      System.out.println("\n\nTestROLZX");
+      Assert.assertTrue(testCorrectness("ROLZX"));
+      //testSpeed("ROLZX");   
       System.out.println("\n\nTestSnappy");
       Assert.assertTrue(testCorrectness("SNAPPY"));
       //testSpeed("SNAPPY");
@@ -128,7 +137,10 @@ public class TestFunctions
             return new RLT();
 
          case "ROLZ":
-            return new ROLZCodec();
+            return new ROLZCodec(false);
+
+         case "ROLZX":
+            return new ROLZCodec(true);
 
          default:
             System.out.println("No such byte function: "+name);
@@ -174,18 +186,18 @@ public class TestFunctions
          }
          else if (ii < 6)
          {
-             // Lots of zeros
-             arr = new int[1<<(ii+6)];
+            // Lots of zeros
+            arr = new int[1<<(ii+6)];
 
-             for (int i=0; i<arr.length; i++)
-             {
-                 int val = rnd.nextInt(100);
+            for (int i=0; i<arr.length; i++)
+            {
+               int val = rnd.nextInt(100);
 
-                 if (val >= 33)
-                     val = 0;
+               if (val >= 33)
+                  val = 0;
 
-                 arr[i] = val;
-             }                 
+               arr[i] = val;
+            }                 
          }
          else if (ii == 6)
          {
@@ -194,7 +206,7 @@ public class TestFunctions
 
             // Leave zeros at the beginning for ZRLT to succeed
             for (int j=20; j<arr.length; j++)
-                arr[j] = rnd.nextInt(range);
+               arr[j] = rnd.nextInt(range);
          }
          else
          {
@@ -209,98 +221,98 @@ public class TestFunctions
                if (len % 3 == 0)
                  len = 1;
 
-                int val = rnd.nextInt(range);
-                int end = (idx+len) < arr.length ? idx+len : arr.length;
+               int val = rnd.nextInt(range);
+               int end = (idx+len) < arr.length ? idx+len : arr.length;
 
-                for (int j=idx; j<end; j++)
-                   arr[j] = val;
+               for (int j=idx; j<end; j++)
+                  arr[j] = val;
 
                idx += len;
             }
          }
 
-          int size = arr.length;
-          ByteFunction f = getByteFunction(name);
-          input = new byte[size];
-          output = new byte[f.getMaxEncodedLength(size)];
-          reverse = new byte[size];
-          SliceByteArray sa1 = new SliceByteArray(input, 0);
-          SliceByteArray sa2 = new SliceByteArray(output, 0);
-          SliceByteArray sa3 = new SliceByteArray(reverse, 0);
-          Arrays.fill(output, (byte) 0xAA);
+         int size = arr.length;
+         ByteFunction f = getByteFunction(name);
+         input = new byte[size];
+         output = new byte[f.getMaxEncodedLength(size)];
+         reverse = new byte[size];
+         SliceByteArray sa1 = new SliceByteArray(input, 0);
+         SliceByteArray sa2 = new SliceByteArray(output, 0);
+         SliceByteArray sa3 = new SliceByteArray(reverse, 0);
+         Arrays.fill(output, (byte) 0xAA);
 
-          for (int i=0; i<arr.length; i++)
-          {
-             input[i] = (byte) (arr[i] & 255);
-          }
+         for (int i=0; i<arr.length; i++)
+         {
+            input[i] = (byte) (arr[i] & 255);
+         }
 
-          System.out.println("\nOriginal: ");
+         System.out.println("\nOriginal: ");
 
-          for (int i=0; i<input.length; i++)
-          {
-             System.out.print((input[i] & 255) + " ");
-          }
+         for (int i=0; i<input.length; i++)
+         {
+            System.out.print((input[i] & 255) + " ");
+         }
 
-          if (f.forward(sa1, sa2) == false)
-          {
-             // ZRLT may fail if the input data has too few 0s
-             if (sa1.index != input.length)
-             {
-                System.out.println("\nNo compression (ratio > 1.0), skip reverse");
-                continue;
-             }
+         if (f.forward(sa1, sa2) == false)
+         {
+            // ZRLT may fail if the input data has too few 0s
+            if (sa1.index != input.length)
+            {
+               System.out.println("\nNo compression (ratio > 1.0), skip reverse");
+               continue;
+            }
 
-             System.out.println("\nEncoding error");
-             return false;
-          }
+            System.out.println("\nEncoding error");
+            return false;
+         }
 
-          if (sa1.index != input.length)
-          {
-             System.out.println("\nNo compression (ratio > 1.0), skip reverse");
-             continue;
-          }
+         if (sa1.index != input.length)
+         {
+            System.out.println("\nNo compression (ratio > 1.0), skip reverse");
+            continue;
+         }
 
-          System.out.println("\nCoded: ");
-          //java.util.Arrays.fill(input, (byte) 0);
+         System.out.println("\nCoded: ");
+         //java.util.Arrays.fill(input, (byte) 0);
 
-          for (int i=0; i<sa2.index; i++)
-          {
-             System.out.print((output[i] & 255) + " "); //+"("+Integer.toBinaryString(output[i] & 255)+") ");
-          }
+         for (int i=0; i<sa2.index; i++)
+         {
+            System.out.print((output[i] & 255) + " "); //+"("+Integer.toBinaryString(output[i] & 255)+") ");
+         }
 
-          System.out.println(" (Compression ratio: " + (sa2.index * 100 / input.length)+ "%)");
-          f = getByteFunction(name);
-          sa2.length = sa2.index;
-          sa1.index = 0;
-          sa2.index = 0;
-          sa3.index = 0;
+         System.out.println(" (Compression ratio: " + (sa2.index * 100 / input.length)+ "%)");
+         f = getByteFunction(name);
+         sa2.length = sa2.index;
+         sa1.index = 0;
+         sa2.index = 0;
+         sa3.index = 0;
 
-          if (f.inverse(sa2, sa3) == false)
-          {
-             System.out.println("Decoding error");
-             return false;
-          }
+         if (f.inverse(sa2, sa3) == false)
+         {
+            System.out.println("Decoding error");
+            return false;
+         }
 
-          System.out.println("Decoded: ");
+         System.out.println("Decoded: ");
 
-          for (int i=0; i<reverse.length; i++)
-          {
-             System.out.print((reverse[i] & 255) + " ");
-          }
+         for (int i=0; i<reverse.length; i++)
+         {
+            System.out.print((reverse[i] & 255) + " ");
+         }
 
-          System.out.println();
+         System.out.println();
 
-          for (int i=0; i<input.length; i++)
-          {
-             if (input[i] != reverse[i])
-             {
-                System.out.println("Different (index "+i+": "+input[i]+" - "+reverse[i]+")");
-                return false;
-             }
-          }
+         for (int i=0; i<input.length; i++)
+         {
+            if (input[i] != reverse[i])
+            {
+               System.out.println("Different (index "+i+": "+input[i]+" - "+reverse[i]+")");
+               return false;
+            }
+         }
 
-          System.out.println("Identical");
-          System.out.println();
+         System.out.println("Identical");
+         System.out.println();
       }
       
       return true;

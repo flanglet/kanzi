@@ -230,9 +230,9 @@ public class TPAQPredictor implements Predictor
          // Too few mixers hurts compression for big blocks.
          final int absz = (Integer) ctx.getOrDefault("size", rbsz);
 
-         if (absz >= 16 * 1024 * 1024)
+         if (absz >= 16*1024*1024)
             mixersSize = 1 << 16;
-         else if (absz >= 8 * 1024 * 1024)
+         else if (absz >= 8*1024*1024)
             mixersSize = 1 << 14;
          else if (absz >= 4*1024*1024)
             mixersSize = 1 << 12;
