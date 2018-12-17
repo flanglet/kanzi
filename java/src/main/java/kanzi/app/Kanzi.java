@@ -262,13 +262,14 @@ public class Kanzi
                   printOut("        set the compression level [0..6]", true);
                   printOut("        Providing this option forces entropy and transform.", true);
                   printOut("        0=None&None (store), 1=TEXT+LZ4&HUFFMAN, 2=TEXT+ROLZ", true);
-                  printOut("        3=TEXT+BWT+RANK+ZRLT&ANS0, 4=TEXT+BWT+RANK+ZRLT&FPAQ, 5=BWT&CM", true);
-                  printOut("        6=X86+RLT+TEXT&TPAQ, 7=X86+RLT+TEXT&TPAQX\n", true);
+                  printOut("        3=TEXT+ROLZX, 4=TEXT+BWT+RANK+ZRLT&ANS0, 5=TEXT+BWT+RANK+ZRLT&FPAQ", true);
+                  printOut("        6=BWT&CM, 7=X86+RLT+TEXT&TPAQ, 8=X86+RLT+TEXT&TPAQX\n", true);
                   printOut("   -e, --entropy=<codec>", true);
                   printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
                   printOut("        (default is ANS0)\n", true);
                   printOut("   -t, --transform=<codec>", true);
-                  printOut("        transform [None|BWT|BWTS|SNAPPY|LZ4|ROLZ|RLT|ZRLT|MTFT|RANK|TEXT|X86]", true);
+                  printOut("        transform [None|BWT|BWTS|SNAPPY|LZ4|ROLZ|ROLZX|RLT|ZRLT|MTFT]", true);
+                  printOut("                  [RANK|TEXT|X86]", true);
                   printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
                   printOut("   -x, --checksum", true);
                   printOut("        enable block checksum\n", true);
@@ -283,10 +284,10 @@ public class Kanzi
 
                if (mode != 'd')
                {
-                  printOut("EG. java -cp kanzi.jar kanzi.app.Kanzi -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
-                  printOut("EG. java -cp kanzi.jar kanzi.app.Kanzi -c -i foo.txt -f ", true);
+                  printOut("EG. java -cp kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
+                  printOut("EG. java -cp kanzi.jar -c -i foo.txt -f ", true);
                   printOut("    -t BWT+MTFT+ZRLT -b 4m -e FPAQ -v 3 -j 4\n", true);
-                  printOut("EG. java -cp kanzi.jar kanzi.app.Kanzi --compress --input=foo.txt --force ", true);
+                  printOut("EG. java -cp kanzi.jar --compress --input=foo.txt --force ", true);
                   printOut("    --output=foo.knz --transform=BWT+MTFT+ZRLT --block=4m --entropy=FPAQ ", true);
                   printOut("    --verbose=3 --jobs=4\n", true);
                }
@@ -397,7 +398,7 @@ public class Kanzi
                   System.exit(kanzi.Error.ERR_INVALID_PARAM);
                }
 
-               if ((level < 0) || (level > 7))
+               if ((level < 0) || (level > 8))
                {
                   System.err.println("Invalid compression level provided on command line: "+arg);
                   System.exit(kanzi.Error.ERR_INVALID_PARAM);                  

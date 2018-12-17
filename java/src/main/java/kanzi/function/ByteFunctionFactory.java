@@ -41,6 +41,7 @@ public class ByteFunctionFactory
    public static final short X86_TYPE     = 9;  // X86 codec
    public static final short DICT_TYPE    = 10; // Text codec
    public static final short ROLZ_TYPE    = 11; // ROLZ codec
+   public static final short ROLZX_TYPE   = 12; // ROLZ Extra codec
  
 
    // The returned type contains 8 transform values
@@ -97,6 +98,9 @@ public class ByteFunctionFactory
 
          case "ROLZ":
             return ROLZ_TYPE;
+
+         case "ROLZX":
+            return ROLZX_TYPE;
 
          case "MTFT":
             return MTFT_TYPE;
@@ -166,7 +170,10 @@ public class ByteFunctionFactory
             return new LZ4Codec();
             
          case ROLZ_TYPE:
-            return new ROLZCodec();
+            return new ROLZCodec(ctx);
+            
+         case ROLZX_TYPE:
+            return new ROLZCodec(ctx);
             
          case BWT_TYPE:
             return new BWTBlockCodec(ctx); 
@@ -246,6 +253,9 @@ public class ByteFunctionFactory
             
          case ROLZ_TYPE:
             return "ROLZ";
+            
+         case ROLZX_TYPE:
+            return "ROLZX";
             
          case BWT_TYPE:
             return "BWT";
