@@ -961,7 +961,6 @@ public final class TextCodec implements ByteFunction
          this.reset();
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd4 = dstEnd - 4;
-         int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int emitAnchor = input.index; // never less than input.index
          int words = this.staticDictSize;
 
@@ -969,12 +968,14 @@ public final class TextCodec implements ByteFunction
          this.isCRLF = (mode & 0x01) != 0;
          dst[dstIdx++] = (byte) mode;
 
-         if (src[srcIdx] == ' ')
+         while ((srcIdx < srcEnd) && (src[srcIdx] == ' '))
          {
             dst[dstIdx++] = ' ';
             srcIdx++;
             emitAnchor++;
          }
+
+         int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
 
          while (srcIdx < srcEnd)
          {
@@ -1043,7 +1044,7 @@ public final class TextCodec implements ByteFunction
                         e.hash = h1;
                         e.data = (length<<24) | words;
                      }
-
+                     
                      this.dictMap[h1&this.hashMask] = e;
                      words++;
 
@@ -1056,7 +1057,7 @@ public final class TextCodec implements ByteFunction
                   }
                }
                else
-               {
+               {              
                   // Word found in the dictionary
                   // Skip space if only delimiter between 2 word references
                   if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
@@ -1339,7 +1340,7 @@ public final class TextCodec implements ByteFunction
       public int getMaxEncodedLength(int srcLength)
       {
          // Limit to 1 x srcLength and let the caller deal with
-         // a failure when the output is not smaller than the input
+         // a failure when the output is too small
          return srcLength;
       }
    }
@@ -1447,7 +1448,6 @@ public final class TextCodec implements ByteFunction
          this.reset();
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd3 = dstEnd - 3;
-         int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int emitAnchor = input.index; // never less than input.index
          int words = this.staticDictSize;
 
@@ -1455,12 +1455,14 @@ public final class TextCodec implements ByteFunction
          this.isCRLF = (mode & 0x01) != 0;
          dst[dstIdx++] = (byte) mode;
 
-         if (src[srcIdx] == ' ')
+         while ((srcIdx < srcEnd) && (src[srcIdx] == ' '))
          {
             dst[dstIdx++] = ' ';
             srcIdx++;
             emitAnchor++;
          }
+
+         int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
 
          while (srcIdx < srcEnd)
          {
@@ -1830,7 +1832,7 @@ public final class TextCodec implements ByteFunction
       public int getMaxEncodedLength(int srcLength)
       {
          // Limit to 1 x srcLength and let the caller deal with
-         // a failure when the output is not smaller than the input
+         // a failure when the output is too small
          return srcLength;
       } 
    }
