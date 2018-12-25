@@ -259,7 +259,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          ctx.put("pool", this.pool);
          ctx.put("codec", this.codec);
          ctx.put("transform", this.transform);
-         ctx.put("extra", "TPAQX".equals(this.codec));
                
          // Run the task(s)
          if (nbFiles == 1)
@@ -281,6 +280,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             ctx.put("inputName", iName);
             ctx.put("outputName", oName);
             ctx.put("jobs", this.jobs);
+            ctx.put("extra", "TPAQX".equals(this.codec));
             FileCompressTask task = new FileCompressTask(ctx, this.listeners);
             FileCompressResult fcr = task.call();
             res = fcr.code;
