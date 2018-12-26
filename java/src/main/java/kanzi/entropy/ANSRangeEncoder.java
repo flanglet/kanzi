@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.entropy;
 
 import kanzi.EntropyEncoder;
+import kanzi.Global;
 import kanzi.OutputBitStream;
 
 // Implementation of an Asymmetric Numeral System encoder.
@@ -138,7 +139,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       if (alphabetSize == 0)
          return true;
 
-      final int chkSize = (alphabetSize > 64) ? 16 : 8;
+      final int chkSize = (alphabetSize >= 64) ? 6 : 4;
       int llr = 3;
 
       while (1<<llr <= lr)
