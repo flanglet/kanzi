@@ -109,7 +109,7 @@ public final class RangeEncoder implements EntropyEncoder
          return true;
 
       this.bitstream.writeBits(lr-8, 3); // logRange
-      int inc = (alphabetSize > 64) ? 16 : 8;
+      int inc = (alphabetSize > 64) ? 6 : 4;
       int llr = 3;
 
       while (1<<llr <= lr)
