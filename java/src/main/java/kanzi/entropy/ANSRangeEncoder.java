@@ -16,7 +16,6 @@ limitations under the License.
 package kanzi.entropy;
 
 import kanzi.EntropyEncoder;
-import kanzi.Global;
 import kanzi.OutputBitStream;
 
 // Implementation of an Asymmetric Numeral System encoder.

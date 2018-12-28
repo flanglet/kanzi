@@ -109,18 +109,18 @@ public final class RangeEncoder implements EntropyEncoder
          return true;
 
       this.bitstream.writeBits(lr-8, 3); // logRange
-      int inc = (alphabetSize > 64) ? 6 : 4;
+      int chkSize = (alphabetSize >= 64) ? 6 : 4;
       int llr = 3;
 
       while (1<<llr <= lr)
          llr++;
 
       // Encode all frequencies (but the first one) by chunks of size 'inc'
-      for (int i=1; i<alphabetSize; i+=inc)
+      for (int i=1; i<alphabetSize; i+=chkSize)
       {
          int max = 0;
          int logMax = 1;
-         final int endj = (i+inc < alphabetSize) ? i + inc : alphabetSize;
+         final int endj = (i+chkSize < alphabetSize) ? i + chkSize : alphabetSize;
 
          // Search for max frequency log size in next chunk
          for (int j=i; j<endj; j++)
