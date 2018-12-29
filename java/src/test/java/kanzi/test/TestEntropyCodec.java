@@ -100,12 +100,6 @@ public class TestEntropyCodec
                 System.exit(1);
              
               testSpeed("CM");
-              System.out.println("\n\nTestPAQCodec");
-              
-              if (testCorrectness("PAQ") == false)
-                System.exit(1);
-             
-              testSpeed("PAQ");
               System.out.println("\n\nTestTPAQCodec");
               
               if (testCorrectness("TPAQ") == false)
