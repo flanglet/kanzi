@@ -139,7 +139,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       if (alphabetSize == 0)
          return true;
 
-      final int chkSize = (alphabetSize >= 64) ? 6 : 4;
+      final int chkSize = (alphabetSize >= 64) ? 12 : 6;
       int llr = 3;
 
       while (1<<llr <= lr)

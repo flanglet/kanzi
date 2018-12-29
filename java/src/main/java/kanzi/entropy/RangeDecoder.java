@@ -94,7 +94,7 @@ public final class RangeDecoder implements EntropyDecoder
       final int scale = 1 << logRange;
       this.shift = logRange;
       int sum = 0;
-      final int chkSize = (alphabetSize >= 64) ? 6 : 4;
+      final int chkSize = (alphabetSize >= 64) ? 12 : 6;
       int llr = 3;
 
       while (1<<llr <= logRange)
