@@ -499,6 +499,90 @@ public class Global
    }
 
 
+   // If withTotal is true, the last spot in the frequencies array is for the total
+   public static void computeHistogramOrder0(byte[] block, int start, int end, int[] freqs, boolean withTotal)
+   {                  
+      for (int i=0; i<256; i+=8)
+      {
+         freqs[i]   = 0;
+         freqs[i+1] = 0;
+         freqs[i+2] = 0;
+         freqs[i+3] = 0;
+         freqs[i+4] = 0;
+         freqs[i+5] = 0;
+         freqs[i+6] = 0;
+         freqs[i+7] = 0;
+      }
+
+      if (withTotal == true)
+         freqs[256] = end - start;
+
+      final int end8 = start + ((end-start) & -8);
+
+      for (int i=start; i<end8; i+=8)
+      {
+         freqs[block[i]&0xFF]++;
+         freqs[block[i+1]&0xFF]++;
+         freqs[block[i+2]&0xFF]++;
+         freqs[block[i+3]&0xFF]++;
+         freqs[block[i+4]&0xFF]++;
+         freqs[block[i+5]&0xFF]++;
+         freqs[block[i+6]&0xFF]++;
+         freqs[block[i+7]&0xFF]++;
+      }
+
+      for (int i=end8; i<end; i++)
+         freqs[block[i]&0xFF]++;    
+   }
+
+
+   // If withTotal is true, the last spot in each frequencies order 0 array is for the total
+   public static void computeHistogramOrder1(byte[] block, int start, int end, int[][] freqs, boolean withTotal)
+   {   
+      for (int j=0; j<256; j++)
+      {
+         final int[] f = freqs[j];
+         
+         for (int i=0; i<256; i+=8)
+         {
+            f[i]   = 0;
+            f[i+1] = 0;
+            f[i+2] = 0;
+            f[i+3] = 0;
+            f[i+4] = 0;
+            f[i+5] = 0;
+            f[i+6] = 0;
+            f[i+7] = 0;
+         }
+
+         if (withTotal == true)
+            f[256] = 0;         
+      }
+      
+      int prv = 0;
+
+      if (withTotal == true)
+      {
+         for (int i=start; i<end; i++)
+         {
+            final int cur = block[i] & 0xFF;
+            freqs[prv][cur]++;
+            freqs[prv][256]++;
+            prv = cur;
+         }  
+      }
+      else
+      {
+         for (int i=start; i<end; i++)
+         {
+            final int cur = block[i] & 0xFF;
+            freqs[prv][cur]++;
+            prv = cur;
+         }           
+      }
+   }
+   
+   
    public static int[] computeJobsPerTask(int[] jobsPerTask, int jobs, int tasks)
    {
       int q = (jobs <= tasks) ? 1 : jobs / tasks;

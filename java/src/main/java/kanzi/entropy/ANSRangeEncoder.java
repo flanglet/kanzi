@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.entropy;
 
 import kanzi.EntropyEncoder;
+import kanzi.Global;
 import kanzi.OutputBitStream;
 
 // Implementation of an Asymmetric Numeral System encoder.
@@ -300,50 +301,11 @@ public class ANSRangeEncoder implements EntropyEncoder
    // Compute chunk frequencies, cumulated frequencies and encode chunk header
    private int rebuildStatistics(byte[] block, int start, int end, int lr)
    {
-      final int endj = 255*this.order + 1;
-
-      for (int j=0; j<endj; j++)
-      {
-         final int[] f = this.freqs[j];
-         
-         for (int i=f.length-1; i>=0; i--)
-            f[i] = 0;
-      }
-
       if (this.order == 0)
-      {
-         final int[] f = this.freqs[0];
-         f[256] = end - start;
-         final int end8 = start + ((end-start) & -8);
-
-         for (int i=start; i<end8; i+=8)
-         {
-            f[block[i]&0xFF]++;
-            f[block[i+1]&0xFF]++;
-            f[block[i+2]&0xFF]++;
-            f[block[i+3]&0xFF]++;
-            f[block[i+4]&0xFF]++;
-            f[block[i+5]&0xFF]++;
-            f[block[i+6]&0xFF]++;
-            f[block[i+7]&0xFF]++;
-         }
-         
-         for (int i=end8; i<end; i++)
-            f[block[i]&0xFF]++;
-      }
-      else
-      {
-         int prv = 0;
-
-         for (int i=start; i<end; i++)
-         {
-            final int cur = block[i] & 0xFF;
-            this.freqs[prv][cur]++;
-            this.freqs[prv][256]++;
-            prv = cur;
-         }
-      }
-
+         Global.computeHistogramOrder0(block, start, end, this.freqs[0], true);
+      else         
+         Global.computeHistogramOrder1(block, start, end, this.freqs, true);
+      
       return this.updateFrequencies(this.freqs, lr);
    }
 

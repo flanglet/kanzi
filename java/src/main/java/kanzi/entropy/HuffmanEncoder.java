@@ -18,6 +18,7 @@ package kanzi.entropy;
 import kanzi.OutputBitStream;
 import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
+import kanzi.Global;
 import kanzi.util.sort.QuickSort;
 
 
@@ -247,31 +248,14 @@ public class HuffmanEncoder implements EntropyEncoder
 
       while (startChunk < end)
       {
-         final int endChunk = (startChunk + sz < end) ? startChunk + sz : end;
-         final int endChunk8 = ((endChunk - startChunk) & -8) + startChunk;
-
-         for (int i=0; i<256; i++)
-            frequencies[i] = 0;
-
-         for (int i=startChunk; i<endChunk8; i+=8)
-         {
-            frequencies[array[i]   & 0xFF]++;
-            frequencies[array[i+1] & 0xFF]++;
-            frequencies[array[i+2] & 0xFF]++;
-            frequencies[array[i+3] & 0xFF]++;
-            frequencies[array[i+4] & 0xFF]++;
-            frequencies[array[i+5] & 0xFF]++;
-            frequencies[array[i+6] & 0xFF]++;
-            frequencies[array[i+7] & 0xFF]++;
-         }
-
-         for (int i=endChunk8; i<endChunk; i++)
-            frequencies[array[i] & 0xFF]++;
-
          // Rebuild Huffman codes
+         final int endChunk = (startChunk + sz < end) ? startChunk + sz : end;
+         Global.computeHistogramOrder0(array, startChunk, endChunk, this.freqs, false);
          this.updateFrequencies(frequencies);
+
          final int[] c = this.codes;
          final OutputBitStream bitstream = this.bs;
+         final int endChunk8 = ((endChunk - startChunk) & -8) + startChunk;
 
          for (int i=startChunk; i<endChunk8; i+=8)
          {

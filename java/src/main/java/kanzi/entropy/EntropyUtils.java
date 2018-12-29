@@ -324,26 +324,7 @@ public class EntropyUtils
       if (length == 0)
          return 0;
       
-      for (int i=0; i<256; i++)
-         histo[i] = 0;
-
-      final int end8 = blkptr + (length&-8);
-      
-      for (int i=blkptr; i<end8; i+=8)
-      {
-         histo[block[i]   & 0xFF]++;
-         histo[block[i+1] & 0xFF]++;
-         histo[block[i+2] & 0xFF]++;
-         histo[block[i+3] & 0xFF]++;
-         histo[block[i+4] & 0xFF]++;
-         histo[block[i+5] & 0xFF]++;
-         histo[block[i+6] & 0xFF]++;
-         histo[block[i+7] & 0xFF]++;
-      } 
-      
-      for (int i=end8; i<blkptr+length; i++)
-         histo[block[i] & 0xFF]++;
-      
+      Global.computeHistogramOrder0(block, blkptr, blkptr+length, histo, false);
       long sum = 0;
       final int logLength1024 = Global.log2_1024(length);
       

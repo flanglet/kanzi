@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.entropy;
 
 import kanzi.EntropyEncoder;
+import kanzi.Global;
 import kanzi.OutputBitStream;
 
 
@@ -109,7 +110,7 @@ public final class RangeEncoder implements EntropyEncoder
          return true;
 
       this.bitstream.writeBits(lr-8, 3); // logRange
-      int chkSize = (alphabetSize >= 64) ? 6 : 4;
+      final int chkSize = (alphabetSize >= 64) ? 6 : 4;
       int llr = 3;
 
       while (1<<llr <= lr)
@@ -217,13 +218,7 @@ public final class RangeEncoder implements EntropyEncoder
    // Compute chunk frequencies, cumulated frequencies and encode chunk header
    private int rebuildStatistics(byte[] block, int start, int end, int lr)
    {
-      for (int i=0; i<256; i++)
-         this.freqs[i] = 0;
-
-      for (int i=start; i<end; i++)
-         this.freqs[block[i] & 0xFF]++;
-
-      // Rebuild statistics
+      Global.computeHistogramOrder0(block, start, end, this.freqs, false);
       return this.updateFrequencies(this.freqs, end-start, lr);      
    }
    

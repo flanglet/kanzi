@@ -213,7 +213,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          if (this.f2s[k].length < scale)
             this.f2s[k] = new byte[scale];
 
-         final int chkSize = (alphabetSize > 64) ? 16 : 8;
+         final int chkSize = (alphabetSize >= 64) ? 6 : 4;
          int sum = 0;
          int llr = 3;
 
