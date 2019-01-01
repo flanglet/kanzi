@@ -296,7 +296,15 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       {
          long delta = (after - before) / 1000000L; // convert to ms
          printOut("", this.verbosity>0);
-         printOut("Total decoding time: "+delta+" ms", this.verbosity > 0);
+         String str;
+         
+         if (delta >= 100000) {            
+            str = String.format("%1$.1f", (float) delta/1000) + " s";
+         } else {
+            str = String.valueOf(delta) + " ms";
+         }
+
+         printOut("Total decoding time: "+str, this.verbosity > 0);
          printOut("Total output size: "+read+" byte"+((read>1)?"s":""), this.verbosity > 0);
 	   }
       
