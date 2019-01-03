@@ -417,7 +417,6 @@ public class ROLZCodec implements ByteFunction
          srcIdx += 4;
          int sizeChunk = (dstEnd <= CHUNK_SIZE) ? dstEnd : CHUNK_SIZE;
          int startChunk = output.index;
-         ByteArrayInputStream bais = new ByteArrayInputStream(src, srcIdx, count-srcIdx);
          final SliceByteArray litBuf  = new SliceByteArray(new byte[this.getMaxEncodedLength(sizeChunk)], 0);
          final SliceByteArray mLenBuf = new SliceByteArray(new byte[sizeChunk/2], 0);
          final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/2], 0);
@@ -442,6 +441,7 @@ public class ROLZCodec implements ByteFunction
             // Scope to deallocate resources early
             {
                // Decode literal, match length and match index buffers
+               ByteArrayInputStream bais = new ByteArrayInputStream(src, srcIdx, count-srcIdx);
                InputBitStream ibs = new DefaultInputBitStream(bais, 65536);
                int length = (int) ibs.readBits(32);
 
@@ -450,6 +450,7 @@ public class ROLZCodec implements ByteFunction
                   ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, 1);
                   litDec.decode(litBuf.array, 0, length);
                   litDec.dispose();
+
                   length = (int) ibs.readBits(32);
                }
 
@@ -461,9 +462,9 @@ public class ROLZCodec implements ByteFunction
                   ANSRangeDecoder mIdxDec = new ANSRangeDecoder(ibs, 0);
                   mIdxDec.decode(mIdxBuf.array, 0, length);
                   mIdxDec.dispose();
-                  srcIdx += ((ibs.read()+7)>>>3);
                }
 
+               srcIdx += ((ibs.read()+7)>>>3);
                ibs.close();
 
                if (length > sizeChunk)
@@ -557,16 +558,13 @@ public class ROLZCodec implements ByteFunction
          }
 
          // Emit literal bytes
-         int n = 0;
-
-         while (n<length)
+         for (int n=0; n<length; n++)
          {
             final int key = getKey(dst, dstIdx+n-2);
             final int base = key << this.logPosChecks;
             dst[dstIdx+n] = litBuf.array[litBuf.index+n];
             this.counters[key]++;
             this.matches[base+(this.counters[key]&this.maskChecks)] = dstIdx+n - startIdx;
-            n++;
          }
 
          return length;
