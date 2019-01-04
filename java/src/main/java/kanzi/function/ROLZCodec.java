@@ -371,6 +371,7 @@ public class ROLZCodec implements ByteFunction
          dst[dstIdx++] = src[srcIdx+1];
          dst[dstIdx++] = src[srcIdx+2];
          dst[dstIdx++] = src[srcIdx+3];
+    
          input.index = srcIdx + 4;
          output.index = dstIdx;
          return srcIdx == srcEnd;
@@ -450,7 +451,6 @@ public class ROLZCodec implements ByteFunction
                   ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, 1);
                   litDec.decode(litBuf.array, 0, length);
                   litDec.dispose();
-
                   length = (int) ibs.readBits(32);
                }
 
@@ -498,9 +498,6 @@ public class ROLZCodec implements ByteFunction
                   return false;
                }
 
-               final int savedIdx = dstIdx;
-               int key = getKey(dst, dstIdx-2);
-               int base = key << this.logPosChecks;
                final int matchLen = mLenBuf.array[mLenBuf.index++] & 0xFF;
 
                // Sanity check
@@ -511,8 +508,11 @@ public class ROLZCodec implements ByteFunction
                   return false;
                }
 
+               final int key = getKey(dst, dstIdx-2);
+               final int base = key << this.logPosChecks;
                final int matchIdx = mIdxBuf.array[mIdxBuf.index++] & 0xFF;
                final int ref = output.index + this.matches[base+((this.counters[key]-matchIdx)&this.maskChecks)];
+               final int savedIdx = dstIdx;
                dstIdx = emitCopy(dst, dstIdx, ref, matchLen);            
                this.counters[key]++;
                this.matches[base+(this.counters[key]&this.maskChecks)] = savedIdx - output.index;
@@ -527,8 +527,8 @@ public class ROLZCodec implements ByteFunction
          dst[output.index++] = src[srcIdx++];
          dst[output.index++] = src[srcIdx++];
          dst[output.index++] = src[srcIdx++];
+         
          input.index = srcIdx;
-
          return input.index == srcEnd;
       }
 
