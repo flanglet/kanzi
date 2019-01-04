@@ -32,6 +32,8 @@ public class TPAQPredictor implements Predictor
    private static final int MASK_BUFFER = BUFFER_SIZE - 1;
    private static final int MASK_80808080 = 0x80808080;
    private static final int MASK_F0F0F0F0 = 0xF0F0F0F0;
+   private static final int MASK_4F4FFFFF = 0x4F4FFFFF;
+   private static final int MASK_FFFF0000 = 0xFFFF0000;
    private static final int HASH = 0x7FEB352D;
 
    ///////////////////////// state table ////////////////////////
@@ -295,18 +297,18 @@ public class TPAQPredictor implements Predictor
         if (this.binCount < this.pos>>2)
         {
            // Mostly text or mixed
-           final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4 : this.c4&MASK_80808080;
-           final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8 : this.c8&MASK_80808080;
-           this.ctx4 = createContext(4, this.c4^(this.c8&0xFFFF));
+           final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4&MASK_4F4FFFFF : this.c4&MASK_80808080;
+           final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : this.c8&MASK_80808080;
+           this.ctx4 = createContext(this.c4&0xFFFF, this.c4^(this.c8&0xFFFF));
            this.ctx5 = hash(h1, h2); 
            this.ctx6 = hash(this.c8&MASK_F0F0F0F0, this.c4&MASK_F0F0F0F0);
         }
         else
         {
            // Mostly binary
-           this.ctx4 = createContext(4, this.c4^(this.c4&0xFFFF));
-           this.ctx5 = hash(this.c4>>16, this.c8>>16);
-           this.ctx6 = ((this.c4&0xFF) << 8) | ((this.c8&0xFFFF) << 16);
+           this.ctx4 = createContext(HASH, this.c4^(this.c4&0xFFFF));
+           this.ctx5 = hash(this.c4&MASK_FFFF0000, this.c8>>16);
+           this.ctx6 = this.ctx0 | (this.c8 << 16);
         }
 
         // Find match
