@@ -240,16 +240,6 @@ public class ROLZCodec implements ByteFunction
          if (output.length - output.index < this.getMaxEncodedLength(count))
             return false;
 
-         if (count <= 16)
-         {
-            for (int i=0; i<count; i++)
-               output.array[output.index+i] = input.array[input.index+i];
-
-            input.index += count;
-            output.index += count;
-            return true;
-         }
-
          int srcIdx = input.index;
          int dstIdx = output.index;
          final byte[] src = input.array;
@@ -399,17 +389,6 @@ public class ROLZCodec implements ByteFunction
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
          final int count = input.length;
-
-         if (count <= 16)
-         {
-            for (int i=0; i<count; i++)
-               output.array[output.index+i] = input.array[input.index+i];
-
-            input.index += count;
-            output.index += count;
-            return true;
-         }
-
          final byte[] src = input.array;
          final byte[] dst = output.array;
          int srcIdx = input.index;
@@ -572,10 +551,9 @@ public class ROLZCodec implements ByteFunction
 
 
       @Override
-      public int getMaxEncodedLength(int srcLength)
+      public int getMaxEncodedLength(int srcLen)
       {
-         final int res = (srcLength*5) >> 2;
-         return (res >= 32) ? res : 32;
+         return (srcLen <= 512) ? srcLen+32 : srcLen;
       }
    }
 
@@ -674,16 +652,6 @@ public class ROLZCodec implements ByteFunction
          if (output.length - output.index < this.getMaxEncodedLength(count))
             return false;
 
-         if (count <= 16)
-         {
-            for (int i=0; i<count; i++)
-               output.array[output.index+i] = input.array[input.index+i];
-
-            input.index += count;
-            output.index += count;
-            return true;
-         }
-
          int srcIdx = input.index;
          int dstIdx = output.index;
          final byte[] src = input.array;
@@ -775,17 +743,6 @@ public class ROLZCodec implements ByteFunction
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
          final int count = input.length;
-
-         if (count <= 16)
-         {
-            for (int i=0; i<count; i++)
-               output.array[output.index+i] = input.array[input.index+i];
-
-            input.index += count;
-            output.index += count;
-            return true;
-         }
-
          final byte[] src = input.array;
          final byte[] dst = output.array;
          int srcIdx = input.index;
@@ -888,10 +845,14 @@ public class ROLZCodec implements ByteFunction
 
 
       @Override
-      public int getMaxEncodedLength(int srcLength)
+      public int getMaxEncodedLength(int srcLen)
       {
-         final int res = (srcLength*5) >> 2;
-         return (res >= 32) ? res : 32;
+         // Since we do not check the dst index for each byte (for speed purpose)
+         // allocate some extra buffer for incompressible data.
+         if (srcLen >= CHUNK_SIZE)
+            return srcLen;
+         
+         return (srcLen <= 512) ? srcLen+32 : srcLen+srcLen/8;
       }
    }
 

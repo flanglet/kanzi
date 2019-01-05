@@ -344,6 +344,9 @@ public final class SnappyCodec implements ByteFunction
   @Override
   public int getMaxEncodedLength(int srcLen)
   {
+     if (srcLen >= 1<<30)
+         return srcLen;
+      
      return 32 + srcLen + srcLen/6;
   }
 

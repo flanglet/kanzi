@@ -948,16 +948,6 @@ public final class TextCodec implements ByteFunction
          if ((mode & 0x80) != 0)
             return false;
 
-         if (count <= 64)
-         {
-            for (int i=0; i<count; i++)
-               dst[dstIdx++] = src[srcIdx++];
-
-            input.index = srcIdx;
-            output.index = dstIdx;
-            return true;
-         }
-
          this.reset();
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd4 = dstEnd - 4;
@@ -1172,16 +1162,6 @@ public final class TextCodec implements ByteFunction
          int dstIdx = output.index;
          final byte[] src = input.array;
          final byte[] dst = output.array;
-
-         if (count <= 64)
-         {
-            for (int i=0; i<count; i++)
-               dst[dstIdx++] = src[srcIdx++];
-
-            input.index = srcIdx;
-            output.index = dstIdx;
-            return true;
-         }
 
          this.reset();
          final int srcEnd = input.index + count;
@@ -1435,16 +1415,6 @@ public final class TextCodec implements ByteFunction
          if ((mode & 0x80) != 0)
             return false;
 
-         if (count <= 64)
-         {
-            for (int i=0; i<count; i++)
-               dst[dstIdx++] = src[srcIdx++];
-            
-            input.index = srcIdx;
-            output.index = dstIdx;
-            return true;
-         }
-
          this.reset();
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd3 = dstEnd - 3;
@@ -1658,16 +1628,6 @@ public final class TextCodec implements ByteFunction
          int dstIdx = output.index;
          final byte[] src = input.array;
          final byte[] dst = output.array;
-
-         if (count <= 64)
-         {
-            for (int i=0; i<count; i++)
-               dst[dstIdx++] = src[srcIdx++];
-
-            input.index = srcIdx;
-            output.index = dstIdx;
-            return true;
-         }
 
          this.reset();
          final int srcEnd = input.index + count;

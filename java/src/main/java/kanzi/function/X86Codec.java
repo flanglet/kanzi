@@ -192,6 +192,11 @@ public class X86Codec implements ByteFunction
    @Override
    public int getMaxEncodedLength(int srcLen)
    {
-      return (srcLen * 5) >> 2;
+      // Since we do not check the dst index for each byte (for speed purpose)
+      // allocate some extra buffer for incompressible data.
+      if (srcLen >= 1<<30)
+         return srcLen;
+      
+      return (srcLen <= 512) ? srcLen+32 : srcLen+srcLen/16;
    }      
 }
