@@ -517,22 +517,25 @@ public class Global
       if (withTotal == true)
          freqs[256] = end - start;
 
-      final int end8 = start + ((end-start) & -8);
+      int[] f0 = new int[256];
+      int[] f1 = new int[256];
+      int[] f2 = new int[256];
+      int[] f3 = new int[256];
+      final int end4 = start + ((end-start) & -4);
 
-      for (int i=start; i<end8; i+=8)
+      for (int i=start; i<end4; i+=4)
       {
-         freqs[block[i]&0xFF]++;
-         freqs[block[i+1]&0xFF]++;
-         freqs[block[i+2]&0xFF]++;
-         freqs[block[i+3]&0xFF]++;
-         freqs[block[i+4]&0xFF]++;
-         freqs[block[i+5]&0xFF]++;
-         freqs[block[i+6]&0xFF]++;
-         freqs[block[i+7]&0xFF]++;
+         f0[block[i]&0xFF]++;
+         f1[block[i+1]&0xFF]++;
+         f2[block[i+2]&0xFF]++;
+         f3[block[i+3]&0xFF]++;
       }
 
-      for (int i=end8; i<end; i++)
-         freqs[block[i]&0xFF]++;    
+      for (int i=end4; i<end; i++)
+         freqs[block[i]&0xFF]++;  
+      
+      for (int i=0; i<256; i++)
+         freqs[i] += (f0[i] + f1[i] + f2[i] + f3[i]);
    }
 
 
