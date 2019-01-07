@@ -87,7 +87,7 @@ public class BinaryEntropyEncoder implements EntropyEncoder
 
          for (int i=startChunk; i<startChunk+chunkSize; i++)
             this.encodeByte(block[i]);
-
+    
          EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
          this.bitstream.writeBits(this.sba.array, 0, 8*this.sba.index); 
          startChunk += chunkSize;

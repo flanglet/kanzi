@@ -456,8 +456,8 @@ public class TPAQPredictor implements Predictor
       Mixer()
       {
          this.pr = 2048;
-         this.w0 = this.w1 = this.w2 = this.w3 = 2048;
-         this.w4 = this.w5 = this.w6 = this.w7 = 2048;
+         this.w0 = this.w1 = this.w2 = this.w3 = 32768;
+         this.w4 = this.w5 = this.w6 = this.w7 = 32768;
          this.learnRate = BEGIN_LEARN_RATE;
       }
 
@@ -465,7 +465,7 @@ public class TPAQPredictor implements Predictor
       // Adjust weights to minimize coding cost of last prediction
       void update(int bit)
       {
-         final int err = (((bit<<12) - this.pr) * this.learnRate) >> 7;
+         final int err = (((bit<<12) - this.pr) * this.learnRate) >> 10;
          
          if (err == 0)
             return;
@@ -475,14 +475,14 @@ public class TPAQPredictor implements Predictor
          this.skew += err;
     
          // Train Neural Network: update weights
-         this.w0 += ((this.p0*err + 0) >> 15);
-         this.w1 += ((this.p1*err + 0) >> 15);
-         this.w2 += ((this.p2*err + 0) >> 15);
-         this.w3 += ((this.p3*err + 0) >> 15);
-         this.w4 += ((this.p4*err + 0) >> 15);
-         this.w5 += ((this.p5*err + 0) >> 15);
-         this.w6 += ((this.p6*err + 0) >> 15);
-         this.w7 += ((this.p7*err + 0) >> 15);
+         this.w0 += ((this.p0*err + 0) >> 12);
+         this.w1 += ((this.p1*err + 0) >> 12);
+         this.w2 += ((this.p2*err + 0) >> 12);
+         this.w3 += ((this.p3*err + 0) >> 12);
+         this.w4 += ((this.p4*err + 0) >> 12);
+         this.w5 += ((this.p5*err + 0) >> 12);
+         this.w6 += ((this.p6*err + 0) >> 12);
+         this.w7 += ((this.p7*err + 0) >> 12);
       }
 
 
