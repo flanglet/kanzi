@@ -34,7 +34,7 @@ public class TestFunctions
    {
       if (args.length == 0)
       {
-         args = new String[] { "-TYPE=ALL" };
+         args = new String[] { "-TYPE=RLT" };
       }
 
       String type = args[0].toUpperCase();
@@ -163,7 +163,7 @@ public class TestFunctions
       for (int ii=0; ii<20; ii++)
       {
          System.out.println("\nTest "+ii);
-         int[] arr;
+         int[] arr = new int[0];
 
          if (ii == 0)
          {
@@ -174,7 +174,7 @@ public class TestFunctions
          }
          else if (ii == 1)
          {
-            arr = new int[66000];
+            arr = new int[80000];
             arr[0] = 1;
 
             for (int i=1; i<arr.length; i++)
@@ -183,6 +183,19 @@ public class TestFunctions
          else if (ii == 2)
          {
             arr = new int[] { 0, 0, 1, 1, 2, 2, 3, 3 };
+         }
+         else if (ii == 3)
+         {
+            // For RLT
+            arr = new int[512];
+            
+            for (int i=0; i<256; i++)
+            {
+               arr[2*i] = i;
+               arr[2*i+1] = i;
+            }
+            
+            arr[1] = 255; // force RLT escape to be first symbol
          }
          else if (ii < 6)
          {
@@ -197,7 +210,7 @@ public class TestFunctions
                   val = 0;
 
                arr[i] = val;
-            }                 
+            }    
          }
          else if (ii == 6)
          {
@@ -230,7 +243,6 @@ public class TestFunctions
                idx += len;
             }
          }
-
          int size = arr.length;
          ByteFunction f = getByteFunction(name);
          input = new byte[size];
@@ -301,16 +313,25 @@ public class TestFunctions
          }
 
          System.out.println();
+         int idx = -1;
 
          for (int i=0; i<input.length; i++)
          {
             if (input[i] != reverse[i])
             {
                System.out.println("Different (index "+i+": "+input[i]+" - "+reverse[i]+")");
-               return false;
+               idx = i;
+               break;
             }
          }
-
+         
+         if (idx != -1) {
+            System.out.println("");
+            for (int i=0; i<idx; i++)
+               System.out.println(i+" "+sa1.array[i]+" "+sa3.array[i]);
+            
+            System.out.println(idx+" "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
+         }
          System.out.println("Identical");
          System.out.println();
       }
@@ -326,7 +347,7 @@ public class TestFunctions
       byte[] output;
       byte[] reverse;
       Random rnd = new Random();
-      final int iter = name.equals("ROLZ") ? 2000 : 50000;
+      final int iter = name.startsWith("ROLZ") ? 2000 : 50000;
       final int size = 50000;
       System.out.println("\n\nSpeed test for " + name);
       System.out.println("Iterations: " + iter);
@@ -410,9 +431,14 @@ public class TestFunctions
             }
          }
 
-         if (idx >= 0)
+         if (idx >= 0) {
             System.out.println("Failure at index "+idx+" ("+sa1.array[idx]+"<->"+sa3.array[idx]+")");
+            for (int i=0; i<idx; i++)
+               System.out.println(i+" "+sa1.array[i]+" "+sa3.array[i]);
             
+            System.out.println(idx+" "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
+         }
+         
          final long prod = (long) iter * (long) size;
          System.out.println(name + " encoding [ms]: " + delta1 / 1000000);
          System.out.println("Throughput [MB/s]: " + prod * 1000000L / delta1 * 1000L / (1024*1024));

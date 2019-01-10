@@ -16,48 +16,31 @@ limitations under the License.
 package kanzi.function;
 
 import kanzi.ByteFunction;
+import kanzi.Global;
 import kanzi.SliceByteArray;
 
 
-// Implementation of Mespotine RLE
-// See [An overhead-reduced and improved Run-Length-Encoding Method] by Meo Mespotine
-// Length is transmitted as 1 to 3 bytes. The run threshold can be provided.
-// EG. runThreshold = 2 and RUN_LEN_ENCODE1 = 239 => RUN_LEN_ENCODE2 = 4096
-// 2    <= runLen < 239+2      -> 1 byte
-// 241  <= runLen < 4096+2     -> 2 bytes
-// 4098 <= runLen < 65536+4098 -> 3 bytes
+// Implementation of an escaped RLE
+// Run length encoding:
+// RUN_LEN_ENCODE1 = 224 => RUN_LEN_ENCODE2 = 31*224 = 6944
+// 4    <= runLen < 224+4      -> 1 byte
+// 228  <= runLen < 6944+228   -> 2 bytes
+// 7172 <= runLen < 65535+7172 -> 3 bytes
 
 public class RLT implements ByteFunction
 {
    private static final int RUN_LEN_ENCODE1 = 224; // used to encode run length
-   private static final int RUN_LEN_ENCODE2 = (256-1-RUN_LEN_ENCODE1) << 8; // used to encode run length
-   private static final int MAX_RUN = 0xFFFF + RUN_LEN_ENCODE2; 
+   private static final int RUN_LEN_ENCODE2 = (255-RUN_LEN_ENCODE1) << 8; // used to encode run length
+   private static final int RUN_THRESHOLD = 3; 
+   private static final int MAX_RUN = 0xFFFF + RUN_LEN_ENCODE2 + RUN_THRESHOLD - 1; 
+   private static final int MAX_RUN4 = MAX_RUN - 4;
 
-   private final int runThreshold;
-   private final int[] counters;
-   private final byte[] flags;
+   private final int[] freqs;
 
    
    public RLT()
    {
-      this(2);
-   }
-
-
-   public RLT(int runThreshold)
-   {
-      if (runThreshold < 2)
-         throw new IllegalArgumentException("Invalid run threshold parameter (must be at least 2)");
-
-      this.runThreshold = runThreshold;
-      this.counters = new int[256];
-      this.flags = new byte[32];
-   }
-
-
-   public int getRunThreshold()
-   {
-      return this.runThreshold;
+      this.freqs = new int[256];
    }
 
 
@@ -75,159 +58,200 @@ public class RLT implements ByteFunction
       if (output.length - output.index < getMaxEncodedLength(count))
          return false;
      
-      for (int i=0; i<32; i++)
-         this.flags[i] = 0;
-      
-      for (int i=0; i<256; i++)
-         this.counters[i] = 0;
-      
       final byte[] src = input.array;
       final byte[] dst = output.array;     
+
+      // Step 1: find escape symbol
       int srcIdx = input.index;
       int dstIdx = output.index;
       final int srcEnd = srcIdx + count;
+      final int srcEnd4 = srcEnd - 4;
       final int dstEnd = dst.length;
-      final int dstEnd4 = dstEnd - 4;
+      
+      for (int i=1; i<256; i++)
+         this.freqs[i] = 0;
+      
+      Global.computeHistogramOrder0(src, srcIdx, srcEnd, this.freqs, false);
+      
+      int minIdx = 0;
+      
+      // Select escape symbol
+      if (this.freqs[minIdx] > 0)
+      {
+         for (int i=1; i<256; i++)
+         {
+            if (this.freqs[i] < this.freqs[minIdx])
+            {
+               minIdx = i;
+
+               if (this.freqs[i] == 0)
+                  break;
+            }
+         }
+      }
+
       boolean res = true;
+      byte escape = (byte) minIdx;
       int run = 0;
-      final int threshold = this.runThreshold;
-      final int maxRun = MAX_RUN + this.runThreshold;
-      
-      // Initialize with a value different from the first data
-      byte prev = (byte) ~src[srcIdx];
-      
-      // Step 1: create counters and set compression flags
-      while (srcIdx < srcEnd)
+      byte prev = src[srcIdx++];
+      dst[dstIdx++] = escape;
+      dst[dstIdx++] = prev;
+
+      if (prev == escape)
+         dst[dstIdx++] = 0;
+  
+      // Main loop
+      while (srcIdx < srcEnd4)
       {
-         final byte val = src[srcIdx++];
-
-         if ((prev == val) && (run < MAX_RUN))
+         if (prev == src[srcIdx])
          {
-            run++;
-            continue;
-         }
+            srcIdx++; run++;            
 
-         if (run >= threshold)
-            this.counters[prev&0xFF] += (run-threshold-1);
-
-         prev = val;
-         run = 1;        
-      }
-
-      if (run >= threshold)
-         this.counters[prev&0xFF] += (run-threshold-1);
-
-      for (int i=0; i<256; i++)
-      {
-         if (this.counters[i] > 0)
-            this.flags[i>>3] |= (1<<(7-(i&7)));
-      }
-
-      // Write flags to output
-      for (int i=0; i<32; i++)
-         dst[dstIdx++] = this.flags[i];
-      
-      srcIdx = input.index;
-      prev = (byte) ~src[srcIdx];
-      run = 0;
-      
-      // Step 2: output run lengths and literals
-      // Note that it is possible to output runs over the threshold (for symbols
-      // with an unset compression flag)
-      while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
-      {
-         final byte val = src[srcIdx++];
-
-         // Encode repetitions in the 'length' if the flag of the symbol is set.
-         if ((prev == val) && (run < maxRun) && (this.counters[prev&0xFF] > 0))
-         {
-            if (++run < threshold)
-               dst[dstIdx++] = prev;
-
-            continue;
-         }
-
-         if (run >= threshold)
-         {
-            run -= threshold;
-
-            if (dstIdx >= dstEnd4)
+            if (prev == src[srcIdx])
             {
-               if (run >= RUN_LEN_ENCODE2)
-                  break;
-               
-               if ((run >= RUN_LEN_ENCODE1) && (dstIdx > dstEnd4))
-                  break;
-            }
-            
-            dst[dstIdx++] = prev;
-        
-            // Encode run length
-            if (run >= RUN_LEN_ENCODE1)
-            {
-               if (run < RUN_LEN_ENCODE2)
+               srcIdx++; run++;
+
+               if (prev == src[srcIdx])
                {
-                  run -= RUN_LEN_ENCODE1;
-                  dst[dstIdx++] = (byte) (RUN_LEN_ENCODE1 + (run>>8));                  
-               }
-               else
-               {
-                  run -= RUN_LEN_ENCODE2;
-                  dst[dstIdx++] = (byte) 0xFF;               
-                  dst[dstIdx++] = (byte) (run>>8);                              
+                  srcIdx++; run++;
+
+                  if (prev == src[srcIdx])
+                  {
+                     srcIdx++; run++;
+                     
+                     if (run < MAX_RUN4)
+                        continue;
+                  }
                }
             }
-            
-            dst[dstIdx++] = (byte) run;
          }
-
-         dst[dstIdx++] = val;
-         prev = val;
-         run = 1;
-      }
-      
-      // Fill up the destination array
-      if (run >= threshold)
-      {
-         run -= threshold;
          
-         if (dstIdx >= dstEnd4)
+         if (run > RUN_THRESHOLD)
          {
-            if (run >= RUN_LEN_ENCODE2)
-               res = false;              
-            else if ((run >= RUN_LEN_ENCODE1) && (dstIdx > dstEnd4))
+            final int dIdx = emitRunLength(dst, dstIdx, dstEnd, run, escape, prev);
+            
+            if (dIdx < 0)
+            {
                res = false;
+               break;
+            }
+            
+            dstIdx = dIdx;
+         }
+         else if (prev != escape)
+         {
+            if (dstIdx+run >= dstEnd)
+            {
+               res = false;
+               break;
+            }
+         
+            if (run-- > 0)
+               dst[dstIdx++] = prev;   
+
+            while (run-- > 0)
+               dst[dstIdx++] = prev;   
+         }  
+         else // escape literal
+         {
+            if (dstIdx+2*run >= dstEnd)
+            {
+               res = false;
+               break;
+            }
+         
+            while (run-- > 0)
+            {
+               dst[dstIdx++] = escape; 
+               dst[dstIdx++] = 0;
+            }          
+         }
+         
+         prev = src[srcIdx];
+         srcIdx++;
+         run = 1; 
+      }
+  
+      if (res == true)
+      {
+         // Process any remaining run
+         if (run > RUN_THRESHOLD)
+         {
+            final int dIdx = emitRunLength(dst, dstIdx, dstEnd, run, escape, prev);
+            
+            if (dIdx > dstIdx)
+               dstIdx = dIdx;
+         }
+         else if (prev != escape)
+         {
+            if (dstIdx+run < dstEnd)
+            {
+               while (run-- > 0)
+                  dst[dstIdx++] = prev;  
+            }
+         }
+         else // escape literal
+         {
+            if (dstIdx+2*run < dstEnd)
+            {
+               while (run-- > 0)
+               {
+                  dst[dstIdx++] = escape; 
+                  dst[dstIdx++] = 0; 
+               }
+            }
+         }
+         
+         // Copy the last few bytes
+         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
+            dst[dstIdx++] = src[srcIdx++];
+         
+         res = srcIdx == srcEnd;
+      }
+      
+      input.index = srcIdx;
+      output.index = dstIdx;
+      return res;
+   }
+
+   
+   private static int emitRunLength(byte[] dst, int dstIdx, int dstEnd, int run, byte escape, byte val)
+   {
+      dst[dstIdx++] = val;
+      
+      if (val == escape)
+         dst[dstIdx++] = (byte) 0;
+
+      dst[dstIdx++] = escape;
+      run -= RUN_THRESHOLD;         
+
+      // Encode run length
+      if (run >= RUN_LEN_ENCODE1)
+      {
+         if (run < RUN_LEN_ENCODE2)
+         {
+            if (dstIdx >= dstEnd-2)
+               return -1;
+            
+            run -= RUN_LEN_ENCODE1;
+            dst[dstIdx++] = (byte) (RUN_LEN_ENCODE1 + (run>>8));                  
          }
          else
          {
-            dst[dstIdx++] = prev;
+            if (dstIdx >= dstEnd-3)
+               return -1;
 
-            // Encode run length
-            if (run >= RUN_LEN_ENCODE1)
-            {
-               if (run < RUN_LEN_ENCODE2)
-               {
-                  run -= RUN_LEN_ENCODE1;
-                  dst[dstIdx++] = (byte) (RUN_LEN_ENCODE1 + (run>>8));
-               }
-               else
-               {
-                  run -= RUN_LEN_ENCODE2;
-                  dst[dstIdx++] = (byte) 0xFF;               
-                  dst[dstIdx++] = (byte) (run>>8);                             
-               }
-            }
-            
-            dst[dstIdx++] = (byte) run;
+            run -= RUN_LEN_ENCODE2;
+            dst[dstIdx++] = (byte) 0xFF;               
+            dst[dstIdx++] = (byte) (run>>8);                              
          }
       }
-
-      input.index = srcIdx;
-      output.index = dstIdx;
-      return res && (srcIdx == srcEnd);
+      
+      dst[dstIdx] = (byte) run;      
+      return dstIdx+1;
    }
 
-
+   
    @Override
    public boolean inverse(SliceByteArray input, SliceByteArray output)
    {
@@ -244,104 +268,113 @@ public class RLT implements ByteFunction
       final byte[] dst = output.array;
       final int srcEnd = srcIdx + count;
       final int dstEnd = dst.length;
-      int run = 0;
-      final int threshold = this.runThreshold;
-      final int maxRun = MAX_RUN + this.runThreshold;
       boolean res = true;
+      byte escape = src[srcIdx++];
 
-      // Read compression flags from input
-      for (int i=0, j=0; i<32; i++, j+=8)
+      if (src[srcIdx] == escape)
       {
-         final byte flag = src[srcIdx++];
-         this.counters[j]   = (flag>>7) & 1;
-         this.counters[j+1] = (flag>>6) & 1;
-         this.counters[j+2] = (flag>>5) & 1;
-         this.counters[j+3] = (flag>>4) & 1;
-         this.counters[j+4] = (flag>>3) & 1;
-         this.counters[j+5] = (flag>>2) & 1;
-         this.counters[j+6] = (flag>>1) & 1;
-         this.counters[j+7] =  flag     & 1;
+         srcIdx++;
+         
+         // The data cannot start with a run but may start with an escape literal
+         if ((srcIdx < srcEnd) && (src[srcIdx] != 0))
+            return false;
+         
+         dst[dstIdx++] = escape;
+         srcIdx++;         
       }
       
-      // Initialize with a value different from the first symbol
-      byte prev = (byte) ~src[srcIdx];
-
-      while ((srcIdx < srcEnd))
+      // Main loop
+      while (srcIdx < srcEnd)
       { 
-         final byte val = src[srcIdx++];
-
-         if ((prev == val) && (this.counters[prev&0xFF] > 0))
-         {
-            run++;
+         if (src[srcIdx] != escape)
+         {            
+            // Literal
+            if (dstIdx >= dstEnd)
+               break;
             
-            if (run >= threshold)
-            {
-               // Decode run length
-               run = src[srcIdx++] & 0xFF;
-
-               if (run == 0xFF)
-               {
-                  if (srcIdx + 1 >= srcEnd)
-                     break;
-
-                  run = (((src[srcIdx++]&0xFF))<<8) | (src[srcIdx++]&0xFF);
-                  run += RUN_LEN_ENCODE2;
-               }
-               else if (run >= RUN_LEN_ENCODE1)
-               {
-                  if (srcIdx >= srcEnd)
-                     break;
-                  
-                  run = ((run-RUN_LEN_ENCODE1)<<8) | (src[srcIdx++]&0xFF);
-                  run += RUN_LEN_ENCODE1;
-               }
-               
-               if ((dstIdx >= dstEnd+run) || (run > maxRun))
-               {
-                  res = false;
-                  break;
-               }
-               
-               // Emit 'run' times the previous byte               
-               while (run >= 4)
-               {
-                  dst[dstIdx] = prev;
-                  dst[dstIdx+1] = prev;
-                  dst[dstIdx+2] = prev;
-                  dst[dstIdx+3] = prev;
-                  dstIdx += 4;
-                  run -= 4;
-               }
-
-               while (run > 0)
-               {
-                  dst[dstIdx++] = prev;
-                  run--;
-               }
-            }
+            dst[dstIdx++] = src[srcIdx++];
+            continue;
          }
-         else
+
+         srcIdx++;
+
+         if (srcIdx >= srcEnd)
          {
-            prev = val;
-            run = 1;
-         }
-
-         if (dstIdx >= dstEnd)
+            res = false;
             break;
-            
-         dst[dstIdx++] = val;
-      }
+         }
+         
+         final byte val = dst[dstIdx-1];         
+         int run = src[srcIdx++] & 0xFF;
 
+         if (run == 0)
+         {
+            // Just an escape literal, not a run
+            if (dstIdx >= dstEnd)
+               break;
+            
+            dst[dstIdx++] = escape;
+            continue;
+         }
+
+         // Decode run length
+         if (run == 0xFF)
+         {
+            if (srcIdx >= srcEnd-1)
+            {
+               res = false;
+               break;
+            }
+
+            run = (((src[srcIdx]&0xFF))<<8) | (src[srcIdx+1]&0xFF);
+            srcIdx += 2;
+            run += RUN_LEN_ENCODE2;
+         }
+         else if (run >= RUN_LEN_ENCODE1) 
+         {
+            if (srcIdx >= srcEnd)
+            {
+               res = false;
+               break;
+            }
+
+            run = ((run-RUN_LEN_ENCODE1)<<8) | (src[srcIdx++]&0xFF);
+            run += RUN_LEN_ENCODE1;
+         }
+
+         run += (RUN_THRESHOLD-1);
+
+         if ((dstIdx+run >= dstEnd) || (run > MAX_RUN)) 
+         {
+            res = false;
+            break;
+         }
+
+         // Emit 'run' times the previous byte               
+         while (run >= 4)
+         {
+            dst[dstIdx]   = val;
+            dst[dstIdx+1] = val;
+            dst[dstIdx+2] = val;
+            dst[dstIdx+3] = val;
+            dstIdx += 4;
+            run -= 4;
+         }
+
+         while (run-- > 0)
+            dst[dstIdx++] = val;
+      }
+         
+      res &= srcIdx == srcEnd;   
       input.index = srcIdx;
       output.index = dstIdx;
-      return res && (srcIdx == srcEnd);
+      return res;
    }
+  
    
-   
-   // Required encoding output buffer size unknown => guess
    @Override
    public int getMaxEncodedLength(int srcLen)
    {
-      return srcLen + 32;
+      return (srcLen <= 512) ? srcLen + 32 : srcLen;
    }
 }
