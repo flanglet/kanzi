@@ -39,6 +39,11 @@ public final class TextCodec implements ByteFunction
    public static final byte ESCAPE_TOKEN2 = (byte) 0x0E; // toggle upper/lower case of first word char
    private static final int HASH1 = 0x7FEB352D;
    private static final int HASH2 = 0x846CA68B;
+   private static final int MASK_NOT_TEXT = 0x80;
+   private static final int MASK_ALMOST_FULL_ASCII = 0x08;
+   private static final int MASK_FULL_ASCII = 0x04;
+   private static final int MASK_XML_HTML = 0x02;
+   private static final int MASK_CRLF = 0x01;
 
    private static final boolean[] DELIMITER_CHARS = initDelimiterChars();
 
@@ -710,22 +715,21 @@ public final class TextCodec implements ByteFunction
       System.arraycopy(buf, 1, res, 0, res.length);
       return res;
    }
-
-
+   
+   
    // return status (8 bits):
    // 0x80 => not text
    // 0x01 => CR+LF transform
-   public static int computeStats(byte[] block, final int srcIdx, final int srcEnd)
+   public static int computeStats(byte[] block, final int srcIdx, final int srcEnd, int[] freqs0)
    {
-      final int[][] freqs = new int[257][256];
+      final int[][] freqs = new int[256][256];
          
-      for (int i=0; i<257; i++)
+      for (int i=0; i<256; i++)
          freqs[i] = new int[256];
       
       int prv = 0;
-      final int srcEnd4 = srcIdx + ((srcEnd-srcIdx) & -4);
-      final int[] freqs0 = freqs[256];
-
+      final int length = srcEnd - srcIdx;
+      final int srcEnd4 = srcIdx + (length & -4);
       // Unroll loop
       for (int i=srcIdx; i<srcEnd4; i+=4)
       {
@@ -761,8 +765,8 @@ public final class TextCodec implements ByteFunction
       }
 
       // Not text (crude threshold)
-      if (2*nbTextChars < srcEnd-srcIdx)
-         return 0x80;
+      if (2*nbTextChars < length)
+         return MASK_NOT_TEXT;
 
       int nbBinChars = 0;
 
@@ -770,21 +774,54 @@ public final class TextCodec implements ByteFunction
          nbBinChars += freqs0[i];
 
       // Not text (crude threshold)
-      if (4*nbBinChars > srcEnd-srcIdx)
-         return 0x80;
+      if (4*nbBinChars > length)
+         return MASK_NOT_TEXT;
 
-      // Check CR+LF matches
       int res = 0;
 
+      if (nbBinChars == 0)
+         res |= MASK_FULL_ASCII;
+      else if (nbBinChars <= length/100)
+         res |= MASK_ALMOST_FULL_ASCII;
+      
+      if (nbBinChars <= length-length/10)
+      {
+         // Check if likely XML/HTML
+         // Another crude test: check that the frequencies of < and > are similar
+         // and 'high enough'. Also check it is worth to attempt replacing ampersand sequences.
+         // Getting this flag wrong results in a very small compression speed degradation.
+         final int f1 = freqs0['<'];
+         final int f2 = freqs0['>'];
+         final int f3 = freqs['&']['a'] + freqs['&']['g'] + freqs['&']['l'] +freqs['&']['q'];
+         final int minFreq = Math.max((length-nbBinChars)>>9, 2);         
+         
+         if ((f1 >= minFreq) && (f2 >= minFreq) && (f3 > 0))
+         {
+            if (f1 < f2)
+            { 
+               if (f1 >= f2-f2/100) 
+                  res |= MASK_XML_HTML;
+            }
+            else if (f2 < f1) 
+            {
+               if (f2 >= f1-f1/100)            
+                  res |= MASK_XML_HTML;
+            }
+            else 
+               res |= MASK_XML_HTML;
+         }
+      }
+
+      // Check CR+LF matches
       if ((freqs0[CR] != 0) && (freqs0[CR] == freqs0[LF]))
       {
-         res = 1;
+         res |= MASK_CRLF;
 
          for (int i=0; i<256; i++)
          {
             if ((i != LF) && (freqs[CR][i]) != 0)
             {
-               res = 0;
+               res &= ~MASK_CRLF;
                break;
             }
          }
@@ -826,7 +863,7 @@ public final class TextCodec implements ByteFunction
          return false;
 
       if (src.length > MAX_BLOCK_SIZE)
-         throw new IllegalArgumentException("The max TextCodec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
+         throw new IllegalArgumentException("The max text transform block size is "+MAX_BLOCK_SIZE+", got "+src.length);
 
       return this.delegate.forward(src, dst);   
    }
@@ -842,7 +879,7 @@ public final class TextCodec implements ByteFunction
          return false;
 
       if (src.length > MAX_BLOCK_SIZE)
-         throw new IllegalArgumentException("The max TextCodec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
+         throw new IllegalArgumentException("The max text transform block size is "+MAX_BLOCK_SIZE+", got "+src.length);
 
       return this.delegate.inverse(src, dst);
    }
@@ -867,7 +904,7 @@ public final class TextCodec implements ByteFunction
          this.dictSize = THRESHOLD2*4;
          this.dictMap = new DictEntry[1<<this.logHashSize];
          this.dictList = new DictEntry[this.dictSize];
-         this.hashMask = (1 << this.logHashSize) - 1;        
+         this.hashMask = (1<<this.logHashSize) - 1;        
          System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          int nbWords = STATIC_DICT_WORDS;
  
@@ -942,10 +979,11 @@ public final class TextCodec implements ByteFunction
          int dstIdx = output.index;
          final int srcEnd = input.index + count;
          
-         int mode = computeStats(src, srcIdx, srcEnd);
+         int[] freqs0 = new int[256];
+         final int mode = computeStats(src, srcIdx, srcEnd, freqs0);
 
          // Not text ?
-         if ((mode & 0x80) != 0)
+         if ((mode & MASK_NOT_TEXT) != 0)
             return false;
 
          this.reset();
@@ -955,8 +993,9 @@ public final class TextCodec implements ByteFunction
          int words = this.staticDictSize;
 
          // DOS encoded end of line (CR+LF) ?
-         this.isCRLF = (mode & 0x01) != 0;
+         this.isCRLF = (mode & MASK_XML_HTML) != 0;
          dst[dstIdx++] = (byte) mode;
+         boolean res = true;
 
          while ((srcIdx < srcEnd) && (src[srcIdx] == ' '))
          {
@@ -1051,10 +1090,23 @@ public final class TextCodec implements ByteFunction
                   // Word found in the dictionary
                   // Skip space if only delimiter between 2 word references
                   if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
-                     dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor, dstEnd);
-
+                  {
+                     final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
+                     
+                     if (dIdx < 0)
+                     {
+                        res = false;
+                        break;
+                     }
+                     
+                     dstIdx = dIdx;
+                  }
+                  
                   if (dstIdx >= dstEnd4)
+                  {
+                     res =false;
                      break;
+                  }
 
                   dst[dstIdx++] = (e == e1) ? ESCAPE_TOKEN1 : ESCAPE_TOKEN2;
                   dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF);
@@ -1068,11 +1120,20 @@ public final class TextCodec implements ByteFunction
          }
 
          // Emit last symbols
-         dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, srcEnd-1, dstEnd);
-
+         if (res == true)
+         {
+            final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, srcEnd, dstEnd);
+            
+            if (dIdx < 0)
+               res = false;
+            else
+               dstIdx = dIdx;
+         }
+         
          output.index = dstIdx;
          input.index = srcIdx;
-         return srcIdx == srcEnd;
+         res &= (srcIdx == srcEnd);         
+         return res;
       }
 
 
@@ -1095,10 +1156,10 @@ public final class TextCodec implements ByteFunction
 
       private int emitSymbols(byte[] src, final int srcIdx, byte[] dst, int dstIdx, final int srcEnd, final int dstEnd)
       {
-         for (int i=srcIdx; i<=srcEnd; i++)
+         for (int i=srcIdx; i<srcEnd; i++)
          {
             if (dstIdx >= dstEnd)
-               break;
+               return -1;
 
             final byte cur = src[i];
 
@@ -1116,9 +1177,10 @@ public final class TextCodec implements ByteFunction
                   else if (idx < THRESHOLD1)
                      lenIdx = 1;
 
-                  if (dstIdx + lenIdx < dstEnd)
-                     dstIdx = emitWordIndex(dst, dstIdx, idx);
+                  if (dstIdx+lenIdx >= dstEnd)
+                     return -1;
 
+                  dstIdx = emitWordIndex(dst, dstIdx, idx);
                   break;
 
                case CR :
@@ -1130,7 +1192,7 @@ public final class TextCodec implements ByteFunction
                default:
                   dst[dstIdx++] = cur;
             }
-         }
+         }            
 
          return dstIdx;
       }
@@ -1344,7 +1406,7 @@ public final class TextCodec implements ByteFunction
          this.dictSize = THRESHOLD2*4;
          this.dictMap = new DictEntry[1<<this.logHashSize];
          this.dictList = new DictEntry[this.dictSize];
-         this.hashMask = (1 << this.logHashSize) - 1;
+         this.hashMask = (1<<this.logHashSize) - 1;
          System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          this.staticDictSize = STATIC_DICT_WORDS;
       }
@@ -1409,10 +1471,11 @@ public final class TextCodec implements ByteFunction
          int dstIdx = output.index;
          final int srcEnd = input.index + count;
          
-         int mode = computeStats(src, srcIdx, srcEnd);
+         int[] freqs0 = new int[256];
+         final int mode = computeStats(src, srcIdx, srcEnd, freqs0);
 
          // Not text ?
-         if ((mode & 0x80) != 0)
+         if ((mode & MASK_NOT_TEXT) != 0)
             return false;
 
          this.reset();
@@ -1422,8 +1485,9 @@ public final class TextCodec implements ByteFunction
          int words = this.staticDictSize;
 
          // DOS encoded end of line (CR+LF) ?
-         this.isCRLF = (mode & 0x01) != 0;
+         this.isCRLF = (mode & MASK_CRLF) != 0;
          dst[dstIdx++] = (byte) mode;
+         boolean res = true;
 
          while ((srcIdx < srcEnd) && (src[srcIdx] == ' '))
          {
@@ -1518,11 +1582,24 @@ public final class TextCodec implements ByteFunction
                   // Word found in the dictionary
                   // Skip space if only delimiter between 2 word references
                   if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
-                     dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor, dstEnd);
-
+                  {
+                     final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
+                     
+                     if (dIdx < 0)
+                     {
+                        res = false;
+                        break;
+                     }
+                     
+                     dstIdx = dIdx;
+                  }
+                  
                   if (dstIdx >= dstEnd3)
+                  {
+                     res = false;
                      break;
-
+                  }
+                  
                   dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF, ((e == e1) ? 0 : 32));
                   emitAnchor = delimAnchor + 1 + (e.data>>>24);
                }
@@ -1534,10 +1611,20 @@ public final class TextCodec implements ByteFunction
          }
 
          // Emit last symbols
-         dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, srcEnd-1, dstEnd);
+         if (res == true)
+         {
+            final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, srcEnd, dstEnd);
+
+            if (dIdx < 0)
+               res = false;
+            else
+               dstIdx = dIdx;
+         }
+
          output.index = dstIdx;
          input.index = srcIdx;
-         return srcIdx == srcEnd;
+         res &= (srcIdx == srcEnd);  
+         return res;
       }
 
 
@@ -1560,33 +1647,76 @@ public final class TextCodec implements ByteFunction
 
       private int emitSymbols(byte[] src, final int srcIdx, byte[] dst, int dstIdx, final int srcEnd, final int dstEnd)
       {
-         for (int i=srcIdx; i<=srcEnd; i++)
+         if (dstIdx+2*(srcEnd-srcIdx) < dstEnd)
          {
-            if (dstIdx >= dstEnd-1)
-               break;
-
-            final byte cur = src[i];           
-
-            switch (cur)
+            for (int i=srcIdx; i<srcEnd; i++)
             {
-               case ESCAPE_TOKEN1:
-                  dst[dstIdx++] = ESCAPE_TOKEN1;
-                  dst[dstIdx++] = ESCAPE_TOKEN1;                  
-                  break;
+               final byte cur = src[i];           
 
-               case CR :
-                  if (this.isCRLF == false)
-                     dst[dstIdx++] = cur;
-
-                  break;
-
-               default:
-                  if ((cur & 0x80) != 0)
+               switch (cur)
+               {
+                  case ESCAPE_TOKEN1:
                      dst[dstIdx++] = ESCAPE_TOKEN1;
+                     dst[dstIdx++] = ESCAPE_TOKEN1;                  
+                     break;
 
-                  dst[dstIdx++] = cur;
-            }
-         }                                    
+                  case CR :
+                     if (this.isCRLF == false)
+                        dst[dstIdx++] = cur;
+
+                     break;
+
+                  default:
+                     if ((cur & 0x80) != 0)
+                        dst[dstIdx++] = ESCAPE_TOKEN1;
+
+                     dst[dstIdx++] = cur;
+               }
+            } 
+         }
+         else
+         {
+            for (int i=srcIdx; i<srcEnd; i++)
+            {
+               final byte cur = src[i];           
+
+               switch (cur)
+               {
+                  case ESCAPE_TOKEN1:
+                     if (dstIdx >= dstEnd-1)
+                        return -1;
+
+                     dst[dstIdx++] = ESCAPE_TOKEN1;
+                     dst[dstIdx++] = ESCAPE_TOKEN1;                  
+                     break;
+
+                  case CR :
+                     if (this.isCRLF == false)
+                     {
+                        if (dstIdx >= dstEnd)
+                           return -1;
+                        
+                        dst[dstIdx++] = cur;
+                     }
+                     
+                     break;
+
+                  default:
+                     if ((cur & 0x80) != 0)
+                     {
+                        if (dstIdx >= dstEnd)
+                           return -1;
+
+                        dst[dstIdx++] = ESCAPE_TOKEN1;
+                     }
+
+                     if (dstIdx >= dstEnd)
+                        return -1;
+                     
+                     dst[dstIdx++] = cur;
+               }
+            }   
+         }
 
          return dstIdx;
       }
