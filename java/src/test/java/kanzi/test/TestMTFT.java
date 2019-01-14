@@ -17,7 +17,7 @@ package kanzi.test;
 
 import java.util.Random;
 import kanzi.SliceByteArray;
-import kanzi.transform.MTFT;
+import kanzi.transform.SBRT;
 import org.junit.Test;
 
 
@@ -50,7 +50,7 @@ public class TestMTFT
             }
 
             int size = input.length;
-            MTFT mtft = new MTFT();
+            SBRT mtft = new SBRT(SBRT.MODE_MTF);
             byte[] transform = new byte[size+20];
             byte[] reverse = new byte[size];
             SliceByteArray sa1 = new SliceByteArray(input, 0);
@@ -119,7 +119,7 @@ public class TestMTFT
          SliceByteArray sa1 = new SliceByteArray(input, 0);
          SliceByteArray sa2 = new SliceByteArray(transform, 0);
          SliceByteArray sa3 = new SliceByteArray(reverse, 0);
-         MTFT mtft = new MTFT();
+         SBRT mtft = new SBRT(SBRT.MODE_MTF);
          long delta1 = 0, delta2 = 0;
          long before, after;
 

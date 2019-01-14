@@ -18,7 +18,6 @@ package kanzi.function;
 import java.util.Map;
 import kanzi.ByteTransform;
 import kanzi.transform.BWTS;
-import kanzi.transform.MTFT;
 import kanzi.transform.SBRT;
 
 
@@ -42,6 +41,7 @@ public class ByteFunctionFactory
    public static final short DICT_TYPE    = 10; // Text codec
    public static final short ROLZ_TYPE    = 11; // ROLZ codec
    public static final short ROLZX_TYPE   = 12; // ROLZ Extra codec
+   public static final short BRT_TYPE     = 13; // Behemoth Rank
  
 
    // The returned type contains 8 transform values
@@ -84,6 +84,9 @@ public class ByteFunctionFactory
       
       switch (name)
       {
+         case "TEXT":
+            return DICT_TYPE;
+
          case "BWT":
             return BWT_TYPE;
 
@@ -102,6 +105,12 @@ public class ByteFunctionFactory
          case "ROLZX":
             return ROLZX_TYPE;
 
+         case "BRT":
+            return BRT_TYPE;
+
+         case "RANK":
+            return RANK_TYPE;
+
          case "MTFT":
             return MTFT_TYPE;
 
@@ -111,14 +120,8 @@ public class ByteFunctionFactory
          case "RLT":
             return RLT_TYPE;
 
-         case "RANK":
-            return RANK_TYPE;
-
          case "X86":
             return X86_TYPE;
-
-         case "TEXT":
-            return DICT_TYPE;
 
          case "NONE":
             return NONE_TYPE;
@@ -163,36 +166,6 @@ public class ByteFunctionFactory
    {
       switch (functionType)
       {
-         case SNAPPY_TYPE:
-            return new SnappyCodec();
-            
-         case LZ4_TYPE:
-            return new LZ4Codec();
-            
-         case ROLZ_TYPE:
-            return new ROLZCodec(ctx);
-            
-         case ROLZX_TYPE:
-            return new ROLZCodec(ctx);
-            
-         case BWT_TYPE:
-            return new BWTBlockCodec(ctx); 
-            
-         case BWTS_TYPE:
-            return new BWTS();    
-            
-         case MTFT_TYPE:
-            return new MTFT();
-
-         case ZRLT_TYPE:
-            return new ZRLT();
-            
-         case RLT_TYPE:
-            return new RLT();
-            
-         case RANK_TYPE:
-            return new SBRT(SBRT.MODE_RANK);
-            
          case DICT_TYPE:            
             String entropyType = (String) ctx.getOrDefault("codec", "NONE");
             entropyType = entropyType.toUpperCase();
@@ -205,6 +178,39 @@ public class ByteFunctionFactory
                
             ctx.put("textcodec", textCodecType);
             return new TextCodec(ctx);
+
+         case ROLZ_TYPE:
+            return new ROLZCodec(ctx);
+            
+         case ROLZX_TYPE:
+            return new ROLZCodec(ctx);
+            
+         case BWT_TYPE:
+            return new BWTBlockCodec(ctx); 
+            
+         case BWTS_TYPE:
+            return new BWTS();    
+            
+         case RANK_TYPE:
+            return new SBRT(SBRT.MODE_RANK);
+                        
+         case BRT_TYPE:
+            return new BRT();
+                        
+         case MTFT_TYPE:
+            return new SBRT(SBRT.MODE_MTF);
+
+         case ZRLT_TYPE:
+            return new ZRLT();
+            
+         case RLT_TYPE:
+            return new RLT();
+            
+         case SNAPPY_TYPE:
+            return new SnappyCodec();
+            
+         case LZ4_TYPE:
+            return new LZ4Codec();
             
          case X86_TYPE:
             return new X86Codec();
@@ -248,8 +254,8 @@ public class ByteFunctionFactory
    {
       switch (functionType)
       {
-         case LZ4_TYPE:
-            return "LZ4";
+         case DICT_TYPE:
+            return "TEXT";
             
          case ROLZ_TYPE:
             return "ROLZ";
@@ -263,8 +269,11 @@ public class ByteFunctionFactory
          case BWTS_TYPE:
             return "BWTS";
             
-         case SNAPPY_TYPE:
-            return "SNAPPY";
+         case BRT_TYPE:
+            return "BRT";
+            
+         case RANK_TYPE:
+            return "RANK";
             
          case MTFT_TYPE:
             return "MTFT";
@@ -275,14 +284,14 @@ public class ByteFunctionFactory
          case RLT_TYPE:
             return "RLT";
             
-         case RANK_TYPE:
-            return "RANK";
-            
          case X86_TYPE:
             return "X86";
             
-         case DICT_TYPE:
-            return "TEXT";
+         case LZ4_TYPE:
+            return "LZ4";
+            
+         case SNAPPY_TYPE:
+            return "SNAPPY";
             
          case NONE_TYPE:
             return "NONE";

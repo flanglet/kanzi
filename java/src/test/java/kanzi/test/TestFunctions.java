@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Random;
 import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
+import kanzi.function.BRT;
 import kanzi.function.LZ4Codec;
 import kanzi.function.RLT;
 import kanzi.function.ROLZCodec;
@@ -34,7 +35,7 @@ public class TestFunctions
    {
       if (args.length == 0)
       {
-         args = new String[] { "-TYPE=RLT" };
+         args = new String[] { "-TYPE=brt" };
       }
 
       String type = args[0].toUpperCase();
@@ -82,6 +83,12 @@ public class TestFunctions
                System.exit(1);
 
             testSpeed("RLT");                 
+            System.out.println("\n\nTestBRT");
+
+            if (testCorrectness("BRT") == false)
+               System.exit(1);
+
+            testSpeed("BRT");                 
          }
          else
          {
@@ -99,6 +106,9 @@ public class TestFunctions
    @Test
    public void testFunctions()
    {
+      System.out.println("\n\nTestBRT");
+      Assert.assertTrue(testCorrectness("BRT"));
+      //testSpeed("BRT");
       System.out.println("\n\nTestLZ4");
       Assert.assertTrue(testCorrectness("LZ4"));
       //testSpeed("LZ4");
@@ -135,6 +145,9 @@ public class TestFunctions
 
          case "RLT":
             return new RLT();
+
+         case "BRT":
+            return new BRT();
 
          case "ROLZ":
             return new ROLZCodec(false);
@@ -347,7 +360,7 @@ public class TestFunctions
       byte[] output;
       byte[] reverse;
       Random rnd = new Random();
-      final int iter = name.startsWith("ROLZ") ? 2000 : 50000;
+      final int iter = name.startsWith("ROLZ") ? 2000 : (name.equals("BRT") ? 5000 : 50000);
       final int size = 50000;
       System.out.println("\n\nSpeed test for " + name);
       System.out.println("Iterations: " + iter);
