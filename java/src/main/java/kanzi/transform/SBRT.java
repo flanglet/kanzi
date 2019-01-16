@@ -19,7 +19,7 @@ import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
 
 
-// Sort by Rank Transform is a family of transforms typically used after
+// Sort By Rank Transform is a family of transforms typically used after
 // a BWT to reduce the variance of the data prior to entropy coding.
 // SBR(alpha) is defined by sbr(x, alpha) = (1-alpha)*(t-w1(x,t)) + alpha*(t-w2(x,t))
 // where x is an item in the data list, t is the current access time and wk(x,t) is
@@ -43,20 +43,20 @@ public class SBRT implements ByteTransform
    
    public SBRT()
    {
-     this(MODE_RANK); 
+      this(MODE_RANK); 
    }
    
    
    public SBRT(int mode)
    {
-     if ((mode != MODE_MTF) && (mode != MODE_RANK) && (mode != MODE_TIMESTAMP))
-        throw new IllegalArgumentException("Invalid mode parameter");
-    
-     this.prev = new int[256];
-     this.curr = new int[256];
-     this.symbols = new int[256];
-     this.ranks = new int[256];
-     this.mode = mode;
+      if ((mode != MODE_MTF) && (mode != MODE_RANK) && (mode != MODE_TIMESTAMP))
+         throw new IllegalArgumentException("Invalid mode parameter");
+
+      this.prev = new int[256];
+      this.curr = new int[256];
+      this.symbols = new int[256];
+      this.ranks = new int[256];
+      this.mode = mode;
    }
    
 

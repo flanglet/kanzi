@@ -17,19 +17,15 @@ package kanzi.test;
 
 import java.util.Arrays;
 import java.util.Random;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
-import kanzi.function.LZ4Codec;
-import kanzi.function.RLT;
-import kanzi.function.ROLZCodec;
-import kanzi.function.SRT;
-import kanzi.function.SnappyCodec;
-import kanzi.function.ZRLT;
+import kanzi.transform.BWTS;
+import kanzi.transform.SBRT;
 import org.junit.Assert;
 import org.junit.Test;
 
 
-public class TestFunctions
+public class TestTransforms
 {
    public static void main(String[] args)
    {
@@ -47,48 +43,24 @@ public class TestFunctions
 
          if (type.equals("ALL"))
          {
-            System.out.println("\n\nTestLZ4");
+            System.out.println("\n\nTestRANK");
 
-            if (testCorrectness("LZ4") == false)
+            if (testCorrectness("RANK") == false)
                System.exit(1);
 
-            testSpeed("LZ4");
-            System.out.println("\n\nTestROLZ");
+            testSpeed("RANK");
+            System.out.println("\n\nTestMTFF");
 
-            if (testCorrectness("ROLZ") == false)
+            if (testCorrectness("MTFT") == false)
                System.exit(1);
 
-            testSpeed("ROLZ"); 
-            System.out.println("\n\nTestROLZX");
+            testSpeed("MTFT"); 
+            System.out.println("\n\nTestBWTS");
 
-            if (testCorrectness("ROLZX") == false)
+            if (testCorrectness("BWTS") == false)
                System.exit(1);
 
-            testSpeed("ROLZX"); 
-            System.out.println("\n\nTestSnappy");
-
-            if (testCorrectness("SNAPPY") == false)
-               System.exit(1);
-
-            testSpeed("SNAPPY");
-            System.out.println("\n\nTestZRLT");
-
-            if (testCorrectness("ZRLT") == false)
-               System.exit(1);
-
-            testSpeed("ZRLT");
-            System.out.println("\n\nTestRLT");
-
-            if (testCorrectness("RLT") == false)
-               System.exit(1);
-
-            testSpeed("RLT");                 
-            System.out.println("\n\nTestSRT");
-
-            if (testCorrectness("SRT") == false)
-               System.exit(1);
-
-            testSpeed("SRT");                 
+            testSpeed("BWTS");                            
          }
          else
          {
@@ -106,57 +78,33 @@ public class TestFunctions
    @Test
    public void testFunctions()
    {
-      System.out.println("\n\nTestSRT");
-      Assert.assertTrue(testCorrectness("SRT"));
-      //testSpeed("SRT");
-      System.out.println("\n\nTestLZ4");
-      Assert.assertTrue(testCorrectness("LZ4"));
-      //testSpeed("LZ4");
-      System.out.println("\n\nTestROLZ");
-      Assert.assertTrue(testCorrectness("ROLZ"));
-      //testSpeed("ROLZ");   
-      System.out.println("\n\nTestROLZX");
-      Assert.assertTrue(testCorrectness("ROLZX"));
-      //testSpeed("ROLZX");   
-      System.out.println("\n\nTestSnappy");
-      Assert.assertTrue(testCorrectness("SNAPPY"));
-      //testSpeed("SNAPPY");
-      System.out.println("\n\nTestZRLT");
-      Assert.assertTrue(testCorrectness("ZRLT"));
-      //testSpeed("ZRLT");
-      System.out.println("\n\nTestRLT");
-      Assert.assertTrue(testCorrectness("RLT"));
-      //testSpeed("RLT");   
+      System.out.println("\n\nTestRANK");
+      Assert.assertTrue(testCorrectness("RANK"));
+      //testSpeed("RANK");
+      System.out.println("\n\nTestRank");
+      Assert.assertTrue(testCorrectness("Rank"));
+      //testSpeed("Rank");   
+      System.out.println("\n\nTestBWTS");
+      Assert.assertTrue(testCorrectness("BWTS"));
+      //testSpeed("BWTS"); 
    }
    
    
-   private static ByteFunction getByteFunction(String name)
+   private static ByteTransform getByteTransform(String name)
    {
       switch(name) 
       {
-         case "LZ4":
-            return new LZ4Codec();
+         case "RANK":
+            return new SBRT(SBRT.MODE_RANK);
 
-         case "SNAPPY":
-            return new SnappyCodec();
+         case "MTFT":
+            return new SBRT(SBRT.MODE_MTF);
 
-         case "ZRLT":
-            return new ZRLT();
-
-         case "RLT":
-            return new RLT();
-
-         case "SRT":
-            return new SRT();
-
-         case "ROLZ":
-            return new ROLZCodec(false);
-
-         case "ROLZX":
-            return new ROLZCodec(true);
+         case "BWTS":
+            return new BWTS();
 
          default:
-            System.out.println("No such byte function: "+name);
+            System.out.println("No such byte transform: "+name);
             return null;
       }
    }
@@ -171,14 +119,14 @@ public class TestFunctions
 
       // Test behavior
       System.out.println("Correctness test for " + name);
-      int range = name.equals("ZRLT") ? 5 : 256;
+      int range = 256;
 
       for (int ii=0; ii<20; ii++)
       {
          System.out.println("\nTest "+ii);
          int[] arr = new int[0];
 
-         if (ii == 3)
+         if (ii == 0)
          {
             arr = new int[] {
                0, 1, 2, 2, 2, 2, 7, 9,  9, 16, 16, 16, 1, 3,
@@ -197,9 +145,8 @@ public class TestFunctions
          {
             arr = new int[] { 0, 0, 1, 1, 2, 2, 3, 3 };
          }
-         else if (ii == 0)
+         else if (ii == 3)
          {
-            // For RLT
             arr = new int[512];
             
             for (int i=0; i<256; i++)
@@ -208,7 +155,7 @@ public class TestFunctions
                arr[2*i+1] = i;
             }
             
-            arr[1] = 255; // force RLT escape to be first symbol
+            arr[1] = 255; 
          }
          else if (ii < 6)
          {
@@ -230,14 +177,12 @@ public class TestFunctions
             // Totally random
             arr = new int[512];
 
-            // Leave zeros at the beginning for ZRLT to succeed
             for (int j=20; j<arr.length; j++)
                arr[j] = rnd.nextInt(range);
          }
          else
          {
             arr = new int[1024];
-            // Leave zeros at the beginning for ZRLT to succeed
             int idx = 20;
 
             while (idx < arr.length)
@@ -257,9 +202,9 @@ public class TestFunctions
             }
          }
          int size = arr.length;
-         ByteFunction f = getByteFunction(name);
+         ByteTransform f = getByteTransform(name);
          input = new byte[size];
-         output = new byte[f.getMaxEncodedLength(size)];
+         output = new byte[size];
          reverse = new byte[size];
          SliceByteArray sa1 = new SliceByteArray(input, 0);
          SliceByteArray sa2 = new SliceByteArray(output, 0);
@@ -280,7 +225,6 @@ public class TestFunctions
 
          if (f.forward(sa1, sa2) == false)
          {
-            // ZRLT may fail if the input data has too few 0s
             if (sa1.index != input.length)
             {
                System.out.println("\nNo compression (ratio > 1.0), skip reverse");
@@ -305,8 +249,7 @@ public class TestFunctions
             System.out.print((output[i] & 255) + " "); //+"("+Integer.toBinaryString(output[i] & 255)+") ");
          }
 
-         System.out.println(" (Compression ratio: " + (sa2.index * 100 / input.length)+ "%)");
-         f = getByteFunction(name);
+         f = getByteTransform(name);
          sa2.length = sa2.index;
          sa1.index = 0;
          sa2.index = 0;
@@ -345,7 +288,6 @@ public class TestFunctions
             
             System.out.println(idx+" "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
          }
-         
          System.out.println("Identical");
          System.out.println();
       }
@@ -361,7 +303,7 @@ public class TestFunctions
       byte[] output;
       byte[] reverse;
       Random rnd = new Random();
-      final int iter = name.startsWith("ROLZ") ? 2000 : (name.equals("SRT") ? 4000 : 50000);
+      final int iter = 2000;
       final int size = 50000;
       System.out.println("\n\nSpeed test for " + name);
       System.out.println("Iterations: " + iter);
@@ -370,9 +312,9 @@ public class TestFunctions
 
       for (int jj=0; jj<3; jj++)
       {
-         ByteFunction f = getByteFunction(name);
+         ByteTransform f = getByteTransform(name);
          input = new byte[size];
-         output = new byte[f.getMaxEncodedLength(size)];
+         output = new byte[size];
          reverse = new byte[size];
          SliceByteArray sa1 = new SliceByteArray(input, 0);
          SliceByteArray sa2 = new SliceByteArray(output, 0);
@@ -399,14 +341,13 @@ public class TestFunctions
 
          for (int ii = 0; ii < iter; ii++)
          {
-            f = getByteFunction(name);
+            f = getByteTransform(name);
             sa1.index = 0;
             sa2.index = 0;
             before = System.nanoTime();
 
             if (f.forward(sa1, sa2) == false)
             {
-               // ZRLT may fail if the input data has too few 0s
                System.out.println("Encoding error");
                continue;
             }
@@ -417,7 +358,7 @@ public class TestFunctions
 
          for (int ii = 0; ii < iter; ii++)
          {
-            f = getByteFunction(name);
+            f = getByteTransform(name);
             sa2.length = sa2.index;
             sa3.index = 0;
             sa2.index = 0;
@@ -460,4 +401,4 @@ public class TestFunctions
          System.out.println("Throughput [MB/s]: " + prod * 1000000L / delta2 * 1000L / (1024*1024));
       }
    }
-}
+} 

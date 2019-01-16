@@ -41,7 +41,7 @@ public class ByteFunctionFactory
    public static final short DICT_TYPE    = 10; // Text codec
    public static final short ROLZ_TYPE    = 11; // ROLZ codec
    public static final short ROLZX_TYPE   = 12; // ROLZ Extra codec
-   public static final short BRT_TYPE     = 13; // Behemoth Rank
+   public static final short SRT_TYPE     = 13; // Sorted Rank
  
 
    // The returned type contains 8 transform values
@@ -105,8 +105,8 @@ public class ByteFunctionFactory
          case "ROLZX":
             return ROLZX_TYPE;
 
-         case "BRT":
-            return BRT_TYPE;
+         case "SRT":
+            return SRT_TYPE;
 
          case "RANK":
             return RANK_TYPE;
@@ -194,8 +194,8 @@ public class ByteFunctionFactory
          case RANK_TYPE:
             return new SBRT(SBRT.MODE_RANK);
                         
-         case BRT_TYPE:
-            return new BRT();
+         case SRT_TYPE:
+            return new SRT();
                         
          case MTFT_TYPE:
             return new SBRT(SBRT.MODE_MTF);
@@ -269,8 +269,8 @@ public class ByteFunctionFactory
          case BWTS_TYPE:
             return "BWTS";
             
-         case BRT_TYPE:
-            return "BRT";
+         case SRT_TYPE:
+            return "SRT";
             
          case RANK_TYPE:
             return "RANK";
