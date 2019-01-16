@@ -297,6 +297,10 @@ public class BWT implements ByteTransform
       // Build array of packed index + value (assumes block size < 2^24)
       // Start with the primary index position
       int pIdx = this.getPrimaryIndex(0);
+      
+      if (srcIdx+pIdx >= input.length)
+         return false;
+      
       final int val0 = input[srcIdx+pIdx] & 0xFF;
       data[pIdx] = val0;
       buckets_[val0]++;
@@ -403,6 +407,10 @@ public class BWT implements ByteTransform
       // Build arrays
       // Start with the primary index position
       int pIdx = this.getPrimaryIndex(0);
+
+      if (srcIdx+pIdx >= input.length)
+         return false;
+
       final byte val0 = input[srcIdx+pIdx];
       Memory.LittleEndian.writeInt32(data, 5*pIdx, buckets_[val0&0xFF]);
       data[5*pIdx+4] = val0;
@@ -518,6 +526,10 @@ public class BWT implements ByteTransform
       // Build arrays
       // Start with the primary index position
       int pIdx = this.getPrimaryIndex(0);
+
+      if (srcIdx+pIdx >= input.length)
+         return false;
+
       final byte val0 = input[srcIdx+pIdx];
       data1[pIdx] = buckets_[val0&0xFF];
       data2[pIdx] = val0;
