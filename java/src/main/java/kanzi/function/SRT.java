@@ -34,14 +34,13 @@ public class SRT implements ByteFunction
    
 
    public SRT()
-   {
-   
-     this.freqs = new int[256];
-     this.symbols = new byte[256];
-     this.r2s = new int[256];
-     this.s2r = new int[256];
-     this.buckets = new int[256];
-     this.bucketEnds = new int[256];
+   {  
+      this.freqs = new int[256];
+      this.symbols = new byte[256];
+      this.r2s = new int[256];
+      this.s2r = new int[256];
+      this.buckets = new int[256];
+      this.bucketEnds = new int[256];
    }
    
 
@@ -102,7 +101,8 @@ public class SRT implements ByteFunction
       }
 
       final int headerSize = encodeHeader(_freqs, output.array, output.index);
-      final int dstIdx = output.index + headerSize;
+      output.index += headerSize;
+      final int dstIdx = output.index;
       final byte[] dst = output.array;
       
       // encoding
@@ -156,14 +156,12 @@ public class SRT implements ByteFunction
       if (input.array == output.array)
          return false;
    
-      final int count = input.length;      
       final int[] _freqs = this.freqs;
       final int headerSize = decodeHeader(input.array, input.index, _freqs);
-      
+      input.index += headerSize;
+      final int count = input.length - headerSize;            
       final byte[] src = input.array;
-      final int srcIdx = input.index + headerSize;
-      final int dstIdx = output.index;
-      final byte[] dst = output.array;
+      final int srcIdx = input.index;
       final byte[] _symbols = this.symbols;
       
       // init arrays
@@ -184,6 +182,8 @@ public class SRT implements ByteFunction
 
       // decoding
       int c = _r2s[0];
+      final byte[] dst = output.array;
+      final int dstIdx = output.index;
 
       for (int i=0; i<count; i++) 
       {
@@ -205,18 +205,18 @@ public class SRT implements ByteFunction
          } 
          else 
          {
-            nbSymbols--;
-
             if (nbSymbols == 0)
                continue;
 
+            nbSymbols--;
+          
             for (int s=0; s<nbSymbols; s++)
                _r2s[s] = _r2s[s+1];
              
             c = _r2s[0];
          }
       }
-      
+
       input.index += count;
       output.index += count;
       return true;
