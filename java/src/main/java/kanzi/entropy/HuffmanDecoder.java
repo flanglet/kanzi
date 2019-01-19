@@ -32,7 +32,7 @@ public class HuffmanDecoder implements EntropyDecoder
 
    private final InputBitStream bs;
    private final int[] codes;
-   private final int[] ranks;
+   private final int[] alphabet;
    private final short[] sizes;
    private final int[] fdTable; // Fast decoding table
    private final int[] sdTable; // Slow decoding table
@@ -66,7 +66,7 @@ public class HuffmanDecoder implements EntropyDecoder
 
        this.bs = bitstream;
        this.sizes = new short[256];
-       this.ranks = new int[256];
+       this.alphabet = new int[256];
        this.codes = new int[256];
        this.fdTable = new int[1<<DECODING_BATCH_SIZE];
        this.sdTable = new int[256];
@@ -85,16 +85,15 @@ public class HuffmanDecoder implements EntropyDecoder
 
    public int readLengths() throws BitStreamException
    {
-      final int count = EntropyUtils.decodeAlphabet(this.bs, this.ranks);
+      final int count = EntropyUtils.decodeAlphabet(this.bs, this.alphabet);
       ExpGolombDecoder egdec = new ExpGolombDecoder(this.bs, true);
-      int currSize ;
       this.minCodeLen = MAX_SYMBOL_SIZE; // max code length
       int prevSize = 2;
 
       // Read lengths
       for (int i=0; i<count; i++)
       {
-         final int r = this.ranks[i];
+         final int r = this.alphabet[i];
 
          if ((r < 0) || (r >= this.codes.length))
          {
@@ -103,7 +102,7 @@ public class HuffmanDecoder implements EntropyDecoder
          }
 
          this.codes[r] = 0;
-         currSize = prevSize + egdec.decodeByte();
+         int currSize = prevSize + egdec.decodeByte();
 
          if (currSize <= 0)
          {
@@ -128,7 +127,7 @@ public class HuffmanDecoder implements EntropyDecoder
          return 0;
 
       // Create canonical codes
-      if (HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.ranks, count) < 0)
+      if (HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.alphabet, count) < 0)
       {
          throw new BitStreamException("Could not generate codes: max code length " +
             "(" + MAX_SYMBOL_SIZE + " bits) exceeded", BitStreamException.INVALID_STREAM);
@@ -158,7 +157,7 @@ public class HuffmanDecoder implements EntropyDecoder
 
       for (int i=0; i<count; i++)
       {
-         final int r = this.ranks[i];
+         final int r = this.alphabet[i];
          final int code = this.codes[r];
 
          if (this.sizes[r] > len)
