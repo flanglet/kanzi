@@ -242,6 +242,7 @@ public class TPAQPredictor implements Predictor
             mixersSize = (absz >= 1024*1024) ? 1 << 10 : 1 << 9;          
       }
 
+      mixersSize <<= extraMem;
       statesSize <<= extraMem;
       hashSize <<= (2*extraMem);
       
