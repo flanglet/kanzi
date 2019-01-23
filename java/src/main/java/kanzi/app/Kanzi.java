@@ -579,7 +579,7 @@ public class Kanzi
              if ((Files.exists(entry) == false) || (Files.isHidden(entry) == true))
                 continue;
 
-             if ((Files.isRegularFile(entry) == true) && (entry.getFileName().toString().startsWith(".") == false))
+             if ((Files.isRegularFile(entry) == true) && (String.valueOf(entry.getFileName()).startsWith(".") == false))
                 files.add(entry);
              else if ((isRecursive == true) && (Files.isDirectory(entry) == true))
                 createFileList(entry.toString(), files);

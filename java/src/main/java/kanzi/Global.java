@@ -259,11 +259,8 @@ public class Global
    {
       if (x <= 0)
         throw new ArithmeticException("Cannot calculate log of a negative or null value");
-
-      if (x <= 256)
-         return LOG2[x-1];
       
-      return 31 - Integer.numberOfLeadingZeros(x);
+      return (x <= 256) ? LOG2[x-1] : 31-Integer.numberOfLeadingZeros(x);
    }
    
    
