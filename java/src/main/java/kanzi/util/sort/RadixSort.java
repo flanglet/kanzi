@@ -15,7 +15,6 @@ limitations under the License.
 
 package kanzi.util.sort;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
 import kanzi.ByteSorter;
 import kanzi.IntSorter;
 
@@ -23,292 +22,286 @@ import kanzi.IntSorter;
 // Fast implementation based on lists of buckets per radix
 // See http://en.wikipedia.org/wiki/Radix_sort
 // Radix sort complexity is O(kn) for n keys with (max) k digits per key
-// This implementation uses a 4-bit radix
 public final class RadixSort implements IntSorter, ByteSorter
 {
-    private final LinkedQueue[] queues;
-    private final int bufferSize;
-    private final int logMaxValue;
-    private final int bitsRadix;
-    private final int maskRadix;
+   private final int bitsRadix;
+   private final int[][] buffers;
 
 
-    public RadixSort()
-    {
-        this.bufferSize = 64;
-        this.logMaxValue = -1;
-        this.bitsRadix = 4; // radix of 16
-        this.maskRadix = 0x0F;
-        this.queues = new LinkedQueue[16]; 
-
-        for (int i=0; i<this.queues.length; i++)
-            this.queues[i] = new LinkedQueue(this.bufferSize);
-    }
+   public RadixSort()
+   {
+      this.bitsRadix = 4; // radix of 16
+      this.buffers = new int[8][256];
+   }
 
 
-    public RadixSort(int bitsRadix)
-    {
-        this(bitsRadix, -1);
-    }
+   public RadixSort(int bitsRadix)
+   {
+      if ((bitsRadix != 4) && (bitsRadix != 8))
+         throw new IllegalArgumentException("Invalid radix value (must be 4 or 8 bits)");
+
+      this.bitsRadix = bitsRadix;
+      this.buffers = new int[8][256];
+   }
+
     
-    
-    public RadixSort(int bitsRadix, int logMaxValue)
-    {
-        if ((logMaxValue != -1) && ((logMaxValue < 4) || (logMaxValue > 32)))
-            throw new IllegalArgumentException("Invalid log data size parameter (must be in the [4, 32] range)");
+   @Override
+   public boolean sort(int[] input, int blkptr, int count)
+   {
+      if ((blkptr < 0) || (count <= 0) || (blkptr+count > input.length))
+          return false;
 
-        if ((bitsRadix != 1) && ((bitsRadix != 2) && (bitsRadix != 4) && (bitsRadix != 8)))
-            throw new IllegalArgumentException("Invalid radix value (must be 1, 2, 4 or 8 bits)");
+      if (count == 1)
+         return true; 
+      
+      return (this.bitsRadix == 4) ? this.sort16(input, blkptr, count) : 
+         this.sort256(input, blkptr, count);
+   }
+   
+   
+   private boolean sort16(int[] input, int blkptr, int count)
+   {
+      final int end = blkptr + count;        
+      final int[][] buf = this.buffers;
+      int max = input[blkptr];
 
-        this.logMaxValue = logMaxValue;
-        this.bitsRadix = bitsRadix;
-        this.maskRadix = (1 << this.bitsRadix) - 1;
-        this.bufferSize = 1024;
-        this.queues = new LinkedQueue[1<<this.bitsRadix];
+      for (int i=0; i<256; i++)
+      {
+         buf[0][i] = 0;
+         buf[1][i] = 0;
+         buf[2][i] = 0;
+         buf[3][i] = 0;
+         buf[4][i] = 0;
+         buf[5][i] = 0;
+         buf[6][i] = 0;
+         buf[7][i] = 0;
+      }
 
-        for (int i=0; i<this.queues.length; i++)
-            this.queues[i] = new LinkedQueue(this.bufferSize);
-    }
+      // Generate histograms
+      for (int i=blkptr; i<end; i++) 
+      { 
+         int val = input[i];
 
+         if (val > max)
+            max = val;
 
-    // Not thread safe
-    @Override
-    public boolean sort(int[] input, int blkptr, int len)
-    {
-        if ((blkptr < 0) || (len <= 0) || (blkptr+len > input.length))
-            return false;
+         buf[0][val&0x0F]++;
+         val >>= 4;      
+         buf[1][val&0x0F]++;
+         val >>= 4;      
+         buf[2][val&0x0F]++;
+         val >>= 4;      
+         buf[3][val&0x0F]++;     
+         val >>= 4;      
+         buf[4][val&0x0F]++;
+         val >>= 4;      
+         buf[5][val&0x0F]++;
+         val >>= 4;      
+         buf[6][val&0x0F]++;
+         val >>= 4;      
+         buf[7][val&0x0F]++;            
+      }
 
-        if (len == 1)
-           return true;
-        
-        final int end = blkptr + len;
-        final int length = this.queues.length; // aliasing
-        final int bSize = this.bufferSize; // aliasing
-        final int mask = this.maskRadix;
-        final int digits = (this.logMaxValue < 0) ? 32 / this.bitsRadix
-                : (this.logMaxValue + this.bitsRadix - 1) / this.bitsRadix;
+      int iter = 1;
+      
+      while ((iter < 8) && (max>>(4*iter) > 0))
+         iter++;
 
-        for (int j=0; j<length; j++)
-            this.queues[j].store((int[]) null);
+      // Convert to indices
+      for (int j=0; j<iter; j++) 
+      {             
+         int sum = 0;
+         final int[] buckets = buf[j];
 
-        // Do a pass for each radix (4 bit step)
-        for (int pass=0; pass<digits; pass++)
-        {
-            final int shift = pass * this.bitsRadix;
+         for (int i=0; i<256; i++)
+         {
+            final int tmp = buckets[i];
+            buckets[i] = sum;
+            sum += tmp;
+         }       
+      }
 
-            for (int j=blkptr; j<end; j++)
-            {
-                final int value = input[j];
-                final LinkedQueue queue = this.queues[(value >> shift) & mask];
+      int[] ptr1 = input;
+      int[] ptr2 = new int[count];
 
-                // Add value to buffer
-                queue.intBuffer[queue.index] = value;
-                queue.index++;
+      // Sort by current LSB
+      for (int j=0; j<iter; j++)
+      {    
+         final int[] buckets = buf[j];
+         final int shift = j << 2;
 
-                // Check if the previous buffer for this radix must be saved
-                if (queue.index == bSize)
-                   queue.store(queue.intBuffer);
-            }
+         for (int i=blkptr; i<end; i++) 
+         {     
+            final int val = ptr1[i];
+            ptr2[buckets[(val>>shift)&0x0F]++] = val;
+         }
 
-            // Copy back data to the input array
-            for (int j=0, idx=blkptr; j<length; j++)
-               idx = this.queues[j].retrieve(input, idx);
-        }
+         final int[] t = ptr1;
+         ptr1 = ptr2;
+         ptr2 = t;
+      }
 
-        LinkedQueue.clear();
-        return true;
-    }
+      if ((iter & 1) == 1)
+         System.arraycopy(ptr1, 0, input, blkptr, count);
+         
+      return true;
+   }    
+   
+   
+   private boolean sort256(int[] input, int blkptr, int count)
+   {
+      final int end = blkptr + count;        
+      final int[][] buf = this.buffers;
+      int max = input[blkptr];
 
+      for (int i=0; i<256; i++)
+      {
+         buf[0][i] = 0;
+         buf[1][i] = 0;
+         buf[2][i] = 0;
+         buf[3][i] = 0;
+      }
 
-    // Not thread safe
-    @Override
-    public boolean sort(byte[] input, int blkptr, int len)
-    {
-        if ((blkptr < 0) || (len <= 0) || (blkptr+len > input.length))
-            return false;
+      // Generate histograms
+      for (int i=blkptr; i<end; i++) 
+      { 
+         int val = input[i];
 
-        if (len == 1)
-           return true;
-        
-        final int end = blkptr + len;
-        final int length = this.queues.length; // aliasing
-        final int bSize = this.bufferSize; // aliasing
-        final int mask = this.maskRadix;
-        final int digits = (this.logMaxValue < 0) ? 8 / this.bitsRadix
-                : (this.logMaxValue + this.bitsRadix - 1) / this.bitsRadix;
+         if (val > max)
+            max = val;
 
-        for (int j=0; j<length; j++)
-            this.queues[j].store((byte[]) null);
+         buf[0][val&0xFF]++;
+         val >>= 8;      
+         buf[1][val&0xFF]++;
+         val >>= 8;      
+         buf[2][val&0xFF]++;
+         val >>= 8;      
+         buf[3][val&0xFF]++; 
+      }
 
-        // Do a pass for each radix (4 bit step)
-        for (int pass=0; pass<digits; pass++)
-        {
-            final int shift = pass * this.bitsRadix;
+      int iter = 1;
+      
+      while ((iter < 4) && (max>>(8*iter) > 0))
+         iter++;
+  
+      // Convert to indices
+      for (int j=0; j<iter; j++) 
+      {             
+         int sum = 0;
+         final int[] buckets = buf[j];
 
-            for (int j=blkptr; j<end; j++)
-            {
-                final byte value = input[j];
-                final LinkedQueue queue = this.queues[(value >> shift) & mask];
+         for (int i=0; i<256; i++)
+         {
+            final int tmp = buckets[i];
+            buckets[i] = sum;
+            sum += tmp;
+         }       
+      }
 
-                // Add value to buffer
-                queue.byteBuffer[queue.index] = value;
-                queue.index++;
+      int[] ptr1 = input;
+      int[] ptr2 = new int[count];
 
-                // Check if the previous buffer for this radix must be saved
-                if (queue.index == bSize)
-                    queue.store(queue.byteBuffer);
-            }
+      // Sort by current LSB
+      for (int j=0; j<iter; j++)
+      {    
+         final int[] buckets = buf[j];
+         final int shift = j << 3;
 
-            // Copy back data to the input array
-            for (int j=0, idx=blkptr; j<length; j++)
-               idx = this.queues[j].retrieve(input, idx);
-        }
+         for (int i=blkptr; i<end; i++) 
+         {     
+            final int val = ptr1[i];
+            ptr2[buckets[(val>>shift)&0xFF]++] = val;
+         }
 
-        LinkedQueue.clear();
-        return true;
-    }
+         final int[] t = ptr1;
+         ptr1 = ptr2;
+         ptr2 = t;
+      }
 
+      if ((iter & 1) == 1)
+         System.arraycopy(ptr1, 0, input, blkptr, count);
 
+      return true;
+   }     
+   
+     
+   @Override
+   public boolean sort(byte[] input, int blkptr, int count)
+   {
+      if ((blkptr < 0) || (count <= 0) || (blkptr+count > input.length))
+          return false;
 
-// ------ Utility classes ------
+      if (count == 1)
+         return true; 
+      
+      return (this.bitsRadix == 4) ? this.sort16(input, blkptr, count) : 
+         this.sort256(input, blkptr, count);
+   }
 
+   
+   private boolean sort16(byte[] input, int blkptr, int count)
+   {
+      final int end = blkptr + count;        
+      final int[] buf0 = this.buffers[0];
+      final int[] buf1 = this.buffers[1];
 
-    private static class Node<T>
-    {
-        Node next;
-        T value;
+      for (int i=0; i<256; i++)
+      {
+         buf0[i] = 0;
+         buf1[i] = 0;
+      }
 
-        Node()  { }
+      // Generate histograms
+      for (int i=blkptr; i<end; i++) 
+      { 
+         int val = input[i];
+         buf0[val&0x0F]++;
+         val >>= 4;      
+         buf1[val&0x0F]++;
+      }
 
-        Node(T array) { this.value = array; }
-    }
+      // Convert to indices
+      for (int j=0; j<2; j++) 
+      {             
+         int sum = 0;
+         final int[] buckets = this.buffers[j];
 
+         for (int i=0; i<256; i++)
+         {
+            final int tmp = buckets[i];
+            buckets[i] = sum;
+            sum += tmp;
+         }       
+      }
 
-    private static class LinkedQueue
-    {
-        private static final ConcurrentLinkedQueue<byte[]> POOL_B = new ConcurrentLinkedQueue<byte[]>();
-        private static final ConcurrentLinkedQueue<int[]>  POOL_I = new ConcurrentLinkedQueue<int[]>();
+      byte[] ptr1 = input;
+      byte[] ptr2 = new byte[count];
 
-        private final Node head;
-        private final int bufferSize;
-        private Node tail;
-        byte[] byteBuffer; // working buffer for int implementation
-        int[] intBuffer;   // working buffer for byte implementation
-        int index;         // index in working buffer
+      // Sort by current LSB
+      for (int j=0; j<2; j++)
+      {    
+         final int[] buckets = this.buffers[j];
+         final int shift = j << 2;
 
+         for (int i=blkptr; i<end; i++) 
+         {     
+            final int val = ptr1[i];
+            ptr2[buckets[(val>>shift)&0x0F]++] = (byte) val;
+         }
 
-        public static void clear()
-        {
-           POOL_B.clear();
-           POOL_I.clear();
-        }
+         final byte[] t = ptr1;
+         ptr1 = ptr2;
+         ptr2 = t;
+      }
 
-
-        public LinkedQueue(int bufferSize)
-        {
-           this.head = new Node();
-           this.tail = this.head;
-           this.bufferSize = bufferSize;
-        }
-
-
-        protected int[] store(int[] buffer)
-        {
-           if (buffer != null)
-           {
-              this.tail.next = new Node(buffer);
-              this.tail = this.tail.next;
-           }
-           
-           this.intBuffer = POOL_I.poll();
-           
-           if (this.intBuffer == null)
-              this.intBuffer = new int[this.bufferSize];
-           
-           this.index = 0;
-           return this.intBuffer;
-        }
-
-
-        protected byte[] store(byte[] buffer)
-        {
-           if (buffer != null)
-           {
-              this.tail.next = new Node(buffer);
-              this.tail = this.tail.next;
-           }
-
-           this.byteBuffer = POOL_B.poll();
-           
-           if (this.byteBuffer == null)
-              this.byteBuffer = new byte[this.bufferSize];
-           
-           this.index = 0;
-           return this.byteBuffer;
-        }
-
-
-        public int retrieve(int[] array, int blkptr)
-        {
-            Node node = this.head.next;
-
-            while (node != null)
-            {
-               int[] buffer = (int[]) node.value;
-               System.arraycopy(buffer, 0, array, blkptr, buffer.length);
-               blkptr += buffer.length;
-               node.value = null;
-               POOL_I.add(buffer); // recycle array
-               node = node.next;
-            }
-
-            if (this.index < 32)
-            {
-               for (int i=this.index-1; i>=0; i--)
-                   array[blkptr+i] = this.intBuffer[i];
-            }
-            else
-            {
-               System.arraycopy(this.intBuffer, 0, array, blkptr, this.index);
-            }
-
-            blkptr += this.index;
-            this.index = 0;
-            this.tail = this.head;
-            this.tail.next = null;
-            return blkptr;
-        }
-
-
-        public int retrieve(byte[] array, int blkptr)
-        {
-            Node node = this.head.next;
-
-            while (node != null)
-            {
-               byte[] buffer = (byte[]) node.value;
-               System.arraycopy(buffer, 0, array, blkptr, buffer.length);
-               blkptr += buffer.length;
-               node.value = null;
-               POOL_B.add(buffer); // recycle array
-               node = node.next;
-            }
-
-            if (this.index < 32)
-            {
-               for (int i=this.index-1; i>=0; i--)
-                   array[blkptr+i] = this.byteBuffer[i];
-            }
-            else
-            {
-                System.arraycopy(this.byteBuffer, 0, array, blkptr, this.index);
-            }
-
-            blkptr += this.index;
-            this.index = 0;
-            this.tail = this.head;
-            this.tail.next = null;
-            return blkptr;
-        }
-    }
+      return true;
+   }    
+   
+   
+   // Similar to bucket sort
+   private boolean sort256(byte[] input, int blkptr, int count)
+   {
+      return new BucketSort().sort(input, blkptr, count);
+   }     
+   
 }

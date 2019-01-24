@@ -55,8 +55,8 @@ public class TestSort
       BucketSort bucketSort = new BucketSort(8);
       HeapSort heapSort = new HeapSort();
 //       InsertionSort insertionSort = new InsertionSort();
-      RadixSort radix4Sort = new RadixSort(4, 8); //radix 4
-      RadixSort radix8Sort = new RadixSort(8, 8); //radix 8
+      RadixSort radix4Sort = new RadixSort(4); //radix 4
+      RadixSort radix8Sort = new RadixSort(8); //radix 8
       QuickSort quickSort = new QuickSort();
       FlashSort flashSort = new FlashSort();
       MergeSort mergeSort = new MergeSort();
