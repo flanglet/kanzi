@@ -31,7 +31,7 @@ public final class HuffmanCommon
          byte[] buf = new byte[BUFFER_SIZE];
          
          for (int i=0; i<count; i++)
-            buf[(sizes[symbols[i]]<<8)|symbols[i]] = 1;
+            buf[((sizes[symbols[i]]-1)<<8)|symbols[i]] = 1;
          
          int n = 0;
          

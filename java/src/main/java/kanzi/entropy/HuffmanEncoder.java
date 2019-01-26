@@ -126,7 +126,6 @@ public class HuffmanEncoder implements EntropyEncoder
 
    // See [In-Place Calculation of Minimum-Redundancy Codes]
    // by Alistair Moffat & Jyrki Katajainen
-   // count > 1 by design
    private void computeCodeLengths(int[] frequencies, int count) 
    {  
       if (count == 1)
@@ -220,17 +219,17 @@ public class HuffmanEncoder implements EntropyEncoder
 
    // Dynamically compute the frequencies for every chunk of data in the block   
    @Override
-   public int encode(byte[] array, int blkptr, int len)
+   public int encode(byte[] array, int blkptr, int length)
    {
-      if ((array == null) || (blkptr+len > array.length) || (blkptr < 0) || (len < 0))
+      if ((array == null) || (blkptr+length > array.length) || (blkptr < 0) || (length < 0))
          return -1;
 
-      if (len == 0)
+      if (length == 0)
          return 0;
 
       final int[] frequencies = this.freqs;
-      final int end = blkptr + len;
-      final int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+      final int end = blkptr + length;
+      final int sz = (this.chunkSize == 0) ? length : this.chunkSize;
       int startChunk = blkptr;
 
       while (startChunk < end)
@@ -242,39 +241,33 @@ public class HuffmanEncoder implements EntropyEncoder
 
          final int[] c = this.codes;
          final OutputBitStream bitstream = this.bs;
-         final int endChunk8 = ((endChunk-startChunk) & -8) + startChunk;
+         final int endChunk3 = 3*((endChunk-startChunk)/3) + startChunk;
 
-         for (int i=startChunk; i<endChunk8; i+=8)
+         for (int i=startChunk; i<endChunk3; i+=3)
          {
-            int val;
-            val = c[array[i]&0xFF];
-            bitstream.writeBits(val, val>>>24);
-            val = c[array[i+1]&0xFF];
-            bitstream.writeBits(val, val>>>24);
-            val = c[array[i+2]&0xFF];
-            bitstream.writeBits(val, val>>>24);
-            val = c[array[i+3]&0xFF];
-            bitstream.writeBits(val, val>>>24);
-            val = c[array[i+4]&0xFF];
-            bitstream.writeBits(val, val>>>24);
-            val = c[array[i+5]&0xFF];
-            bitstream.writeBits(val, val>>>24);
-            val = c[array[i+6]&0xFF];
-            bitstream.writeBits(val, val>>>24);
-            val = c[array[i+7]&0xFF];
-            bitstream.writeBits(val, val>>>24);
+            // Pack 3 codes into 1 long
+            final int code1 = c[array[i]&0xFF];
+            final int codeLen1 = code1 >>> 24;
+            final int code2 = c[array[i+1]&0xFF];
+            final int codeLen2 = code2 >>> 24;
+            final int code3 = c[array[i+2]&0xFF];
+            final int codeLen3 = code3 >>> 24;
+            final long st = ((((long) code1)&0xFFFFFF)<<(codeLen2+codeLen3) | 
+               (((long) code2)&((1<<codeLen2)-1))<<codeLen3)| 
+               (((long) code3)&((1<<codeLen3)-1));
+            bitstream.writeBits(st, codeLen1+codeLen2+codeLen3);
          }
 
-         for (int i=endChunk8; i<endChunk; i++)
+         for (int i=endChunk3; i<endChunk; i++)
          {
-            final int val = c[array[i]&0xFF];
-            bitstream.writeBits(val, val>>>24);
+            final int code = c[array[i]&0xFF];
+            bitstream.writeBits(code, code>>>24);
          }
 
          startChunk = endChunk;
       }
 
-      return len;
+      return length;
    }
 
 
