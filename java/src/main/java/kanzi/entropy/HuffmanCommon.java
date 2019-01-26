@@ -15,97 +15,59 @@ limitations under the License.
 
 package kanzi.entropy;
 
-import kanzi.ArrayComparator;
-import kanzi.util.sort.QuickSort;
-
-
-// Utility class for a canonical implementation of Huffman codec
 public final class HuffmanCommon
 {
-    // Return the number of codes generated
-    public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] ranks, int count)
-    {
-       // Sort by increasing size (first key) and increasing value (second key)
-       if (count > 1)
-       {
-          QuickSort sorter = new QuickSort(new CodeLengthArrayComparator(sizes));
-          sorter.sort(ranks, 0, count);
-       }
+   public static final int MAX_SYMBOL_SIZE = 20;
+   public static final int MAX_CHUNK_SIZE = 1<<16;
+   private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE<<8) + 256;
 
-       int code = 0;
-       int len = sizes[ranks[0]];
+   
+   // Return the number of codes generated
+   public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] symbols, int count)
+   {
+      // Sort by increasing size (first key) and increasing value (second key)
+      if (count > 1)
+      {
+         byte[] buf = new byte[BUFFER_SIZE];
+         
+         for (int i=0; i<count; i++)
+            buf[(sizes[symbols[i]]<<8)|symbols[i]] = 1;
+         
+         int n = 0;
+         
+         for (int i=0; i<BUFFER_SIZE; i++)
+         {
+            if (buf[i] > 0)
+            {
+               symbols[n++] = i & 0xFF;
+               
+               if (n == count)
+                  break;
+            }
+         }
+      }
 
-       for (int i=0; i<count; i++)
-       {
-          final int r = ranks[i];
+      int code = 0;
+      int curLen = sizes[symbols[0]];
 
-          if (sizes[r] > len)
-          {
-             code <<= (sizes[r] - len);
-             len = sizes[r];
+      for (int i=0; i<count; i++)
+      {
+         final int r = symbols[i];
 
-             // Max length reached
-             if (len > 24)
-                return -1;
-          }
+         if (sizes[r] > curLen)
+         {
+            code <<= (sizes[r] - curLen);
+            curLen = sizes[r];
 
-          codes[r] = code;
-          code++;
-       }
+            // Max length reached
+            if (curLen > MAX_SYMBOL_SIZE)
+               return -1; 
+         }
 
-       return count;
-    }
+         codes[r] = code;
+         code++;
+      }
 
-
-    // Array comparator used to sort keys and values to generate canonical codes
-    private static class CodeLengthArrayComparator implements ArrayComparator
-    {
-        private final short[] array;
-
-
-        public CodeLengthArrayComparator(short[] sizes)
-        {
-            if (sizes == null)
-                throw new NullPointerException("Invalid null array parameter");
-
-            this.array = sizes;
-        }
-
-
-        @Override
-        public int compare(int lidx, int ridx)
-        {
-            // Check size (natural order) as first key
-            final int res = this.array[lidx] - this.array[ridx];
-
-            // Check index (natural order) as second key
-            return (res != 0) ? res : lidx - ridx;
-        }
-    }
-    
-    
-    public static class FrequencyArrayComparator implements ArrayComparator
-    {
-        private final int[] array;
-
-
-        public FrequencyArrayComparator(int[] frequencies)
-        {
-            if (frequencies == null)
-                throw new NullPointerException("Invalid null array parameter");
-
-            this.array = frequencies;
-        }
-
-
-        @Override
-        public int compare(int lidx, int ridx)
-        {
-            // Check size (natural order) as first key
-            final int res = this.array[lidx] - this.array[ridx];
-
-            // Check index (natural order) as second key
-            return (res != 0) ? res : lidx - ridx;
-        }
-    }   
+      return count;
+   }     
 }
