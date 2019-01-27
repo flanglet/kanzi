@@ -78,21 +78,21 @@ public final class DefaultOutputBitStream implements OutputBitStream
          return 0;
 
       if (count > 64)
-         throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1..64])");
+         throw new IllegalArgumentException("Invalid bit count: "+count+" (must be in [1..64])");
 
       value &= (-1L >>> -count);
-      final int remaining = this.availBits - count;
 
       // Pad the current position in buffer
-      if (remaining > 0)
+      if (this.availBits > count)
       {
          // Enough spots available in 'current'
-         this.current |= (value << remaining);
          this.availBits -= count;
+         this.current |= (value << this.availBits);
       }
       else
       {
          // Not enough spots available in 'current'
+         final int remaining = this.availBits - count;
          this.current |= (value >>> -remaining);
          this.pushCurrent();
 

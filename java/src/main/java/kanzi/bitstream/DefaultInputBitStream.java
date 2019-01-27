@@ -104,7 +104,7 @@ public final class DefaultInputBitStream implements InputBitStream
    public long readBits(int count) throws BitStreamException
    {
       if (((count-1) & -64) != 0)
-         throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1..64])");
+         throw new IllegalArgumentException("Invalid bit count: "+count+" (must be in [1..64])");
 
       long res;
       int remaining = count - this.availBits;
@@ -141,12 +141,9 @@ public final class DefaultInputBitStream implements InputBitStream
          throw new BitStreamException("Stream closed", BitStreamException.STREAM_CLOSED);
 
       if ((count < 0) || ((count>>3) > bits.length-start))
-         throw new IllegalArgumentException("Invalid length: "+count+" (must be in [1.." +
+         throw new IllegalArgumentException("Invalid bit count: "+count+" (must be in [1.." +
            (((long)(bits.length-start))<<3) + "])");
 
-      if (count == 0)
-         return 0;
-      
       int remaining = count;
 
       // Byte aligned cursor ?
