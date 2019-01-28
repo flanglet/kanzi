@@ -30,10 +30,11 @@ public final class RiceGolombDecoder implements EntropyDecoder
     public RiceGolombDecoder(InputBitStream bitstream, boolean signed, int logBase)
     {
         if (bitstream == null)
-           throw new NullPointerException("Invalid null bitstream parameter");
+           throw new NullPointerException("RiceGolomb codec: Invalid null bitstream parameter");
 
         if ((logBase < 1) || (logBase > 12))
-           throw new IllegalArgumentException("Invalid logBase value (must be in [1..12])");
+           throw new IllegalArgumentException("RiceGolomb codec: Invalid logBase parameter: "+
+             logBase+" (must be in [1..12])");
 
         this.signed = signed;
         this.bitstream = bitstream;
@@ -76,17 +77,17 @@ public final class RiceGolombDecoder implements EntropyDecoder
 
     
     @Override
-    public int decode(byte[] array, int blkptr, int len) 
+    public int decode(byte[] block, int blkptr, int count) 
     {
-      if ((array == null) || (blkptr + len > array.length) || (blkptr < 0) || (len < 0))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
-      final int end = blkptr + len;
+      final int end = blkptr + count;
 
       for (int i=blkptr; i<end; i++)
-         array[i] = this.decodeByte();
+         block[i] = this.decodeByte();
 
-      return len;
+      return count;
     }
 
 

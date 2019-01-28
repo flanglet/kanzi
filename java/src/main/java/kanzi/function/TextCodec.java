@@ -864,10 +864,10 @@ public final class TextCodec implements ByteFunction
 
       if (src.length > MAX_BLOCK_SIZE)
          throw new IllegalArgumentException("The max text transform block size is "+MAX_BLOCK_SIZE+", got "+src.length);
-
+      
       return this.delegate.forward(src, dst);   
    }
-
+      
 
    @Override
    public boolean inverse(SliceByteArray src, SliceByteArray dst)
@@ -919,7 +919,7 @@ public final class TextCodec implements ByteFunction
       {
          // Actual block size
          final int blockSize = (Integer) ctx.getOrDefault("size", 0);
-         int log = (blockSize >= 1<<10)? Math.min(Global.log2(blockSize/4), 26) : 8;
+         final int log = (blockSize >= 1<<10) ? Math.min(Global.log2(blockSize/4), 26) : 8;
 
          // Select an appropriate initial dictionary size
          int dSize = 1<<12;
@@ -936,7 +936,7 @@ public final class TextCodec implements ByteFunction
          this.dictSize = dSize;
          this.dictMap = new DictEntry[1<<this.logHashSize];
          this.dictList = new DictEntry[this.dictSize];
-         this.hashMask = (1 << this.logHashSize) - 1;
+         this.hashMask = (1<<this.logHashSize) - 1;
          System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          int nbWords = STATIC_DICT_WORDS;
 
@@ -1416,7 +1416,7 @@ public final class TextCodec implements ByteFunction
       {
          // Actual block size
          final int blockSize = (Integer) ctx.getOrDefault("size", 0);
-         int log = (blockSize >= 1<<10)? Math.min(Global.log2(blockSize/4), 26) : 8;
+         final int log = (blockSize >= 1<<10) ? Math.min(Global.log2(blockSize/4), 26) : 8;
 
          // Select an appropriate initial dictionary size
          int dSize = 1<<12;
@@ -1433,7 +1433,7 @@ public final class TextCodec implements ByteFunction
          this.dictSize = dSize;
          this.dictMap = new DictEntry[1<<this.logHashSize];
          this.dictList = new DictEntry[this.dictSize];
-         this.hashMask = (1 << this.logHashSize) - 1;
+         this.hashMask = (1<<this.logHashSize) - 1;
          System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          this.staticDictSize = STATIC_DICT_WORDS;
       }

@@ -42,10 +42,10 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    public BinaryEntropyEncoder(OutputBitStream bitstream, Predictor predictor)
    {
       if (bitstream == null)
-         throw new NullPointerException("Invalid null bitstream parameter");
+         throw new NullPointerException("BinaryEntropy codec: Invalid null bitstream parameter");
 
       if (predictor == null)
-         throw new NullPointerException("Invalid null predictor parameter");
+         throw new NullPointerException("BinaryEntropy codec: Invalid null predictor parameter");
 
       this.low = 0L;
       this.high = TOP;
@@ -58,11 +58,11 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    @Override
    public int encode(byte[] block, int blkptr, int count)
    {
-      if (block == null)
-         throw new NullPointerException("Invalid null block parameter");
-
-      if ((blkptr + count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
-         throw new IllegalArgumentException("Invalid block pointer or count parameter");
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
+         return -1;
+      
+      if (count == 0)
+         return 0;
 
       int startChunk = blkptr;
       final int end = blkptr + count;

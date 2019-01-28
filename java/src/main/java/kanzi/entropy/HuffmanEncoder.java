@@ -48,13 +48,13 @@ public class HuffmanEncoder implements EntropyEncoder
    public HuffmanEncoder(OutputBitStream bitstream, int chunkSize) throws BitStreamException
    {
       if (bitstream == null)
-         throw new NullPointerException("Invalid null bitstream parameter");
+         throw new NullPointerException("Huffman codec: Invalid null bitstream parameter");
 
       if (chunkSize < 1024)
-         throw new IllegalArgumentException("The chunk size must be at least 1024");
+         throw new IllegalArgumentException("Huffman codec: The chunk size must be at least 1024");
 
       if (chunkSize > HuffmanCommon.MAX_CHUNK_SIZE)
-         throw new IllegalArgumentException("The chunk size must be at most "+HuffmanCommon.MAX_CHUNK_SIZE);
+         throw new IllegalArgumentException("Huffman codec: The chunk size must be at most "+HuffmanCommon.MAX_CHUNK_SIZE);
 
       this.bs = bitstream;
       this.freqs = new int[256];
@@ -152,7 +152,7 @@ public class HuffmanEncoder implements EntropyEncoder
          short codeLen = (short) this.buffer[i];
 
          if ((codeLen <= 0) || (codeLen > HuffmanCommon.MAX_CHUNK_SIZE))
-            throw new IllegalArgumentException("Could not generate codes: max code " +
+            throw new IllegalArgumentException("Could not generate Huffman codes: max code " +
                "length (" + HuffmanCommon.MAX_CHUNK_SIZE + " bits) exceeded");
 
          this.sizes[this.sranks[i]] = codeLen;
@@ -219,24 +219,24 @@ public class HuffmanEncoder implements EntropyEncoder
 
    // Dynamically compute the frequencies for every chunk of data in the block   
    @Override
-   public int encode(byte[] array, int blkptr, int length)
+   public int encode(byte[] block, int blkptr, int count)
    {
-      if ((array == null) || (blkptr+length > array.length) || (blkptr < 0) || (length < 0))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
-      if (length == 0)
+      if (count == 0)
          return 0;
 
       final int[] frequencies = this.freqs;
-      final int end = blkptr + length;
-      final int sz = (this.chunkSize == 0) ? length : this.chunkSize;
+      final int end = blkptr + count;
+      final int sz = (this.chunkSize == 0) ? count : this.chunkSize;
       int startChunk = blkptr;
 
       while (startChunk < end)
       {
          // Rebuild Huffman codes
          final int endChunk = (startChunk+sz < end) ? startChunk+sz : end;
-         Global.computeHistogramOrder0(array, startChunk, endChunk, this.freqs, false);
+         Global.computeHistogramOrder0(block, startChunk, endChunk, this.freqs, false);
          this.updateFrequencies(frequencies);
 
          final int[] c = this.codes;
@@ -246,11 +246,11 @@ public class HuffmanEncoder implements EntropyEncoder
          for (int i=startChunk; i<endChunk3; i+=3)
          {
             // Pack 3 codes into 1 long
-            final int code1 = c[array[i]&0xFF];
+            final int code1 = c[block[i]&0xFF];
             final int codeLen1 = code1 >>> 24;
-            final int code2 = c[array[i+1]&0xFF];
+            final int code2 = c[block[i+1]&0xFF];
             final int codeLen2 = code2 >>> 24;
-            final int code3 = c[array[i+2]&0xFF];
+            final int code3 = c[block[i+2]&0xFF];
             final int codeLen3 = code3 >>> 24;
             final long st = ((((long) code1)&0xFFFFFF)<<(codeLen2+codeLen3) | 
                (((long) code2)&((1<<codeLen2)-1))<<codeLen3)| 
@@ -260,14 +260,14 @@ public class HuffmanEncoder implements EntropyEncoder
 
          for (int i=endChunk3; i<endChunk; i++)
          {
-            final int code = c[array[i]&0xFF];
+            final int code = c[block[i]&0xFF];
             bitstream.writeBits(code, code>>>24);
          }
 
          startChunk = endChunk;
       }
 
-      return length;
+      return count;
    }
 
 

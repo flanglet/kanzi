@@ -73,7 +73,7 @@ public final class ExpGolombEncoder implements EntropyEncoder
     public ExpGolombEncoder(OutputBitStream bitstream, boolean signed)
     {
        if (bitstream == null)
-          throw new NullPointerException("Invalid null bitStream parameter");
+          throw new NullPointerException("ExpGolomb codec: Invalid null bitstream parameter");
 
        this.signed = (signed == true) ? 1 : 0;
        this.cache = CACHE[this.signed];
@@ -88,17 +88,17 @@ public final class ExpGolombEncoder implements EntropyEncoder
        
     
     @Override
-    public int encode(byte[] array, int blkptr, int len)
+    public int encode(byte[] block, int blkptr, int count)
     {
-      if ((array == null) || (blkptr + len > array.length) || (blkptr < 0) || (len < 0))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
-      final int end = blkptr + len;
+      final int end = blkptr + count;
 
       for (int i = blkptr; i<end; i++)
-         this.encodeByte(array[i]);
+         this.encodeByte(block[i]);
 
-      return len;
+      return count;
     }
     
 
