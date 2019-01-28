@@ -58,19 +58,19 @@ public class ANSRangeEncoder implements EntropyEncoder
    public ANSRangeEncoder(OutputBitStream bs, int order, int chunkSize, int logRange)
    {
       if (bs == null)
-         throw new NullPointerException("Invalid null bitstream parameter");
+         throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");
 
       if ((order != 0) && (order != 1))
-         throw new IllegalArgumentException("The order must be 0 or 1");
+         throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
 
       if ((chunkSize != 0) && (chunkSize < 1024))
-         throw new IllegalArgumentException("The chunk size must be at least 1024");
+         throw new IllegalArgumentException("ANS Codec: The chunk size must be at least 1024");
 
       if (chunkSize > MAX_CHUNK_SIZE)
-         throw new IllegalArgumentException("The chunk size must be at most 2^27");
+         throw new IllegalArgumentException("ANS Codec: The chunk size must be at most "+MAX_CHUNK_SIZE);
 
       if ((logRange < 8) || (logRange > 16))
-         throw new IllegalArgumentException("Invalid range: "+logRange+" (must be in [8..16])");
+         throw new IllegalArgumentException("ANS Codec: Invalid range: "+logRange+" (must be in [8..16])");
 
       this.bitstream = bs;
       this.order = order;

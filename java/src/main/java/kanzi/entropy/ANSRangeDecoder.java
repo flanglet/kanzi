@@ -57,16 +57,16 @@ public class ANSRangeDecoder implements EntropyDecoder
    public ANSRangeDecoder(InputBitStream bs, int order, int chunkSize)
    {
       if (bs == null)
-         throw new NullPointerException("Invalid null bitstream parameter");
+         throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");
 
       if ((order != 0) && (order != 1))
-         throw new IllegalArgumentException("The order must be 0 or 1");
+         throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
 
       if ((chunkSize != 0) && (chunkSize < 1024))
-         throw new IllegalArgumentException("The chunk size must be at least 1024");
+         throw new IllegalArgumentException("ANS Codec: The chunk size must be at least 1024");
 
       if (chunkSize > MAX_CHUNK_SIZE)
-         throw new IllegalArgumentException("The chunk size must be at most 2^27");
+         throw new IllegalArgumentException("ANS Codec: The chunk size must be at most "+MAX_CHUNK_SIZE);
 
       this.bitstream = bs;
       this.chunkSize = chunkSize;
@@ -190,9 +190,13 @@ public class ANSRangeDecoder implements EntropyDecoder
    // Decode alphabet and frequencies
    protected int decodeHeader(int[][] frequencies)
    {
+      this.logRange = (int) (8 + this.bitstream.readBits(3));
+
+      if ((this.logRange < 8) || (this.logRange > 16))
+         throw new IllegalArgumentException("ANS Codec: Invalid range: "+this.logRange+" (must be in [8..16])");
+
       int res = 0;
       final int dim = 255*this.order + 1;
-      this.logRange = (int) (8 + this.bitstream.readBits(3));
       final int scale = 1 << this.logRange;
 
       for (int k=0; k<dim; k++)
