@@ -59,13 +59,13 @@ public final class RangeDecoder implements EntropyDecoder
     public RangeDecoder(InputBitStream bitstream, int chunkSize)
     {
         if (bitstream == null)
-            throw new NullPointerException("Invalid null bitstream parameter");
+            throw new NullPointerException("Range codec: Invalid null bitstream parameter");
 
         if ((chunkSize != 0) && (chunkSize < 1024))
-           throw new IllegalArgumentException("The chunk size must be at least 1024");
+           throw new IllegalArgumentException("Range codec: The chunk size must be at least 1024");
 
         if (chunkSize > 1<<30)
-           throw new IllegalArgumentException("The chunk size must be at most 2^30");
+           throw new IllegalArgumentException("Range codec: The chunk size must be at most "+(1<<30));
 
         this.range = TOP_RANGE;
         this.bitstream = bitstream;
@@ -154,16 +154,16 @@ public final class RangeDecoder implements EntropyDecoder
     // Initialize once (if necessary) at the beginning, the use the faster decodeByte_()
     // Reset frequency stats for each chunk of data in the block
     @Override
-    public int decode(byte[] block, int blkptr, int len)
+    public int decode(byte[] block, int blkptr, int count)
     {
-      if ((block == null) || (blkptr + len > block.length) || (blkptr < 0) || (len < 0))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
-      if (len == 0)
+      if (count == 0)
          return 0;
       
-      final int end = blkptr + len;
-      final int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+      final int end = blkptr + count;
+      final int sz = (this.chunkSize == 0) ? count : this.chunkSize;
       int startChunk = blkptr;
 
       while (startChunk < end)
@@ -182,7 +182,7 @@ public final class RangeDecoder implements EntropyDecoder
          startChunk = endChunk;
       }
 
-      return len;
+      return count;
     }
 
 

@@ -60,16 +60,17 @@ public final class RangeEncoder implements EntropyEncoder
     public RangeEncoder(OutputBitStream bs, int chunkSize, int logRange)
     {
       if (bs == null)
-         throw new NullPointerException("Invalid null bitstream parameter");
+         throw new NullPointerException("Range codec: Invalid null bitstream parameter");
 
       if ((chunkSize != 0) && (chunkSize < 1024))
-         throw new IllegalArgumentException("The chunk size must be at least 1024");
+         throw new IllegalArgumentException("Range codec: The chunk size must be at least 1024");
 
       if (chunkSize > 1<<30)
-         throw new IllegalArgumentException("The chunk size must be at most 2^30");
+         throw new IllegalArgumentException("Range codec: The chunk size must be at most "+(1<<30));
 
       if ((logRange < 8) || (logRange > 16))
-         throw new IllegalArgumentException("Invalid range parameter: "+logRange+" (must be in [8..16])");
+         throw new IllegalArgumentException("Range codec: Invalid range parameter: "+
+            logRange+" (must be in [8..16])");
 
       this.bitstream = bs;
       this.alphabet = new int[256];
@@ -146,16 +147,16 @@ public final class RangeEncoder implements EntropyEncoder
     
     // Reset frequency stats for each chunk of data in the block
     @Override
-    public int encode(byte[] block, int blkptr, int len)
+    public int encode(byte[] block, int blkptr, int count)
     {
-       if ((block == null) || (blkptr + len > block.length) || (blkptr < 0) || (len < 0))
+       if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
           return -1;
         
-       if (len == 0)
+       if (count == 0)
           return 0;
       
-       final int end = blkptr + len;
-       final int sz = (this.chunkSize == 0) ? len : this.chunkSize;
+       final int end = blkptr + count;
+       final int sz = (this.chunkSize == 0) ? count : this.chunkSize;
        int startChunk = blkptr;
 
        while (startChunk < end)
@@ -182,7 +183,7 @@ public final class RangeEncoder implements EntropyEncoder
            startChunk = endChunk;
        }
        
-       return len;
+       return count;
     }
     
 
