@@ -17,15 +17,15 @@ package kanzi.entropy;
 
 public final class HuffmanCommon
 {
-   public static final int MAX_SYMBOL_SIZE = 20;
-   public static final int MAX_CHUNK_SIZE = 1<<16;
+   public static final int MAX_SYMBOL_SIZE = 18;
+   public static final int MAX_CHUNK_SIZE = 1 << 15;
    private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE<<8) + 256;
 
    
    // Return the number of codes generated
    public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] symbols, int count)
    {
-      // Sort by increasing size (first key) and increasing value (second key)
+      // Sort symbols by increasing size (first key) and increasing value (second key)
       if (count > 1)
       {
          byte[] buf = new byte[BUFFER_SIZE];
@@ -52,19 +52,19 @@ public final class HuffmanCommon
 
       for (int i=0; i<count; i++)
       {
-         final int r = symbols[i];
+         final int s = symbols[i];
 
-         if (sizes[r] > curLen)
+         if (sizes[s] > curLen)
          {
-            code <<= (sizes[r] - curLen);
-            curLen = sizes[r];
+            code <<= (sizes[s]-curLen);
+            curLen = sizes[s];
 
             // Max length reached
             if (curLen > MAX_SYMBOL_SIZE)
                return -1; 
          }
 
-         codes[r] = code;
+         codes[s] = code;
          code++;
       }
 

@@ -20,21 +20,20 @@ import kanzi.EntropyDecoder;
 import kanzi.InputBitStream;
 
 
-// Uses tables to decode symbols instead of a tree
+// Uses tables to decode symbols
 public class HuffmanDecoder implements EntropyDecoder
 {
-   public static final int DECODING_BATCH_SIZE = 12; // in bits
-   public static final int DECODING_MASK = (1<<DECODING_BATCH_SIZE) - 1;
-   private static final int MAX_DECODING_INDEX = (DECODING_BATCH_SIZE<<8) | 0xFF;
-   private static final int SYMBOL_ABSENT = Integer.MAX_VALUE;
+   private static final int DECODING_BATCH_SIZE = 12; // in bits
+   private static final int TABLE0_MASK = (1<<DECODING_BATCH_SIZE) - 1;
+   private static final int TABLE1_MASK = (1<<(HuffmanCommon.MAX_SYMBOL_SIZE+1)) - 1;
+
 
    private final InputBitStream bs;
    private final int[] codes;
    private final int[] alphabet;
    private final short[] sizes;
-   private final short[] fdTable; // Fast decoding table: code -> size, symbol
-   private final int[] sdTable; // Slow decoding table
-   private final int[] sdtIndexes; // Indexes for slow decoding table
+   private final short[] table0; // small decoding table: code -> size, symbol
+   private final short[] table1; // big decoding table: code -> size, symbol
    private final int chunkSize;
    private long state; // holds bits read from bitstream
    private int bits; // holds number of unused bits in 'state'
@@ -48,7 +47,7 @@ public class HuffmanDecoder implements EntropyDecoder
 
 
    // The chunk size indicates how many bytes are encoded (per block) before
-   // resetting the frequency stats. 
+   // resetting the frequency stats.
    public HuffmanDecoder(InputBitStream bitstream, int chunkSize) throws BitStreamException
    {
       if (bitstream == null)
@@ -64,9 +63,8 @@ public class HuffmanDecoder implements EntropyDecoder
       this.sizes = new short[256];
       this.alphabet = new int[256];
       this.codes = new int[256];
-      this.fdTable = new short[1<<DECODING_BATCH_SIZE];
-      this.sdTable = new int[256];
-      this.sdtIndexes = new int[HuffmanCommon.MAX_SYMBOL_SIZE+1];
+      this.table0 = new short[TABLE0_MASK+1];
+      this.table1 = new short[TABLE1_MASK+1];
       this.chunkSize = chunkSize;
       this.minCodeLen = 8;
 
@@ -82,12 +80,11 @@ public class HuffmanDecoder implements EntropyDecoder
    public int readLengths() throws BitStreamException
    {
       final int count = EntropyUtils.decodeAlphabet(this.bs, this.alphabet);
-      
+
       if (count == 0)
          return 0;
 
-      ExpGolombDecoder egdec = new ExpGolombDecoder(this.bs, true);      
-      this.minCodeLen = HuffmanCommon.MAX_SYMBOL_SIZE; // max code length
+      ExpGolombDecoder egdec = new ExpGolombDecoder(this.bs, true);
       int prevSize = 2;
 
       // Read lengths
@@ -97,7 +94,7 @@ public class HuffmanDecoder implements EntropyDecoder
 
          if ((s < 0) || (s >= this.codes.length))
          {
-            throw new BitStreamException("Invalid bitstream: incorrect Huffman symbol " + s, 
+            throw new BitStreamException("Invalid bitstream: incorrect Huffman symbol " + s,
                BitStreamException.INVALID_STREAM);
          }
 
@@ -109,9 +106,6 @@ public class HuffmanDecoder implements EntropyDecoder
             throw new BitStreamException("Invalid bitstream: incorrect size " + currSize +
                     " for Huffman symbol " + s, BitStreamException.INVALID_STREAM);
          }
-
-         if (this.minCodeLen > currSize)
-            this.minCodeLen = currSize;
 
          this.sizes[s] = (short) currSize;
          prevSize = currSize;
@@ -131,48 +125,46 @@ public class HuffmanDecoder implements EntropyDecoder
 
    private void buildDecodingTables(int count)
    {
-      for (int i=0; i<this.fdTable.length; i++)
-         this.fdTable[i] = 0;
+      for (int i=0; i<this.table0.length; i++)
+         this.table0[i] = 0;
 
-      for (int i=0; i<this.sdTable.length; i++)
-         this.sdTable[i] = 0;
-         
-      for (int i=0; i<this.sdtIndexes.length; i++)
-         this.sdtIndexes[i] = SYMBOL_ABSENT;
+      this.minCodeLen = this.sizes[this.alphabet[0]];
+      final int maxCodeLen = this.sizes[this.alphabet[count-1]];
+
+      for (int i=0; i<(2<<maxCodeLen); i++)
+         this.table1[i] = 0;
 
       int length = 0;
 
       for (int i=0; i<count; i++)
       {
          final int s = this.alphabet[i];
-         final int code = this.codes[s];
 
          if (this.sizes[s] > length)
-         {
             length = this.sizes[s];
-            this.sdtIndexes[length] = i - code;
-         }
 
-         // size, code -> symbol
+         // code -> size, symbol
          final int val = (this.sizes[s]<<8) | s;
-         this.sdTable[i] = val;
+         final int code = this.codes[s];
+         this.table1[code] = (short) val;
 
-         if (length < DECODING_BATCH_SIZE)
+         // All DECODING_BATCH_SIZE bit values read from the bit stream and
+         // starting with the same prefix point to symbol s
+         if (length <= DECODING_BATCH_SIZE)
          {
             int idx = code << (DECODING_BATCH_SIZE-length);
-            final int end = idx + (1<<(DECODING_BATCH_SIZE-length));
+            final int end = (code+1) << (DECODING_BATCH_SIZE-length);
 
-            // All DECODING_BATCH_SIZE bit values read from the bit stream and
-            // starting with the same prefix point to symbol s
-            // code -> size, symbol
             while (idx < end)
-               this.fdTable[idx++] = (short) val;
+               this.table0[idx++] = (short) val;
          }
          else
          {
-            // code -> size, symbol
-            final int idx = code >>> (length-DECODING_BATCH_SIZE);
-            this.fdTable[idx] = (short) val;
+            int idx = code << (HuffmanCommon.MAX_SYMBOL_SIZE+1-length);
+            final int end = (code+1) << (HuffmanCommon.MAX_SYMBOL_SIZE+1-length);
+
+            while (idx < end)
+               this.table1[idx++] = (short) val;
          }
       }
    }
@@ -188,12 +180,11 @@ public class HuffmanDecoder implements EntropyDecoder
       if (count == 0)
          return 0;
 
-      final int sz = (this.chunkSize == 0) ? count : this.chunkSize;
       int startChunk = blkptr;
-      final int end = blkptr + count;       
+      final int end = blkptr + count;
 
       while (startChunk < end)
-      { 
+      {
          // Reinitialize the Huffman tables
          if (this.readLengths() <= 0)
             return startChunk - blkptr;
@@ -204,11 +195,11 @@ public class HuffmanDecoder implements EntropyDecoder
          if (this.minCodeLen * endPaddingSize != 64)
             endPaddingSize++;
 
-         final int endChunk = (startChunk+sz < end) ? startChunk+sz : end;
-         final int endChunk8 = Math.max((endChunk-endPaddingSize)&-8, 0);
+         final int endChunk = (startChunk+this.chunkSize < end) ? startChunk+this.chunkSize : end;
+         final int endChunk8 = startChunk + Math.max(((endChunk-startChunk-endPaddingSize)&-8), 0);
          int i = startChunk;
 
-         // Fast decoding (read DECODING_BATCH_SIZE bits at a time)
+         // Fast decoding
          for ( ; i<endChunk8; i+=8)
          {
             block[i]   = this.fastDecodeByte();
@@ -223,7 +214,7 @@ public class HuffmanDecoder implements EntropyDecoder
 
          // Fallback to regular decoding (read one bit at a time)
          for ( ; i<endChunk; i++)
-            block[i] = this.slowDecodeByte(0, 0);
+            block[i] = this.slowDecodeByte();
 
          startChunk = endChunk;
       }
@@ -232,8 +223,11 @@ public class HuffmanDecoder implements EntropyDecoder
    }
 
 
-   private byte slowDecodeByte(int code, int codeLen)
-   { 
+   private byte slowDecodeByte()
+   {
+      int code = 0;
+      int codeLen = 0;
+
       while (codeLen < HuffmanCommon.MAX_SYMBOL_SIZE)
       {
          codeLen++;
@@ -245,18 +239,12 @@ public class HuffmanDecoder implements EntropyDecoder
          }
          else
          {
-            // Consume remaining bits in 'state'
             this.bits--;
             code |= ((this.state >>> this.bits) & 1);
          }
 
-         final int idx = this.sdtIndexes[codeLen];
-
-         if (idx == SYMBOL_ABSENT) // No code with this length ?
-            continue;
-
-         if ((this.sdTable[idx+code] >>> 8) == codeLen)
-            return (byte) this.sdTable[idx+code];
+         if ((this.table1[code] >>> 8) == codeLen)
+            return (byte) this.table1[code];
       }
 
       throw new BitStreamException("Invalid bitstream: incorrect Huffman code",
@@ -264,29 +252,35 @@ public class HuffmanDecoder implements EntropyDecoder
    }
 
 
-   // 64 bits must be available in the bitstream
+   private void fetchBits()
+   {
+      this.state = (this.bits == 0) ? this.bs.readBits(64) :
+         (this.state << -this.bits) | this.bs.readBits(64-this.bits);
+      this.bits = 64;
+   }
+
+
    private byte fastDecodeByte()
-   { 
+   {
       if (this.bits < DECODING_BATCH_SIZE)
+         this.fetchBits();
+
+      // Use small table
+      final int idx0 = (int) (this.state >>> (this.bits-DECODING_BATCH_SIZE));
+      int val = this.table0[idx0&TABLE0_MASK];
+
+      if (val == 0)
       {
-         // Fetch more bits from bitstream
-         this.state = (this.bits == 0) ? this.bs.readBits(64) : 
-            (this.state << -this.bits) | this.bs.readBits(64-this.bits);
-         this.bits = 64;
+         if (this.bits < HuffmanCommon.MAX_SYMBOL_SIZE+1)
+            this.fetchBits();
+
+         // Fallback to big table
+         final int idx1 = (int) (this.state >>> (this.bits-HuffmanCommon.MAX_SYMBOL_SIZE-1));
+         val = this.table1[idx1&TABLE1_MASK];
       }
 
-      // Retrieve symbol from fast decoding table
-      final int idx = (int) (this.state >>> (this.bits-DECODING_BATCH_SIZE)) & DECODING_MASK;
-      final int val = this.fdTable[idx];
-
-      if (val > MAX_DECODING_INDEX)
-      {
-         this.bits -= DECODING_BATCH_SIZE;
-         return this.slowDecodeByte(idx, DECODING_BATCH_SIZE);
-      }
-         
       this.bits -= (val >>> 8);
-      return (byte) val;      
+      return (byte) val;
    }
 
 
@@ -298,7 +292,7 @@ public class HuffmanDecoder implements EntropyDecoder
 
 
    @Override
-   public void dispose() 
+   public void dispose()
    {
    }
 }

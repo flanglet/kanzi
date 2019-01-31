@@ -15,12 +15,11 @@ limitations under the License.
 
 package kanzi.entropy;
 
-import kanzi.ArrayComparator;
+import java.util.Arrays;
 import kanzi.OutputBitStream;
 import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
 import kanzi.Global;
-import kanzi.util.sort.QuickSort;
 
 
 // Implementation of a static Huffman encoder.
@@ -33,7 +32,7 @@ public class HuffmanEncoder implements EntropyEncoder
    private final int[] alphabet;
    private final int[] sranks;  // sorted ranks
    private final int[] buffer;  // temporary data
-   private final short[] sizes; // Cache for speed purpose
+   private final short[] sizes; 
    private final int chunkSize;
 
 
@@ -109,7 +108,7 @@ public class HuffmanEncoder implements EntropyEncoder
 
       // Create canonical codes 
       if (HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.alphabet, count) < 0)
-         throw new BitStreamException("Could not generate codes: max code length (" +
+         throw new BitStreamException("Could not generate Huffman codes: max code length (" +
             HuffmanCommon.MAX_CHUNK_SIZE + ") exceeded",
             BitStreamException.INVALID_STREAM);
 
@@ -117,7 +116,7 @@ public class HuffmanEncoder implements EntropyEncoder
       for (int i=0; i<count; i++)
       {
          final int r = this.alphabet[i];
-         this.codes[r] |= (this.sizes[r] << 24);           
+         this.codes[r] |= (this.sizes[r]<<24);           
       }
 
       return count;
@@ -135,15 +134,18 @@ public class HuffmanEncoder implements EntropyEncoder
          return;
       }
 
-      // Sort ranks by increasing frequency
-      System.arraycopy(this.alphabet, 0, this.sranks, 0, count);
+      // Sort ranks by increasing frequencies (first key) and increasing value (second key)
+      for (int i=0; i<count; i++)
+         this.sranks[i] = (frequencies[this.alphabet[i]]<<8) | this.alphabet[i];
 
-      // Sort by increasing frequencies (first key) and increasing value (second key)
-      new QuickSort(new FrequencyArrayComparator(frequencies)).sort(this.sranks, 0, count);
+      Arrays.sort(this.sranks, 0, count);
 
       for (int i=0; i<count; i++)               
-         this.buffer[i] = frequencies[this.sranks[i]];
-
+      {
+         this.buffer[i] = this.sranks[i] >>> 8;
+         this.sranks[i] &= 0xFF;
+      }
+      
       computeInPlaceSizesPhase1(this.buffer, count);
       computeInPlaceSizesPhase2(this.buffer, count);
 
@@ -227,17 +229,15 @@ public class HuffmanEncoder implements EntropyEncoder
       if (count == 0)
          return 0;
 
-      final int[] frequencies = this.freqs;
       final int end = blkptr + count;
-      final int sz = (this.chunkSize == 0) ? count : this.chunkSize;
       int startChunk = blkptr;
 
       while (startChunk < end)
       {
          // Rebuild Huffman codes
-         final int endChunk = (startChunk+sz < end) ? startChunk+sz : end;
+         final int endChunk = (startChunk+this.chunkSize < end) ? startChunk+this.chunkSize : end;
          Global.computeHistogramOrder0(block, startChunk, endChunk, this.freqs, false);
-         this.updateFrequencies(frequencies);
+         this.updateFrequencies(this.freqs);
 
          final int[] c = this.codes;
          final OutputBitStream bitstream = this.bs;
@@ -282,31 +282,4 @@ public class HuffmanEncoder implements EntropyEncoder
    public void dispose() 
    {
    }
-   
-   
-   
-   public static class FrequencyArrayComparator implements ArrayComparator
-   {
-      private final int[] array;
-
-
-      public FrequencyArrayComparator(int[] frequencies)
-      {
-         if (frequencies == null)
-            throw new NullPointerException("Invalid null array parameter");
-
-        this.array = frequencies;
-      }
-
-
-      @Override
-      public int compare(int lidx, int ridx)
-      {
-         // Check size (natural order) as first key
-         final int res = this.array[lidx] - this.array[ridx];
-
-         // Check index (natural order) as second key
-         return (res != 0) ? res : lidx - ridx;
-      }
-   }    
 }
