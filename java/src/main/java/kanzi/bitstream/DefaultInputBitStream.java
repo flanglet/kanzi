@@ -107,24 +107,18 @@ public final class DefaultInputBitStream implements InputBitStream
          throw new IllegalArgumentException("Invalid bit count: "+count+" (must be in [1..64])");
 
       long res;
-      int remaining = count - this.availBits;
+      final int remaining = count - this.availBits;
 
       if (remaining <= 0)
       {         
          // Enough spots available in 'current'     
-         if (this.availBits == 0)
-         {
-            this.pullCurrent();
-            remaining -= (this.availBits-64); // adjust if bitIndex != 63 (end of stream)
-         }
-         
          res = (this.current >>> -remaining) & (-1L >>> -count);
          this.availBits -= count;
       }
       else
       {
          // Not enough spots available in 'current'
-         res = this.current & ((1L<<this.availBits)-1);
+         res = this.current & (-1L >>> -this.availBits);
          this.pullCurrent();
          this.availBits -= remaining;
          res = (res << remaining) | (this.current >>> this.availBits);
@@ -215,7 +209,7 @@ public final class DefaultInputBitStream implements InputBitStream
    {
       if (this.position > this.maxPosition)
          this.readFromInputStream(this.buffer.length);   
-
+      
       if (this.position+7 > this.maxPosition) 
       {
          // End of stream: overshoot max position => adjust bit index
