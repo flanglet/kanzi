@@ -88,7 +88,10 @@ public class BinaryEntropyDecoder implements EntropyDecoder
          final int szBytes = EntropyUtils.readVarInt(this.bitstream);                 
          this.current = this.bitstream.readBits(56);
          this.initialized = true;
-         this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
+         
+         if (szBytes != 0)
+            this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
+         
          this.sba.index = 0;
          final int endChunk = startChunk + chunkSize;
 

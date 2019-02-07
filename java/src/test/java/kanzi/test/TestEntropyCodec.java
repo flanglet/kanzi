@@ -64,37 +64,37 @@ public class TestEntropyCodec
 
            if (type.equals("ALL"))
            {
-              System.out.println("\n\nTestHuffmanCodec");
+              System.out.println("\n\nTest Huffman Codec");
               
               if (testCorrectness("HUFFMAN") == false)
                 System.exit(1);
              
               testSpeed("HUFFMAN");
-              System.out.println("\n\nTestANS0Codec");
+              System.out.println("\n\nTest ANS0 Codec");
               
               if (testCorrectness("ANS0") == false)
                 System.exit(1);
              
               testSpeed("ANS0");
-              System.out.println("\n\nTestANS1Codec");
+              System.out.println("\n\nTest ANS1 Codec");
               
               if (testCorrectness("ANS1") == false)
                 System.exit(1);
              
               testSpeed("ANS1");
-              System.out.println("\n\nTestRangeCodec");
+              System.out.println("\n\nTest Range Codec");
               
               if (testCorrectness("RANGE")== false)
                 System.exit(1);
              
               testSpeed("RANGE");
-              System.out.println("\n\nTestFPAQCodec");
+              System.out.println("\n\nTest FPAQ Codec");
               
               if (testCorrectness("FPAQ") == false)
                 System.exit(1);
              
               testSpeed("FPAQ");
-              System.out.println("\n\nTestCMCodec");
+              System.out.println("\n\nTest CM Codec");
               
               if (testCorrectness("CM") == false)
                 System.exit(1);
@@ -121,7 +121,7 @@ public class TestEntropyCodec
            }
            else
            {
-              System.out.println("Test" + type + "Codec");
+              System.out.println("Test " + type + " Codec");
               testCorrectness(type);
               testSpeed(type);
            }
@@ -131,31 +131,31 @@ public class TestEntropyCodec
    @Test
    public void testEntropy()
    {
-      System.out.println("\n\nTestHuffmanCodec");
+      System.out.println("\n\nTest Huffman Codec");
       Assert.assertTrue(testCorrectness("HUFFMAN"));
       //testSpeed("HUFFMAN");
-      System.out.println("\n\nTestANS0Codec");
+      System.out.println("\n\nTest ANS0 Codec");
       Assert.assertTrue(testCorrectness("ANS0"));
       //testSpeed("ANS0");
-      System.out.println("\n\nTestANS1Codec");
+      System.out.println("\n\nTest ANS1 Codec");
       Assert.assertTrue(testCorrectness("ANS1"));
       //testSpeed("ANS1");
-      System.out.println("\n\nTestRangeCodec");
+      System.out.println("\n\nTest Range Codec");
       Assert.assertTrue(testCorrectness("RANGE"));
       //testSpeed("RANGE");
-      System.out.println("\n\nTestFPAQCodec");
+      System.out.println("\n\nTest FPAQ Codec");
       Assert.assertTrue(testCorrectness("FPAQ"));
       //testSpeed("FPAQ");
-      System.out.println("\n\nTestCMCodec");
+      System.out.println("\n\nTest CM Codec");
       Assert.assertTrue(testCorrectness("CM"));
       //testSpeed("CM");
-      System.out.println("\n\nTestTPAQCodec");
+      System.out.println("\n\nTest TPAQ Codec");
       Assert.assertTrue(testCorrectness("TPAQ"));
       //testSpeed("TPAQ");
-      System.out.println("\n\nTestExpGolombCodec");
+      System.out.println("\n\nTest ExpGolomb Codec");
       Assert.assertTrue(testCorrectness("EXPGOLOMB"));
       //testSpeed("EXPGOLOMB");
-      System.out.println("\n\nTestRiceGolombCodec");
+      System.out.println("\n\nTest RiceGolomb Codec");
       Assert.assertTrue(testCorrectness("RICEGOLOMB"));
       //testSpeed("RICEGOLOMB");
    }
@@ -270,8 +270,6 @@ public class TestEntropyCodec
                  values = new byte[] { 0, 0, 32, 15, -4, 16, 0, 16, 0, 7, -1, -4, -32, 0, 31, -1 };
             else if (ii == 2)
                  values = new byte[] { 61, 77, 84, 71, 90, 54, 57, 38, 114, 111, 108, 101, 61, 112, 114, 101 };
-            else if (ii == 4)
-                 values = new byte[] { 65, 71, 74, 66, 76, 65, 69, 77, 74, 79, 68, 75, 73, 72, 77, 68, 78, 65, 79, 79, 78, 66, 77, 71, 64, 70, 74, 77, 64, 67, 71, 64 };
             else if (ii == 1)
             {
                values = new byte[32];
@@ -288,10 +286,10 @@ public class TestEntropyCodec
             }
             else
             {
-               values = new byte[32];
+               values = new byte[256];
 
                for (int i=0; i<values.length; i++)
-                    values[i] = (byte) (64 + 3*ii + random.nextInt(ii+1));
+                    values[i] = (byte) (64 + 4*ii + random.nextInt(8*ii+1));
             }
 
             System.out.println("Original:");
@@ -444,7 +442,7 @@ public class TestEntropyCodec
                     System.out.println("Error at index "+i+" ("+values1[i]
                             +"<->"+values2[i]+")");
                     break;
-                 }
+                  }
               }
           }
 

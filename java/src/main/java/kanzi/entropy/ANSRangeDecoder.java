@@ -91,7 +91,7 @@ public class ANSRangeDecoder implements EntropyDecoder
    @Override
    public int decode(byte[] block, int blkptr, int count)
    {
-      if ((block == null) || (blkptr + count > block.length) || (blkptr < 0) || (count < 0))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
       if (count == 0)
@@ -139,7 +139,10 @@ public class ANSRangeDecoder implements EntropyDecoder
            
       // Read initial ANS state
       int st = (int) this.bitstream.readBits(32);
-      this.bitstream.readBits(this.buffer, 0, 8*sz);
+      
+      if (sz != 0)
+         this.bitstream.readBits(this.buffer, 0, 8*sz);
+      
       int n = 0;
       final int mask = (1<<this.logRange) - 1;
 

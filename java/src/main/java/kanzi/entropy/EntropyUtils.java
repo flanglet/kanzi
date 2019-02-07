@@ -251,11 +251,11 @@ public class EntropyUtils
          
          return count;
       }
-      
+
       // DELTA_ENCODED_ALPHABET
       int log = 1 + (int) ibs.readBits(4); 
       count = (int) ibs.readBits(log); 
-      
+  
       if (count == 0)
          return 0;
       
@@ -504,7 +504,7 @@ public class EntropyUtils
       int val = (int) bs.readBits(8);
       int res = val & 0x7F;
       int shift = 7;
-      
+
       while ((val >= 128) && (shift < 28))
       {
          val = (int) bs.readBits(8);

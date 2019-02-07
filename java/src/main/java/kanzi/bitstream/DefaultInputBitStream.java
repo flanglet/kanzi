@@ -118,7 +118,7 @@ public final class DefaultInputBitStream implements InputBitStream
       else
       {
          // Not enough spots available in 'current'
-         res = this.current & (-1L >>> -this.availBits);
+         res = this.current & ((1L<<this.availBits)-1);
          this.pullCurrent();
          this.availBits -= remaining;
          res = (res << remaining) | (this.current >>> this.availBits);
@@ -138,6 +138,9 @@ public final class DefaultInputBitStream implements InputBitStream
          throw new IllegalArgumentException("Invalid bit count: "+count+" (must be in [1.." +
            (((long)(bits.length-start))<<3) + "])");
 
+      if (count == 0)
+         return 0;
+      
       int remaining = count;
 
       // Byte aligned cursor ?
