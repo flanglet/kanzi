@@ -158,7 +158,7 @@ public class BWTBlockCodec implements ByteFunction
 
          if (input.length < pIndexSizeBytes)
              return false;
-        
+
          input.length -= pIndexSizeBytes;
          int shift = (pIndexSizeBytes - 1) << 3;
          int primaryIndex = (blockMode & 0x3F) << shift;
@@ -169,7 +169,7 @@ public class BWTBlockCodec implements ByteFunction
             shift -= 8;
             primaryIndex |= ((input.array[input.index++] & 0xFF) << shift);
          }
-
+       
          if (this.bwt.setPrimaryIndex(i, primaryIndex) == false)
             return false;
       }
