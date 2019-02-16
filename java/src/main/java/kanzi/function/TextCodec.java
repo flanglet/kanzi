@@ -1231,7 +1231,7 @@ public final class TextCodec implements ByteFunction
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
-         final boolean _isCRLF = (src[srcIdx++] & 0x01) != 0;
+         final boolean _isCRLF = (src[srcIdx++] & MASK_CRLF) != 0;
          this.isCRLF = _isCRLF;
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
@@ -1765,7 +1765,7 @@ public final class TextCodec implements ByteFunction
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
-         final boolean _isCRLF = (src[srcIdx++] & 0x01) != 0;
+         final boolean _isCRLF = (src[srcIdx++] & MASK_CRLF) != 0;
          this.isCRLF = _isCRLF;
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
