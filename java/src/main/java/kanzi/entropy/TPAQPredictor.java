@@ -358,14 +358,14 @@ public class TPAQPredictor implements Predictor
       {
          if (this.binCount < (this.pos>>3))
          {
-            p = this.sse1.get(bit, p, c | (this.c4&0xFF00));
+            p = this.sse1.get(bit, p, this.ctx0+c);
          }
          else 
          {
             if (this.binCount >= (this.pos>>2))            
                p = this.sse0.get(bit, p, this.c0);
 
-            p = (3 * this.sse1.get(bit, p, this.c0 | (this.c4&0xFF00)) + p + 2) >> 2;
+            p = (3 * this.sse1.get(bit, p, this.ctx0+c) + p + 2) >> 2;
          }
       }
 
