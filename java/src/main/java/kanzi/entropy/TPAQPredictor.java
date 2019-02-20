@@ -281,7 +281,7 @@ public class TPAQPredictor implements Predictor
         this.pos++;
         this.c8 = (this.c8<<8) | (this.c4>>>24);
         this.c4 = (this.c4<<8) | (this.c0&0xFF);
-        this.hash = (((this.hash*43707) << 4) + this.c4) & this.hashMask;
+        this.hash = (((this.hash*HASH) << 4) + this.c4) & this.hashMask;
         this.c0 = 1;
         this.bpos = 0;       
         this.binCount += ((this.c4>>7) & 1);
@@ -307,12 +307,11 @@ public class TPAQPredictor implements Predictor
         else
         {
            // Mostly binary
-           this.ctx4 = createContext(HASH, this.c4^(this.c4&0xFFFF));
-           this.ctx5 = hash(this.c4&MASK_FFFF0000, this.c8>>16);
-           this.ctx6 = this.ctx0 | (this.c8 << 16);
+           this.ctx4 = createContext(HASH, this.c4^(this.c4&0x000FFFFF));
+           this.ctx5 = hash(this.ctx1, this.c8>>16);
+           this.ctx6 = this.ctx0 | (this.c8<<16);
         }
 
-        // Find match
         this.findMatch();
 
         // Keep track of current position
