@@ -993,7 +993,7 @@ public final class TextCodec implements ByteFunction
          int words = this.staticDictSize;
 
          // DOS encoded end of line (CR+LF) ?
-         this.isCRLF = (mode & MASK_XML_HTML) != 0;
+         this.isCRLF = (mode & MASK_CRLF) != 0;
          dst[dstIdx++] = (byte) mode;
          boolean res = true;
 
@@ -1104,7 +1104,7 @@ public final class TextCodec implements ByteFunction
                   
                   if (dstIdx >= dstEnd4)
                   {
-                     res =false;
+                     res = false;
                      break;
                   }
 
