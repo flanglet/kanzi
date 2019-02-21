@@ -919,7 +919,10 @@ public final class TextCodec implements ByteFunction
       {
          // Actual block size
          final int blockSize = (Integer) ctx.getOrDefault("size", 0);
-         final int log = (blockSize >= 1<<10) ? Math.min(Global.log2(blockSize/4), 26) : 8;
+         int log = 13;
+         
+         if (blockSize >= 4)
+            log = Math.max(Math.min(Global.log2(blockSize/4), 26), 13);
 
          // Select an appropriate initial dictionary size
          int dSize = 1<<12;
@@ -1066,14 +1069,13 @@ public final class TextCodec implements ByteFunction
 
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
-                        // Evict and reuse old entry
-                        this.dictMap[e.hash&this.hashMask] = null;
+                        // Reuse old entry
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
                         e.data = (length<<24) | words;
                      }
-                     
+                    
                      this.dictMap[h1&this.hashMask] = e;
                      words++;
 
@@ -1275,8 +1277,7 @@ public final class TextCodec implements ByteFunction
 
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
-                        // Evict and reuse old entry
-                        this.dictMap[e.hash&this.hashMask] = null;
+                        // Reuse old entry
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
@@ -1416,7 +1417,10 @@ public final class TextCodec implements ByteFunction
       {
          // Actual block size
          final int blockSize = (Integer) ctx.getOrDefault("size", 0);
-         final int log = (blockSize >= 1<<10) ? Math.min(Global.log2(blockSize/4), 26) : 8;
+         int log = 13;
+         
+         if (blockSize >= 4)
+            log = Math.max(Math.min(Global.log2(blockSize/4), 26), 13);
 
          // Select an appropriate initial dictionary size
          int dSize = 1<<12;
@@ -1558,14 +1562,13 @@ public final class TextCodec implements ByteFunction
 
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
-                        // Evict and reuse old entry
-                        this.dictMap[e.hash&this.hashMask] = null;
+                        // Reuse old entry
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
                         e.data = (length<<24) | words;
                      }
-
+                                  
                      this.dictMap[h1&this.hashMask] = e;
                      words++;
 
@@ -1809,8 +1812,7 @@ public final class TextCodec implements ByteFunction
 
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
-                        // Evict and reuse old entry
-                        this.dictMap[e.hash&this.hashMask] = null;
+                        // Reuse old entry
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
