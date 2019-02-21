@@ -300,7 +300,7 @@ public class TPAQPredictor implements Predictor
            // Mostly text or mixed
            final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4&MASK_4F4FFFFF : this.c4&MASK_80808080;
            final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : this.c8&MASK_80808080;
-           this.ctx4 = createContext(this.c4&0xFFFF, this.c4^(this.c8&0xFFFF));
+           this.ctx4 = createContext(this.ctx1, this.c4^(this.c8&0xFFFF));
            this.ctx5 = hash(h1, h2); 
            this.ctx6 = hash(this.c8&MASK_F0F0F0F0, this.c4&MASK_F0F0F0F0);
         }
@@ -308,7 +308,7 @@ public class TPAQPredictor implements Predictor
         {
            // Mostly binary
            this.ctx4 = createContext(HASH, this.c4^(this.c4&0x000FFFFF));
-           this.ctx5 = hash(this.ctx1, this.c8>>16);
+           this.ctx5 = hash(this.c4&MASK_FFFF0000, this.c8>>16);
            this.ctx6 = this.ctx0 | (this.c8<<16);
         }
 
@@ -362,9 +362,9 @@ public class TPAQPredictor implements Predictor
          else 
          {
             if (this.binCount >= (this.pos>>2))            
-               p = this.sse0.get(bit, p, this.c0);
+               p = (3*this.sse0.get(bit, p, this.c0) + p) >> 2;
 
-            p = (3 * this.sse1.get(bit, p, this.ctx0+c) + p + 2) >> 2;
+            p = (3*this.sse1.get(bit, p, this.ctx0+c) + p) >> 2;
          }
       }
 
