@@ -31,7 +31,7 @@ public class TPAQPredictor implements Predictor
    private static final int HASH_SIZE = 16*1024*1024;
    private static final int MASK_BUFFER = BUFFER_SIZE - 1;
    private static final int MASK_80808080 = 0x80808080;
-   private static final int MASK_F0F0F0F0 = 0xF0F0F0F0;
+   private static final int MASK_F0F0F000 = 0xF0F0F000;
    private static final int MASK_4F4FFFFF = 0x4F4FFFFF;
    private static final int MASK_FFFF0000 = 0xFFFF0000;
    private static final int HASH = 0x7FEB352D;
@@ -281,7 +281,7 @@ public class TPAQPredictor implements Predictor
         this.pos++;
         this.c8 = (this.c8<<8) | (this.c4>>>24);
         this.c4 = (this.c4<<8) | (this.c0&0xFF);
-        this.hash = (((this.hash*HASH) << 4) + this.c4) & this.hashMask;
+        this.hash = (((this.hash*HASH)<<4) + this.c4) & this.hashMask;
         this.c0 = 1;
         this.bpos = 0;       
         this.binCount += ((this.c4>>7) & 1);
@@ -295,14 +295,14 @@ public class TPAQPredictor implements Predictor
         this.ctx2 = createContext(2, this.c4&0x00FFFFFF);
         this.ctx3 = createContext(3, this.c4);
         
-        if (this.binCount < this.pos>>2)
+        if (this.binCount < (this.pos>>2))
         {
            // Mostly text or mixed
            final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4&MASK_4F4FFFFF : this.c4&MASK_80808080;
-           final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : this.c8&MASK_80808080;
+           final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : (this.c8&MASK_80808080) >> 4;
            this.ctx4 = createContext(this.ctx1, this.c4^(this.c8&0xFFFF));
            this.ctx5 = hash(h1, h2); 
-           this.ctx6 = hash(this.c8&MASK_F0F0F0F0, this.c4&MASK_F0F0F0F0);
+           this.ctx6 = (this.c8&MASK_F0F0F000) | ((this.c4&MASK_F0F0F000)>>4);
         }
         else
         {
@@ -319,6 +319,10 @@ public class TPAQPredictor implements Predictor
       }
     
       // Get initial predictions
+      // It has been observed that accessing memory via [ctx ^ c] is significantly faster
+      // on SandyBridge/Windows and slower on SkyLake/Linux except when [ctx & 255 == 0]
+      // (with c < 256). So, use XOR for _ctx6 which is the only context that fullfills
+      // the condition.
       final int c = this.c0;
       final int mask = this.statesMask;
       final byte[] bst = this.bigStatesMap;
@@ -326,25 +330,25 @@ public class TPAQPredictor implements Predictor
       final byte[] sst1 = this.smallStatesMap1;
       final byte[] table = STATE_TRANSITIONS[bit];      
       sst0[this.cp0] = table[sst0[this.cp0]&0xFF];
+      sst1[this.cp1] = table[sst1[this.cp1]&0xFF];
+      bst[this.cp2] = table[bst[this.cp2]&0xFF];
+      bst[this.cp3] = table[bst[this.cp3]&0xFF];
+      bst[this.cp4] = table[bst[this.cp4]&0xFF];
+      bst[this.cp5] = table[bst[this.cp5]&0xFF];
+      bst[this.cp6] = table[bst[this.cp6]&0xFF];
       this.cp0 = this.ctx0 + c;
       final int p0 = STATE_MAP[sst0[this.cp0]&0xFF];
-      sst1[this.cp1] = table[sst1[this.cp1]&0xFF];
       this.cp1 = this.ctx1 + c;
       final int p1 = STATE_MAP[sst1[this.cp1]&0xFF];
-      bst[this.cp2] = table[bst[this.cp2]&0xFF];
       this.cp2 = (this.ctx2 + c) & mask;  
       final int p2 = STATE_MAP[bst[this.cp2]&0xFF];
-      bst[this.cp3] = table[bst[this.cp3]&0xFF];
       this.cp3 = (this.ctx3 + c) & mask;
       final int p3 = STATE_MAP[bst[this.cp3]&0xFF];
-      bst[this.cp4] = table[bst[this.cp4]&0xFF];
       this.cp4 = (this.ctx4 + c) & mask;
       final int p4 = STATE_MAP[bst[this.cp4]&0xFF];
-      bst[this.cp5] = table[bst[this.cp5]&0xFF];
       this.cp5 = (this.ctx5 + c) & mask;
       final int p5 = STATE_MAP[bst[this.cp5]&0xFF];
-      bst[this.cp6] = table[bst[this.cp6]&0xFF];
-      this.cp6 = (this.ctx6 + c) & mask;
+      this.cp6 = (this.ctx6 ^ c) & mask;
       final int p6 = STATE_MAP[bst[this.cp6]&0xFF];      
 
       final int p7 = this.getMatchContextPred();
