@@ -920,7 +920,7 @@ public final class TextCodec implements ByteFunction
          // Actual block size
          final int blockSize = (Integer) ctx.getOrDefault("size", 0);
          int log = 13;
-         
+
          if (blockSize >= 4)
             log = Math.max(Math.min(Global.log2(blockSize/4), 26), 13);
 
@@ -1070,6 +1070,7 @@ public final class TextCodec implements ByteFunction
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
                         // Reuse old entry
+                        this.dictMap[e.hash&this.hashMask] = null;
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
@@ -1278,6 +1279,7 @@ public final class TextCodec implements ByteFunction
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
                         // Reuse old entry
+                        this.dictMap[e.hash&this.hashMask] = null;
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
@@ -1418,7 +1420,7 @@ public final class TextCodec implements ByteFunction
          // Actual block size
          final int blockSize = (Integer) ctx.getOrDefault("size", 0);
          int log = 13;
-         
+
          if (blockSize >= 4)
             log = Math.max(Math.min(Global.log2(blockSize/4), 26), 13);
 
@@ -1563,6 +1565,7 @@ public final class TextCodec implements ByteFunction
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
                         // Reuse old entry
+                        this.dictMap[e.hash&this.hashMask] = null;
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
@@ -1813,6 +1816,7 @@ public final class TextCodec implements ByteFunction
                      if ((e.data&0x00FFFFFF) >= this.staticDictSize)
                      {
                         // Reuse old entry
+                        this.dictMap[e.hash&this.hashMask] = null;
                         e.buf = src;
                         e.pos = delimAnchor + 1;
                         e.hash = h1;
