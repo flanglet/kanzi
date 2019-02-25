@@ -97,7 +97,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
       this.codec = (strCodec == null) ? "ANS0" : strCodec;
       Integer iBlockSize = (Integer) map.remove("block");
-      this.blockSize = (iBlockSize == null) ? DEFAULT_BLOCK_SIZE : iBlockSize;
+      this.blockSize = (iBlockSize == null) ? DEFAULT_BLOCK_SIZE : ((iBlockSize + 15) & -16);
       
       if (this.blockSize > 1024*1024*1024)
          throw new IllegalArgumentException("Maximum block size is 1 GB (1073741824 bytes), got "+this.blockSize+" bytes");
