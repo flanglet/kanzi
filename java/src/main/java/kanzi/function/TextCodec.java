@@ -768,6 +768,10 @@ public final class TextCodec implements ByteFunction
       if (2*nbTextChars < length)
          return MASK_NOT_TEXT;
 
+      // Not text (crude threshold)
+      if (16*freqs0[32] < length)
+         return MASK_NOT_TEXT;
+
       int nbBinChars = 0;
 
       for (int i=128; i<256; i++)
