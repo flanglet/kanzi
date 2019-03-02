@@ -29,14 +29,14 @@ import kanzi.Global;
 
    FastLogisticAdaptiveProbMap(int n, int rate)
    {
-      this.data = new int[n*33];
+      this.data = new int[n*32];
       this.rate = rate;
 
-      for (int j=0; j<=32; j++)
+      for (int j=0; j<32; j++)
          this.data[j] = Global.squash((j-16)<<7) << 4;
 
       for (int i=1; i<n; i++)
-         System.arraycopy(this.data, 0, this.data, i*33, 33);
+         System.arraycopy(this.data, 0, this.data, i*32, 32);
    }
 
 
@@ -47,8 +47,8 @@ import kanzi.Global;
       final int g = (-bit & 65528) + (bit<<this.rate);
       this.data[this.index] += ((g-this.data[this.index]) >> this.rate);
 
-      // Find index: 33*ctx + quantized prediction in [0..32]
-      this.index = ((Global.STRETCH[pr]+2048)>>7) + (ctx<<5) + ctx;
+      // Find index: 32*ctx + quantized prediction in [0..32[
+      this.index = ((Global.STRETCH[pr]+2048)>>7) + (ctx<<5);
       return (this.data[this.index]) >> 4;
    }
 }
