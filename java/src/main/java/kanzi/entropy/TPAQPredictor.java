@@ -248,6 +248,7 @@ public class TPAQPredictor implements Predictor
       
       this.pr = 2048;
       this.c0 = 1;
+      this.bpos = 8;
       this.mixers = new Mixer[mixersSize];
 
       for (int i=0; i<this.mixers.length; i++)
@@ -272,7 +273,7 @@ public class TPAQPredictor implements Predictor
    public void update(int bit)
    {
      this.mixer.update(bit);
-     this.bpos++;
+     this.bpos--;
      this.c0 = (this.c0 << 1) | bit;
 
      if (this.c0 > 255)
@@ -283,7 +284,7 @@ public class TPAQPredictor implements Predictor
         this.c4 = (this.c4<<8) | (this.c0&0xFF);
         this.hash = (((this.hash*HASH)<<4) + this.c4) & this.hashMask;
         this.c0 = 1;
-        this.bpos = 0;       
+        this.bpos = 8;       
         this.binCount += ((this.c4>>7) & 1);
         
         // Select Neural Net
@@ -351,7 +352,7 @@ public class TPAQPredictor implements Predictor
       this.cp6 = (this.ctx6 ^ c) & mask;
       final int p6 = STATE_MAP[bst[this.cp6]&0xFF];      
 
-      final int p7 = this.getMatchContextPred();
+      final int p7 = (this.matchLen == 0) ? 0 : this.getMatchContextPred();
 
       // Mix predictions using NN
       int p = this.mixer.get(p0, p1, p2, p3, p4, p5, p6, p7);
@@ -406,25 +407,18 @@ public class TPAQPredictor implements Predictor
    // Get a prediction from the match model in [-2047..2048]
    private int getMatchContextPred()
    {
-      int p = 0;
-      
-      if (this.matchLen > 0)
+      if (this.c0 == ((this.buffer[this.matchPos&MASK_BUFFER]&0xFF) | 256) >> this.bpos)
       {
-         if (this.c0 == ((this.buffer[this.matchPos&MASK_BUFFER]&0xFF) | 256) >> (8-this.bpos))
-         {
-            // Add match length to NN inputs. Compute input based on run length
-            p = (this.matchLen<=24) ? this.matchLen : 24+((this.matchLen-24)>>3);
+         int p = (this.matchLen<=24) ? this.matchLen : 24+((this.matchLen-24)>>3);
 
-            if (((this.buffer[this.matchPos&MASK_BUFFER] >> (7-this.bpos)) & 1) == 0)
-               p = -p;
+         if (((this.buffer[this.matchPos&MASK_BUFFER] >> (this.bpos-1)) & 1) == 0)
+            p = -p;
 
-            p <<= 6;
-         }
-         else
-            this.matchLen = 0;
+         return p << 6;
       }
-
-      return p;
+                   
+      this.matchLen = 0;
+      return 0;
    }
 
 
