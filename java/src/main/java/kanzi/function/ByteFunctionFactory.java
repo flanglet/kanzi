@@ -31,8 +31,8 @@ public class ByteFunctionFactory
    public static final short NONE_TYPE    = 0;  // copy
    public static final short BWT_TYPE     = 1;  // Burrows Wheeler
    public static final short BWTS_TYPE    = 2;  // Burrows Wheeler Scott
-   public static final short LZ4_TYPE     = 3;  // LZ4
-   public static final short SNAPPY_TYPE  = 4;  // Snappy
+   public static final short LZ_TYPE      = 3;  // Lempel Ziv
+   public static final short SNAPPY_TYPE  = 4;  // Snappy (obsolete)
    public static final short RLT_TYPE     = 5;  // Run Length 
    public static final short ZRLT_TYPE    = 6;  // Zero Run Length
    public static final short MTFT_TYPE    = 7;  // Move To Front
@@ -93,11 +93,8 @@ public class ByteFunctionFactory
          case "BWTS":
             return BWTS_TYPE;
 
-         case "SNAPPY":
-            return SNAPPY_TYPE;
-
-         case "LZ4":
-            return LZ4_TYPE;
+         case "LZ":
+            return LZ_TYPE;
 
          case "ROLZ":
             return ROLZ_TYPE;
@@ -205,11 +202,8 @@ public class ByteFunctionFactory
             
          case RLT_TYPE:
             return new RLT();
-            
-         case SNAPPY_TYPE:
-            return new SnappyCodec();
-            
-         case LZ4_TYPE:
+                        
+         case LZ_TYPE:
             return new LZ4Codec();
             
          case X86_TYPE:
@@ -287,12 +281,9 @@ public class ByteFunctionFactory
          case X86_TYPE:
             return "X86";
             
-         case LZ4_TYPE:
-            return "LZ4";
-            
-         case SNAPPY_TYPE:
-            return "SNAPPY";
-            
+         case LZ_TYPE:
+            return "LZ";
+                        
          case NONE_TYPE:
             return "NONE";
             

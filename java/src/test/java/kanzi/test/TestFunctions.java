@@ -23,7 +23,6 @@ import kanzi.function.LZ4Codec;
 import kanzi.function.RLT;
 import kanzi.function.ROLZCodec;
 import kanzi.function.SRT;
-import kanzi.function.SnappyCodec;
 import kanzi.function.ZRLT;
 import org.junit.Assert;
 import org.junit.Test;
@@ -47,12 +46,12 @@ public class TestFunctions
 
          if (type.equals("ALL"))
          {
-            System.out.println("\n\nTestLZ4");
+            System.out.println("\n\nTestLZ");
 
-            if (testCorrectness("LZ4") == false)
+            if (testCorrectness("LZ") == false)
                System.exit(1);
 
-            testSpeed("LZ4");
+            testSpeed("LZ");
             System.out.println("\n\nTestROLZ");
 
             if (testCorrectness("ROLZ") == false)
@@ -65,12 +64,6 @@ public class TestFunctions
                System.exit(1);
 
             testSpeed("ROLZX"); 
-            System.out.println("\n\nTestSnappy");
-
-            if (testCorrectness("SNAPPY") == false)
-               System.exit(1);
-
-            testSpeed("SNAPPY");
             System.out.println("\n\nTestZRLT");
 
             if (testCorrectness("ZRLT") == false)
@@ -109,18 +102,15 @@ public class TestFunctions
       System.out.println("\n\nTestSRT");
       Assert.assertTrue(testCorrectness("SRT"));
       //testSpeed("SRT");
-      System.out.println("\n\nTestLZ4");
-      Assert.assertTrue(testCorrectness("LZ4"));
-      //testSpeed("LZ4");
+      System.out.println("\n\nTestLZ");
+      Assert.assertTrue(testCorrectness("LZ"));
+      //testSpeed("LZ");
       System.out.println("\n\nTestROLZ");
       Assert.assertTrue(testCorrectness("ROLZ"));
       //testSpeed("ROLZ");   
       System.out.println("\n\nTestROLZX");
       Assert.assertTrue(testCorrectness("ROLZX"));
       //testSpeed("ROLZX");   
-      System.out.println("\n\nTestSnappy");
-      Assert.assertTrue(testCorrectness("SNAPPY"));
-      //testSpeed("SNAPPY");
       System.out.println("\n\nTestZRLT");
       Assert.assertTrue(testCorrectness("ZRLT"));
       //testSpeed("ZRLT");
@@ -134,11 +124,8 @@ public class TestFunctions
    {
       switch(name) 
       {
-         case "LZ4":
+         case "LZ":
             return new LZ4Codec();
-
-         case "SNAPPY":
-            return new SnappyCodec();
 
          case "ZRLT":
             return new ZRLT();
