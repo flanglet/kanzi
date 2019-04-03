@@ -583,13 +583,15 @@ public class ROLZCodec implements ByteFunction
 
       private int emitLiterals(SliceByteArray litBuf, byte[] dst, int dstIdx, int startIdx, final int length)
       {
+         final int n0 = dstIdx - startIdx;
+         
          for (int n=0; n<length; n++)
          {
             final int key = getKey(dst, dstIdx+n-2);
             final int base = key << this.logPosChecks;
             dst[dstIdx+n] = litBuf.array[litBuf.index+n];        
             this.counters[key]++;
-            this.matches[base+(this.counters[key]&this.maskChecks)] = dstIdx + n - startIdx;
+            this.matches[base+(this.counters[key]&this.maskChecks)] = n0 + n;
          }
 
          return length;

@@ -312,12 +312,8 @@ public class ANSRangeDecoder implements EntropyDecoder
 
       public void reset(int cumFreq, int freq, int logRange)
       {     
-         // Mirror encoder
-         if (freq >= 1<<logRange)
-            freq = (1<<logRange) - 1;
-         
          this.cumFreq = cumFreq;
-         this.freq = freq;       
+         this.freq = (freq >= 1<<logRange) ? (1<<logRange) - 1 : freq; // Mirror encoder        
       }
    }   
 }
