@@ -26,7 +26,7 @@ import kanzi.InputBitStream;
 
 public class ANSRangeDecoder implements EntropyDecoder
 {
-   private static final int ANS_TOP = 1 << 23;
+   private static final int ANS_TOP = 1 << 15;
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
@@ -163,7 +163,11 @@ public class ANSRangeDecoder implements EntropyDecoder
 
             // Normalize
             while (st < ANS_TOP) 
-               st = (st<<8) | (this.buffer[n++] & 0xFF);         
+            {
+               st = (st<<8) | (this.buffer[n] & 0xFF);         
+               st = (st<<8) | (this.buffer[n+1] & 0xFF);  
+               n += 2;
+            }
          }
       }
       else
@@ -181,8 +185,12 @@ public class ANSRangeDecoder implements EntropyDecoder
             st = sym.freq * (st>>>this.logRange) + (st&mask) - sym.cumFreq;
 
             // Normalize
-            while (st < ANS_TOP)
-               st = (st<<8) | (this.buffer[n++] & 0xFF);
+            while (st < ANS_TOP) 
+            {
+               st = (st<<8) | (this.buffer[n] & 0xFF);         
+               st = (st<<8) | (this.buffer[n+1] & 0xFF);  
+               n += 2;
+            }
 
             prv = cur;
          }             

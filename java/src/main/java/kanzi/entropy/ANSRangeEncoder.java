@@ -26,7 +26,7 @@ import kanzi.OutputBitStream;
 
 public class ANSRangeEncoder implements EntropyEncoder
 {
-   private static final int ANS_TOP = 1 << 23;
+   private static final int ANS_TOP = 1 << 15;
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
    private static final int DEFAULT_LOG_RANGE = 13; // max possible for ANS_TOP=1<23
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
@@ -238,8 +238,11 @@ public class ANSRangeEncoder implements EntropyEncoder
 
             while (st >= sym.xMax)
             {
-               this.buffer[n--] = (byte) st;
+               this.buffer[n] = (byte) st;
                st >>>= 8;
+               this.buffer[n-1] = (byte) st;
+               st >>>= 8;
+               n -= 2;
             }
 
             // Compute next ANS state
@@ -260,8 +263,11 @@ public class ANSRangeEncoder implements EntropyEncoder
 
             while (st >= sym.xMax)
             {
-               this.buffer[n--] = (byte) st;
+               this.buffer[n] = (byte) st;
                st >>>= 8;
+               this.buffer[n-1] = (byte) st;
+               st >>>= 8;
+               n -= 2;
             }
 
             // Compute next ANS state
@@ -277,8 +283,11 @@ public class ANSRangeEncoder implements EntropyEncoder
 
          while (st >= sym.xMax)
          {
-            this.buffer[n--] = (byte) st;
+            this.buffer[n] = (byte) st;
             st >>>= 8;
+            this.buffer[n-1] = (byte) st;
+            st >>>= 8;
+            n -= 2;
          }
 
          final long q = (st*sym.invFreq) >>> sym.invShift;
@@ -294,7 +303,8 @@ public class ANSRangeEncoder implements EntropyEncoder
       this.bitstream.writeBits(st, 32);
 
       // Write encoded data to bitstream
-      this.bitstream.writeBits(this.buffer, n, 8*(this.buffer.length-n));
+      if (this.buffer.length != n)
+         this.bitstream.writeBits(this.buffer, n, 8*(this.buffer.length-n));
    }
 
 
@@ -339,7 +349,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          if (freq >= 1<<logRange)
             freq = (1<<logRange) - 1;
                   
-         this.xMax = ((ANS_TOP>>>logRange) << 8) * freq;
+         this.xMax = ((ANS_TOP>>>logRange) << 16) * freq;
          this.cmplFreq = (1<<logRange) - freq;
 
          if (freq < 2)
