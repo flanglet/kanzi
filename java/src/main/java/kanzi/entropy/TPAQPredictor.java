@@ -300,9 +300,9 @@ public class TPAQPredictor implements Predictor
         {
            // Mostly text or mixed
            final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4&MASK_4F4FFFFF : this.c4&MASK_80808080;
-           final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : (this.c8&MASK_80808080) >> 4;
+           final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : this.c8&MASK_80808080;
            this.ctx4 = createContext(this.ctx1, this.c4^(this.c8&0xFFFF));
-           this.ctx5 = hash(h1, h2); 
+           this.ctx5 = hash(h1<<4, h2); 
            this.ctx6 = (this.c8&MASK_F0F0F000) | ((this.c4&MASK_F0F0F000)>>4);
         }
         else
