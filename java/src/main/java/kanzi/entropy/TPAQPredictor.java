@@ -393,12 +393,24 @@ public class TPAQPredictor implements Predictor
          // Detect match
          if ((this.matchPos != 0) && (this.pos - this.matchPos <= MASK_BUFFER))
          {
-            int r = this.matchLen + 1;
+            int r = this.matchLen + 2;
+            int s = this.pos - r;
+            int t = this.matchPos - r;
 
-            while ((r <= MAX_LENGTH) && (this.buffer[(this.pos-r)&MASK_BUFFER] == this.buffer[(this.matchPos-r)&MASK_BUFFER]))
-               r++;
+            while (r <= MAX_LENGTH) 
+            {
+               if (this.buffer[s&MASK_BUFFER] != this.buffer[t&MASK_BUFFER])
+                  break;
+               
+               if (this.buffer[(s-1)&MASK_BUFFER] != this.buffer[(t-1)&MASK_BUFFER])
+                  break;
 
-            this.matchLen = r - 1;           
+               r += 2;
+               s -= 2;
+               t -= 2;
+            }
+            
+            this.matchLen = r - 2;           
          }    
       }
    }     
