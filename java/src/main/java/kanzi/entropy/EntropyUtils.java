@@ -32,7 +32,7 @@ public class EntropyUtils
    private static final int DELTA_ENCODED_ALPHABET = 0;
    private static final int BIT_ENCODED_ALPHABET_256 = 1;
    private static final int PRESENT_SYMBOLS_MASK = 0;
-   private static final int ABSENT_SYMBOLS_MASK = 1;   
+   private static final int ABSENT_SYMBOLS_MASK = 1;
 
 
    private int[] buffer;
@@ -43,7 +43,7 @@ public class EntropyUtils
       this.buffer = new int[0];
    }
 
-   
+
    // alphabet must be sorted in increasing order
    // alphabet length must be a power of 2
    public static int encodeAlphabet(OutputBitStream obs, int[] alphabet, int count)
@@ -51,7 +51,7 @@ public class EntropyUtils
       // Alphabet length must be a power of 2
       if ((alphabet.length & (alphabet.length-1)) != 0)
          return -1;
-      
+
       if (count > alphabet.length)
          return -1;
 
@@ -60,7 +60,7 @@ public class EntropyUtils
       {
          // Full alphabet
          obs.writeBit(FULL_ALPHABET);
-         
+
          if (count == 256)
            obs.writeBit(ALPHABET_256); // shortcut
          else
@@ -68,14 +68,14 @@ public class EntropyUtils
             int log = 1;
 
             while (1<<log <= count)
-               log++;            
+               log++;
 
             // Write alphabet size
             obs.writeBit(ALPHABET_NOT_256);
             obs.writeBits(log-1, 5);
             obs.writeBits(count, log);
          }
-         
+
          return count;
       }
 
@@ -89,12 +89,12 @@ public class EntropyUtils
 
          for (int i=0; i<count; i++)
             masks[alphabet[i]>>6] |= (1L << (alphabet[i] & 63));
-         
+
          for (int i=0; i<masks.length; i++)
             obs.writeBits(masks[i], 64);
-         
+
          return count;
-      }      
+      }
 
       obs.writeBit(DELTA_ENCODED_ALPHABET);
       final int[] diffs = new int[count];
@@ -114,15 +114,15 @@ public class EntropyUtils
 
          if (count == 0)
             return 0;
-         
+
          obs.writeBit(ABSENT_SYMBOLS_MASK);
          log = 1;
 
          while (1<<log <= alphabet.length)
             log++;
-         
+
          // Write log(alphabet size)
-         obs.writeBits(log-1, 5);         
+         obs.writeBits(log-1, 5);
          int symbol = 0;
          int previous = 0;
 
@@ -140,7 +140,7 @@ public class EntropyUtils
 
             diffs[n] = symbol - previous;
             symbol++;
-            previous = symbol;             
+            previous = symbol;
             n++;
          }
       }
@@ -158,7 +158,7 @@ public class EntropyUtils
 
          if (count == 0)
             return 0;
-            
+
          obs.writeBit(PRESENT_SYMBOLS_MASK);
          int previous = 0;
 
@@ -166,13 +166,13 @@ public class EntropyUtils
          for (int i=0; i<count; i++)
          {
             diffs[i] = alphabet[i] - previous;
-            previous = alphabet[i] + 1;                  
-         }         
+            previous = alphabet[i] + 1;
+         }
       }
 
       final int ckSize = (count <= 64) ? 8 : 16;
 
-      // Encode all deltas by chunks 
+      // Encode all deltas by chunks
       for (int i=0; i<count; i+=ckSize)
       {
          int max = 0;
@@ -183,7 +183,7 @@ public class EntropyUtils
             if (max < diffs[j])
                max = diffs[j];
          }
-          
+
          int log = 1;
 
          while (1<<log <= max)
@@ -195,12 +195,12 @@ public class EntropyUtils
          for (int j=i; (j<count) && (j<i+ckSize); j++)
             // Encode size
             obs.writeBits(diffs[j], log);
-      } 
-      
+      }
+
       return count;
    }
-   
-   
+
+
    public static int decodeAlphabet(InputBitStream ibs, int[] alphabet) throws BitStreamException
    {
       // Read encoding mode from bitstream
@@ -209,8 +209,8 @@ public class EntropyUtils
       if (alphabetType == FULL_ALPHABET)
       {
          int alphabetSize;
-         
-         if (ibs.readBit() == ALPHABET_256) 
+
+         if (ibs.readBit() == ALPHABET_256)
             alphabetSize = 256;
          else
          {
@@ -248,17 +248,17 @@ public class EntropyUtils
                }
             }
          }
-         
+
          return count;
       }
 
       // DELTA_ENCODED_ALPHABET
-      int log = 1 + (int) ibs.readBits(4); 
-      count = (int) ibs.readBits(log); 
-  
+      int log = 1 + (int) ibs.readBits(4);
+      count = (int) ibs.readBits(log);
+
       if (count == 0)
          return 0;
-      
+
       final int ckSize = (count <= 64) ? 8 : 16;
       int n = 0;
       int symbol = 0;
@@ -266,16 +266,16 @@ public class EntropyUtils
       if (ibs.readBit() == ABSENT_SYMBOLS_MASK)
       {
          int alphabetSize = 1 << (int) ibs.readBits(5);
-         
+
          if (alphabetSize > alphabet.length)
             throw new BitStreamException("Invalid bitstream: incorrect alphabet size: " + alphabetSize,
                BitStreamException.INVALID_STREAM);
-         
+
          // Read missing symbols
          for (int i=0; i<count; i+=ckSize)
          {
             log = 1 + (int) ibs.readBits(4);
-      
+
             // Read deltas for this chunk
             for (int j=i; (j<count) && (j<i+ckSize); j++)
             {
@@ -310,29 +310,29 @@ public class EntropyUtils
                alphabet[j] = symbol;
                symbol++;
             }
-         }          
+         }
       }
 
       return count;
    }
-   
-   
+
+
    // Return the first order entropy in the [0..1024] range
    // Fills in the histogram with order 0 frequencies. Incoming array size must be 256
    public static int computeFirstOrderEntropy1024(byte[] block, int blkptr, int length, int[] histo)
    {
       if (length == 0)
          return 0;
-      
+
       Global.computeHistogramOrder0(block, blkptr, blkptr+length, histo, false);
       long sum = 0;
       final int logLength1024 = Global.log2_1024(length);
-      
+
       for (int i=0; i<256; i++)
       {
          if (histo[i] == 0)
             continue;
-         
+
          final long count = histo[i];
          sum += ((count*(logLength1024-Global.log2_1024(histo[i]))) >> 3);
       }
@@ -340,7 +340,7 @@ public class EntropyUtils
       return (int) (sum / length);
    }
 
-   
+
    // Not thread safe
    // Return the size of the alphabet
    // The alphabet and freqs parameters are updated
@@ -349,7 +349,7 @@ public class EntropyUtils
       if (alphabet.length > 1<<8)
          throw new IllegalArgumentException("Invalid alphabet size parameter: "+ alphabet.length +
                  " (must be less than or equal to 256)");
-      
+
       if ((scale < 1<<8) || (scale > 1<<16))
          throw new IllegalArgumentException("Invalid scale parameter: "+ scale +
                  " (must be in [256..65536])");
@@ -372,8 +372,8 @@ public class EntropyUtils
       }
 
       if (this.buffer.length < alphabet.length)
-         this.buffer = new int[alphabet.length];   
-      
+         this.buffer = new int[alphabet.length];
+
       final int[] errors = this.buffer;
       int sumScaledFreq = 0;
       int freqMax = 0;
@@ -440,11 +440,11 @@ public class EntropyUtils
          if (freqs[idxMax] > sumScaledFreq - scale)
          {
             // Fast path: just adjust the max frequency
-            freqs[idxMax] += (scale - sumScaledFreq);  
+            freqs[idxMax] += (scale - sumScaledFreq);
          }
          else
          {
-            // Slow path: spread error across frequencies    
+            // Slow path: spread error across frequencies
             final int inc = (sumScaledFreq > scale) ? -1 : 1;
             PriorityQueue<FreqSortData> queue = new PriorityQueue<FreqSortData>();
 
@@ -461,7 +461,7 @@ public class EntropyUtils
                 FreqSortData fsd = queue.poll();
 
                 // Do not zero out any frequency
-                if (freqs[fsd.symbol] == -inc) 
+                if (freqs[fsd.symbol] == -inc)
                    continue;
 
                 // Distort frequency and error
@@ -479,43 +479,44 @@ public class EntropyUtils
 
    public static int writeVarInt(OutputBitStream bs, int value)
    {
-      if (bs == null)
-         throw new NullPointerException("Invalid null bitstream parameter");
-  
       int res = 0;
-      
-      while ((value >= 128) && (res < 4))
-      {        
+
+      if ((value>=128) || (value<0))
+      {
          bs.writeBits(0x80|(value&0x7F), 8);
-         value >>= 7;
+         value >>>= 7;
          res++;
+
+         while (value >= 128)
+         {
+            bs.writeBits(0x80|(value&0x7F), 8);
+            value >>>= 7;
+            res++;
+         }
       }
-      
+
       bs.writeBits(value, 8);
       return res;
    }
-   
-   
+
+
    public static int readVarInt(InputBitStream bs)
    {
-      if (bs == null)
-         throw new NullPointerException("Invalid null bitstream parameter");
-      
-      int val = (int) bs.readBits(8);
-      int res = val & 0x7F;
+      int value = (int) bs.readBits(8);
+      int res = value & 0x7F;
       int shift = 7;
 
-      while ((val >= 128) && (shift < 28))
+      while ((value >= 128) && (shift <= 28))
       {
-         val = (int) bs.readBits(8);
-         res |= ((val&0x7F) << shift);
+         value = (int) bs.readBits(8);
+         res |= ((value&0x7F)<<shift);
          shift += 7;
       }
-      
+
       return res;
    }
+
    
-    
    private static class FreqSortData implements Comparable<FreqSortData>
    {
       final int symbol;
@@ -536,21 +537,21 @@ public class EntropyUtils
       {
          if (o == null)
             return false;
-         
+
          if (this == o)
             return true;
-         
+
          return ((FreqSortData) o).symbol == this.symbol;
       }
 
-      
+
       @Override
-      public int hashCode() 
+      public int hashCode()
       {
          return this.symbol;
       }
-      
-      
+
+
       @Override
       public int compareTo(FreqSortData sd)
       {
@@ -558,10 +559,10 @@ public class EntropyUtils
          int res = sd.errors[sd.symbol] - this.errors[this.symbol];
 
          // Decreasing frequency
-         if (res == 0) 
+         if (res == 0)
          {
             res = sd.frequencies[sd.symbol] - this.frequencies[this.symbol];
-         
+
             // Decreasing symbol
             if (res == 0)
                return sd.symbol - this.symbol;
@@ -569,5 +570,5 @@ public class EntropyUtils
 
          return res;
       }
-   }  
+   }
 }
