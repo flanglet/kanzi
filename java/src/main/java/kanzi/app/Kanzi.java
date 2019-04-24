@@ -52,7 +52,11 @@ public class Kanzi
    public static void main(String[] args)
    {
       Map<String, Object> map = new HashMap<>();
-      processCommandLine(args, map);    
+      int status = processCommandLine(args, map); 
+      
+      if (status != 0)
+         System.exit((status < 0) ? 0 : status);
+      
       char mode = (char) map.remove("mode");
 
       if (mode == 'c')
@@ -122,7 +126,7 @@ public class Kanzi
    }
 
 
-    private static void processCommandLine(String args[], Map<String, Object> map)
+    private static int processCommandLine(String args[], Map<String, Object> map)
     {
         int blockSize = -1;
         int verbose = 1;
@@ -160,7 +164,7 @@ public class Kanzi
               if (mode == 'd')
               {
                   System.err.println("Both compression and decompression options were provided.");
-                  System.exit(kanzi.Error.ERR_INVALID_PARAM);
+                  return kanzi.Error.ERR_INVALID_PARAM;
               }
 
               mode = 'c';
@@ -172,7 +176,7 @@ public class Kanzi
               if (mode == 'c')
               {
                   System.err.println("Both compression and decompression options were provided.");
-                  System.exit(kanzi.Error.ERR_INVALID_PARAM);
+                  return kanzi.Error.ERR_INVALID_PARAM;
               }
 
               mode = 'd';
@@ -193,7 +197,7 @@ public class Kanzi
                catch (NumberFormatException e)
                {
                   System.err.println("Invalid verbosity level provided on command line: "+arg);
-                  System.exit(kanzi.Error.ERR_INVALID_PARAM);
+                  return kanzi.Error.ERR_INVALID_PARAM;
                }
            }
            else if (arg.startsWith("--output=") || (ctx == ARG_IDX_OUTPUT))
@@ -211,6 +215,7 @@ public class Kanzi
         if (verbose >= 1)
             printOut("\n" + APP_HEADER +"\n", true);
 
+        outputName = null;
         ctx = -1;
 
         for (String arg : args)
@@ -294,11 +299,11 @@ public class Kanzi
 
                if (mode != 'c')
                {
-                  printOut("EG. java -cp kanzi.jar kanzi.app.Kanzi -d -i foo.knz -f -v 2 -j 2\n", true);
-                  printOut("EG. java -cp kanzi.jar kanzi.app.Kanzi --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
+                  printOut("EG. java -cp kanzi.jar -d -i foo.knz -f -v 2 -j 2\n", true);
+                  printOut("EG. java -cp kanzi.jar --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
                }
 
-               System.exit(0);
+               return 0;
            }
 
            if (arg.equals("--compress") || arg.equals("-c") || arg.equals("--decompress") || arg.equals("-d"))
@@ -360,48 +365,86 @@ public class Kanzi
                }
            }
 
+           if (arg.startsWith("--output=") || (ctx == ARG_IDX_OUTPUT))
+           {
+               String name = arg.startsWith("--output=") ? arg.substring(9).trim() : arg;
+
+               if (outputName != null)
+                  System.err.println("Warning: ignoring duplicate output name: "+name);
+               else
+                  outputName = name;                  
+
+               ctx = -1;
+               continue;
+           }
+
            if (arg.startsWith("--input=") || (ctx == ARG_IDX_INPUT))
            {
-               inputName = arg.startsWith("--input=") ? arg.substring(8).trim() : arg;
+               String name = arg.startsWith("--input=") ? arg.substring(8).trim() : arg;
+
+               if (inputName != null)
+                  System.err.println("Warning: ignoring duplicate input name: "+name);
+               else
+                  inputName = name;
+
                ctx = -1;
                continue;
            }
 
            if (arg.startsWith("--entropy=") || (ctx == ARG_IDX_ENTROPY))
            {
-               codec = arg.startsWith("--entropy=") ? arg.substring(10).trim().toUpperCase() :
+               String name = arg.startsWith("--entropy=") ? arg.substring(10).trim().toUpperCase() :
                  arg.toUpperCase();
+
+               if (codec != null)
+                  System.err.println("Warning: ignoring duplicate entropy: "+name);
+               else
+                  codec = name;
+                     
                ctx = -1;
                continue;
            }
 
            if (arg.startsWith("--transform=") || (ctx == ARG_IDX_TRANSFORM))
            {
-               transform = arg.startsWith("--transform=") ? arg.substring(12).trim().toUpperCase() :
+               String name = arg.startsWith("--transform=") ? arg.substring(12).trim().toUpperCase() :
                  arg.toUpperCase();
+
+               if (transform != null)
+                  System.err.println("Warning: ignoring duplicate transform: "+name);
+               else
+                  transform = name;
+
                ctx = -1;
                continue;
            }
 
            if (arg.startsWith("--level=") || (ctx == ARG_IDX_LEVEL))
            {
-               String str = arg.startsWith("--level=") ? arg.substring(8).trim().toUpperCase() :
+               String name = arg.startsWith("--level=") ? arg.substring(8).trim().toUpperCase() :
                  arg.toUpperCase();
               
+               if (level != -1)
+               {
+                  System.err.println("Warning: ignoring duplicate level: "+name);
+                  ctx = -1;
+                  continue;
+               }
+               
                try
                {
-                   level = Integer.parseInt(str);
+                  level = Integer.parseInt(name);
                }
                catch (NumberFormatException e)
                {
                   System.err.println("Invalid compression level provided on command line: "+arg);
-                  System.exit(kanzi.Error.ERR_INVALID_PARAM);
+                  return kanzi.Error.ERR_INVALID_PARAM;
                }
 
                if ((level < 0) || (level > 8))
                {
                   System.err.println("Invalid compression level provided on command line: "+arg);
-                  System.exit(kanzi.Error.ERR_INVALID_PARAM);                  
+                  return kanzi.Error.ERR_INVALID_PARAM;                  
                }
                
                ctx = -1;
@@ -410,48 +453,65 @@ public class Kanzi
 
            if (arg.startsWith("--block=") || (ctx == ARG_IDX_BLOCK))
            {
-               String str = arg.startsWith("--block=") ? arg.substring(8).toUpperCase().trim() :
+               String name = arg.startsWith("--block=") ? arg.substring(8).toUpperCase().trim() :
                   arg.toUpperCase();
-               char lastChar = (str.length() == 0) ? ' ' : str.charAt(str.length()-1);
+               
+               if (blockSize != -1)
+               {
+                  System.err.println("Warning: ignoring duplicate block size: "+name);
+                  ctx = -1;
+                  continue;
+               }
+                              
+               char lastChar = (name.length() == 0) ? ' ' : name.charAt(name.length()-1);
                int scale = 1;
 
               try
               {
-                 // Process K or M or G suffix
-                 if ('K' == lastChar)
-                 {
-                     scale = 1024;
-                     str = str.substring(0, str.length()-1);
-                 }
-                 else if ('M' == lastChar)
-                 {
-                     scale = 1024 * 1024;
-                     str = str.substring(0, str.length()-1);
-                 }
-                 else if ('G' == lastChar)
-                 {
-                     scale = 1024 * 1024 * 1024;
-                     str = str.substring(0, str.length()-1);
-                 }
+                  // Process K or M or G suffix
+                  switch (lastChar)
+                  {
+                     case 'K':
+                        scale = 1024;
+                        name = name.substring(0, name.length()-1);
+                        break;
+                     case 'M':
+                        scale = 1024 * 1024;
+                        name = name.substring(0, name.length()-1);
+                        break;
+                     case 'G':
+                        scale = 1024 * 1024 * 1024;
+                        name = name.substring(0, name.length()-1);
+                        break;
+                     default:
+                        break;
+                  }
 
-                 blockSize = scale * Integer.parseInt(str);
-                 ctx = -1;
-                 continue;
+                  blockSize = scale * Integer.parseInt(name);
+                  ctx = -1;
+                  continue;
               }
               catch (NumberFormatException e)
               {
                  System.err.println("Invalid block size provided on command line: "+arg);
-                 System.exit(kanzi.Error.ERR_INVALID_PARAM);
+                 return kanzi.Error.ERR_INVALID_PARAM;
               }
            }
 
            if (arg.startsWith("--jobs=") || (ctx == ARG_IDX_JOBS))
            {
-              arg = arg.startsWith("--jobs=") ? arg.substring(7).trim() : arg;
+               String name = arg.startsWith("--jobs=") ? arg.substring(7).trim() : arg;
 
-              try
-              {
-                  tasks = Integer.parseInt(arg);
+               if (tasks != 0)
+               {
+                  System.err.println("Warning: ignoring duplicate jobs: "+name);
+                  ctx = -1;
+                  continue;
+               }
+               
+               try
+               {
+                  tasks = Integer.parseInt(name);
 
                   if (tasks < 1)
                      throw new NumberFormatException();
@@ -462,7 +522,7 @@ public class Kanzi
               catch (NumberFormatException e)
               {
                   System.err.println("Invalid number of jobs provided on command line: "+arg);
-                  System.exit(kanzi.Error.ERR_INVALID_PARAM);
+                  return kanzi.Error.ERR_INVALID_PARAM;
               }
            }
 
@@ -477,7 +537,7 @@ public class Kanzi
         if (inputName == null)
         {
            System.err.println("Missing input file name, exiting ...");
-           System.exit(kanzi.Error.ERR_MISSING_PARAM);
+           return kanzi.Error.ERR_MISSING_PARAM;
         }
 
         if (ctx != -1)
@@ -522,6 +582,7 @@ public class Kanzi
            map.put("skipBlocks", skip);
 
         map.put("jobs", tasks);
+        return 0;
     }
 
 
