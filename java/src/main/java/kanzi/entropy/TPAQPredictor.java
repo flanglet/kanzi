@@ -302,15 +302,15 @@ public class TPAQPredictor implements Predictor
            final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4&MASK_4F4FFFFF : this.c4&MASK_80808080;
            final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : this.c8&MASK_80808080;
            this.ctx4 = createContext(this.ctx1, this.c4^(this.c8&0xFFFF));
-           this.ctx5 = hash(h1<<4, h2); 
-           this.ctx6 = (this.c8&MASK_F0F0F000) | ((this.c4&MASK_F0F0F000)>>4);
+           this.ctx5 = (this.c8&MASK_F0F0F000) | ((this.c4&MASK_F0F0F000)>>4);
+           this.ctx6 = hash(h1<<4, h2); 
         }
         else
         {
            // Mostly binary
            this.ctx4 = createContext(HASH, this.c4^(this.c4&0x000FFFFF));
-           this.ctx5 = hash(this.c4&MASK_FFFF0000, this.c8>>16);
-           this.ctx6 = this.ctx0 | (this.c8<<16);
+           this.ctx5 = this.ctx0 | (this.c8<<16);
+           this.ctx6 = hash(this.c4&MASK_FFFF0000, this.c8>>16);
         }
 
         this.findMatch();
@@ -322,7 +322,7 @@ public class TPAQPredictor implements Predictor
       // Get initial predictions
       // It has been observed that accessing memory via [ctx ^ c] is significantly faster
       // on SandyBridge/Windows and slower on SkyLake/Linux except when [ctx & 255 == 0]
-      // (with c < 256). So, use XOR for _ctx6 which is the only context that fullfills
+      // (with c < 256). Hence, use XOR for _ctx5 which is the only context that fullfills
       // the condition.
       final int c = this.c0;
       final int mask = this.statesMask;
@@ -336,7 +336,6 @@ public class TPAQPredictor implements Predictor
       bst[this.cp3] = table[bst[this.cp3]&0xFF];
       bst[this.cp4] = table[bst[this.cp4]&0xFF];
       bst[this.cp5] = table[bst[this.cp5]&0xFF];
-      bst[this.cp6] = table[bst[this.cp6]&0xFF];
       this.cp0 = this.ctx0 + c;
       final int p0 = STATE_MAP[sst0[this.cp0]&0xFF];
       this.cp1 = this.ctx1 + c;
@@ -347,19 +346,28 @@ public class TPAQPredictor implements Predictor
       final int p3 = STATE_MAP[bst[this.cp3]&0xFF];
       this.cp4 = (this.ctx4 + c) & mask;
       final int p4 = STATE_MAP[bst[this.cp4]&0xFF];
-      this.cp5 = (this.ctx5 + c) & mask;
+      this.cp5 = (this.ctx5 ^ c) & mask;
       final int p5 = STATE_MAP[bst[this.cp5]&0xFF];
-      this.cp6 = (this.ctx6 ^ c) & mask;
-      final int p6 = STATE_MAP[bst[this.cp6]&0xFF];      
 
       final int p7 = (this.matchLen == 0) ? 0 : this.getMatchContextPred();
+      int p;
 
-      // Mix predictions using NN
-      int p = this.mixer.get(p0, p1, p2, p3, p4, p5, p6, p7);
-
-      // SSE (Secondary Symbol Estimation)
-      if (this.extra == true)
+      if (this.extra == false)
       {
+         // Mix predictions using NN
+         p = this.mixer.get(p0, p1, p2, p3, p4, p5, (p2+p7)>>1, p7);
+      }
+      else
+      {
+         // One more prediction
+         bst[this.cp6] = table[bst[this.cp6]&0xFF];
+         this.cp6 = (this.ctx6 + c) & mask;
+         final int p6 = STATE_MAP[bst[this.cp6]&0xFF];      
+
+         // Mix predictions using NN
+         p = this.mixer.get(p0, p1, p2, p3, p4, p5, p6, p7);
+
+         // SSE (Secondary Symbol Estimation)
          if (this.binCount < (this.pos>>3))
          {
             p = this.sse1.get(bit, p, this.ctx0+c);
