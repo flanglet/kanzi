@@ -35,8 +35,8 @@ public final class TextCodec implements ByteFunction
    public static final int LOG_HASHES_SIZE = 24; // 16 MB
    public static final byte LF = 0x0A;
    public static final byte CR = 0x0D;
-   public static final byte ESCAPE_TOKEN1 = (byte) 0x0F; // dictionary word preceded by space symbol
-   public static final byte ESCAPE_TOKEN2 = (byte) 0x0E; // toggle upper/lower case of first word char
+   public static final byte ESCAPE_TOKEN1 = 0x0F; // dictionary word preceded by space symbol
+   public static final byte ESCAPE_TOKEN2 = 0x0E; // toggle upper/lower case of first word char
    private static final int HASH1 = 0x7FEB352D;
    private static final int HASH2 = 0x846CA68B;
    private static final int MASK_NOT_TEXT = 0x80;
@@ -970,7 +970,7 @@ public final class TextCodec implements ByteFunction
          for (int i=this.staticDictSize; i<this.dictSize; i++)
             this.dictList[i] = new DictEntry(null, -1, 0, i, 0);
       }
-      
+     
 
       @Override
       public boolean forward(SliceByteArray input, SliceByteArray output)
@@ -1093,7 +1093,7 @@ public final class TextCodec implements ByteFunction
                   }
                }
                else
-               {              
+               {     
                   // Word found in the dictionary
                   // Skip space if only delimiter between 2 word references
                   if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
