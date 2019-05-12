@@ -263,7 +263,8 @@ public class TPAQPredictor implements Predictor
       this.statesMask = this.bigStatesMap.length - 1;
       this.mixersMask = this.mixers.length - 1;
       this.hashMask = this.hashes.length - 1;
-      this.sse0 = (this.extra == true) ? new LogisticAdaptiveProbMap(256, 6) : null;
+      this.sse0 = (this.extra == true) ? new LogisticAdaptiveProbMap(256, 6) : 
+         new LogisticAdaptiveProbMap(256, 7);
       this.sse1 = (this.extra == true) ? new LogisticAdaptiveProbMap(65536, 7) : null;
    }
 
@@ -356,6 +357,10 @@ public class TPAQPredictor implements Predictor
       {
          // Mix predictions using NN
          p = this.mixer.get(p0, p1, p2, p3, p4, p5, (p2+p7)>>1, p7);
+         
+         // SSE (Secondary Symbol Estimation)
+         if (this.binCount < (this.pos>>3))
+            p = this.sse0.get(bit, p, this.c0);
       }
       else
       {
