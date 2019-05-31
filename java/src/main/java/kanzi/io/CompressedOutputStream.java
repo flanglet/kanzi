@@ -29,7 +29,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
 import kanzi.SliceByteArray;
@@ -638,7 +637,7 @@ public class CompressedOutputStream extends OutputStream
                // entropy encoding. Entropy encoding must happen sequentially (and
                // in the correct block order) in the bitstream.
                // Backoff improves performance in heavy contention scenarios
-               LockSupport.parkNanos(10);
+               Thread.yield(); // Should be Thread.onSpinWait() on JDK 9 and above
             }
            
             // Write block 'header' (mode + compressed length);
