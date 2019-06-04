@@ -135,7 +135,7 @@ public class TestTransforms
          }
          else if (ii == 1)
          {
-            arr = new int[80000];
+            arr = new int[800];
             arr[0] = 1;
 
             for (int i=1; i<arr.length; i++)
@@ -201,6 +201,7 @@ public class TestTransforms
                idx += len;
             }
          }
+         
          int size = arr.length;
          ByteTransform f = getByteTransform(name);
          input = new byte[size];
@@ -218,9 +219,16 @@ public class TestTransforms
 
          System.out.println("\nOriginal: ");
 
-         for (int i=0; i<input.length; i++)
+         if (ii == 1)
          {
-            System.out.print((input[i] & 255) + " ");
+            System.out.print("1 8 ("+(arr.length-2)+" times)");
+         }
+         else
+         {
+            for (int i=0; i<input.length; i++)
+            {
+               System.out.print((input[i] & 255) + " ");
+            }
          }
 
          if (f.forward(sa1, sa2) == false)
@@ -261,33 +269,44 @@ public class TestTransforms
             return false;
          }
 
-         System.out.println("Decoded: ");
-
-         for (int i=0; i<reverse.length; i++)
-         {
-            System.out.print((reverse[i] & 255) + " ");
-         }
-
          System.out.println();
+         System.out.println("Decoded: ");
          int idx = -1;
 
          for (int i=0; i<input.length; i++)
          {
             if (input[i] != reverse[i])
             {
-               System.out.println("Different (index "+i+": "+input[i]+" - "+reverse[i]+")");
                idx = i;
                break;
             }
          }
          
-         if (idx != -1) {
+         if (idx == -1)
+         {
+            if (ii == 1)
+            {
+               System.out.println("1 8 ("+(arr.length-2)+" times)");
+            }
+            else
+            {
+               for (int i=0; i<reverse.length; i++)
+                  System.out.print((reverse[i] & 255) + " ");
+
+               System.out.println();
+            }
+         }
+         else 
+         {
+            System.out.println("Different (index "+idx+": "+input[idx]+" - "+reverse[idx]+")");
             System.out.println("");
+
             for (int i=0; i<idx; i++)
                System.out.println(i+" "+sa1.array[i]+" "+sa3.array[i]);
             
             System.out.println(idx+" "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
          }
+         
          System.out.println("Identical");
          System.out.println();
       }
