@@ -49,7 +49,7 @@ public class TestTransforms
                System.exit(1);
 
             testSpeed("RANK");
-            System.out.println("\n\nTestMTFF");
+            System.out.println("\n\nTestMTFT");
 
             if (testCorrectness("MTFT") == false)
                System.exit(1);
@@ -81,9 +81,9 @@ public class TestTransforms
       System.out.println("\n\nTestRANK");
       Assert.assertTrue(testCorrectness("RANK"));
       //testSpeed("RANK");
-      System.out.println("\n\nTestBWT");
-      Assert.assertTrue(testCorrectness("BWT"));
-      //testSpeed("BWT");   
+      System.out.println("\n\nTestMTFT");
+      Assert.assertTrue(testCorrectness("MTFT"));
+      //testSpeed("MTFT");   
       System.out.println("\n\nTestBWTS");
       Assert.assertTrue(testCorrectness("BWTS"));
       //testSpeed("BWTS"); 
