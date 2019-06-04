@@ -26,6 +26,6 @@ public class TestBitonicSort extends TestAbstractSort
     public void testBitonicSort()
     {
         Assert.assertTrue(testCorrectness("BitonicSort", new BitonicSort(), 20));
-        testSpeed("BitonicSort", new BitonicSort(), 4000);
+        testSpeed("BitonicSort", new BitonicSort(), 500);
     }    
 }

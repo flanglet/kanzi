@@ -26,6 +26,6 @@ public class TestFlashSort extends TestAbstractSort
     public void testFlashSort()
     {
         Assert.assertTrue(testCorrectness("FlashSort", new FlashSort(), 20));
-        testSpeed("FlashSort", new FlashSort(), 10000);
+        testSpeed("FlashSort", new FlashSort(), 5000);
     }    
 }

@@ -26,6 +26,6 @@ public class TestInsertionSort extends TestAbstractSort
     public void testInsertionSort()
     {
         Assert.assertTrue(testCorrectness("InsertionSort", new InsertionSort(), 20));
-        testSpeed("InsertionSort", new InsertionSort(), 2000);
+        testSpeed("InsertionSort", new InsertionSort(), 500);
     }    
 }

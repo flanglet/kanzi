@@ -26,6 +26,6 @@ public class TestHeapSort extends TestAbstractSort
     public void testHeapSort()
     {
         Assert.assertTrue(testCorrectness("HeapSort", new HeapSort(), 20));
-        testSpeed("HeapSort", new HeapSort(), 10000);
+        testSpeed("HeapSort", new HeapSort(), 5000);
     }
 }

@@ -26,6 +26,6 @@ public class TestQuickSort extends TestAbstractSort
     public void testQuickSort()
     {
         Assert.assertTrue(testCorrectness("QuickSort", new QuickSort(), 20));
-        testSpeed("QuickSort", new QuickSort(), 10000);
+        testSpeed("QuickSort", new QuickSort(), 5000);
     }    
 }
