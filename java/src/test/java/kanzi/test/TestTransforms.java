@@ -81,9 +81,9 @@ public class TestTransforms
       System.out.println("\n\nTestRANK");
       Assert.assertTrue(testCorrectness("RANK"));
       //testSpeed("RANK");
-      System.out.println("\n\nTestRank");
-      Assert.assertTrue(testCorrectness("Rank"));
-      //testSpeed("Rank");   
+      System.out.println("\n\nTestBWT");
+      Assert.assertTrue(testCorrectness("BWT"));
+      //testSpeed("BWT");   
       System.out.println("\n\nTestBWTS");
       Assert.assertTrue(testCorrectness("BWTS"));
       //testSpeed("BWTS"); 

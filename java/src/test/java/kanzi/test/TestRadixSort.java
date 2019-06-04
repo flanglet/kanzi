@@ -25,11 +25,9 @@ public class TestRadixSort extends TestAbstractSort
     @Test
     public void testRadixSort()
     {
-        Assert.assertTrue(testCorrectness("RadixSort (radix 1)", new RadixSort(1), 5));
-        Assert.assertTrue(testCorrectness("RadixSort (radix 2)", new RadixSort(2), 5));
-        Assert.assertTrue(testCorrectness("RadixSort (radix 4)", new RadixSort(4), 5));
+        //Assert.assertTrue(testCorrectness("RadixSort (radix 4)", new RadixSort(4), 5));
         Assert.assertTrue(testCorrectness("RadixSort (radix 8)", new RadixSort(8), 5));
-        testSpeed("RadixSort (radix 4)", new RadixSort(4), 5000);
+        //testSpeed("RadixSort (radix 4)", new RadixSort(4), 5000);
         testSpeed("RadixSort (radix 8)", new RadixSort(8), 5000);
     }    
 }
