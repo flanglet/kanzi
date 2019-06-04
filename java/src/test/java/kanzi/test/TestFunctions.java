@@ -260,9 +260,16 @@ public class TestFunctions
 
          System.out.println("\nOriginal: ");
 
-         for (int i=0; i<input.length; i++)
+         if (ii == 1)
          {
-            System.out.print((input[i] & 255) + " ");
+            System.out.print("1 8 ("+(arr.length-2)+" times)");
+         }
+         else
+         {
+            for (int i=0; i<input.length; i++)
+            {
+               System.out.print((input[i] & 255) + " ");
+            }
          }
 
          if (f.forward(sa1, sa2) == false)
@@ -304,29 +311,38 @@ public class TestFunctions
             System.out.println("Decoding error");
             return false;
          }
-
+         
          System.out.println("Decoded: ");
-
-         for (int i=0; i<reverse.length; i++)
-         {
-            System.out.print((reverse[i] & 255) + " ");
-         }
-
-         System.out.println();
          int idx = -1;
 
          for (int i=0; i<input.length; i++)
          {
             if (input[i] != reverse[i])
             {
-               System.out.println("Different (index "+i+": "+input[i]+" - "+reverse[i]+")");
                idx = i;
                break;
             }
          }
-         
-         if (idx != -1) {
-            System.out.println("");
+
+         if (idx == -1)
+         {
+            if (ii == 1)
+            {
+               System.out.println("1 8 ("+(arr.length-2)+" times)");
+            }
+            else
+            {
+               for (int i=0; i<reverse.length; i++)
+                  System.out.print((reverse[i] & 255) + " ");
+
+               System.out.println();
+            }
+         }
+         else 
+         {
+            System.out.println("Different (index "+idx+": "+input[idx]+" - "+reverse[idx]+")");
+            System.out.println();
+
             for (int i=0; i<idx; i++)
                System.out.println(i+" "+sa1.array[i]+" "+sa3.array[i]);
             
