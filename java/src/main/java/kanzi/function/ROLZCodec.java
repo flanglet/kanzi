@@ -601,7 +601,7 @@ public class ROLZCodec implements ByteFunction
       @Override
       public int getMaxEncodedLength(int srcLen)
       {
-         return (srcLen <= 512) ? srcLen+32 : srcLen;
+         return (srcLen <= 512) ? srcLen+64 : srcLen;
       }
    }
 
@@ -901,7 +901,7 @@ public class ROLZCodec implements ByteFunction
          if (srcLen >= CHUNK_SIZE)
             return srcLen;
          
-         return (srcLen <= 512) ? srcLen+32 : srcLen+srcLen/8;
+         return (srcLen <= 512) ? srcLen+64 : srcLen+srcLen/8;
       }
    }
 
