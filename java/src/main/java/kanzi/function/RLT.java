@@ -125,7 +125,7 @@ public class RLT implements ByteFunction
                }
             }
          }
-         
+
          if (run > RUN_THRESHOLD)
          {
             final int dIdx = emitRunLength(dst, dstIdx, dstEnd, run, escape, prev);

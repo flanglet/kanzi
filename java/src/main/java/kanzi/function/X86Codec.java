@@ -171,7 +171,8 @@ public class X86Codec implements ByteFunction
                    ((0xFF & (ADDRESS_MASK ^ src[srcIdx+2])) <<  8) |
                    ((0xFF & (ADDRESS_MASK ^ src[srcIdx+1])) << 16) | 
                    ((0xFF & (sgn-1)) << 24);   
-			addr -= dstIdx;
+         
+         addr -= dstIdx;
          dst[dstIdx]   = (byte)  addr;
          dst[dstIdx+1] = (byte) (addr >>  8);
          dst[dstIdx+2] = (byte) (addr >> 16);
