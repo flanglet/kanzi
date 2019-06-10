@@ -597,7 +597,7 @@ public class CompressedInputStream extends InputStream
             taskId = this.processedBlockId.get();
          }
 
-         // Skip, either all data have been processed or an error occured
+         // Skip, either all data have been processed or an error occurred
          if (taskId == CANCEL_TASKS_ID)
             return new Status(data, currentBlockId, 0, 0, 0, null);
 

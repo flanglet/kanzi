@@ -286,7 +286,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       }
       catch (Exception e)
       {
-         System.err.println("An unexpected error occured: " + e.getMessage());
+         System.err.println("An unexpected error occurred: " + e.getMessage());
          res = Error.ERR_UNKNOWN;
       }
       

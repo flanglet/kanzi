@@ -88,7 +88,7 @@ public class ByteTransformSequence implements ByteFunction
          if (transform.forward(sa1, sa2) == false)
          {
             // Transform failed. Either it does not apply to this type
-            // of data or a recoverable error occured => revert
+            // of data or a recoverable error occurred => revert
             if (sa1.array != sa2.array)
                System.arraycopy(sa1.array, savedIIdx, sa2.array, savedOIdx, count);
 
