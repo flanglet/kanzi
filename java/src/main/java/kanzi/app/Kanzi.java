@@ -54,9 +54,14 @@ public class Kanzi
       Map<String, Object> map = new HashMap<>();
       int status = processCommandLine(args, map); 
       
+      // Command line processing error ?
       if (status != 0)
          System.exit((status < 0) ? 0 : status);
       
+      // Help mode only ?
+      if (map.containsKey("mode") == false)
+         System.exit(0);
+         
       char mode = (char) map.remove("mode");
 
       if (mode == 'c')
@@ -558,7 +563,6 @@ public class Kanzi
            map.put("block", blockSize);
 
         map.put("verbose", verbose);
-        map.put("mode", mode);
         
         if (mode == 'c')
            map.put("level", level);
