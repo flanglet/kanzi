@@ -1,2 +1,2 @@
 language: java
-install: cd java && ant
+install: cd java && mvn compile
