@@ -56,7 +56,7 @@ public class Kanzi
       
       // Command line processing error ?
       if (status != 0)
-         System.exit((status < 0) ? 0 : status);
+         System.exit(status);
       
       // Help mode only ?
       if (map.containsKey("mode") == false)

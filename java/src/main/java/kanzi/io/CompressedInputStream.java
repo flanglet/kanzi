@@ -74,8 +74,7 @@ public class CompressedInputStream extends InputStream
    private final List<Listener> listeners;
    private final Map<String, Object> ctx;
 
-
-   // debug print stream is optional (may be null)
+   
    public CompressedInputStream(InputStream is, Map<String, Object> ctx)
    {
       if (is == null)
