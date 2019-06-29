@@ -204,7 +204,7 @@ public class ByteFunctionFactory
             return new RLT();
                         
          case LZ_TYPE:
-            return new LZ4Codec();
+            return new LZCodec();
             
          case X86_TYPE:
             return new X86Codec();

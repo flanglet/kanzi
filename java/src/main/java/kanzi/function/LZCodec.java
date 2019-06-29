@@ -20,74 +20,68 @@ import kanzi.Memory;
 import kanzi.SliceByteArray;
 
 
-// Pure Java implementation of a LZ4 codec.
-// LZ4 is a very fast lossless compression algorithm created by Yann Collet.
-// See original code here: https://github.com/lz4/lz4
-// More details on the algorithm are available here:
-// http://fastcompression.blogspot.com/2011/05/lz4-explained.html
-
-public final class LZ4Codec implements ByteFunction
+// Simple byte oriented LZ77 implementation.
+// It is just LZ4 modified to use a bigger hash map.
+public final class LZCodec implements ByteFunction
 {
    private static final int HASH_SEED          = 0x9E3779B1;
-   private static final int HASH_LOG           = 12;
-   private static final int HASH_LOG_64K       = 13;
-   private static final int MAX_DISTANCE       = (1 << 16) - 1;
+   private static final int HASH_LOG_SMALL     = 12;
+   private static final int HASH_LOG_BIG       = 16;
+   private static final int MAX_DISTANCE       = (1<<16) - 1;
    private static final int SKIP_STRENGTH      = 6;
    private static final int LAST_LITERALS      = 5;
    private static final int MIN_MATCH          = 4;
    private static final int MF_LIMIT           = 12;
-   private static final int LZ4_64K_LIMIT      = MAX_DISTANCE + MF_LIMIT;
    private static final int ML_BITS            = 4;
-   private static final int ML_MASK            = (1 << ML_BITS) - 1;
+   private static final int ML_MASK            = (1<<ML_BITS) - 1;
    private static final int RUN_BITS           = 8 - ML_BITS;
-   private static final int RUN_MASK           = (1 << RUN_BITS) - 1;
+   private static final int RUN_MASK           = (1<<RUN_BITS) - 1;
    private static final int COPY_LENGTH        = 8;
    private static final int MIN_LENGTH         = 14;
    private static final int MAX_LENGTH         = (32*1024*1024) - 4 - MIN_MATCH;
-   private static final int ACCELERATION       = 1;
    private static final int SKIP_TRIGGER       = 6;
-   private static final int SEARCH_MATCH_NB    = ACCELERATION << SKIP_TRIGGER;
+   private static final int SEARCH_MATCH_NB    = 1 << SKIP_TRIGGER;
 
-   private final int[] buffer;
+   private int[] buffer;
 
 
-   public LZ4Codec()
+   public LZCodec()
    {
-      this.buffer = new int[1<<HASH_LOG_64K];
+      this.buffer = new int[0];
    }
 
 
-   private static int writeLength(byte[] array, int idx, int len)
+   private static int emitLength(byte[] block, int idx, int length)
    {
-      while (len >= 0x1FE)
+      while (length >= 0x1FE)
       {
-         array[idx]   = (byte) 0xFF;
-         array[idx+1] = (byte) 0xFF;
+         block[idx]   = (byte) 0xFF;
+         block[idx+1] = (byte) 0xFF;
          idx += 2;
-         len -= 0x1FE;
+         length -= 0x1FE;
       }
 
-      if (len >= 0xFF)
+      if (length >= 0xFF)
       {
-         array[idx++] = (byte) 0xFF;
-         len -= 0xFF;
+         block[idx++] = (byte) 0xFF;
+         length -= 0xFF;
       }
 
-      array[idx] = (byte) len;
-      return idx + 1;
+      block[idx] = (byte) length;
+      return idx+1;
    }
 
    
-   private static int writeLastLiterals(byte[] src, int srcIdx, byte[] dst, int dstIdx, int runLength)
+   private static int emitLastLiterals(byte[] src, int srcIdx, byte[] dst, int dstIdx, int runLength)
    {
       if (runLength >= RUN_MASK)
       {
-         dst[dstIdx++] = (byte) (RUN_MASK << ML_BITS);
-         dstIdx = writeLength(dst, dstIdx, runLength - RUN_MASK);               
+         dst[dstIdx++] = (byte) (RUN_MASK<<ML_BITS);
+         dstIdx = emitLength(dst, dstIdx, runLength - RUN_MASK);               
       }
       else
       {
-         dst[dstIdx++] = (byte) (runLength << ML_BITS);
+         dst[dstIdx++] = (byte) (runLength<<ML_BITS);
       } 
             
       System.arraycopy(src, srcIdx, dst, dstIdx, runLength);
@@ -111,7 +105,7 @@ public final class LZ4Codec implements ByteFunction
       if (output.length - output.index < this.getMaxEncodedLength(count))
          return false;
 
-      final int hashLog = (count < LZ4_64K_LIMIT) ? HASH_LOG_64K : HASH_LOG;
+      final int hashLog = (count<MAX_DISTANCE) ? HASH_LOG_SMALL : HASH_LOG_BIG;
       final int hashShift = 32 - hashLog;
       final int srcIdx0 = input.index;
       final int dstIdx0 = output.index;
@@ -123,18 +117,25 @@ public final class LZ4Codec implements ByteFunction
       int srcIdx = srcIdx0;
       int dstIdx = dstIdx0;
       int anchor = srcIdx0;
-      final int[] table = this.buffer; // aliasing
 
       if (count > MIN_LENGTH)
       {    
-         for (int i=(1<<hashLog)-1; i>=0; i--)
-            table[i] = 0;
+         if (this.buffer.length < (1<<hashLog))
+         {
+            this.buffer = new int[(1<<hashLog)];
+         }
+         else
+         {
+            for (int i=0; i<this.buffer.length; i++)
+               this.buffer[i] = 0;
+         }
 
          // First byte
-         int h = (Memory.LittleEndian.readInt32(src, srcIdx) * HASH_SEED) >>> hashShift;
+         final int[] table = this.buffer;
+         int h = (Memory.LittleEndian.readInt32(src, srcIdx)*HASH_SEED) >>> hashShift;
          table[h] = srcIdx - srcIdx0;         
          srcIdx++;
-         h = (Memory.LittleEndian.readInt32(src, srcIdx) * HASH_SEED) >>> hashShift;
+         h = (Memory.LittleEndian.readInt32(src, srcIdx)*HASH_SEED) >>> hashShift;
 
          while (true)
          {
@@ -152,7 +153,7 @@ public final class LZ4Codec implements ByteFunction
                if (fwdIdx > mfLimit)
                {
                   // Encode last literals
-                  output.index = writeLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);                                    
+                  output.index = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);                                    
                   input.index = srcEnd;
                   return true;
                }
@@ -161,7 +162,7 @@ public final class LZ4Codec implements ByteFunction
                searchMatchNb++;
                match = table[h] + srcIdx0;            
                table[h] = srcIdx - srcIdx0;
-               h = (Memory.LittleEndian.readInt32(src, fwdIdx) * HASH_SEED) >>> hashShift;
+               h = (Memory.LittleEndian.readInt32(src, fwdIdx)*HASH_SEED) >>> hashShift;
             }
             while ((differentInts(src, match, srcIdx) == true) || (match <= srcIdx - MAX_DISTANCE));
 
@@ -180,7 +181,7 @@ public final class LZ4Codec implements ByteFunction
             if (litLength >= RUN_MASK)
             {
                dst[token] = (byte) (RUN_MASK << ML_BITS);
-               dstIdx = writeLength(dst, dstIdx, litLength-RUN_MASK);               
+               dstIdx = emitLength(dst, dstIdx, litLength-RUN_MASK);               
             }
             else
             {
@@ -215,7 +216,7 @@ public final class LZ4Codec implements ByteFunction
                if (matchLength >= ML_MASK)
                {
                   dst[token] += (byte) ML_MASK;
-                  dstIdx = writeLength(dst, dstIdx, matchLength-ML_MASK);                 
+                  dstIdx = emitLength(dst, dstIdx, matchLength-ML_MASK);                 
                }
                else
                {
@@ -227,17 +228,17 @@ public final class LZ4Codec implements ByteFunction
                if (srcIdx > mfLimit)
                {
                   // Encode last literals
-                  output.index = writeLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);
+                  output.index = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);
                   input.index = srcEnd;
                   return true;
                }
 
                // Fill table
-               h = (Memory.LittleEndian.readInt32(src, srcIdx-2) * HASH_SEED) >>> hashShift;
+               h = (Memory.LittleEndian.readInt32(src, srcIdx-2)*HASH_SEED) >>> hashShift;
                table[h] = srcIdx - 2 - srcIdx0;
 
                // Test next position
-               h = (Memory.LittleEndian.readInt32(src, srcIdx) * HASH_SEED) >>> hashShift;
+               h = (Memory.LittleEndian.readInt32(src, srcIdx)*HASH_SEED) >>> hashShift;
                match = table[h] + srcIdx0;
                table[h] = srcIdx - srcIdx0;
 
@@ -252,11 +253,11 @@ public final class LZ4Codec implements ByteFunction
             
             // Prepare next loop
             srcIdx++;
-            h = (Memory.LittleEndian.readInt32(src, srcIdx) * HASH_SEED) >>> hashShift;
+            h = (Memory.LittleEndian.readInt32(src, srcIdx)*HASH_SEED) >>> hashShift;
          }
       }
 
-      dstIdx = writeLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);
+      dstIdx = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);
       
       // Encode last literals
       output.index = dstIdx;
@@ -265,8 +266,6 @@ public final class LZ4Codec implements ByteFunction
    }
 
 
-   // Reads same byte input as LZ4_decompress_generic in LZ4 r131 (7/15) 
-   // for a 32 bit architecture.
    @Override
    public boolean inverse(SliceByteArray input, SliceByteArray output)
    {

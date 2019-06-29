@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Random;
 import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
-import kanzi.function.LZ4Codec;
+import kanzi.function.LZCodec;
 import kanzi.function.RLT;
 import kanzi.function.ROLZCodec;
 import kanzi.function.SRT;
@@ -125,7 +125,7 @@ public class TestFunctions
       switch(name) 
       {
          case "LZ":
-            return new LZ4Codec();
+            return new LZCodec();
 
          case "ZRLT":
             return new ZRLT();
