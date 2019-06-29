@@ -563,6 +563,7 @@ public class Kanzi
            map.put("block", blockSize);
 
         map.put("verbose", verbose);
+        map.put("mode", mode);
         
         if (mode == 'c')
            map.put("level", level);
