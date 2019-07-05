@@ -127,7 +127,7 @@ public class BWTBlockCodec implements ByteFunction
          blockMode = (blockMode << 6) | ((primaryIndex >>> shift) & 0x3F);
          output.array[idx++] = (byte) blockMode;
 
-         for (int n=1; n<pIndexSizeBytes; n++)
+         while (shift >= 8)
          {
             shift -= 8;
             output.array[idx++] = (byte) (primaryIndex >> shift);
