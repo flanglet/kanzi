@@ -586,6 +586,12 @@ public class Global
    
    public static int[] computeJobsPerTask(int[] jobsPerTask, int jobs, int tasks)
    {
+      if (tasks <= 0)
+         throw new IllegalArgumentException("Invalid number of tasks provided: "+tasks);
+
+      if (jobs <= 0)
+         throw new IllegalArgumentException("Invalid number of jobs provided: "+jobs);
+
       int q = (jobs <= tasks) ? 1 : jobs / tasks;
       int r = (jobs <= tasks) ? 0 : jobs - q*tasks;
       Arrays.fill(jobsPerTask, q);
