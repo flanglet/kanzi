@@ -150,28 +150,32 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    { 
       List<Path> files = new ArrayList<>();
       long before = System.nanoTime();
-      
-      try
-      {
-         Kanzi.createFileList(this.inputName, files);
-      }
-      catch (IOException e)
-      {
-         System.err.println(e.getMessage());
-         return Error.ERR_OPEN_FILE;
-      }
-      
-      if (files.isEmpty())
-      {
-         System.err.println("Cannot access input file '"+this.inputName+"'");
-         return Error.ERR_OPEN_FILE;
-      }
-
-      int nbFiles = files.size();
-      
       boolean printFlag = this.verbosity > 2;
-      String strFiles = (nbFiles > 1) ? " files" : " file";
-      printOut(nbFiles+strFiles+" to compress\n", this.verbosity > 0);
+      int nbFiles = 1;
+      
+      if (STDIN.equalsIgnoreCase(this.inputName) == false)
+      {
+         try
+         {
+            Kanzi.createFileList(this.inputName, files);
+         }
+         catch (IOException e)
+         {
+            System.err.println(e.getMessage());
+            return Error.ERR_OPEN_FILE;
+         }
+
+         if (files.isEmpty())
+         {
+            System.err.println("Cannot access input file '"+this.inputName+"'");
+            return Error.ERR_OPEN_FILE;
+         }
+
+         nbFiles = files.size();
+         String strFiles = (nbFiles > 1) ? " files" : " file";
+         printOut(nbFiles+strFiles+" to compress\n", this.verbosity > 0);
+      }
+      
       printOut("Block size set to " + this.blockSize + " bytes", printFlag);
       printOut("Verbosity set to " + this.verbosity, printFlag);
       printOut("Overwrite set to " + this.overwrite, printFlag);
@@ -205,51 +209,51 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       int res = 0;
       long read = 0;
       long written = 0;            
+      boolean inputIsDir = false;
+      String formattedOutName = this.outputName;
+      String formattedInName = this.inputName;
+      boolean specialOutput = (NONE.equalsIgnoreCase(formattedOutName)) || 
+         (STDOUT.equalsIgnoreCase(formattedOutName));
 
       try
       {
-         boolean inputIsDir;
-         String formattedOutName = this.outputName;
-         String formattedInName = this.inputName;
-         boolean specialOutput = (NONE.equalsIgnoreCase(formattedOutName)) || 
-            (STDOUT.equalsIgnoreCase(formattedOutName));
-         
-         if (Files.isDirectory(Paths.get(formattedInName))) 
+         if (STDIN.equalsIgnoreCase(this.inputName) == false)
          {
-            inputIsDir = true;
-
-            if (formattedInName.endsWith(".") == true)
-               formattedInName = formattedInName.substring(0, formattedInName.length()-1);
-
-            if (formattedInName.endsWith(File.separator) == false)
-               formattedInName += File.separator;
-            
-            if ((formattedOutName != null) && (specialOutput == false))          
+            if (Files.isDirectory(Paths.get(formattedInName))) 
             {
-               if (Files.isDirectory(Paths.get(formattedOutName)) == false)
+               inputIsDir = true;
+
+               if (formattedInName.endsWith(".") == true)
+                  formattedInName = formattedInName.substring(0, formattedInName.length()-1);
+
+               if (formattedInName.endsWith(File.separator) == false)
+                  formattedInName += File.separator;
+
+               if ((formattedOutName != null) && (specialOutput == false))          
                {
-                  System.err.println("Output must be an existing directory (or 'NONE')");
-                  return Error.ERR_CREATE_FILE;
+                  if (Files.isDirectory(Paths.get(formattedOutName)) == false)
+                  {
+                     System.err.println("Output must be an existing directory (or 'NONE')");
+                     return Error.ERR_CREATE_FILE;
+                  }
+
+                  if (formattedOutName.endsWith(File.separator) == false)
+                     formattedOutName += File.separator;
                }
-               
-               if (formattedOutName.endsWith(File.separator) == false)
-                  formattedOutName += File.separator;
-            }
-         } 
-         else
-         {
-            inputIsDir = false;
-            
-            if ((formattedOutName != null) && (specialOutput == false))           
+            } 
+            else
             {
-               if (Files.isDirectory(Paths.get(formattedOutName)) == true)
+               if ((formattedOutName != null) && (specialOutput == false))           
                {
-                  System.err.println("Output must be a file (or 'NONE')");
-                  return Error.ERR_CREATE_FILE;
+                  if (Files.isDirectory(Paths.get(formattedOutName)) == true)
+                  {
+                     System.err.println("Output must be a file (or 'NONE')");
+                     return Error.ERR_CREATE_FILE;
+                  }
                }
             }
          }
-         
+     
          Map<String, Object> ctx = new HashMap<>();
          ctx.put("verbosity", this.verbosity);
          ctx.put("overwrite", this.overwrite);
@@ -265,19 +269,23 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          if (nbFiles == 1)
          {
             String oName = formattedOutName;
-            String iName = files.get(0).toString();
-            long fileSize = Files.size(files.get(0));
+            String iName = STDIN;
             
-            if (oName == null)
+            if (STDIN.equalsIgnoreCase(this.inputName) == false)
             {
-               oName = iName + ".knz";
-            }
-            else if ((inputIsDir == true) && (specialOutput == false))
-            {
-               oName = formattedOutName + iName.substring(formattedInName.length()+1) + ".knz";
+               iName = files.get(0).toString();
+               ctx.put("fileSize", Files.size(files.get(0)));
+
+               if (oName == null)
+               {
+                  oName = iName + ".knz";
+               }
+               else if ((inputIsDir == true) && (specialOutput == false))
+               {
+                  oName = formattedOutName + iName.substring(formattedInName.length()+1) + ".knz";
+               }
             }
             
-            ctx.put("fileSize", fileSize);
             ctx.put("inputName", iName);
             ctx.put("outputName", oName);
             ctx.put("jobs", this.jobs);
