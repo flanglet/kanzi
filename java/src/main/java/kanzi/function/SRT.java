@@ -59,7 +59,7 @@ public class SRT implements ByteFunction
          return false;
      
       final byte[] src = input.array;
-      final int srcIdx = input.index;
+      final int srcEnd = input.index + count;
       final int[] _freqs = this.freqs;
       final int[] _r2s = this.r2s;
       final int[] _s2r = this.s2r;
@@ -68,13 +68,13 @@ public class SRT implements ByteFunction
          _freqs[i] = 0;
 
       // find first symbols and count occurrences
-      for (int i=0, b=0; i<count; )
+      for (int i=input.index, b=0; i<srcEnd; )
       {
-         final byte val = src[srcIdx+i];
+         final byte val = src[i];
          final int c = val & 0xFF;
          int j = i + 1;
 
-         while ((j<count) && (src[srcIdx+j]==val))
+         while ((j<count) && (src[j]==val))
             j++;
 
          if (_freqs[c] == 0)
@@ -108,7 +108,7 @@ public class SRT implements ByteFunction
       // encoding
       for (int i=0; i<count; )
       {
-         final int c = src[srcIdx+i] & 0xFF;
+         final int c = src[i] & 0xFF;
          int r = _s2r[c] & 0xFF;
          int p = _buckets[c];
          dst[dstIdx+p] = (byte) r;
@@ -121,7 +121,7 @@ public class SRT implements ByteFunction
                _r2s[r] = _r2s[r-1];
                _s2r[_r2s[r]] = r;
                r--;
-            }
+            } 
             while (r != 0);
 
             _r2s[0] = c;
@@ -130,7 +130,7 @@ public class SRT implements ByteFunction
 
          int j = i + 1;
 
-         while ((j<count) && (src[srcIdx+j]==c)) 
+         while ((j<count) && (src[j]==c)) 
          {
             dst[dstIdx+p] = 0;
             p++;
@@ -205,7 +205,7 @@ public class SRT implements ByteFunction
          } 
          else 
          {
-            if (nbSymbols == 0)
+            if (nbSymbols == 1)
                continue;
 
             nbSymbols--;

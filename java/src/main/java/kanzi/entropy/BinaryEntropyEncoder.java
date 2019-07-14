@@ -121,7 +121,7 @@ public class BinaryEntropyEncoder implements EntropyEncoder
         
       // Update fields with new interval bounds
       if (bit == 0)
-         this.low = this.low + split + 1;
+         this.low += (split + 1);
       else 
          this.high = this.low + split;
 	
