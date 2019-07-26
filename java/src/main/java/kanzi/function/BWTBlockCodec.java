@@ -182,6 +182,6 @@ public class BWTBlockCodec implements ByteFunction
    @Override
    public int getMaxEncodedLength(int srcLen)
    {
-      return srcLen + BWT_MAX_HEADER_SIZE + BWT.maxBlockSize(); 
+      return srcLen + BWT_MAX_HEADER_SIZE; 
    }
 }
