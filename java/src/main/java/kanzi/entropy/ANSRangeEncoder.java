@@ -26,9 +26,9 @@ import kanzi.OutputBitStream;
 
 public class ANSRangeEncoder implements EntropyEncoder
 {
-   private static final int ANS_TOP = 1 << 15;
+   private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<23
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
-   private static final int DEFAULT_LOG_RANGE = 13; // max possible for ANS_TOP=1<23
+   private static final int DEFAULT_LOG_RANGE = 12; 
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final OutputBitStream bitstream;

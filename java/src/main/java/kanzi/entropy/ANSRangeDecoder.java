@@ -26,8 +26,9 @@ import kanzi.InputBitStream;
 
 public class ANSRangeDecoder implements EntropyDecoder
 {
-   private static final int ANS_TOP = 1 << 15;
+   private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<23
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
+   private static final int DEFAULT_LOG_RANGE = 12;
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final InputBitStream bitstream;
@@ -77,6 +78,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.f2s = new byte[dim][256];
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
+      this.logRange = DEFAULT_LOG_RANGE;
       
       for (int i=0; i<dim; i++)
       {
