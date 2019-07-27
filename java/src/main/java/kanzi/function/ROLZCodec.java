@@ -45,7 +45,7 @@ public class ROLZCodec implements ByteFunction
    private static final int MATCH_FLAG = 1;
    private static final int HASH = 200002979;
    private static final int HASH_MASK = ~(CHUNK_SIZE - 1);
-   private static final int MAX_BLOCK_SIZE = 1 << 27; // 128 MB
+   private static final int MAX_BLOCK_SIZE = 1 << 30; // 1 GB
 
 
    private final ByteFunction delegate;
@@ -145,7 +145,7 @@ public class ROLZCodec implements ByteFunction
 
       if (src.length > MAX_BLOCK_SIZE)
          throw new IllegalArgumentException("The max ROLZ codec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
-
+      
       return this.delegate.inverse(src, dst);
    }
 
