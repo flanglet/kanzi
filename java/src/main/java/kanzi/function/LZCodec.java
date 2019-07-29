@@ -24,7 +24,7 @@ import kanzi.SliceByteArray;
 // It is just LZ4 modified to use a bigger hash map.
 public final class LZCodec implements ByteFunction
 {
-   private static final int HASH_SEED          = 0x9E3779B1;
+   private static final int HASH_SEED          = 0x7FEB352D;
    private static final int HASH_LOG_SMALL     = 12;
    private static final int HASH_LOG_BIG       = 16;
    private static final int MAX_DISTANCE       = (1<<16) - 1;
@@ -39,8 +39,7 @@ public final class LZCodec implements ByteFunction
    private static final int COPY_LENGTH        = 8;
    private static final int MIN_LENGTH         = 14;
    private static final int MAX_LENGTH         = (32*1024*1024) - 4 - MIN_MATCH;
-   private static final int SKIP_TRIGGER       = 6;
-   private static final int SEARCH_MATCH_NB    = 1 << SKIP_TRIGGER;
+   private static final int SEARCH_MATCH_NB    = 1 << 6;
 
    private int[] buffer;
 
