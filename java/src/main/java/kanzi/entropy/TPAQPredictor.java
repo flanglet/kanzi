@@ -207,7 +207,7 @@ public class TPAQPredictor implements Predictor
       int mixersSize = 1 << 12;
       int hashSize = HASH_SIZE;
       int extraMem = 0;
-      
+    
       if (ctx != null)
       {
          // If extra mode, add more memory for states table, hash table
@@ -232,7 +232,9 @@ public class TPAQPredictor implements Predictor
          // Too few mixers hurts compression for big blocks.
          final int absz = (Integer) ctx.getOrDefault("size", rbsz);
 
-         if (absz >= 16*1024*1024)
+         if (absz >= 32*1024*1024)
+            mixersSize = 1 << 17;
+         else if (absz >= 16*1024*1024)
             mixersSize = 1 << 16;
          else if (absz >= 8*1024*1024)
             mixersSize = 1 << 14;
@@ -300,18 +302,24 @@ public class TPAQPredictor implements Predictor
         if (this.binCount < (this.pos>>2))
         {
            // Mostly text or mixed
-           final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4&MASK_4F4FFFFF : this.c4&MASK_80808080;
-           final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : this.c8&MASK_80808080;
            this.ctx4 = createContext(this.ctx1, this.c4^(this.c8&0xFFFF));
            this.ctx5 = (this.c8&MASK_F0F0F000) | ((this.c4&MASK_F0F0F000)>>4);
-           this.ctx6 = hash(h1<<4, h2); 
+           
+           if (this.extra == true)
+           {
+               final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4&MASK_4F4FFFFF : this.c4&MASK_80808080;
+               final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : this.c8&MASK_80808080;
+               this.ctx6 = hash(h1<<2, h2>>2); 
+           }
         }
         else
         {
            // Mostly binary
            this.ctx4 = createContext(HASH, this.c4^(this.c4&0x000FFFFF));
            this.ctx5 = this.ctx0 | (this.c8<<16);
-           this.ctx6 = hash(this.c4&MASK_FFFF0000, this.c8>>16);
+           
+           if (this.extra == true)
+               this.ctx6 = hash(this.c4&MASK_FFFF0000, this.c8>>16);
         }
 
         this.findMatch();
@@ -356,7 +364,7 @@ public class TPAQPredictor implements Predictor
       if (this.extra == false)
       {
          // Mix predictions using NN
-         p = this.mixer.get(p0, p1, p2, p3, p4, p5, (p2+p7)>>1, p7);
+         p = this.mixer.get(p0, p1, p2, p3, p4, p5, p7, p7);
          
          // SSE (Secondary Symbol Estimation)
          if (this.binCount < (this.pos>>3))
@@ -437,7 +445,7 @@ public class TPAQPredictor implements Predictor
          int p = (this.matchLen<=24) ? this.matchLen : 24+((this.matchLen-24)>>3);
 
          if (((this.buffer[this.matchPos&MASK_BUFFER] >> (this.bpos-1)) & 1) == 0)
-            p = -p;
+            return -p << 6;
 
          return p << 6;
       }
