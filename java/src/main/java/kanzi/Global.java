@@ -15,7 +15,13 @@ limitations under the License.
 
 package kanzi;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 
 public class Global
@@ -608,5 +614,36 @@ public class Global
       } 
 
       return jobsPerTask;
-   }     
+   }
+   
+   
+   public static void sortFilesByPathAndSize(List<Path> files, boolean sorBySize)
+   {
+      Comparator<Path> c = new Comparator<Path>()
+      {
+         @Override
+         public int compare(Path p1, Path p2)
+         {
+            if (sorBySize == false)
+               return p1.compareTo(p2);
+            
+            // Compare parent directory paths
+            final int res = p1.getParent().compareTo(p2.getParent());
+            
+            if (res != 0)
+               return res;
+            
+            try 
+            {
+               return (int) (Files.size(p1) - Files.size(p2));
+            }
+            catch (IOException e)
+            {
+               return -1;
+            }
+         }         
+      };
+      
+      Collections.sort(files, c);     
+   }
 }

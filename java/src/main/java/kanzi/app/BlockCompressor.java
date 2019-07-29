@@ -300,7 +300,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             ArrayBlockingQueue<FileCompressTask> queue = new ArrayBlockingQueue(nbFiles, true);
             int[] jobsPerTask = Global.computeJobsPerTask(new int[nbFiles], this.jobs, nbFiles);
             int n = 0;
-            Collections.sort(files);
+            Global.sortFilesByPathAndSize(files, false);
 
             // Create one task per file
             for (Path file : files)
