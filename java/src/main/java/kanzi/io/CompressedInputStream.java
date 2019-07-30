@@ -347,9 +347,9 @@ public class CompressedInputStream extends InputStream
       try
       {
          // Add a padding area to manage any block with header or temporarily expanded
-         final int blkSize = Math.max(this.blockSize+EXTRA_BUFFER_SIZE, (this.blockSize*17)>>4);
+         final int blkSize = Math.max(this.blockSize+EXTRA_BUFFER_SIZE, this.blockSize+(this.blockSize>>4));
 
-		   // Protect against future concurrent modification of the list of block listeners
+         // Protect against future concurrent modification of the list of block listeners
          Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
          int decoded = 0;
          this.sa.index = 0;
