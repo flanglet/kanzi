@@ -45,11 +45,14 @@ public class EntropyUtils
 
 
    // alphabet must be sorted in increasing order
-   // alphabet length must be a power of 2
+   // alphabet length must be a power of 2 up to 256
    public static int encodeAlphabet(OutputBitStream obs, int[] alphabet, int count)
    {
       // Alphabet length must be a power of 2
       if ((alphabet.length & (alphabet.length-1)) != 0)
+         return -1;
+      
+      if (alphabet.length > 256)
          return -1;
 
       if (count > alphabet.length)
@@ -72,7 +75,7 @@ public class EntropyUtils
 
             // Write alphabet size
             obs.writeBit(ALPHABET_NOT_256);
-            obs.writeBits(log-1, 5);
+            obs.writeBits(log-1, 3);
             obs.writeBits(count, log);
          }
 
@@ -90,9 +93,10 @@ public class EntropyUtils
          for (int i=0; i<count; i++)
             masks[alphabet[i]>>6] |= (1L << (alphabet[i] & 63));
 
-         for (int i=0; i<masks.length; i++)
-            obs.writeBits(masks[i], 64);
-
+         obs.writeBits(masks[0], 64);
+         obs.writeBits(masks[1], 64);
+         obs.writeBits(masks[2], 64);
+         obs.writeBits(masks[3], 64);
          return count;
       }
 
@@ -109,7 +113,7 @@ public class EntropyUtils
             log++;
 
          // Write length
-         obs.writeBits(log-1, 4);
+         obs.writeBits(log-1, 3);
          obs.writeBits(count, log);
 
          if (count == 0)
@@ -122,7 +126,7 @@ public class EntropyUtils
             log++;
 
          // Write log(alphabet size)
-         obs.writeBits(log-1, 5);
+         obs.writeBits(log-1, 4);
          int symbol = 0;
          int previous = 0;
 
@@ -153,7 +157,7 @@ public class EntropyUtils
             log++;
 
          // Write length
-         obs.writeBits(log-1, 4);
+         obs.writeBits(log-1, 3);
          obs.writeBits(count, log);
 
          if (count == 0)
@@ -170,7 +174,7 @@ public class EntropyUtils
          }
       }
 
-      final int ckSize = (count <= 64) ? 8 : 16;
+      final int ckSize = (count + 3) >> 2;
 
       // Encode all deltas by chunks
       for (int i=0; i<count; i+=ckSize)
@@ -189,7 +193,7 @@ public class EntropyUtils
          while (1<<log <= max)
              log++;
 
-         obs.writeBits(log-1, 4);
+         obs.writeBits(log-1, 3);
 
          // Write deltas for this chunk
          for (int j=i; (j<count) && (j<i+ckSize); j++)
@@ -214,7 +218,7 @@ public class EntropyUtils
             alphabetSize = 256;
          else
          {
-            int log = 1 + (int) ibs.readBits(5);
+            int log = 1 + (int) ibs.readBits(3);
             alphabetSize = (int) ibs.readBits(log);
          }
 
@@ -253,19 +257,19 @@ public class EntropyUtils
       }
 
       // DELTA_ENCODED_ALPHABET
-      int log = 1 + (int) ibs.readBits(4);
+      int log = 1 + (int) ibs.readBits(3);
       count = (int) ibs.readBits(log);
 
       if (count == 0)
          return 0;
 
-      final int ckSize = (count <= 64) ? 8 : 16;
+      final int ckSize = (count + 3) >> 2;
       int n = 0;
       int symbol = 0;
 
       if (ibs.readBit() == ABSENT_SYMBOLS_MASK)
       {
-         int alphabetSize = 1 << (int) ibs.readBits(5);
+         int alphabetSize = 1 << (int) ibs.readBits(4);
 
          if (alphabetSize > alphabet.length)
             throw new BitStreamException("Invalid bitstream: incorrect alphabet size: " + alphabetSize,
@@ -274,7 +278,7 @@ public class EntropyUtils
          // Read missing symbols
          for (int i=0; i<count; i+=ckSize)
          {
-            log = 1 + (int) ibs.readBits(4);
+            log = 1 + (int) ibs.readBits(3);
 
             // Read deltas for this chunk
             for (int j=i; (j<count) && (j<i+ckSize); j++)
@@ -301,7 +305,7 @@ public class EntropyUtils
          // Read present symbols
          for (int i=0; i<count; i+=ckSize)
          {
-            log = 1 + (int) ibs.readBits(4);
+            log = 1 + (int) ibs.readBits(3);
 
             // Read deltas for this chunk
             for (int j=i; (j<count) && (j<i+ckSize); j++)
