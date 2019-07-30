@@ -196,7 +196,7 @@ public class ByteTransformSequence implements ByteFunction
       {
          if (transform instanceof ByteFunction)
          {
-            int reqSize = ((ByteFunction) transform).getMaxEncodedLength(srcLength);
+            final int reqSize = ((ByteFunction) transform).getMaxEncodedLength(requiredSize);
 
             if (reqSize > requiredSize)
                requiredSize = reqSize;
