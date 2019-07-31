@@ -617,14 +617,14 @@ public class Global
    }
    
    
-   public static void sortFilesByPathAndSize(List<Path> files, boolean sorBySize)
+   public static void sortFilesByPathAndSize(List<Path> files, final boolean sortBySize)
    {
       Comparator<Path> c = new Comparator<Path>()
       {
          @Override
          public int compare(Path p1, Path p2)
          {
-            if (sorBySize == false)
+            if (sortBySize == false)
                return p1.compareTo(p2);
             
             // Compare parent directory paths
