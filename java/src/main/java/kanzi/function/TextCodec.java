@@ -730,6 +730,7 @@ public final class TextCodec implements ByteFunction
       int prv = 0;
       final int length = srcEnd - srcIdx;
       final int srcEnd4 = srcIdx + (length & -4);
+      
       // Unroll loop
       for (int i=srcIdx; i<srcEnd4; i+=4)
       {
@@ -765,11 +766,7 @@ public final class TextCodec implements ByteFunction
       }
 
       // Not text (crude threshold)
-      if (2*nbTextChars < length)
-         return MASK_NOT_TEXT;
-
-      // Not text (crude threshold)
-      if (16*freqs0[32] < length)
+      if ((2*nbTextChars < length) || (16*freqs0[32] < length))
          return MASK_NOT_TEXT;
 
       int nbBinChars = 0;
@@ -893,7 +890,7 @@ public final class TextCodec implements ByteFunction
    // Encode word indexes using a token
    static class TextCodec1 implements ByteFunction
    {
-      private final DictEntry[] dictMap;
+      private DictEntry[] dictMap;
       private DictEntry[] dictList;
       private final int staticDictSize;
       private final int logHashSize;
@@ -906,16 +903,10 @@ public final class TextCodec implements ByteFunction
       {
          this.logHashSize = LOG_HASHES_SIZE;
          this.dictSize = THRESHOLD2*4;
-         this.dictMap = new DictEntry[1<<this.logHashSize];
-         this.dictList = new DictEntry[this.dictSize];
+         this.dictMap = new DictEntry[0];
+         this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;        
-         System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
-         int nbWords = STATIC_DICT_WORDS;
- 
-         // Add special entries at end of static dictionary
-         this.dictList[nbWords]   = new DictEntry(new byte[] { ESCAPE_TOKEN2 }, 0, 0, nbWords, 1);
-         this.dictList[nbWords+1] = new DictEntry(new byte[] { ESCAPE_TOKEN1 }, 0, 0, nbWords+1, 1);
-         this.staticDictSize = nbWords + 2;
+         this.staticDictSize = STATIC_DICT_WORDS + 2;
       }
 
 
@@ -941,25 +932,36 @@ public final class TextCodec implements ByteFunction
          final int extraMem = (extraPerf == true) ? 1 : 0;
          this.logHashSize = log + extraMem;
          this.dictSize = dSize;
-         this.dictMap = new DictEntry[1<<this.logHashSize];
-         this.dictList = new DictEntry[this.dictSize];
+         this.dictMap = new DictEntry[0];
+         this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
-         System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
-         int nbWords = STATIC_DICT_WORDS;
-
-         // Add special entries at end of static dictionary
-         this.dictList[nbWords]   = new DictEntry(new byte[] { ESCAPE_TOKEN2 }, 0, 0, nbWords, 1);
-         this.dictList[nbWords+1] = new DictEntry(new byte[] { ESCAPE_TOKEN1 }, 0, 0, nbWords+1, 1);
-         this.staticDictSize = nbWords + 2;
+         this.staticDictSize = STATIC_DICT_WORDS + 2;
       }
 
 
       private void reset()
       {
-         // Clear and populate hash map
-         for (int i=0; i<this.dictMap.length; i++)
-            this.dictMap[i] = null;
-         
+         // Allocate lazily (only if text input detected)
+         if (this.dictMap.length == 0)
+         {
+            this.dictMap = new DictEntry[1<<this.logHashSize];
+         }
+         else
+         {
+            for (int i=0; i<this.dictMap.length; i++)
+               this.dictMap[i] = null;            
+         }
+
+         if (this.dictList.length == 0)
+         {
+            this.dictList = new DictEntry[this.dictSize];
+            System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
+
+            // Add special entries at end of static dictionary
+            this.dictList[STATIC_DICT_WORDS]   = new DictEntry(new byte[] { ESCAPE_TOKEN2 }, 0, 0, STATIC_DICT_WORDS, 1);
+            this.dictList[STATIC_DICT_WORDS+1] = new DictEntry(new byte[] { ESCAPE_TOKEN1 }, 0, 0, STATIC_DICT_WORDS+1, 1);
+         }
+                  
          for (int i=0; i<this.staticDictSize; i++)
          {
             DictEntry e = this.dictList[i];
@@ -1025,99 +1027,102 @@ public final class TextCodec implements ByteFunction
 
             if ((srcIdx > delimAnchor+2) && isDelimiter(cur)) // At least 2 letters
             {
-               // Compute hashes
-               // h1 -> hash of word chars
-               // h2 -> hash of word chars with first char case flipped
-               final byte val = src[delimAnchor+1];
-               final int caseFlag = isUpperCase(val) ? 32 : -32;
-               int h1 = HASH1*HASH1 ^ val*HASH2;
-               int h2 = HASH1*HASH1 ^ (val+caseFlag)*HASH2;
-
-               for (int i=delimAnchor+2; i<srcIdx; i++)
-               {
-                  final int h = src[i] * HASH2;
-                  h1 = h1*HASH1 ^ h;
-                  h2 = h2*HASH1 ^ h;
-               }
-
-               // Check word in dictionary
                final int length = srcIdx - delimAnchor - 1;
-               DictEntry e1 = this.dictMap[h1&this.hashMask];
-
-               // Check for hash collisions
-               if ((e1 != null) && (((e1.hash != h1) || (e1.data>>>24) != length)))
-                  e1 = null;
-
-               DictEntry e = e1;
-
-               if (e == null)
+               
+               if (length < MAX_WORD_LENGTH)
                {
-                  DictEntry e2 = this.dictMap[h2&this.hashMask];
+                  // Compute hashes
+                  // h1 -> hash of word chars
+                  // h2 -> hash of word chars with first char case flipped
+                  final byte val = src[delimAnchor+1];
+                  final int caseFlag = isUpperCase(val) ? 32 : -32;
+                  int h1 = HASH1*HASH1 ^ val*HASH2;
+                  int h2 = HASH1*HASH1 ^ (val+caseFlag)*HASH2;
 
-                  if ((e2 != null) && ((e2.data>>>24) == length) && (e2.hash == h2))
-                     e = e2;
-               }
-
-               if (e != null)
-               {
-                  if (sameWords(e, src, delimAnchor+2, length-1) == false)
-                     e = null;
-               }
-
-               if (e == null)
-               {
-                  // Word not found in the dictionary or hash collision: add or replace word
-                  if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (length < MAX_WORD_LENGTH))
+                  for (int i=delimAnchor+2; i<srcIdx; i++)
                   {
-                     e = this.dictList[words];
+                     final int h = src[i]*HASH2;
+                     h1 = h1*HASH1 ^ h;
+                     h2 = h2*HASH1 ^ h;
+                  }
 
-                     if ((e.data&0x00FFFFFF) >= this.staticDictSize)
-                     {
-                        // Reuse old entry
-                        this.dictMap[e.hash&this.hashMask] = null;
-                        e.buf = src;
-                        e.pos = delimAnchor + 1;
-                        e.hash = h1;
-                        e.data = (length<<24) | words;
-                     }
-                    
-                     this.dictMap[h1&this.hashMask] = e;
-                     words++;
+                  // Check word in dictionary
+                  DictEntry e = null;
+                  DictEntry e1 = this.dictMap[h1&this.hashMask];
 
-                     // Dictionary full ? Expand or reset index to end of static dictionary
-                     if (words >= this.dictSize)
+                  // Check for hash collisions
+                  if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
+                     e = e1;
+
+                  if (e == null)
+                  {
+                     DictEntry e2 = this.dictMap[h2&this.hashMask];
+
+                     if ((e2 != null) && (e2.hash == h2) && ((e2.data>>>24) == length))
+                        e = e2;
+                  }
+
+                  if (e != null)
+                  {
+                     if (sameWords(e, src, delimAnchor+2, length-1) == false)
+                        e = null;
+                  }
+
+                  if (e == null)
+                  {
+                     // Word not found in the dictionary or hash collision: add or replace word
+                     if ((length > 3) || ((length > 2) && (words < THRESHOLD2)))
                      {
-                        if (this.expandDictionary() == false)
-                           words = this.staticDictSize;
+                        e = this.dictList[words];
+
+                        if ((e.data&0x00FFFFFF) >= this.staticDictSize)
+                        {
+                           // Reuse old entry
+                           this.dictMap[e.hash&this.hashMask] = null;
+                           e.buf = src;
+                           e.pos = delimAnchor + 1;
+                           e.hash = h1;
+                           e.data = (length<<24) | words;
+                        }
+
+                        this.dictMap[h1&this.hashMask] = e;
+                        words++;
+
+                        // Dictionary full ? Expand or reset index to end of static dictionary
+                        if (words >= this.dictSize)
+                        {
+                           if (this.expandDictionary() == false)
+                              words = this.staticDictSize;
+                        }
                      }
                   }
-               }
-               else
-               {     
-                  // Word found in the dictionary
-                  // Skip space if only delimiter between 2 word references
-                  if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
-                  {
-                     final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
-                     
-                     if (dIdx < 0)
+                  else
+                  {     
+                     // Word found in the dictionary
+                     // Skip space if only delimiter between 2 word references
+                     if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
+                     {
+                        final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
+
+                        if (dIdx < 0)
+                        {
+                           res = false;
+                           break;
+                        }
+
+                        dstIdx = dIdx;
+                     }
+
+                     if (dstIdx >= dstEnd4)
                      {
                         res = false;
                         break;
                      }
-                     
-                     dstIdx = dIdx;
-                  }
-                  
-                  if (dstIdx >= dstEnd4)
-                  {
-                     res = false;
-                     break;
-                  }
 
-                  dst[dstIdx++] = (e == e1) ? ESCAPE_TOKEN1 : ESCAPE_TOKEN2;
-                  dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF);
-                  emitAnchor = delimAnchor + 1 + (e.data>>>24);
+                     dst[dstIdx++] = (e == e1) ? ESCAPE_TOKEN1 : ESCAPE_TOKEN2;
+                     dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF);
+                     emitAnchor = delimAnchor + 1 + (e.data>>>24);
+                  }
                }
             }
 
@@ -1255,49 +1260,52 @@ public final class TextCodec implements ByteFunction
 
             if ((srcIdx > delimAnchor+2) && isDelimiter(cur))
             {
-               int h1 = HASH1;
-
-               for (int i=delimAnchor+1; i<srcIdx; i++)
-                  h1 = h1*HASH1 ^ src[i]*HASH2;
-
-               // Lookup word in dictionary
                final int length = srcIdx - delimAnchor - 1;
-               DictEntry e = this.dictMap[h1&this.hashMask];
-
-               // Check for hash collisions
-               if (e != null)
+               
+               if (length < MAX_WORD_LENGTH)
                {
-                  if ((e.hash != h1) || ((e.data>>>24) != length))
-                     e = null;
-                  else if (sameWords(e, src, delimAnchor+2, length-1) == false)
-                     e = null;
-               }
+                  int h1 = HASH1;
 
-               if (e == null)
-               {
-                  // Word not found in the dictionary or hash collision: add or replace word
-                  if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (length < MAX_WORD_LENGTH))
+                  for (int i=delimAnchor+1; i<srcIdx; i++)
+                     h1 = h1*HASH1 ^ src[i]*HASH2;
+
+                  // Lookup word in dictionary
+                  DictEntry e = null;
+                  DictEntry e1 = this.dictMap[h1&this.hashMask];
+
+                  // Check for hash collisions
+                  if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
                   {
-                     e = this.dictList[words];
+                     if (sameWords(e1, src, delimAnchor+2, length-1) == true)
+                        e = e1;
+                  }
 
-                     if ((e.data&0x00FFFFFF) >= this.staticDictSize)
+                  if (e == null)
+                  {
+                     // Word not found in the dictionary or hash collision: add or replace word
+                     if ((length > 3) || ((length > 2) && (words < THRESHOLD2)))
                      {
-                        // Reuse old entry
-                        this.dictMap[e.hash&this.hashMask] = null;
-                        e.buf = src;
-                        e.pos = delimAnchor + 1;
-                        e.hash = h1;
-                        e.data = (length<<24) | words;
-                     }
+                        e = this.dictList[words];
 
-                     this.dictMap[h1&this.hashMask] = e;
-                     words++;
+                        if ((e.data&0x00FFFFFF) >= this.staticDictSize)
+                        {
+                           // Reuse old entry
+                           this.dictMap[e.hash&this.hashMask] = null;
+                           e.buf = src;
+                           e.pos = delimAnchor + 1;
+                           e.hash = h1;
+                           e.data = (length<<24) | words;
+                        }
 
-                     // Dictionary full ? Expand or reset index to end of static dictionary
-                     if (words >= this.dictSize)
-                     {
-                        if (this.expandDictionary() == false)
-                           words = this.staticDictSize;
+                        this.dictMap[h1&this.hashMask] = e;
+                        words++;
+
+                        // Dictionary full ? Expand or reset index to end of static dictionary
+                        if (words >= this.dictSize)
+                        {
+                           if (this.expandDictionary() == false)
+                              words = this.staticDictSize;
+                        }
                      }
                   }
                }
@@ -1398,7 +1406,7 @@ public final class TextCodec implements ByteFunction
    // Encode word indexes using a mask (0x80)
    static class TextCodec2 implements ByteFunction
    {
-      private final DictEntry[] dictMap;
+      private DictEntry[] dictMap;
       private DictEntry[] dictList;
       private final int staticDictSize;
       private final int logHashSize;
@@ -1411,10 +1419,9 @@ public final class TextCodec implements ByteFunction
       {
          this.logHashSize = LOG_HASHES_SIZE;
          this.dictSize = THRESHOLD2*4;
-         this.dictMap = new DictEntry[1<<this.logHashSize];
-         this.dictList = new DictEntry[this.dictSize];
+         this.dictMap = new DictEntry[0];
+         this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
-         System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          this.staticDictSize = STATIC_DICT_WORDS;
       }
 
@@ -1441,20 +1448,33 @@ public final class TextCodec implements ByteFunction
          final int extraMem = (extraPerf == true) ? 1 : 0;
          this.logHashSize = log + extraMem;
          this.dictSize = dSize;
-         this.dictMap = new DictEntry[1<<this.logHashSize];
-         this.dictList = new DictEntry[this.dictSize];
+         this.dictMap = new DictEntry[0];
+         this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
-         System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
          this.staticDictSize = STATIC_DICT_WORDS;
       }
 
 
       private void reset()
       {
-         // Clear and populate hash map
-         for (int i=0; i<this.dictMap.length; i++)
-            this.dictMap[i] = null;
+         // Allocate lazily (only if text input detected)
+         if (this.dictMap.length == 0)
+         {
+            this.dictMap = new DictEntry[1<<this.logHashSize];
+         }
+         else
+         {
+            for (int i=0; i<this.dictMap.length; i++)
+               this.dictMap[i] = null;
+         }
          
+         if (this.dictList.length == 0)
+         {
+            this.dictList = new DictEntry[this.dictSize];         
+            System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
+         }
+         
+         // Update map
          for (int i=0; i<this.staticDictSize; i++)
          {
             DictEntry e = this.dictList[i];
@@ -1520,98 +1540,101 @@ public final class TextCodec implements ByteFunction
 
             if ((srcIdx > delimAnchor+2) && isDelimiter(cur)) // At least 2 letters
             {
-               // Compute hashes
-               // h1 -> hash of word chars
-               // h2 -> hash of word chars with first char case flipped
-               final byte val = src[delimAnchor+1];
-               final int caseFlag = isUpperCase(val) ? 32 : -32;
-               int h1 = HASH1*HASH1 ^ val*HASH2;
-               int h2 = HASH1*HASH1 ^ (val+caseFlag)*HASH2;
-
-               for (int i=delimAnchor+2; i<srcIdx; i++)
-               {
-                  final int h = src[i] * HASH2;
-                  h1 = h1*HASH1 ^ h;
-                  h2 = h2*HASH1 ^ h;
-               }
-
-               // Check word in dictionary
                final int length = srcIdx - delimAnchor - 1;
-               DictEntry e1 = this.dictMap[h1&this.hashMask];              
-
-               // Check for hash collisions
-               if ((e1 != null) && (((e1.hash != h1) || (e1.data>>>24) != length)))
-                  e1 = null;
-
-               DictEntry e = e1;
                
-               if (e1 == null)
+               if (length < MAX_WORD_LENGTH)
                {
-                  DictEntry e2 = this.dictMap[h2&this.hashMask];
+                  // Compute hashes
+                  // h1 -> hash of word chars
+                  // h2 -> hash of word chars with first char case flipped
+                  final byte val = src[delimAnchor+1];
+                  final int caseFlag = isUpperCase(val) ? 32 : -32;
+                  int h1 = HASH1*HASH1 ^ val*HASH2;
+                  int h2 = HASH1*HASH1 ^ (val+caseFlag)*HASH2;
 
-                  if ((e2 != null) && ((e2.data>>>24) == length) && (e2.hash == h2))
-                     e = e2;
-               }
-               
-               if (e != null)
-               {
-                  if (sameWords(e, src, delimAnchor+2, length-1) == false)
-                     e = null;
-               }
-
-               if (e == null)
-               {
-                  // Word not found in the dictionary or hash collision: add or replace word
-                  if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (length < MAX_WORD_LENGTH))
+                  for (int i=delimAnchor+2; i<srcIdx; i++)
                   {
-                     e = this.dictList[words];
+                     final int h = src[i] * HASH2;
+                     h1 = h1*HASH1 ^ h;
+                     h2 = h2*HASH1 ^ h;
+                  }
 
-                     if ((e.data&0x00FFFFFF) >= this.staticDictSize)
-                     {
-                        // Reuse old entry
-                        this.dictMap[e.hash&this.hashMask] = null;
-                        e.buf = src;
-                        e.pos = delimAnchor + 1;
-                        e.hash = h1;
-                        e.data = (length<<24) | words;
-                     }
-                                  
-                     this.dictMap[h1&this.hashMask] = e;
-                     words++;
+                  // Check word in dictionary
+                  DictEntry e = null;
+                  DictEntry e1 = this.dictMap[h1&this.hashMask];              
 
-                     // Dictionary full ? Expand or reset index to end of static dictionary
-                     if (words >= this.dictSize)
+                  // Check for hash collisions
+                  if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
+                     e = e1;
+
+                  if (e == null)
+                  {
+                     DictEntry e2 = this.dictMap[h2&this.hashMask];
+
+                     if ((e2 != null) && (e2.hash == h2) && ((e2.data>>>24) == length))
+                        e = e2;
+                  }
+
+                  if (e != null)
+                  {
+                     if (sameWords(e, src, delimAnchor+2, length-1) == false)
+                        e = null;
+                  }
+
+                  if (e == null)
+                  {
+                     // Word not found in the dictionary or hash collision: add or replace word
+                     if ((length > 3) || ((length > 2) && (words < THRESHOLD2))) 
                      {
-                        if (this.expandDictionary() == false)
-                           words = this.staticDictSize;
+                        e = this.dictList[words];
+
+                        if ((e.data&0x00FFFFFF) >= this.staticDictSize)
+                        {
+                           // Reuse old entry
+                           this.dictMap[e.hash&this.hashMask] = null;
+                           e.buf = src;
+                           e.pos = delimAnchor + 1;
+                           e.hash = h1;
+                           e.data = (length<<24) | words;
+                        }
+
+                        this.dictMap[h1&this.hashMask] = e;
+                        words++;
+
+                        // Dictionary full ? Expand or reset index to end of static dictionary
+                        if (words >= this.dictSize)
+                        {
+                           if (this.expandDictionary() == false)
+                              words = this.staticDictSize;
+                        }
                      }
                   }
-               }
-               else
-               {
-                  // Word found in the dictionary
-                  // Skip space if only delimiter between 2 word references
-                  if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
+                  else
                   {
-                     final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
-                     
-                     if (dIdx < 0)
+                     // Word found in the dictionary
+                     // Skip space if only delimiter between 2 word references
+                     if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
+                     {
+                        final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
+
+                        if (dIdx < 0)
+                        {
+                           res = false;
+                           break;
+                        }
+
+                        dstIdx = dIdx;
+                     }
+
+                     if (dstIdx >= dstEnd3)
                      {
                         res = false;
                         break;
                      }
-                     
-                     dstIdx = dIdx;
+
+                     dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF, ((e == e1) ? 0 : 32));
+                     emitAnchor = delimAnchor + 1 + (e.data>>>24);
                   }
-                  
-                  if (dstIdx >= dstEnd3)
-                  {
-                     res = false;
-                     break;
-                  }
-                  
-                  dstIdx = emitWordIndex(dst, dstIdx, e.data&0x00FFFFFF, ((e == e1) ? 0 : 32));
-                  emitAnchor = delimAnchor + 1 + (e.data>>>24);
                }
             }
 
@@ -1792,49 +1815,52 @@ public final class TextCodec implements ByteFunction
 
             if ((srcIdx > delimAnchor+2) && isDelimiter(cur))
             {
-               int h1 = HASH1;
-
-               for (int i=delimAnchor+1; i<srcIdx; i++)
-                  h1 = h1*HASH1 ^ src[i]*HASH2;
-
-               // Lookup word in dictionary
                final int length = srcIdx - delimAnchor - 1;
-               DictEntry e = this.dictMap[h1&this.hashMask];
 
-               // Check for hash collisions
-               if (e != null)
+               if (length < MAX_WORD_LENGTH)
                {
-                  if ((e.hash != h1) || ((e.data>>>24) != length))
-                     e = null;
-                  else if (sameWords(e, src, delimAnchor+2, length-1) == false)
-                     e = null;
-               }
+                  int h1 = HASH1;
 
-               if (e == null)
-               {
-                  // Word not found in the dictionary or hash collision: add or replace word
-                  if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (length < MAX_WORD_LENGTH))
+                  for (int i=delimAnchor+1; i<srcIdx; i++)
+                     h1 = h1*HASH1 ^ src[i]*HASH2;
+
+                  // Lookup word in dictionary
+                  DictEntry e = null;
+                  DictEntry e1 = this.dictMap[h1&this.hashMask];
+
+                  // Check for hash collisions
+                  if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
                   {
-                     e = this.dictList[words];
+                     if (sameWords(e1, src, delimAnchor+2, length-1) == true)
+                        e = e1;
+                  }
 
-                     if ((e.data&0x00FFFFFF) >= this.staticDictSize)
+                  if (e == null)
+                  {
+                     // Word not found in the dictionary or hash collision: add or replace word
+                     if ((length > 3) || ((length > 2) && (words < THRESHOLD2)))
                      {
-                        // Reuse old entry
-                        this.dictMap[e.hash&this.hashMask] = null;
-                        e.buf = src;
-                        e.pos = delimAnchor + 1;
-                        e.hash = h1;
-                        e.data = (length<<24) | words;
-                     }
+                        e = this.dictList[words];
 
-                     this.dictMap[h1&this.hashMask] = e;
-                     words++;
+                        if ((e.data&0x00FFFFFF) >= this.staticDictSize)
+                        {
+                           // Reuse old entry
+                           this.dictMap[e.hash&this.hashMask] = null;
+                           e.buf = src;
+                           e.pos = delimAnchor + 1;
+                           e.hash = h1;
+                           e.data = (length<<24) | words;
+                        }
 
-                     // Dictionary full ? Expand or reset index to end of static dictionary
-                     if (words >= this.dictSize)
-                     {
-                        if (this.expandDictionary() == false)
-                           words = this.staticDictSize;
+                        this.dictMap[h1&this.hashMask] = e;
+                        words++;
+
+                        // Dictionary full ? Expand or reset index to end of static dictionary
+                        if (words >= this.dictSize)
+                        {
+                           if (this.expandDictionary() == false)
+                              words = this.staticDictSize;
+                        }
                      }
                   }
                }
