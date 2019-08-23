@@ -124,7 +124,7 @@ public class ByteFunctionFactory
             return NONE_TYPE;
 
          default:
-            throw new IllegalArgumentException("Unknown transform type: " + name);
+            throw new IllegalArgumentException("Unknown transform type: '" + name + "'");
       }
    }
    
@@ -213,7 +213,7 @@ public class ByteFunctionFactory
             return new NullFunction();
             
          default:
-            throw new IllegalArgumentException("Unknown transform type: " + functionType);
+            throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");
       }
    }
 
@@ -288,7 +288,7 @@ public class ByteFunctionFactory
             return "NONE";
             
          default:
-            throw new IllegalArgumentException("Unknown transform type: " + functionType);
+            throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");
       }
    }
 }

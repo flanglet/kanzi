@@ -113,7 +113,7 @@ public class EntropyCodecFactory
             return new NullEntropyEncoder(obs);
 
          default :
-            throw new IllegalArgumentException("Unknown entropy codec type: " + (char) entropyType);
+            throw new IllegalArgumentException("Unknown entropy codec type: '" + (char) entropyType + "'");
       }
    }
 
@@ -150,7 +150,7 @@ public class EntropyCodecFactory
             return "NONE";
 
          default :
-            throw new IllegalArgumentException("Unknown entropy codec type: " + (char) entropyType);
+            throw new IllegalArgumentException("Unknown entropy codec type: '" + (char) entropyType + "''");
       }
    }
 
@@ -190,7 +190,7 @@ public class EntropyCodecFactory
              return TPAQX_TYPE;
 
          default:
-            throw new IllegalArgumentException("Unsupported entropy codec type: " + name);
+            throw new IllegalArgumentException("Unsupported entropy codec type: '" + name + "'");
       }
    }
 

@@ -420,6 +420,12 @@ public class Kanzi
                else
                   transform = name;
 
+               while ((transform.length()>0) && (transform.charAt(0) == '+'))
+                  transform = transform.substring(1);
+               
+               while ((transform.length()>0) && (transform.charAt(transform.length()-1) == '+'))
+                  transform = transform.substring(0, transform.length()-1);
+
                ctx = -1;
                continue;
            }

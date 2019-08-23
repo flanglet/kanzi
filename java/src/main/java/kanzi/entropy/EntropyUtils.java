@@ -197,7 +197,6 @@ public class EntropyUtils
 
          // Write deltas for this chunk
          for (int j=i; (j<count) && (j<i+ckSize); j++)
-            // Encode size
             obs.writeBits(diffs[j], log);
       }
 
