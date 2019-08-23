@@ -81,7 +81,7 @@ public class TestBWT
 
          if (ii == 1)
          {
-            buf1 = "mississippi".getBytes();
+            buf1 = "mississippi".getBytes();   
          }
          else if (ii == 2)
          {
@@ -91,7 +91,7 @@ public class TestBWT
          {
             buf1 = "SIX.MIXED.PIXIES.SIFT.SIXTY.PIXIE.DUST.BOXES".getBytes();
          }
-         else
+         else if (ii < iters)
          {
             buf1 = new byte[128];
 
@@ -100,43 +100,84 @@ public class TestBWT
                buf1[i] = (byte) (65 + rnd.nextInt(4*ii));
             }
          }
+         else
+         {
+            buf1 = new byte[8*1024*1024];
+
+            for (int i=0; i<buf1.length; i++)
+               buf1[i] = (byte) i;            
+         }
 
          byte[] buf2 = new byte[buf1.length];
          byte[] buf3 = new byte[buf1.length];
          SliceByteArray sa1 = new SliceByteArray(buf1, 0);
          SliceByteArray sa2 = new SliceByteArray(buf2, 0);
          SliceByteArray sa3 = new SliceByteArray(buf3, 0);
-         ByteTransform bwt = (isBWT) ? new BWT() : new BWTS();
+         ByteTransform transform = (isBWT) ? new BWT() : new BWTS();
          String str1 = new String(buf1, start, buf1.length-start);
-         System.out.println("Input:   "+str1);
+         
+         if (str1.length() < 512)
+            System.out.println("Input:   "+str1);
+         
          sa1.index = start;
          sa2.index = 0;
-         bwt.forward(sa1, sa2);
+         transform.forward(sa1, sa2);
          String str2 = new String(buf2);
-         System.out.print("Encoded: "+str2);
-
+         
+          if (str2.length() < 512)
+            System.out.print("Encoded: "+str2+"  ");
+          
          if (isBWT)
          {
-            int primaryIndex = ((BWT) bwt).getPrimaryIndex(0);
-            System.out.println("  (Primary index="+primaryIndex+")");
+            BWT bwt = (BWT) transform;
+            int chunks = BWT.getBWTChunks(buf1.length);
+            int[] pi = new int[chunks];
+            
+            for (int i=0; i<chunks; i++)
+            {
+               pi[i] = bwt.getPrimaryIndex(i);
+               System.out.println("(Primary index="+pi[i]+")");
+            }
+            
+            transform = new BWT();
+            bwt = (BWT) transform;
+            
+            for (int i=0; i<chunks; i++)
+               bwt.setPrimaryIndex(i, pi[i]);
          }
          else
          {
+            transform = new BWTS();
             System.out.println("");
          }
 
          sa2.index = 0;
          sa3.index = start;
-
-         bwt.inverse(sa2, sa3);
+         
+         transform.inverse(sa2, sa3);
          String str3 = new String(buf3, start, buf3.length-start);
-         System.out.println("Output:  "+str3);
+         
+         if (str3.length() < 512)
+            System.out.println("Output:  "+str3);
 
          if (str1.equals(str3) == true)
+         {
             System.out.println("Identical");
+         }
          else
          {
-            System.out.println("Different");
+            int idx = -1;
+            
+            for (int i=0; i<buf1.length; i++)
+            {
+               if (buf1[i] != buf3[i]) 
+               {
+                  idx = i;
+                  break;
+               }
+            }
+            
+            System.out.println("Different at index "+idx+" "+buf1[idx]+" <-> "+buf3[idx]);        
             return false;
          }
       }
