@@ -257,6 +257,9 @@ public class ROLZCodec implements ByteFunction
          for (int i=0; i<this.counters.length; i++)
             this.counters[i] = 0;
 
+         final int litOrder = (count < 1<<17) ? 0 : 1;
+         dst[dstIdx++] = (byte) litOrder;
+         
          // Main loop
          while (startChunk < srcEnd)
          {
@@ -326,14 +329,14 @@ public class ROLZCodec implements ByteFunction
                baos.reset();
                OutputBitStream obs = new DefaultOutputBitStream(baos, 65536);
                obs.writeBits(litBuf.index, 32);
-               ANSRangeEncoder litEnc = new ANSRangeEncoder(obs, 1);
+               obs.writeBits(lenBuf.index, 32);
+               obs.writeBits(mIdxBuf.index, 32);
+               ANSRangeEncoder litEnc = new ANSRangeEncoder(obs, litOrder);
                litEnc.encode(litBuf.array, 0, litBuf.index);
                litEnc.dispose();
-               obs.writeBits(lenBuf.index, 32);
                ANSRangeEncoder lenEnc = new ANSRangeEncoder(obs, 0);
                lenEnc.encode(lenBuf.array, 0, lenBuf.index);
                lenEnc.dispose();
-               obs.writeBits(mIdxBuf.index, 32);
                ANSRangeEncoder mIdxEnc = new ANSRangeEncoder(obs, 0);
                mIdxEnc.encode(mIdxBuf.array, 0, mIdxBuf.index);
                mIdxEnc.dispose();
@@ -424,6 +427,8 @@ public class ROLZCodec implements ByteFunction
          for (int i=0; i<this.counters.length; i++)
             this.counters[i] = 0;
 
+         final int litOrder = src[srcIdx++];
+         
          // Main loop
          while (startChunk < dstEnd)
          {
@@ -443,35 +448,39 @@ public class ROLZCodec implements ByteFunction
                // Decode literal, match length and match index buffers
                ByteArrayInputStream bais = new ByteArrayInputStream(src, srcIdx, count-srcIdx);
                InputBitStream ibs = new DefaultInputBitStream(bais, 65536);
-               int length = (int) ibs.readBits(32);
+               int litLen  = (int) ibs.readBits(32);
+               int mLenLen = (int) ibs.readBits(32);
+               int mIdxLen = (int) ibs.readBits(32);
 
-               if (length <= sizeChunk)
+               if (litLen <= sizeChunk)
                {
-                  ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, 1);
-                  litDec.decode(litBuf.array, 0, length);
-                  litDec.dispose();
-                  length = (int) ibs.readBits(32);
-               }
-
-               if (length <= sizeChunk)
-               {
-                  ANSRangeDecoder lenDec = new ANSRangeDecoder(ibs, 0);
-                  lenDec.decode(lenBuf.array, 0, length);
-                  lenDec.dispose();
-                  length = (int) ibs.readBits(32);
-               }
-
-               if (length <= sizeChunk)
-               {                  
-                  ANSRangeDecoder mIdxDec = new ANSRangeDecoder(ibs, 0);
-                  mIdxDec.decode(mIdxBuf.array, 0, length);
-                  mIdxDec.dispose();
+                  {
+                     ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, litOrder);
+                     litDec.decode(litBuf.array, 0, litLen);
+                     litDec.dispose();
+                  }
+                  
+                  if (mLenLen <= sizeChunk)
+                  {
+                     {
+                        ANSRangeDecoder lenDec = new ANSRangeDecoder(ibs, 0);
+                        lenDec.decode(lenBuf.array, 0, mLenLen);
+                        lenDec.dispose();
+                     }
+                     
+                     if (mIdxLen <= sizeChunk)
+                     {                  
+                        ANSRangeDecoder mIdxDec = new ANSRangeDecoder(ibs, 0);
+                        mIdxDec.decode(mIdxBuf.array, 0, mIdxLen);
+                        mIdxDec.dispose();
+                     }
+                  }
                }
 
                srcIdx += ((ibs.read()+7)>>>3);
                ibs.close();
 
-               if (length > sizeChunk)
+               if ((litLen>sizeChunk) || (mLenLen>sizeChunk) || (mIdxLen>sizeChunk))
                {
                   input.index = srcIdx;
                   output.index = dstIdx;
