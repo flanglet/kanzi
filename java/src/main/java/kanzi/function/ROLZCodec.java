@@ -36,8 +36,6 @@ import kanzi.entropy.ANSRangeEncoder;
 public class ROLZCodec implements ByteFunction
 {
    private static final int HASH_SIZE = 1 << 16;
-   private static final int MIN_MATCH = 3;
-   private static final int MAX_MATCH = MIN_MATCH + 255;
    private static final int LOG_POS_CHECKS1 = 4;
    private static final int LOG_POS_CHECKS2 = 5;
    private static final int CHUNK_SIZE = 1 << 26;
@@ -153,6 +151,9 @@ public class ROLZCodec implements ByteFunction
    // Use ANS to encode/decode literals and matches
    static class ROLZCodec1 implements ByteFunction
    {
+      private static final int MIN_MATCH = 3;
+      private static final int MAX_MATCH = MIN_MATCH + 255 + 7;
+
       private final int logPosChecks;
       private final int maskChecks;
       private final int posChecks;
@@ -180,7 +181,7 @@ public class ROLZCodec implements ByteFunction
       }
 
 
-      // return position index (LOG_POS_CHECKS bits) + length (8 bits) or -1
+      // return position index (LOG_POS_CHECKS bits) + length (16 bits) or -1
       private int findMatch(final SliceByteArray sba, final int pos)
       {
          final byte[] buf = sba.array;
@@ -228,7 +229,7 @@ public class ROLZCodec implements ByteFunction
          // Register current position
          this.counters[key]++;
          this.matches[base+(this.counters[key]&this.maskChecks)] = hash32 | (pos-sba.index);
-         return (bestLen < MIN_MATCH) ? -1 : (bestIdx<<8) | (bestLen-MIN_MATCH);
+         return (bestLen < MIN_MATCH) ? -1 : (bestIdx<<16) | (bestLen-MIN_MATCH);
       }
 
 
@@ -293,7 +294,7 @@ public class ROLZCodec implements ByteFunction
                }
 
                final int litLen = srcIdx - firstLitIdx;
-               emitLengths(lenBuf, litLen, match&0xFF);
+               emitLengths(lenBuf, litLen, match&0xFFFF);
 
                // Emit literals
                if (litLen >= 16)
@@ -309,8 +310,8 @@ public class ROLZCodec implements ByteFunction
                litBuf.index += litLen;
 
                // Emit match index
-               mIdxBuf.array[mIdxBuf.index++] = (byte) (match>>8);
-               srcIdx += ((match&0xFF) + MIN_MATCH);
+               mIdxBuf.array[mIdxBuf.index++] = (byte) (match>>>16);
+               srcIdx += ((match&0xFFFF) + MIN_MATCH);
                firstLitIdx = srcIdx;
             }
 
@@ -619,6 +620,9 @@ public class ROLZCodec implements ByteFunction
    // Code loosely based on 'balz' by Ilya Muravyov
    static class ROLZCodec2 implements ByteFunction
    {
+      private static final int MIN_MATCH = 3;
+      private static final int MAX_MATCH = MIN_MATCH + 255;
+
       private final int logPosChecks;
       private final int maskChecks;
       private final int posChecks;
@@ -650,7 +654,7 @@ public class ROLZCodec implements ByteFunction
       }
 
 
-      // return position index (LOG_POS_CHECKS bits) + length (8 bits) or -1
+      // return position index (LOG_POS_CHECKS bits) + length (16 bits) or -1
       private int findMatch(final SliceByteArray sba, final int pos)
       {
          final byte[] buf = sba.array;
@@ -698,7 +702,7 @@ public class ROLZCodec implements ByteFunction
          // Register current position
          this.counters[key]++;
          this.matches[base+(this.counters[key]&this.maskChecks)] = hash32 | (pos-sba.index);
-         return (bestLen < MIN_MATCH) ? -1 : (bestIdx<<8) | (bestLen-MIN_MATCH);
+         return (bestLen < MIN_MATCH) ? -1 : (bestIdx<<16) | (bestLen-MIN_MATCH);
       }
 
 
@@ -763,10 +767,10 @@ public class ROLZCodec implements ByteFunction
                }
                else
                {
-                  final int matchLen = match & 0xFF;
+                  final int matchLen = match & 0xFFFF;
                   re.encodeBit(MATCH_FLAG);
                   re.encodeByte((byte) matchLen);
-                  final int matchIdx = match >> 8;
+                  final int matchIdx = match >>> 16;
                   this.matchPredictor.setContext(src[srcIdx-1]);
                   re.setContext(MATCH_FLAG);
 
