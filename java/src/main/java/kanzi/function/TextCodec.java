@@ -1070,8 +1070,9 @@ public final class TextCodec implements ByteFunction
 
                   if (e == null)
                   {
-                     // Word not found in the dictionary or hash collision: add or replace word
-                     if ((length > 3) || ((length > 2) && (words < THRESHOLD2)))
+                     // Word not found in the dictionary or hash collision.
+                     // Replace entry if not in static dictionary
+                     if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (e1 == null))
                      {
                         e = this.dictList[words];
 
@@ -1282,8 +1283,9 @@ public final class TextCodec implements ByteFunction
 
                   if (e == null)
                   {
-                     // Word not found in the dictionary or hash collision: add or replace word
-                     if ((length > 3) || ((length > 2) && (words < THRESHOLD2)))
+                     // Word not found in the dictionary or hash collision.
+                     // Replace entry if not in static dictionary
+                     if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (e1 == null))
                      {
                         e = this.dictList[words];
 
@@ -1583,8 +1585,9 @@ public final class TextCodec implements ByteFunction
 
                   if (e == null)
                   {
-                     // Word not found in the dictionary or hash collision: add or replace word
-                     if ((length > 3) || ((length > 2) && (words < THRESHOLD2))) 
+                     // Word not found in the dictionary or hash collision.
+                     // Replace entry if not in static dictionary
+                     if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (e1 == null))
                      {
                         e = this.dictList[words];
 
@@ -1837,8 +1840,9 @@ public final class TextCodec implements ByteFunction
 
                   if (e == null)
                   {
-                     // Word not found in the dictionary or hash collision: add or replace word
-                     if ((length > 3) || ((length > 2) && (words < THRESHOLD2)))
+                     // Word not found in the dictionary or hash collision.
+                     // Replace entry if not in static dictionary
+                     if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (e1 == null))
                      {
                         e = this.dictList[words];
 
