@@ -913,19 +913,19 @@ public final class TextCodec implements ByteFunction
       public TextCodec1(Map<String, Object> ctx)
       {
          // Actual block size
-         final int blockSize = (Integer) ctx.getOrDefault("size", 0);
+         int blockSize = 0;
          int log = 13;
-
-         if (blockSize >= 4)
-            log = Math.max(Math.min(Global.log2(blockSize/4), 26), 13);
-
-         // Select an appropriate initial dictionary size
          int dSize = 1<<12;
 
-         for (int i=14; i<=24; i+=2)
+         if (ctx.containsKey("blockSize"))
          {
-            if (blockSize >= 1<<i)
-               dSize <<= 1;
+            blockSize = (Integer) ctx.get("blockSize");
+            
+            if (blockSize >= 8)
+               log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
+
+            // Select an appropriate initial dictionary size
+            dSize = 1 << Math.max(Math.min(log-4, 18), 12);
          }
 
          boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
@@ -1431,21 +1431,21 @@ public final class TextCodec implements ByteFunction
       public TextCodec2(Map<String, Object> ctx)
       {
          // Actual block size
-         final int blockSize = (Integer) ctx.getOrDefault("size", 0);
+         int blockSize = 0;
          int log = 13;
-
-         if (blockSize >= 4)
-            log = Math.max(Math.min(Global.log2(blockSize/4), 26), 13);
-
-         // Select an appropriate initial dictionary size
          int dSize = 1<<12;
 
-         for (int i=14; i<=24; i+=2)
+         if (ctx.containsKey("blockSize"))
          {
-            if (blockSize >= 1<<i)
-               dSize <<= 1;
-         }
+            blockSize = (Integer) ctx.get("blockSize");
+            
+            if (blockSize >= 8)
+               log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
 
+            // Select an appropriate initial dictionary size
+            dSize = 1 << Math.max(Math.min(log-4, 18), 12);
+         }
+         
          boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
          final int extraMem = (extraPerf == true) ? 1 : 0;
          this.logHashSize = log + extraMem;
