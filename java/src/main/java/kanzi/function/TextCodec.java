@@ -1035,9 +1035,8 @@ public final class TextCodec implements ByteFunction
                   // h1 -> hash of word chars
                   // h2 -> hash of word chars with first char case flipped
                   final byte val = src[delimAnchor+1];
-                  final int caseFlag = isUpperCase(val) ? 32 : -32;
                   int h1 = HASH1*HASH1 ^ val*HASH2;
-                  int h2 = HASH1*HASH1 ^ (val+caseFlag)*HASH2;
+                  int h2 = HASH1*HASH1 ^ (val^0x20)*HASH2;
 
                   for (int i=delimAnchor+2; i<srcIdx; i++)
                   {
@@ -1358,7 +1357,7 @@ public final class TextCodec implements ByteFunction
                else
                {
                   // Flip case of first character
-                  dst[dstIdx++] = isUpperCase(buf[e.pos]) ? (byte) (buf[e.pos]+32) : (byte) (buf[e.pos]-32);
+                  dst[dstIdx++] = (byte) (buf[e.pos]^0x20);
                }
 
                if (length > 1)
@@ -1550,9 +1549,8 @@ public final class TextCodec implements ByteFunction
                   // h1 -> hash of word chars
                   // h2 -> hash of word chars with first char case flipped
                   final byte val = src[delimAnchor+1];
-                  final int caseFlag = isUpperCase(val) ? 32 : -32;
                   int h1 = HASH1*HASH1 ^ val*HASH2;
-                  int h2 = HASH1*HASH1 ^ (val+caseFlag)*HASH2;
+                  int h2 = HASH1*HASH1 ^ (val^0x20)*HASH2;
 
                   for (int i=delimAnchor+2; i<srcIdx; i++)
                   {
@@ -1914,7 +1912,7 @@ public final class TextCodec implements ByteFunction
                else
                {
                   // Flip case of first character
-                  dst[dstIdx++] = isUpperCase(buf[e.pos]) ? (byte) (buf[e.pos]+32) : (byte) (e.buf[e.pos]-32);
+                  dst[dstIdx++] = (byte) (buf[e.pos]^0x20);
                }
 
                if (length > 1)

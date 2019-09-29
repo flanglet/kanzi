@@ -294,7 +294,7 @@ public class ROLZCodec implements ByteFunction
                }
 
                final int litLen = srcIdx - firstLitIdx;
-               emitLengths(lenBuf, litLen, match&0xFFFF);
+               emitTokens(lenBuf, litLen, match&0xFFFF);
 
                // Emit literals
                if (litLen >= 16)
@@ -317,7 +317,7 @@ public class ROLZCodec implements ByteFunction
 
             // Emit last chunk literals
             final int litLen = srcIdx - firstLitIdx;
-            emitLengths(lenBuf, litLen, 0);
+            emitTokens(lenBuf, litLen, 0);
 
             for (int i=0; i<litLen; i++)
                litBuf.array[litBuf.index+i] = src[firstLitIdx+i];
@@ -370,7 +370,7 @@ public class ROLZCodec implements ByteFunction
       }
 
 
-      private static void emitLengths(SliceByteArray lenBuf, int litLen, int mLen)
+      private static void emitTokens(SliceByteArray lenBuf, int litLen, int mLen)
       {
          // mode LLLLLMMM -> L lit length, M match length
          final int mode = (litLen<31) ? (litLen<<3) : 0xF8;
@@ -394,12 +394,12 @@ public class ROLZCodec implements ByteFunction
                if (litLen >= 1<<14)
                {
                   if (litLen >= 1<<21)
-                     lenBuf.array[lenBuf.index++] = (byte) (0x80|((litLen>>21)&0x7F));
+                     lenBuf.array[lenBuf.index++] = (byte) (0x80|(litLen>>21));
 
-                  lenBuf.array[lenBuf.index++] = (byte) (0x80|((litLen>>14)&0x7F));
+                  lenBuf.array[lenBuf.index++] = (byte) (0x80|(litLen>>14));
                }
                
-               lenBuf.array[lenBuf.index++] = (byte) (0x80|((litLen>>7)&0x7F));
+               lenBuf.array[lenBuf.index++] = (byte) (0x80|(litLen>>7));
             }
             
             lenBuf.array[lenBuf.index++] = (byte) (litLen&0x7F);
