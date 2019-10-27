@@ -899,10 +899,7 @@ public class ROLZCodec implements ByteFunction
       {
          // Since we do not check the dst index for each byte (for speed purpose)
          // allocate some extra buffer for incompressible data.
-         if (srcLen >= CHUNK_SIZE)
-            return srcLen;
-         
-         return (srcLen <= 512) ? srcLen+64 : srcLen+srcLen/8;
+         return (srcLen <= 16384) ? srcLen+512 : srcLen+(srcLen/32);
       }
    }
 

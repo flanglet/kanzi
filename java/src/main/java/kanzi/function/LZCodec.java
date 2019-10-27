@@ -408,10 +408,7 @@ public final class LZCodec implements ByteFunction
    @Override
    public int getMaxEncodedLength(int srcLen)
    {
-      if (srcLen >= 1<<30)
-         return srcLen;
-      
-      return srcLen + (srcLen / 255) + 16;
+      return (srcLen <= 1024) ? srcLen+16 : srcLen+(srcLen/64);
    }
 
 
