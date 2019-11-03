@@ -911,15 +911,14 @@ public final class TextCodec implements ByteFunction
 
 
       public TextCodec1(Map<String, Object> ctx)
-      {
-         // Actual block size
-         int blockSize = 0;
+      {         
          int log = 13;
          int dSize = 1<<12;
 
          if (ctx.containsKey("blockSize"))
          {
-            blockSize = (Integer) ctx.get("blockSize");
+            // Actual block size
+            final int blockSize = (Integer) ctx.get("blockSize");
             
             if (blockSize >= 8)
                log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
@@ -1429,14 +1428,13 @@ public final class TextCodec implements ByteFunction
       
       public TextCodec2(Map<String, Object> ctx)
       {
-         // Actual block size
-         int blockSize = 0;
          int log = 13;
          int dSize = 1<<12;
 
          if (ctx.containsKey("blockSize"))
          {
-            blockSize = (Integer) ctx.get("blockSize");
+            // Actual block size
+            final int blockSize = (Integer) ctx.get("blockSize");
             
             if (blockSize >= 8)
                log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
