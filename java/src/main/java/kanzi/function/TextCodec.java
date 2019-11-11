@@ -30,7 +30,7 @@ public final class TextCodec implements ByteFunction
    private static final int THRESHOLD3 = 32;
    private static final int THRESHOLD4 = THRESHOLD3 * 128;
    private static final int MAX_DICT_SIZE = 1 << 19;
-   private static final int MAX_WORD_LENGTH = 32;
+   private static final int MAX_WORD_LENGTH = 31;
    private static final int MAX_BLOCK_SIZE = 1 << 30; //1 GB
    public static final int LOG_HASHES_SIZE = 24; // 16 MB
    public static final byte LF = 0x0A;
@@ -1028,7 +1028,7 @@ public final class TextCodec implements ByteFunction
             {
                final int length = srcIdx - delimAnchor - 1;
                
-               if (length < MAX_WORD_LENGTH)
+               if (length <= MAX_WORD_LENGTH)
                {
                   // Compute hashes
                   // h1 -> hash of word chars
@@ -1261,7 +1261,7 @@ public final class TextCodec implements ByteFunction
             {
                final int length = srcIdx - delimAnchor - 1;
                
-               if (length < MAX_WORD_LENGTH)
+               if (length <= MAX_WORD_LENGTH)
                {
                   int h1 = HASH1;
 
@@ -1341,7 +1341,7 @@ public final class TextCodec implements ByteFunction
                final byte[] buf = e.buf;
 
                // Sanity check
-               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
+               if ((e.pos < 0) || (length > MAX_WORD_LENGTH) || (dstIdx+length >= dstEnd))
                   break;
 
                // Add space if only delimiter between 2 words (not an escaped delimiter)
@@ -1541,7 +1541,7 @@ public final class TextCodec implements ByteFunction
             {
                final int length = srcIdx - delimAnchor - 1;
                
-               if (length < MAX_WORD_LENGTH)
+               if (length <= MAX_WORD_LENGTH)
                {
                   // Compute hashes
                   // h1 -> hash of word chars
@@ -1816,7 +1816,7 @@ public final class TextCodec implements ByteFunction
             {
                final int length = srcIdx - delimAnchor - 1;
 
-               if (length < MAX_WORD_LENGTH)
+               if (length <= MAX_WORD_LENGTH)
                {
                   int h1 = HASH1;
 
@@ -1895,7 +1895,7 @@ public final class TextCodec implements ByteFunction
                final byte[] buf = e.buf;
 
                // Sanity check
-               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
+               if ((e.pos < 0) || (length > MAX_WORD_LENGTH) || (dstIdx+length >= dstEnd))
                   break;
 
                // Add space if only delimiter between 2 words (not an escaped delimiter)
