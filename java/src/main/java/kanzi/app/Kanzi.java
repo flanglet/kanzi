@@ -570,7 +570,9 @@ public class Kanzi
 
         map.put("verbose", verbose);
         map.put("mode", mode);
-        map.put("level", level);
+        
+        if ((mode == 'c') || (level != -1))
+           map.put("level", level);
 
         if (overwrite == true)
            map.put("overwrite", overwrite);
