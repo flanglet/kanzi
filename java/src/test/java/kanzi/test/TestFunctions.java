@@ -224,6 +224,7 @@ public class TestFunctions
          else
          {
             arr = new int[1024];
+            
             // Leave zeros at the beginning for ZRLT to succeed
             int idx = 20;
 
@@ -243,6 +244,7 @@ public class TestFunctions
                idx += len;
             }
          }
+         
          int size = arr.length;
          ByteFunction f = getByteFunction(name);
          input = new byte[size];
@@ -276,6 +278,12 @@ public class TestFunctions
          {
             // ZRLT may fail if the input data has too few 0s
             if (sa1.index != input.length)
+            {
+               System.out.println("\nNo compression (ratio > 1.0), skip reverse");
+               continue;
+            }
+            
+            if (sa1.index < sa2.index)
             {
                System.out.println("\nNo compression (ratio > 1.0), skip reverse");
                continue;
