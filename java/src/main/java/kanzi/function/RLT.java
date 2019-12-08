@@ -209,6 +209,7 @@ public class RLT implements ByteFunction
          res = srcIdx == srcEnd;
       }
       
+      res &= (dstIdx-output.index) < (srcIdx-input.index);
       input.index = srcIdx;
       output.index = dstIdx;
       return res;
