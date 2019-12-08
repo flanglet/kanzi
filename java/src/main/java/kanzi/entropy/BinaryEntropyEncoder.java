@@ -80,8 +80,8 @@ public class BinaryEntropyEncoder implements EntropyEncoder
       {
          final int chunkSize = startChunk+length < end ? length : end-startChunk;
         
-         if (this.sba.array.length < (chunkSize*9)>>3)
-            this.sba.array = new byte[(chunkSize*9)>>3];
+         if (this.sba.array.length < (chunkSize+(chunkSize>>3)))
+            this.sba.array = new byte[chunkSize+(chunkSize>>3)];
          
          this.sba.index = 0;
 
