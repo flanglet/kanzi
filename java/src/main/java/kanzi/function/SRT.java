@@ -167,7 +167,7 @@ public class SRT implements ByteFunction
       // init arrays
       int nbSymbols = preprocess(_freqs, _symbols);
 
-      final int[] _buckets= this.buckets;
+      final int[] _buckets = this.buckets;
       final int[] _bucketEnds = this.bucketEnds;
       final int[] _r2s = this.r2s;
 

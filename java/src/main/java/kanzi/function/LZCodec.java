@@ -52,15 +52,7 @@ public final class LZCodec implements ByteFunction
 
    private static int emitLength(byte[] block, int idx, int length)
    {
-      while (length >= 0x1FE)
-      {
-         block[idx]   = (byte) 0xFF;
-         block[idx+1] = (byte) 0xFF;
-         idx += 2;
-         length -= 0x1FE;
-      }
-
-      if (length >= 0xFF)
+      while (length >= 0xFF)
       {
          block[idx++] = (byte) 0xFF;
          length -= 0xFF;
@@ -103,7 +95,7 @@ public final class LZCodec implements ByteFunction
       
       if (output.length - output.index < this.getMaxEncodedLength(count))
          return false;
-
+      
       final int hashLog = (count<MAX_DISTANCE) ? HASH_LOG_SMALL : HASH_LOG_BIG;
       final int hashShift = 32 - hashLog;
       final int srcIdx0 = input.index;

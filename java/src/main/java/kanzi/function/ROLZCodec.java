@@ -79,7 +79,7 @@ public class ROLZCodec implements ByteFunction
       return ((Memory.LittleEndian.readInt32(buf, idx)&0x00FFFFFF) * HASH) & HASH_MASK;
    }
 
-
+   
    private static int emitCopy(byte[] dst, int dstIdx, int ref, int matchLen)
    {
       dst[dstIdx]   = dst[ref];
