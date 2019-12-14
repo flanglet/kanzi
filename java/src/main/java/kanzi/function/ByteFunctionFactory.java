@@ -186,31 +186,33 @@ public class ByteFunctionFactory
             return new BWTBlockCodec(ctx); 
             
          case BWTS_TYPE:
-            return new BWTS();    
+            return new BWTS(ctx);    
             
          case RANK_TYPE:
-            return new SBRT(SBRT.MODE_RANK);
+            ctx.put("sbrt", SBRT.MODE_RANK);
+            return new SBRT(ctx);
                         
          case SRT_TYPE:
-            return new SRT();
+            return new SRT(ctx);
                         
          case MTFT_TYPE:
-            return new SBRT(SBRT.MODE_MTF);
+            ctx.put("sbrt", SBRT.MODE_MTF);
+            return new SBRT(ctx);
 
          case ZRLT_TYPE:
-            return new ZRLT();
+            return new ZRLT(ctx);
             
          case RLT_TYPE:
-            return new RLT();
+            return new RLT(ctx);
                         
          case LZ_TYPE:
-            return new LZCodec();
+            return new LZCodec(ctx);
             
          case X86_TYPE:
-            return new X86Codec();
+            return new X86Codec(ctx);
             
          case NONE_TYPE:
-            return new NullFunction();
+            return new NullFunction(ctx);
             
          default:
             throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");

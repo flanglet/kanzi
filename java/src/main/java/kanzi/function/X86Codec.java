@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.function;
 
+import java.util.Map;
 import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
 
@@ -29,6 +30,11 @@ public class X86Codec implements ByteFunction
    
    
    public X86Codec()
+   {
+   }
+
+
+   public X86Codec(Map<String, Object> ctx)
    {
    }
 

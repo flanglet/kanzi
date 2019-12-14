@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.function;
 
+import java.util.Map;
 import kanzi.ByteFunction;
 import kanzi.Memory;
 import kanzi.SliceByteArray;
@@ -45,6 +46,12 @@ public final class LZCodec implements ByteFunction
 
 
    public LZCodec()
+   {
+      this.buffer = new int[0];
+   }
+
+
+   public LZCodec(Map<String, Object> ctx)
    {
       this.buffer = new int[0];
    }

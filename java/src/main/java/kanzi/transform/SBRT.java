@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.transform;
 
+import java.util.Map;
 import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
 
@@ -57,6 +58,21 @@ public class SBRT implements ByteTransform
       this.symbols = new int[256];
       this.ranks = new int[256];
       this.mode = mode;
+   }
+   
+   
+   public SBRT(Map<String, Object> ctx)
+   {
+      final int m = (Integer) ctx.getOrDefault("sbrt", MODE_MTF);
+      
+      if ((m != MODE_MTF) && (m != MODE_RANK) && (m != MODE_TIMESTAMP))
+         throw new IllegalArgumentException("Invalid mode parameter");
+
+      this.prev = new int[256];
+      this.curr = new int[256];
+      this.symbols = new int[256];
+      this.ranks = new int[256];
+      this.mode = m;
    }
    
 

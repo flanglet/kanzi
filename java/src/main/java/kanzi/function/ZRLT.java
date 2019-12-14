@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.function;
 
+import java.util.Map;
 import kanzi.ByteFunction;
 import kanzi.Global;
 import kanzi.SliceByteArray;
@@ -28,6 +29,11 @@ import kanzi.SliceByteArray;
 public final class ZRLT implements ByteFunction
 {
    public ZRLT()
+   {
+   }
+
+
+   public ZRLT(Map<String, Object> ctx)
    {
    }
 

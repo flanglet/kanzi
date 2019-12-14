@@ -96,6 +96,7 @@ public class BWT implements ByteTransform
    }
 
 
+   // Number of jobs provided in the context
    public BWT(Map<String, Object> ctx)
    {
       final int tasks = (Integer) ctx.get("jobs");

@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.transform;
 
+import java.util.Map;
 import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
 
@@ -37,6 +38,14 @@ public class BWTS implements ByteTransform
 
     
    public BWTS()
+   {
+      this.buffer1 = new int[0];  
+      this.buffer2 = new int[0];  
+      this.buckets = new int[256];
+   }
+
+
+   public BWTS(Map<String, Object> ctx)
    {
       this.buffer1 = new int[0];  
       this.buffer2 = new int[0];  

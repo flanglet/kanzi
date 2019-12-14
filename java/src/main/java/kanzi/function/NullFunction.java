@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.function;
 
+import java.util.Map;
 import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
 
@@ -22,6 +23,11 @@ import kanzi.SliceByteArray;
 public class NullFunction implements ByteFunction
 {
    public NullFunction()
+   {
+   }
+
+   
+   public NullFunction(Map<String, Object> ctx)
    {
    }
 

@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.function;
 
+import java.util.Map;
 import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
 
@@ -34,6 +35,17 @@ public class SRT implements ByteFunction
    
 
    public SRT()
+   {  
+      this.freqs = new int[256];
+      this.symbols = new byte[256];
+      this.r2s = new int[256];
+      this.s2r = new int[256];
+      this.buckets = new int[256];
+      this.bucketEnds = new int[256];
+   }
+   
+   
+   public SRT(Map<String, Object> ctx)
    {  
       this.freqs = new int[256];
       this.symbols = new byte[256];

@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.function;
 
+import java.util.Map;
 import kanzi.ByteFunction;
 import kanzi.Global;
 import kanzi.SliceByteArray;
@@ -39,6 +40,12 @@ public class RLT implements ByteFunction
 
    
    public RLT()
+   {
+      this.freqs = new int[256];
+   }
+
+   
+   public RLT(Map<String, Object> ctx)
    {
       this.freqs = new int[256];
    }
