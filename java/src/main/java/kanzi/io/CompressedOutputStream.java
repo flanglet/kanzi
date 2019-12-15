@@ -136,7 +136,7 @@ public class CompressedOutputStream extends OutputStream
       this.hasher = (checksum == true) ? new XXHash32(BITSTREAM_TYPE) : null;
       this.jobs = tasks;
       this.pool = threadPool;
-      this.sa = new SliceByteArray(new byte[this.blockSize], 0); // initially 1 blockSize
+      this.sa = new SliceByteArray(new byte[0], 0); 
       this.buffers = new SliceByteArray[2*this.jobs];
       this.closed = new AtomicBoolean(false);
       this.initialized = new AtomicBoolean(false);
@@ -369,19 +369,19 @@ public class CompressedOutputStream extends OutputStream
    
    private void processBlock(boolean force) throws IOException
    {
-      if (this.sa.index == 0)
-         return;
-
       if ((force == false) && (this.sa.length < this.jobs*this.blockSize))
       {
          // Grow byte array until max allowed
-         final byte[] buf = new byte[this.sa.length+this.blockSize];
+         final byte[] buf = new byte[this.jobs*this.blockSize];
          System.arraycopy(this.sa.array, 0, buf, 0, this.sa.length);
          this.sa.array = buf;
          this.sa.length = buf.length;
          return;
       }
       
+      if (this.sa.index == 0)
+         return;
+
       if (this.initialized.getAndSet(true) == false)
          this.writeHeader();
 
