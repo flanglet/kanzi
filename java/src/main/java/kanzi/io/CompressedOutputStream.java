@@ -369,14 +369,19 @@ public class CompressedOutputStream extends OutputStream
    
    private void processBlock(boolean force) throws IOException
    {
-      if ((force == false) && (this.sa.length < this.jobs*this.blockSize))
+      if (force == false)
       {
-         // Grow byte array until max allowed
-         final byte[] buf = new byte[this.jobs*this.blockSize];
-         System.arraycopy(this.sa.array, 0, buf, 0, this.sa.length);
-         this.sa.array = buf;
-         this.sa.length = buf.length;
-         return;
+         final int bufSize = Math.min(this.jobs, Math.max(this.nbInputBlocks, 1));
+         
+         if (this.sa.length < bufSize)
+         {
+            // Grow byte array until max allowed
+            final byte[] buf = new byte[this.jobs*this.blockSize];
+            System.arraycopy(this.sa.array, 0, buf, 0, this.sa.length);
+            this.sa.array = buf;
+            this.sa.length = buf.length;
+            return;
+         }
       }
       
       if (this.sa.index == 0)
