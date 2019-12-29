@@ -440,7 +440,7 @@ public final class TextCodec implements ByteFunction
       public TextCodec1()
       {
          this.logHashSize = LOG_HASHES_SIZE;
-         this.dictSize = THRESHOLD2*4;
+         this.dictSize = 1<<13;
          this.dictMap = new DictEntry[0];
          this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;        
@@ -451,7 +451,6 @@ public final class TextCodec implements ByteFunction
       public TextCodec1(Map<String, Object> ctx)
       {         
          int log = 13;
-         int dSize = 1<<12;
 
          if (ctx.containsKey("blockSize"))
          {
@@ -460,15 +459,12 @@ public final class TextCodec implements ByteFunction
             
             if (blockSize >= 8)
                log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
-
-            // Select an appropriate initial dictionary size
-            dSize = 1 << Math.max(Math.min(log-4, 18), 12);
          }
 
          boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
-         final int extraMem = (extraPerf == true) ? 1 : 0;
-         this.logHashSize = log + extraMem;
-         this.dictSize = dSize;
+         log += (extraPerf == true) ? 1 : 0;
+         this.logHashSize = log;
+         this.dictSize = 1<<13;
          this.dictMap = new DictEntry[0];
          this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
@@ -476,8 +472,12 @@ public final class TextCodec implements ByteFunction
       }
 
 
-      private void reset()
+      private void reset(int count)
       {
+         // Select an appropriate initial dictionary size
+         final int log = (count < 8) ? 13 : Math.max(Math.min(Global.log2(count / 8), 22), 17);
+         this.dictSize = 1 << (log - 4);
+
          // Allocate lazily (only if text input detected)
          if (this.dictMap.length == 0)
          {
@@ -532,7 +532,7 @@ public final class TextCodec implements ByteFunction
          if ((mode & MASK_NOT_TEXT) != 0)
             return false;
 
-         this.reset();
+         this.reset(count);
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd4 = dstEnd - 4;
          int emitAnchor = input.index; // never less than input.index
@@ -774,7 +774,7 @@ public final class TextCodec implements ByteFunction
          final byte[] src = input.array;
          final byte[] dst = output.array;
 
-         this.reset();
+         this.reset(output.length);
          final int srcEnd = input.index + count;
          final int dstEnd = dst.length;
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
@@ -956,7 +956,7 @@ public final class TextCodec implements ByteFunction
       public TextCodec2()
       {
          this.logHashSize = LOG_HASHES_SIZE;
-         this.dictSize = THRESHOLD2*4;
+         this.dictSize = 1<<13;
          this.dictMap = new DictEntry[0];
          this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
@@ -967,7 +967,6 @@ public final class TextCodec implements ByteFunction
       public TextCodec2(Map<String, Object> ctx)
       {
          int log = 13;
-         int dSize = 1<<12;
 
          if (ctx.containsKey("blockSize"))
          {
@@ -976,15 +975,12 @@ public final class TextCodec implements ByteFunction
             
             if (blockSize >= 8)
                log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
-
-            // Select an appropriate initial dictionary size
-            dSize = 1 << Math.max(Math.min(log-4, 18), 12);
          }
          
          boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
-         final int extraMem = (extraPerf == true) ? 1 : 0;
-         this.logHashSize = log + extraMem;
-         this.dictSize = dSize;
+         log += (extraPerf == true) ? 1 : 0;
+         this.logHashSize = log;
+         this.dictSize = 1<<13;
          this.dictMap = new DictEntry[0];
          this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
@@ -992,8 +988,12 @@ public final class TextCodec implements ByteFunction
       }
 
 
-      private void reset()
+      private void reset(int count)
       {
+         // Select an appropriate initial dictionary size
+         final int log = (count < 8) ? 13 : Math.max(Math.min(Global.log2(count / 8), 22), 17);
+         this.dictSize = 1 << (log - 4);
+
          // Allocate lazily (only if text input detected)
          if (this.dictMap.length == 0)
          {
@@ -1045,7 +1045,7 @@ public final class TextCodec implements ByteFunction
          if ((mode & MASK_NOT_TEXT) != 0)
             return false;
 
-         this.reset();
+         this.reset(count);
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd3 = dstEnd - 3;
          int emitAnchor = input.index; // never less than input.index
@@ -1329,7 +1329,7 @@ public final class TextCodec implements ByteFunction
          final byte[] src = input.array;
          final byte[] dst = output.array;
 
-         this.reset();
+         this.reset(output.length);
          final int srcEnd = input.index + count;
          final int dstEnd = dst.length;
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
