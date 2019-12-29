@@ -68,9 +68,9 @@ public class ROLZCodec implements ByteFunction
    }
 
 
-   private static int getKey(final byte[] buf, final int idx)
+   private static short getKey(final byte[] buf, final int idx)
    {
-      return Memory.LittleEndian.readInt16(buf, idx) & 0x7FFFFFFF;
+      return (short) (Memory.LittleEndian.readInt16(buf, idx) & 0x7FFFFFFF);
    }
 
 
@@ -185,7 +185,7 @@ public class ROLZCodec implements ByteFunction
       private int findMatch(final SliceByteArray sba, final int pos)
       {
          final byte[] buf = sba.array;
-         final int key = getKey(buf, pos-2);
+         final int key = getKey(buf, pos-2) & 0xFFFF;
          final int base = key << this.logPosChecks;
          final int hash32 = hash(buf, pos);
          final int counter = this.counters[key];
@@ -506,7 +506,7 @@ public class ROLZCodec implements ByteFunction
                   return false;
                }
 
-               final int key = getKey(dst, dstIdx-2);
+               final int key = getKey(dst, dstIdx-2) & 0xFFFF;
                final int base = key << this.logPosChecks;
                final int matchIdx = mIdxBuf.array[mIdxBuf.index++] & 0xFF;
                final int ref = output.index + this.matches[base+((this.counters[key]-matchIdx)&this.maskChecks)];
@@ -579,7 +579,7 @@ public class ROLZCodec implements ByteFunction
          
          for (int n=0; n<length; n++)
          {
-            final int key = getKey(dst, dstIdx+n-2);
+            final int key = getKey(dst, dstIdx+n-2) & 0xFFFF;
             final int base = key << this.logPosChecks;
             dst[dstIdx+n] = litBuf.array[litBuf.index+n];        
             this.counters[key]++;
@@ -640,7 +640,7 @@ public class ROLZCodec implements ByteFunction
       private int findMatch(final SliceByteArray sba, final int pos)
       {
          final byte[] buf = sba.array;
-         final int key = getKey(buf, pos-2);
+         final int key = getKey(buf, pos-2) & 0xFFFF;
          final int base = key << this.logPosChecks;
          final int hash32 = hash(buf, pos);
          final int counter = this.counters[key];
