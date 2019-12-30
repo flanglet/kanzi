@@ -846,7 +846,7 @@ public class ROLZCodec implements ByteFunction
             while (dstIdx < endChunk)
             {
                final int savedIdx = dstIdx;
-               final int key = getKey(dst, dstIdx-2);
+               final int key = getKey(dst, dstIdx-2) & 0xFFFF;
                final int base = key << this.logPosChecks;
                this.litPredictor.setContext(dst[dstIdx-1]);
                rd.setContext(LITERAL_FLAG);
