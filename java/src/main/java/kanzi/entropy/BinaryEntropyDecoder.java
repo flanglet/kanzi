@@ -107,14 +107,14 @@ public class BinaryEntropyDecoder implements EntropyDecoder
 
    public final byte decodeByte()
    {
-      return (byte) ((this.decodeBit() << 7)
-            | (this.decodeBit() << 6)
-            | (this.decodeBit() << 5)
-            | (this.decodeBit() << 4)
-            | (this.decodeBit() << 3)
-            | (this.decodeBit() << 2)
-            | (this.decodeBit() << 1)
-            | this.decodeBit());
+      return (byte) ((this.decodeBit(this.predictor.get()) << 7)
+            | (this.decodeBit(this.predictor.get()) << 6)
+            | (this.decodeBit(this.predictor.get()) << 5)
+            | (this.decodeBit(this.predictor.get()) << 4)
+            | (this.decodeBit(this.predictor.get()) << 3)
+            | (this.decodeBit(this.predictor.get()) << 2)
+            | (this.decodeBit(this.predictor.get()) << 1)
+            |  this.decodeBit(this.predictor.get()));
    }
 
     
@@ -136,11 +136,11 @@ public class BinaryEntropyDecoder implements EntropyDecoder
    }
 
 
-   public int decodeBit()
+   public int decodeBit(int pred)
    {
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division
-      final long split = ((((this.high - this.low) >>> 4) * this.predictor.get()) >>> 8) + this.low;
+      final long split = ((((this.high - this.low) >>> 4) * pred) >>> 8) + this.low;
       int bit;
 
       if (split >= this.current)

@@ -102,22 +102,22 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    
    public final void encodeByte(byte val)
    {
-      this.encodeBit((val >> 7) & 1);
-      this.encodeBit((val >> 6) & 1);
-      this.encodeBit((val >> 5) & 1);
-      this.encodeBit((val >> 4) & 1);
-      this.encodeBit((val >> 3) & 1);
-      this.encodeBit((val >> 2) & 1);
-      this.encodeBit((val >> 1) & 1);
-      this.encodeBit(val & 1);
+      this.encodeBit((val >> 7) & 1, this.predictor.get());
+      this.encodeBit((val >> 6) & 1, this.predictor.get());
+      this.encodeBit((val >> 5) & 1, this.predictor.get());
+      this.encodeBit((val >> 4) & 1, this.predictor.get());
+      this.encodeBit((val >> 3) & 1, this.predictor.get());
+      this.encodeBit((val >> 2) & 1, this.predictor.get());
+      this.encodeBit((val >> 1) & 1, this.predictor.get());
+      this.encodeBit(val & 1, this.predictor.get());
    }
    
 
-   public void encodeBit(int bit)
+   public void encodeBit(int bit, int pred)
    {      
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division
-      final long split = (((this.high - this.low) >>> 4) * this.predictor.get()) >>> 8;
+      final long split = (((this.high - this.low) >>> 4) * pred) >>> 8;
         
       // Update fields with new interval bounds
       if (bit == 0)
