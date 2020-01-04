@@ -34,7 +34,7 @@ public class HuffmanEncoder implements EntropyEncoder
    private final int[] buffer;  // temporary data
    private final short[] sizes; 
    private final int chunkSize;
-   private int maxCodeLength;
+   private int maxCodeLen;
 
 
    public HuffmanEncoder(OutputBitStream bitstream) throws BitStreamException
@@ -109,9 +109,8 @@ public class HuffmanEncoder implements EntropyEncoder
 
       // Create canonical codes 
       if (HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.alphabet, count) < 0)
-         throw new BitStreamException("Could not generate Huffman codes: max code length (" +
-            HuffmanCommon.MAX_CHUNK_SIZE + ") exceeded",
-            BitStreamException.INVALID_STREAM);
+         throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
+            HuffmanCommon.MAX_SYMBOL_SIZE + " bits) exceeded");
 
       // Pack size and code (size <= MAX_SYMBOL_SIZE bits)
       for (int i=0; i<count; i++)
@@ -124,8 +123,6 @@ public class HuffmanEncoder implements EntropyEncoder
    }
 
 
-   // See [In-Place Calculation of Minimum-Redundancy Codes]
-   // by Alistair Moffat & Jyrki Katajainen
    private void computeCodeLengths(int[] frequencies, int count) 
    {  
       if (count == 1)
@@ -147,20 +144,25 @@ public class HuffmanEncoder implements EntropyEncoder
          this.sranks[i] &= 0xFF;
       }
       
+      // See [In-Place Calculation of Minimum-Redundancy Codes]
+      // by Alistair Moffat & Jyrki Katajainen
       computeInPlaceSizesPhase1(this.buffer, count);
       computeInPlaceSizesPhase2(this.buffer, count);
-      this.maxCodeLength = 0;
+      this.maxCodeLen = 0;
 
       for (int i=0; i<count; i++) 
       {
          short codeLen = (short) this.buffer[i];
 
-         if ((codeLen <= 0) || (codeLen > HuffmanCommon.MAX_CHUNK_SIZE))
-            throw new IllegalArgumentException("Could not generate Huffman codes: max code " +
-               "length (" + HuffmanCommon.MAX_CHUNK_SIZE + " bits) exceeded");
+         if (codeLen == 0)
+            throw new IllegalArgumentException("Could not generate Huffman codes: invalid code length 0");
 
-         if (this.maxCodeLength < codeLen)
-            this.maxCodeLength = codeLen;
+         if (codeLen > HuffmanCommon.MAX_SYMBOL_SIZE)
+            throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
+               HuffmanCommon.MAX_SYMBOL_SIZE + " bits) exceeded");
+
+         if (this.maxCodeLen < codeLen)
+            this.maxCodeLen = codeLen;
          
          this.sizes[this.sranks[i]] = codeLen;
       }
@@ -180,16 +182,15 @@ public class HuffmanEncoder implements EntropyEncoder
                sum += data[r];
                data[r] = t;
                r++;
+               continue;
             }
-            else 
-            {
-               sum += data[s];
 
-               if (s > t) 
-                  data[s] = 0;
+            sum += data[s];
 
-               s++;
-            }
+            if (s > t) 
+               data[s] = 0;
+
+            s++;
          }
 
          data[t] = sum;
@@ -239,66 +240,36 @@ public class HuffmanEncoder implements EntropyEncoder
 
       while (startChunk < end)
       {
-         // Rebuild Huffman codes
+         // Update frequencies and rebuild Huffman codes
          final int endChunk = (startChunk+this.chunkSize < end) ? startChunk+this.chunkSize : end;
          Global.computeHistogramOrder0(block, startChunk, endChunk, this.freqs, false);
          this.updateFrequencies(this.freqs);
-
+         final OutputBitStream bitstream = this.bs;                 
          final int[] c = this.codes;
-         final OutputBitStream bitstream = this.bs;
-                 
-         if (this.maxCodeLength <= 16)
+         final int endChunk4 = ((endChunk-startChunk) & -4) + startChunk;
+
+         for (int i=startChunk; i<endChunk4; i+=4)
          {
-            final int endChunk4 = 4*((endChunk-startChunk)/4) + startChunk;
-
-            for (int i=startChunk; i<endChunk4; i+=4)
-            {
-               // Pack 4 codes into 1 long
-               final int code1 = c[block[i]&0xFF];
-               final int codeLen1 = code1 >>> 24;
-               final int code2 = c[block[i+1]&0xFF];
-               final int codeLen2 = code2 >>> 24;
-               final int code3 = c[block[i+2]&0xFF];
-               final int codeLen3 = code3 >>> 24;
-               final int code4 = c[block[i+3]&0xFF];
-               final int codeLen4 = code4 >>> 24;
-               final long st = ((((long) code1)&0xFFFF)<<(codeLen2+codeLen3+codeLen4) | 
-                   ((((long) code2)&((1<<codeLen2)-1))<<(codeLen3+codeLen4))| 
-                   ((((long) code3)&((1<<codeLen3)-1))<<codeLen4)| 
-                     ((long) code4)&((1<<codeLen4)-1)); 
-               bitstream.writeBits(st, codeLen1+codeLen2+codeLen3+codeLen4);
-            }
-
-            for (int i=endChunk4; i<endChunk; i++)
-            {
-               final int code = c[block[i]&0xFF];
-               bitstream.writeBits(code, code>>>24);
-            }
+            // Pack 4 codes into 1 long
+            final int code1 = c[block[i]&0xFF];
+            final int codeLen1 = code1 >>> 24;
+            final int code2 = c[block[i+1]&0xFF];
+            final int codeLen2 = code2 >>> 24;
+            final int code3 = c[block[i+2]&0xFF];
+            final int codeLen3 = code3 >>> 24;
+            final int code4 = c[block[i+3]&0xFF];
+            final int codeLen4 = code4 >>> 24;
+            final long st = ((((long) code1)&0xFFFF)<<(codeLen2+codeLen3+codeLen4) | 
+                ((((long) code2)&((1<<codeLen2)-1))<<(codeLen3+codeLen4))| 
+                ((((long) code3)&((1<<codeLen3)-1))<<codeLen4)| 
+                  ((long) code4)&((1<<codeLen4)-1)); 
+            bitstream.writeBits(st, codeLen1+codeLen2+codeLen3+codeLen4);
          }
-         else       
+
+         for (int i=endChunk4; i<endChunk; i++)
          {
-            final int endChunk3 = 3*((endChunk-startChunk)/3) + startChunk;
-
-            for (int i=startChunk; i<endChunk3; i+=3)
-            {
-               // Pack 3 codes into 1 long
-               final int code1 = c[block[i]&0xFF];
-               final int codeLen1 = code1 >>> 24;
-               final int code2 = c[block[i+1]&0xFF];
-               final int codeLen2 = code2 >>> 24;
-               final int code3 = c[block[i+2]&0xFF];
-               final int codeLen3 = code3 >>> 24;
-               final long st = ((((long) code1)&0xFFFFFF)<<(codeLen2+codeLen3) | 
-                  (((long) code2)&((1<<codeLen2)-1))<<codeLen3)| 
-                  (((long) code3)&((1<<codeLen3)-1));
-               bitstream.writeBits(st, codeLen1+codeLen2+codeLen3);
-            }
-
-            for (int i=endChunk3; i<endChunk; i++)
-            {
-               final int code = c[block[i]&0xFF];
-               bitstream.writeBits(code, code>>>24);
-            }            
+            final int code = c[block[i]&0xFF];
+            bitstream.writeBits(code, code>>>24);
          }
 
          startChunk = endChunk;

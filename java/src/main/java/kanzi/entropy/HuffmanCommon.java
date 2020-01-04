@@ -17,8 +17,9 @@ package kanzi.entropy;
 
 public final class HuffmanCommon
 {
-   public static final int MAX_SYMBOL_SIZE = 18;
-   public static final int MAX_CHUNK_SIZE = 1 << 15;
+   public static final int LOG_MAX_CHUNK_SIZE = 14;
+   public static final int MAX_CHUNK_SIZE = 1<<LOG_MAX_CHUNK_SIZE;
+   public static final int MAX_SYMBOL_SIZE = LOG_MAX_CHUNK_SIZE+1;
    private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE<<8) + 256;
 
    
@@ -31,19 +32,26 @@ public final class HuffmanCommon
          byte[] buf = new byte[BUFFER_SIZE];
          
          for (int i=0; i<count; i++)
-            buf[((sizes[symbols[i]]-1)<<8)|symbols[i]] = 1;
+         {
+            final int s = symbols[i];
+            
+            if ((s&0xFF) != s)
+               return -1;
+            
+            buf[((sizes[s]-1)<<8)|s] = 1;
+         }
          
          int n = 0;
          
          for (int i=0; i<BUFFER_SIZE; i++)
          {
-            if (buf[i] > 0)
-            {
-               symbols[n++] = i & 0xFF;
-               
-               if (n == count)
-                  break;
-            }
+            if (buf[i] == 0)
+               continue;
+            
+            symbols[n++] = i & 0xFF;
+
+            if (n == count)
+               break;
          }
       }
 
