@@ -304,7 +304,7 @@ public final class TextCodec implements ByteFunction
       }
 
       // Not text (crude threshold)
-      if ((2*nbTextChars < length) || (16*freqs0[32] < length))
+      if ((nbTextChars < (length>>1)) || (freqs0[32] < (length>>4)))
          return MASK_NOT_TEXT;
 
       int nbBinChars = 0;
@@ -313,7 +313,7 @@ public final class TextCodec implements ByteFunction
          nbBinChars += freqs0[i];
 
       // Not text (crude threshold)
-      if (4*nbBinChars > length)
+      if (nbBinChars > (length>>2))
          return MASK_NOT_TEXT;
 
       int res = 0;
