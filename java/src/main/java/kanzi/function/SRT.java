@@ -211,7 +211,7 @@ public class SRT implements ByteFunction
 
             for (int s=0; s<r; s++)
                _r2s[s] = _r2s[s+1];
-
+            
             _r2s[r] = c;
             c = _r2s[0];
          } 

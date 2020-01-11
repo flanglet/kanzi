@@ -93,30 +93,50 @@ public class HuffmanEncoder implements EntropyEncoder
       }
 
       EntropyUtils.encodeAlphabet(this.bs, this.alphabet, count);
+      int retries = 0;
+      
+      while (true)
+      {
+         this.computeCodeLengths(frequencies, count);     
+         
+         if (this.maxCodeLen <= HuffmanCommon.MAX_SYMBOL_SIZE)
+         {
+            // Usual case
+            HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.sranks, count);
+            break;
+         }
+         
+         // Rare: some codes exceed the budget for the max code length => normalize
+         // frequencies (it boosts the smallest frequencies) and try once more.
+         if (retries > 1)
+            throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
+               HuffmanCommon.MAX_SYMBOL_SIZE + " bits) exceeded");
+         
+         int totalFreq = 0;
 
+         for (int i=0; i<count; i++) 
+            totalFreq += frequencies[this.alphabet[i]];
+         
+         // Copy alphabet (modified by normalizeFrequencies)
+         int[] symbols = new int[count];
+         System.arraycopy(this.alphabet, 0, symbols, 0, count);
+         new EntropyUtils().normalizeFrequencies(frequencies, symbols, totalFreq, 1<<12);
+         retries++;
+      }
+      
       // Transmit code lengths only, frequencies and codes do not matter
-      // Unary encode the length difference
-      this.computeCodeLengths(frequencies, count);     
       ExpGolombEncoder egenc = new ExpGolombEncoder(this.bs, true);
       short prevSize = 2;
 
+      // Pack size and code (size <= MAX_SYMBOL_SIZE bits)
+      // Unary encode the length differences
       for (int i=0; i<count; i++)
       {
-         final short currSize = this.sizes[this.alphabet[i]];
+         final int s = this.alphabet[i];
+         final short currSize = this.sizes[s];
+         this.codes[s] |= (currSize<<24);           
          egenc.encodeByte((byte) (currSize - prevSize));
          prevSize = currSize;
-      }
-
-      // Create canonical codes 
-      if (HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.alphabet, count) < 0)
-         throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
-            HuffmanCommon.MAX_SYMBOL_SIZE + " bits) exceeded");
-
-      // Pack size and code (size <= MAX_SYMBOL_SIZE bits)
-      for (int i=0; i<count; i++)
-      {
-         final int r = this.alphabet[i];
-         this.codes[r] |= (this.sizes[r]<<24);           
       }
 
       return count;
@@ -129,6 +149,7 @@ public class HuffmanEncoder implements EntropyEncoder
       {
          this.sranks[0] = this.alphabet[0];
          this.sizes[this.alphabet[0]] = 1;
+         this.maxCodeLen = 1;
          return;
       }
 
@@ -156,10 +177,6 @@ public class HuffmanEncoder implements EntropyEncoder
 
          if (codeLen == 0)
             throw new IllegalArgumentException("Could not generate Huffman codes: invalid code length 0");
-
-         if (codeLen > HuffmanCommon.MAX_SYMBOL_SIZE)
-            throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
-               HuffmanCommon.MAX_SYMBOL_SIZE + " bits) exceeded");
 
          if (this.maxCodeLen < codeLen)
             this.maxCodeLen = codeLen;

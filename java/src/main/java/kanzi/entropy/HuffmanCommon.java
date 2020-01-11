@@ -35,7 +35,7 @@ public final class HuffmanCommon
          {
             final int s = symbols[i];
             
-            if ((s&0xFF) != s)
+            if (((s&0xFF) != s) || (sizes[s] > MAX_SYMBOL_SIZE))
                return -1;
             
             buf[((sizes[s]-1)<<8)|s] = 1;
@@ -66,10 +66,6 @@ public final class HuffmanCommon
          {
             code <<= (sizes[s]-curLen);
             curLen = sizes[s];
-
-            // Max length reached
-            if (curLen > MAX_SYMBOL_SIZE)
-               return -1; 
          }
 
          codes[s] = code;
