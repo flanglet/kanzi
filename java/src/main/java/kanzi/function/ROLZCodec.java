@@ -420,8 +420,8 @@ public class ROLZCodec implements ByteFunction
          int sizeChunk = (dstEnd <= CHUNK_SIZE) ? dstEnd : CHUNK_SIZE;
          int startChunk = output.index;
          final SliceByteArray litBuf  = new SliceByteArray(new byte[this.getMaxEncodedLength(sizeChunk)], 0);
-         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/2], 0);
-         final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/2], 0);
+         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
+         final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
          final int[] lengths = new int[2];
 
          for (int i=0; i<this.counters.length; i++)
