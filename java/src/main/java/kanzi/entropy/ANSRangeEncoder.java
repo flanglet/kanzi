@@ -134,11 +134,14 @@ public class ANSRangeEncoder implements EntropyEncoder
    // Encode alphabet and frequencies
    protected boolean encodeHeader(int alphabetSize, int[] alphabet, int[] frequencies, int lr)
    {
-      EntropyUtils.encodeAlphabet(this.bitstream, alphabet, alphabetSize);
+      final int encoded = EntropyUtils.encodeAlphabet(this.bitstream, alphabet, alphabetSize);
  
-      if (alphabetSize == 0)
-         return true;
+      if (encoded < 0)
+         return false;
 
+      if (encoded == 0)
+         return true;
+      
       final int chkSize = (alphabetSize >= 64) ? 12 : 6;
       int llr = 3;
 
@@ -148,15 +151,15 @@ public class ANSRangeEncoder implements EntropyEncoder
       // Encode all frequencies (but the first one) by chunks
       for (int i=1; i<alphabetSize; i+=chkSize)
       {
-         int max = 0;
+         int max = frequencies[alphabet[i]] - 1;
          int logMax = 1;
-         final int endj = (i+chkSize < alphabetSize) ? i + chkSize : alphabetSize;
+         final int endj = (i+chkSize < alphabetSize) ? i+chkSize : alphabetSize;
 
          // Search for max frequency log size in next chunk
-         for (int j=i; j<endj; j++)
+         for (int j=i+1; j<endj; j++)
          {
-            if (frequencies[alphabet[j]] > max)
-               max = frequencies[alphabet[j]];
+            if (frequencies[alphabet[j]]-1 > max)
+               max = frequencies[alphabet[j]]-1;
          }
 
          while (1<<logMax <= max)
@@ -166,7 +169,7 @@ public class ANSRangeEncoder implements EntropyEncoder
 
          // Write frequencies
          for (int j=i; j<endj; j++)
-            this.bitstream.writeBits(frequencies[alphabet[j]], logMax);
+            this.bitstream.writeBits(frequencies[alphabet[j]]-1, logMax);
       }
 
       return true;

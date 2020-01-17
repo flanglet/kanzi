@@ -94,7 +94,7 @@ public final class RangeDecoder implements EntropyDecoder
       final int scale = 1 << logRange;
       this.shift = logRange;
       int sum = 0;
-      final int chkSize = (alphabetSize >= 64) ? 12 : 6;
+      final int chkSize = (alphabetSize >= 64) ? 8 : 6;
       int llr = 3;
 
       while (1<<llr <= logRange)
@@ -109,7 +109,7 @@ public final class RangeDecoder implements EntropyDecoder
          // Read frequencies
          for (int j=i; j<endj; j++)
          {
-            int val = (int) this.bitstream.readBits(logMax);
+            int val = (int) (1 + this.bitstream.readBits(logMax));
 
             if ((val <= 0) || (val >= scale))
             {

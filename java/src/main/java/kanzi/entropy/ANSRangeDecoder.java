@@ -230,7 +230,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          if (this.f2s[k].length < scale)
             this.f2s[k] = new byte[scale];
 
-         final int chkSize = (alphabetSize >= 64) ? 12 : 6;
+         final int chkSize = (alphabetSize >= 64) ? 8 : 6;
          int sum = 0;
          int llr = 3;
 
@@ -254,7 +254,7 @@ public class ANSRangeDecoder implements EntropyDecoder
             // Read frequencies
             for (int j=i; j<endj; j++)
             {
-               final int freq = (int) this.bitstream.readBits(logMax);
+               final int freq = (int) (1 + this.bitstream.readBits(logMax));
 
                if ((freq <= 0) || (freq >= scale))
                {
