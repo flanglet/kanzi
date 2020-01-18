@@ -70,7 +70,7 @@ public class HuffmanDecoder implements EntropyDecoder
       }
    }
 
-
+   
    // readLengths decodes the code lengths from the bitstream and generates
    // the Huffman codes for decoding.
    public int readLengths() throws BitStreamException

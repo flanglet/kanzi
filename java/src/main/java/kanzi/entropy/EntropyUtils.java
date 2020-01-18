@@ -95,7 +95,7 @@ public class EntropyUtils
          for (int i=0; i<=lastMask; i++)
             obs.writeBits(masks[i], 8);
       }
-      
+
       return count;
    }
 

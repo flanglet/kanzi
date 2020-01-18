@@ -74,7 +74,7 @@ public class HuffmanEncoder implements EntropyEncoder
       }
    }
 
-    
+
    // Rebuild Huffman codes
    private int updateFrequencies(int[] frequencies) throws BitStreamException
    {
