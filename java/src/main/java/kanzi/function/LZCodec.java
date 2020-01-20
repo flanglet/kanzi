@@ -22,38 +22,30 @@ import kanzi.SliceByteArray;
 
 
 // Simple byte oriented LZ77 implementation.
-// It is just LZ4 modified to use a bigger hash map.
+// It is a modified LZ4 with a bigger window, a bigger hash map, 3+n*8 bit 
+// literal lengths and 17 or 24 bit match lengths.
 public final class LZCodec implements ByteFunction
 {
-   private static final int HASH_SEED          = 0x7FEB352D;
-   private static final int HASH_LOG_SMALL     = 12;
-   private static final int HASH_LOG_BIG       = 16;
-   private static final int MAX_DISTANCE       = (1<<16) - 1;
-   private static final int SKIP_STRENGTH      = 6;
-   private static final int LAST_LITERALS      = 5;
-   private static final int MIN_MATCH          = 4;
-   private static final int MF_LIMIT           = 12;
-   private static final int ML_BITS            = 4;
-   private static final int ML_MASK            = (1<<ML_BITS) - 1;
-   private static final int RUN_BITS           = 8 - ML_BITS;
-   private static final int RUN_MASK           = (1<<RUN_BITS) - 1;
-   private static final int COPY_LENGTH        = 8;
-   private static final int MIN_LENGTH         = 14;
-   private static final int MAX_LENGTH         = (32*1024*1024) - 4 - MIN_MATCH;
-   private static final int SEARCH_MATCH_NB    = 1 << 6;
+   private static final int HASH_SEED      = 0x7FEB352D;
+   private static final int HASH_LOG       = 18;
+   private static final int HASH_SHIFT     = 32 - HASH_LOG;
+   private static final int MAX_DISTANCE1  = (1<<17) - 1;
+   private static final int MAX_DISTANCE2  = (1<<24) - 1;
+   private static final int MIN_MATCH      = 4;
+   private static final int MIN_LENGTH     = 16;
 
-   private int[] buffer;
+   private int[] hashes;
 
 
    public LZCodec()
    {
-      this.buffer = new int[0];
+      this.hashes = new int[0];
    }
 
 
    public LZCodec(Map<String, Object> ctx)
    {
-      this.buffer = new int[0];
+      this.hashes = new int[0];
    }
 
 
@@ -70,25 +62,23 @@ public final class LZCodec implements ByteFunction
    }
 
    
-   private static int emitLastLiterals(byte[] src, int srcIdx, byte[] dst, int dstIdx, int runLength)
+   private static int emitLastLiterals(byte[] src, int srcIdx, byte[] dst, int dstIdx, int litLen)
    {
-      if (runLength >= RUN_MASK)
+      if (litLen >= 7)
       {
-         dst[dstIdx++] = (byte) (RUN_MASK<<ML_BITS);
-         dstIdx = emitLength(dst, dstIdx, runLength - RUN_MASK);               
+         dst[dstIdx++] = (byte) (7<<5);
+         dstIdx = emitLength(dst, dstIdx, litLen-7);               
       }
       else
       {
-         dst[dstIdx++] = (byte) (runLength<<ML_BITS);
+         dst[dstIdx++] = (byte) (litLen<<5);
       } 
             
-      System.arraycopy(src, srcIdx, dst, dstIdx, runLength);
-      return dstIdx + runLength;
+      System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
+      return dstIdx+litLen;
    }
      
    
-   // Generates same byte output as LZ4_compress_generic in LZ4 r131 (7/15) 
-   // for a 32 bit architecture.
    @Override
    public boolean forward(SliceByteArray input, SliceByteArray output)
    {
@@ -103,163 +93,115 @@ public final class LZCodec implements ByteFunction
       if (output.length - output.index < this.getMaxEncodedLength(count))
          return false;
       
-      final int hashLog = (count<MAX_DISTANCE) ? HASH_LOG_SMALL : HASH_LOG_BIG;
-      final int hashShift = 32 - hashLog;
+      // If too small, skip
+      if (count < MIN_LENGTH)
+          return false;
+
+      if (this.hashes.length == 0) {
+          this.hashes = new int[1<<HASH_LOG];
+      } else {
+         for (int i=0; i<(1<<HASH_LOG); i++)
+            this.hashes[i] = 0;
+      }
+
       final int srcIdx0 = input.index;
       final int dstIdx0 = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int srcEnd = srcIdx0 + count;
-      final int matchLimit = srcEnd - LAST_LITERALS;
-      final int mfLimit = srcEnd - MF_LIMIT;
+      final int srcEnd = srcIdx0 + count - 8;
       int srcIdx = srcIdx0;
-      int dstIdx = dstIdx0;
       int anchor = srcIdx0;
+      int dstIdx = dstIdx0;
+      final int maxDist = (srcEnd < 4*MAX_DISTANCE1) ? MAX_DISTANCE1 : MAX_DISTANCE2;
+      dst[dstIdx++] = (maxDist == MAX_DISTANCE1) ? (byte) 0 : (byte) 1;
 
-      if (count > MIN_LENGTH)
-      {    
-         if (this.buffer.length < (1<<hashLog))
-         {
-            this.buffer = new int[(1<<hashLog)];
+      while (srcIdx < srcEnd) 
+      {
+         final int minRef = Math.max(srcIdx-maxDist, srcIdx0);
+         final int h = hash(src, srcIdx);
+         final int ref = this.hashes[h];
+         int bestLen = 0;
+
+         // Find a match
+         if ((ref > minRef) && (differentInts(src, ref, srcIdx) == false)) {
+            final int maxMatch = srcEnd - srcIdx;
+            bestLen = 4;
+
+            while ((bestLen+4 < maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
+               bestLen += 4;
+
+            while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
+               bestLen++;
          }
-         else
+
+         // No good match ?
+         if (bestLen < MIN_MATCH) 
          {
-            for (int i=0; i<this.buffer.length; i++)
-               this.buffer[i] = 0;
-         }
-
-         // First byte
-         final int[] table = this.buffer;
-         int h = (Memory.LittleEndian.readInt32(src, srcIdx)*HASH_SEED) >>> hashShift;
-         table[h] = srcIdx - srcIdx0;         
-         srcIdx++;
-         h = (Memory.LittleEndian.readInt32(src, srcIdx)*HASH_SEED) >>> hashShift;
-
-         while (true)
-         {
-            int fwdIdx = srcIdx;
-            int step = 1;
-            int searchMatchNb = SEARCH_MATCH_NB;
-            int match;
-
-            // Find a match
-            do
-            {
-               srcIdx = fwdIdx;
-               fwdIdx += step;
-
-               if (fwdIdx > mfLimit)
-               {
-                  // Encode last literals
-                  output.index = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);                                    
-                  input.index = srcEnd;
-                  return true;
-               }
-
-               step = searchMatchNb >> SKIP_STRENGTH;
-               searchMatchNb++;
-               match = table[h] + srcIdx0;            
-               table[h] = srcIdx - srcIdx0;
-               h = (Memory.LittleEndian.readInt32(src, fwdIdx)*HASH_SEED) >>> hashShift;
-            }
-            while ((differentInts(src, match, srcIdx) == true) || (match <= srcIdx - MAX_DISTANCE));
-
-            // Catch up
-            while ((match > srcIdx0) && (srcIdx > anchor) && (src[match-1] == src[srcIdx-1]))
-            {
-               match--;
-               srcIdx--;
-            }
-
-            // Encode literal length
-            final int litLength = srcIdx - anchor;
-            int token = dstIdx;
-            dstIdx++;
-          
-            if (litLength >= RUN_MASK)
-            {
-               dst[token] = (byte) (RUN_MASK << ML_BITS);
-               dstIdx = emitLength(dst, dstIdx, litLength-RUN_MASK);               
-            }
-            else
-            {
-               dst[token] = (byte) (litLength << ML_BITS);
-            }
-           
-            // Copy literals
-            customArrayCopy(src, anchor, dst, dstIdx, litLength);
-            dstIdx += litLength;
-          
-            // Next match
-            do
-            {
-               // Encode offset
-               dst[dstIdx++] = (byte) (srcIdx-match);
-               dst[dstIdx++] = (byte) ((srcIdx-match) >> 8);
-
-               // Encode match length
-               srcIdx += MIN_MATCH;
-               match += MIN_MATCH;
-               anchor = srcIdx;
-
-               while ((srcIdx < matchLimit) && (src[srcIdx] == src[match]))
-               {
-                  srcIdx++;
-                  match++;
-               }
-
-               final int matchLength = srcIdx - anchor;
-
-               // Encode match length
-               if (matchLength >= ML_MASK)
-               {
-                  dst[token] += (byte) ML_MASK;
-                  dstIdx = emitLength(dst, dstIdx, matchLength-ML_MASK);                 
-               }
-               else
-               {
-                  dst[token] += (byte) matchLength;
-               }            
-
-               anchor = srcIdx;
-
-               if (srcIdx > mfLimit)
-               {
-                  // Encode last literals
-                  output.index = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);
-                  input.index = srcEnd;
-                  return true;
-               }
-
-               // Fill table
-               h = (Memory.LittleEndian.readInt32(src, srcIdx-2)*HASH_SEED) >>> hashShift;
-               table[h] = srcIdx - 2 - srcIdx0;
-
-               // Test next position
-               h = (Memory.LittleEndian.readInt32(src, srcIdx)*HASH_SEED) >>> hashShift;
-               match = table[h] + srcIdx0;
-               table[h] = srcIdx - srcIdx0;
-
-               if ((differentInts(src, match, srcIdx) == true) || (match <= srcIdx - MAX_DISTANCE))
-                  break;
-               
-               token = dstIdx;
-               dstIdx++;
-               dst[token] = 0;
-            }
-            while (true);
-            
-            // Prepare next loop
+            this.hashes[h] = srcIdx;
             srcIdx++;
-            h = (Memory.LittleEndian.readInt32(src, srcIdx)*HASH_SEED) >>> hashShift;
+            continue;
+         }
+
+         // Emit token
+         // Token: 3 bits litLen + 1 bit flag + 4 bits mLen
+         // flag = if maxDist = (1<<17)-1, then highest bit of distance
+         //        else 1 if dist needs 3 bytes (> 0xFFFF) and 0 otherwise
+         final int mLen = bestLen - MIN_MATCH;
+         final int dist = srcIdx - ref;
+         final int token = ((dist>0xFFFF) ? 0x10 : 0) | Math.min(mLen, 0x0F);
+
+         // Literals to process ?
+         if (anchor == srcIdx) 
+         {
+            dst[dstIdx++] = (byte) token;
+         }
+         else 
+         {
+            // Process match
+            final int litLen = srcIdx - anchor;
+
+            // Emit literal length
+            if (litLen >= 7) {
+               dst[dstIdx++] = (byte) ((7<<5)|token);
+               dstIdx = emitLength(dst, dstIdx, litLen-7);
+            }
+            else 
+            {
+               dst[dstIdx++] = (byte) ((litLen<<5)|token);
+            }
+
+            // Emit literals
+            emitLiterals(src, anchor, dst, dstIdx, litLen);
+            dstIdx += litLen;
+         }
+
+         // Emit match length
+         if (mLen >= 0x0F)
+            dstIdx = emitLength(dst, dstIdx, mLen-0x0F);
+
+         // Emit distance
+         if ((maxDist == MAX_DISTANCE2) && (dist > 0xFFFF))
+            dst[dstIdx++] = (byte) (dist>>>16);
+
+         dst[dstIdx++] = (byte) (dist>>>8);
+         dst[dstIdx++] = (byte) (dist);
+
+         // Fill _hashes and update positions
+         anchor = srcIdx + bestLen;
+         this.hashes[h] = srcIdx;
+         srcIdx++;
+
+         while (srcIdx < anchor) 
+         {
+            this.hashes[hash(src, srcIdx)] = srcIdx;
+            srcIdx++;
          }
       }
 
-      dstIdx = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd-anchor);
-      
-      // Encode last literals
+      // Emit last literals
+      dstIdx = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd+8-anchor);
+      input.index = srcEnd + 8;
       output.index = dstIdx;
-      input.index = srcEnd;
       return true;
    }
 
@@ -278,112 +220,128 @@ public final class LZCodec implements ByteFunction
       final int dstIdx0 = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int srcEnd = srcIdx0 + count;
-      final int dstEnd = dst.length;
-      final int srcEnd2 = srcEnd - COPY_LENGTH;
-      final int dstEnd2 = dstEnd - COPY_LENGTH;
-      int srcIdx = srcIdx0;
+      final int srcEnd = srcIdx0 + count - 8;
+      final int dstEnd = dst.length - 8;
+      final int maxDist = (src[srcIdx0] == 1) ? MAX_DISTANCE2 : MAX_DISTANCE1;
       int dstIdx = dstIdx0;
+      int srcIdx = srcIdx0 + 1;
+      
 
-      while (true)
-      {
-         // Get literal length 
+      while (true) {
          final int token = src[srcIdx++] & 0xFF;
-         int length = token >> ML_BITS;
 
-         if (length == RUN_MASK)
-         {
-            byte len;
+         if (token >= 32) {
+            // Get literal length
+            int litLen = token >> 5;
 
-            while (((len = src[srcIdx++]) == (byte) 0xFF) && (srcIdx <= srcEnd))
-               length += 0xFF;
+            if (litLen == 7) {
+                while ((srcIdx < srcEnd) && (src[srcIdx] == -1)) {
+                    srcIdx++;
+                    litLen += 0xFF;
+                }
 
-            length += (len & 0xFF);
+                if (srcIdx >= srcEnd + 8) {
+                    input.index = srcIdx;
+                    output.index = dstIdx;
+                    return false;
+                }
 
-            if (length > MAX_LENGTH)
-               throw new IllegalArgumentException("Invalid length decoded: " + length);
+                litLen += (src[srcIdx++] & 0xFF);
+            }
+
+            // Copy literals and exit ?
+            if ((dstIdx + litLen > dstEnd) || (srcIdx + litLen > srcEnd)) {
+                System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
+                srcIdx += litLen;
+                dstIdx += litLen;
+                break;
+            }
+
+            // Emit literals
+            emitLiterals(src, srcIdx, dst, dstIdx, litLen);
+            srcIdx += litLen;
+            dstIdx += litLen;
          }
-        
-         // Copy literals
-         if ((dstIdx + length > dstEnd2) || (srcIdx + length > srcEnd2))
-         {
-            System.arraycopy(src, srcIdx, dst, dstIdx, length);
-            srcIdx += length;
-            dstIdx += length;
-            break;
-         }
-
-         customArrayCopy(src, srcIdx, dst, dstIdx, length);
-         srcIdx += length;
-         dstIdx += length;
-
-         if ((dstIdx > dstEnd2) || (srcIdx > srcEnd2))
-            break;
-
-         // Get offset
-         final int delta = (src[srcIdx] & 0xFF) | ((src[srcIdx+1] & 0xFF) << 8);
-         srcIdx += 2;
-         int match = dstIdx - delta;
-                  
-         if (match < dstIdx0)
-            break;
-         
-         length = token & ML_MASK;
 
          // Get match length
-         if (length == ML_MASK)
+         int mLen = token & 0x0F;
+
+         if (mLen == 15) 
          {
-            while (((src[srcIdx]) == (byte) 0xFF) && (srcIdx < srcEnd))
+            while ((srcIdx < srcEnd) && (src[srcIdx] == -1)) 
             {
-               srcIdx++;
-               length += 0xFF;
+                srcIdx++;
+                mLen += 0xFF;
             }
 
             if (srcIdx < srcEnd)
-               length += (src[srcIdx++] & 0xFF);
-
-            if ((length > MAX_LENGTH) || (srcIdx == srcEnd))
-               throw new IllegalArgumentException("Invalid length decoded: " + length);
+                mLen += (src[srcIdx++] & 0xFF);
          }
 
-         length += MIN_MATCH;
-         final int cpy = dstIdx + length;
+         mLen += MIN_MATCH;
+         final int mEnd = dstIdx + mLen;
 
-         // Copy repeated sequence 
-         if (cpy > dstEnd2)
+         // Sanity check
+         if (mEnd > dstEnd + 8) 
          {
-            for (int i=0; i<length; i++)
-               dst[dstIdx+i] = dst[match+i]; 
+            input.index = srcIdx;
+            output.index = dstIdx;
+            return false;
          }
-         else
-         { 
-            // Unroll loop
-            do
+
+         // Get distance
+         int dist = ((src[srcIdx]&0xFF) << 8) | (src[srcIdx+1]&0xFF);
+         srcIdx += 2;
+
+         if ((token&0x10) != 0) 
+         {
+            dist = (maxDist==MAX_DISTANCE1) ? dist+65536 : (dist<<8) | (src[srcIdx++]&0xFF);
+         }
+
+         // Sanity check
+         if ((dstIdx < dist) || (dist > maxDist)) 
+         {
+            input.index = srcIdx;
+            output.index = dstIdx;
+            return false;
+         }
+
+         // Copy match
+         if (dist > 8) 
+         {
+            int ref = dstIdx - dist;
+
+            do 
             {
-               dst[dstIdx]   = dst[match];
-               dst[dstIdx+1] = dst[match+1];
-               dst[dstIdx+2] = dst[match+2];
-               dst[dstIdx+3] = dst[match+3];
-               dst[dstIdx+4] = dst[match+4];
-               dst[dstIdx+5] = dst[match+5];
-               dst[dstIdx+6] = dst[match+6];
-               dst[dstIdx+7] = dst[match+7];
-               match += 8;
-               dstIdx += 8;
-            }
-            while (dstIdx < cpy);
+                // No overlap
+                System.arraycopy(dst, ref, dst, dstIdx, 8);
+                ref += 8;
+                dstIdx += 8;
+            } while (dstIdx < mEnd);
          }
-         
-         // Correction
-         dstIdx = cpy;
+         else 
+         {
+            final int ref = dstIdx - dist;
+
+            for (int i=0; i<mLen; i++)
+                dst[dstIdx+i] = dst[ref+i];
+         }
+
+         dstIdx = mEnd;
       }
 
       output.index = dstIdx;
       input.index = srcIdx;
-      return srcIdx == srcEnd;
+      return srcIdx == srcEnd + 8;
    }
 
+   
+   private static int hash(byte[] block, int idx)
+   {
+      return (Memory.LittleEndian.readInt32(block, idx)*HASH_SEED) >>> HASH_SHIFT;      
+   }
 
+   
    private static void arrayChunkCopy(byte[] src, int srcIdx, byte[] dst, int dstIdx)
    {
       dst[dstIdx]   = src[srcIdx];
@@ -397,7 +355,7 @@ public final class LZCodec implements ByteFunction
    }
 
 
-   private static void customArrayCopy(byte[] src, int srcIdx, byte[] dst, int dstIdx, int len)
+   private static void emitLiterals(byte[] src, int srcIdx, byte[] dst, int dstIdx, int len)
    {
       for (int i=0; i<len; i+=8)
          arrayChunkCopy(src, srcIdx+i, dst, dstIdx+i);
