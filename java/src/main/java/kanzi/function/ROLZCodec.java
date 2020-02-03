@@ -783,7 +783,7 @@ public class ROLZCodec implements ByteFunction
          re.dispose();
          input.index = srcIdx;
          output.index = sba1.index;
-         return input.index == srcEnd + 4;
+         return (input.index == srcEnd+4) && (output.index < count);
       }
 
 
@@ -899,7 +899,7 @@ public class ROLZCodec implements ByteFunction
       {
          // Since we do not check the dst index for each byte (for speed purpose)
          // allocate some extra buffer for incompressible data.
-         return (srcLen <= 16384) ? srcLen+512 : srcLen+(srcLen/32);
+         return (srcLen <= 16384) ? srcLen+1024 : srcLen+(srcLen/32);
       }
    }
 
@@ -945,9 +945,9 @@ public class ROLZCodec implements ByteFunction
 
       public void encodeBit(int bit)
       {
-         // Calculate interval split
+         // Calculate interval split        
          final long split = (((this.high-this.low) >>> 4) * this.predictor.get()) >>> 8;
-
+      
          // Update fields with new interval bounds
          this.high -= (-bit & (this.high - this.low - split));
          this.low += (~-bit & -~split);
