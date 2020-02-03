@@ -230,6 +230,9 @@ public class Kanzi
            if (arg.equals("--help") || arg.equals("-h"))
            {
                printOut("", true);
+               printOut("Credits: Matt Mahoney, Yann Collet, Jan Ondrus, Yuta Mori, Ilya Muravyov,", true);
+               printOut("         Neal Burns, Fabian Giesen, Jarek Duda, Ilya Grebnov", true);
+               printOut("", true);
                printOut("   -h, --help", true);
                printOut("        display this message\n", true);
                printOut("   -v, --verbose=<level>", true);
