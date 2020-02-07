@@ -384,13 +384,13 @@ public class CompressedInputStream extends InputStream
             this.buffers[2*jobId].index = 0;
             this.buffers[2*jobId+1].index = 0;
             
-            if (this.buffers[2*jobId].array.length < blkSize)
+            if (this.buffers[2*jobId].array.length < blkSize+1024)
             {
                // Lazy instantiation of input buffers this.buffers[2*jobId]
                // Output buffers this.buffers[2*jobId+1] are lazily instantiated
                // by the decoding tasks.
-               this.buffers[2*jobId].array = new byte[blkSize];    
-               this.buffers[2*jobId].length = blkSize;
+               this.buffers[2*jobId].array = new byte[blkSize+1024];    
+               this.buffers[2*jobId].length = blkSize+1024;
             }
                          
             Map<String, Object> map = new HashMap<>(this.ctx);
