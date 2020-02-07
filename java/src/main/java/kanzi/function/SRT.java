@@ -24,7 +24,7 @@ import kanzi.SliceByteArray;
 // of the data prior to entropy coding.
 public class SRT implements ByteFunction
 {
-   private static final int HEADER_SIZE = 4*256; //  freqs
+   private static final int MAX_HEADER_SIZE = 4*256;
 
    private final int[] freqs;
    private final byte[] symbols;
@@ -192,11 +192,11 @@ public class SRT implements ByteFunction
          _bucketEnds[c] = bucketPos;
       }
 
-      // decoding
       int c = _r2s[0];
       final byte[] dst = output.array;
       final int dstIdx = output.index;
 
+      // decoding
       for (int i=0; i<count; i++) 
       {
          dst[dstIdx+i] = (byte) c;
@@ -281,36 +281,52 @@ public class SRT implements ByteFunction
    
    private static int encodeHeader(int[] freqs, byte[] dst, int dstIdx)
    {
-      for (int i=0; i<256; i++)
+      for (int i=0; i<256; i++) 
       {
-         dst[dstIdx++] = (byte) (freqs[i]>>24);
-         dst[dstIdx++] = (byte) (freqs[i]>>16);
-         dst[dstIdx++] = (byte) (freqs[i]>>8);
-         dst[dstIdx++] = (byte) (freqs[i]);
+         int f = freqs[i];
+         
+         while (f >= 128)
+         {
+            dst[dstIdx++] = (byte) (0x80 | f);
+            f >>>= 7;
+         }
+
+          dst[dstIdx++] = (byte) f;
       }
 
-      return HEADER_SIZE;
+      return dstIdx;
    }
    
    
    private static int decodeHeader(byte[] src, int srcIdx, int[] freqs)
    {
-      for (int i=0; i<1024; i+=4)
+      for (int i=0; i<256; i++) 
       {
-         final int f1 = src[srcIdx++] & 0xFF;
-         final int f2 = src[srcIdx++] & 0xFF;
-         final int f3 = src[srcIdx++] & 0xFF;
-         final int f4 = src[srcIdx++] & 0xFF;
-         freqs[i>>2] = (f1<<24) | (f2<<16) | (f3<<8) | f4; 
+         int val = src[srcIdx++] & 0xFF;
+         int res = val & 0x7F;
+         int shift = 7;
+
+         while (val >= 128)
+         {
+            val = src[srcIdx++] & 0xFF;
+            res |= ((val&0x7F)<<shift);
+            
+            if (shift > 21)
+               break;
+            
+            shift += 7;
+         }
+         
+         freqs[i] = res;
       }
-      
-      return HEADER_SIZE;
+
+      return srcIdx;
    }
    
    
    @Override
    public int getMaxEncodedLength(int srcLen)
    {
-      return srcLen + HEADER_SIZE;
+      return srcLen + MAX_HEADER_SIZE;
    }
 }
