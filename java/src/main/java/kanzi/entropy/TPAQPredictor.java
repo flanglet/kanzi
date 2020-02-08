@@ -331,7 +331,7 @@ public class TPAQPredictor implements Predictor
       // Get initial predictions
       // It has been observed that accessing memory via [ctx ^ c] is significantly faster
       // on SandyBridge/Windows and slower on SkyLake/Linux except when [ctx & 255 == 0]
-      // (with c < 256). Hence, use XOR for _ctx5 which is the only context that fullfills
+      // (with c < 256). Hence, use XOR for _ctx5 which is the only context that fulfills
       // the condition.
       final int c = this.c0;
       final int mask = this.statesMask;

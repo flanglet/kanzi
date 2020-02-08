@@ -72,8 +72,7 @@ public class BWT implements ByteTransform
 
    
    private int[] buffer1;  
-   private byte[] buffer2;
-   private short[] buffer3;
+   private short[] buffer2;
    private int[] buckets;
    private int[] freqs;
    private final int[] primaryIndexes;
@@ -86,8 +85,7 @@ public class BWT implements ByteTransform
    public BWT()
    {
       this.buffer1 = new int[0];   
-      this.buffer2 = new byte[0]; 
-      this.buffer3 = new short[0]; 
+      this.buffer2 = new short[0]; 
       this.buckets = new int[256];
       this.freqs = new int[256];
       this.primaryIndexes = new int[8];
@@ -110,8 +108,7 @@ public class BWT implements ByteTransform
          throw new IllegalArgumentException("The thread pool cannot be null when the number of jobs is "+tasks);
 
       this.buffer1 = new int[0];
-      this.buffer2 = new byte[0];
-      this.buffer3 = new short[0];
+      this.buffer2 = new short[0];
       this.buckets = new int[256];
       this.freqs = new int[256];
       this.primaryIndexes = new int[8];
@@ -179,6 +176,7 @@ public class BWT implements ByteTransform
 
       final int[] sa = this.buffer1;
       this.saAlgo.computeSuffixArray(input, sa, srcIdx, count);
+
       final int srcIdx2 = srcIdx - 1;
       final int dstIdx2 = dstIdx + 1;
       int chunks = getBWTChunks(count);
@@ -340,9 +338,9 @@ public class BWT implements ByteTransform
 
       if (this.buckets.length < 65536)
          this.buckets = new int[65536];
-
-		if (this.buffer3.length < MASK_FASTBITS+1)
-         this.buffer3 = new short[MASK_FASTBITS+1];
+      
+      if (this.buffer2.length < MASK_FASTBITS+1)
+         this.buffer2 = new short[MASK_FASTBITS+1];
 
       // Aliasing
       final byte[] input = src.array;
@@ -382,7 +380,7 @@ public class BWT implements ByteTransform
       }
 
       final int lastc = input[srcIdx] & 0xFF;
-      final short[] fastBits = this.buffer3;
+      final short[] fastBits = this.buffer2;
 
       int shift = 0;
 
@@ -568,7 +566,7 @@ public class BWT implements ByteTransform
       {
          final int[] data = BWT.this.buffer1;
          final int[] buckets = BWT.this.buckets;
-         final short[] fastBits = BWT.this.buffer3;
+         final short[] fastBits = BWT.this.buffer2;
          int start = this.dstIdx;
          int shift = 0;
 
