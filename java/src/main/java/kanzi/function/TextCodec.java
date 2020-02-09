@@ -365,6 +365,12 @@ public final class TextCodec implements ByteFunction
                res &= ~MASK_CRLF;
                break;
             }
+            
+            if ((i != CR) && (freqs[i][LF]) != 0)
+            {
+               res &= ~MASK_CRLF;
+               break;
+            }
          }
       }
 
@@ -636,7 +642,7 @@ public final class TextCodec implements ByteFunction
                      }
                   }
                   else
-                  {     
+                  {   
                      // Word found in the dictionary
                      // Skip space if only delimiter between 2 word references
                      if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))

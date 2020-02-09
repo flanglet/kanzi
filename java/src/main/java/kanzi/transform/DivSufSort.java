@@ -120,7 +120,7 @@ public final class DivSufSort
 
 
    private void constructSuffixArray(int[] bucketA, int[] bucketB, int n, int m)
-   {
+   {   
       if (m > 0)
       {
          for (int c1=254; c1>=0; c1--)
@@ -386,9 +386,9 @@ public final class DivSufSort
             {
                final int i = bucketB[idx+c1];
 
-               if (j > i+1) 
+               if (j > i+1)
                   this.ssSort(pab, i, j, m, bufSize, 2, n, arr[i] == m-1);
-
+ 
                j = i;
             }
          }
@@ -425,7 +425,7 @@ public final class DivSufSort
 
             arr[m+arr[i]] = j;
         }
-
+   
         // Construct the inverse suffix array of type B* suffixes using trSort.
         this.trSort(m, 1);
 

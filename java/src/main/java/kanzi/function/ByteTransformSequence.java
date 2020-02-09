@@ -109,7 +109,7 @@ public class ByteTransformSequence implements ByteFunction
          System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
             
       src.index += blockSize;
-      dst.index += count;     
+      dst.index += count;            
       return this.skipFlags != SKIP_MASK;
    }
 
