@@ -358,6 +358,13 @@ public class ROLZCodec implements ByteFunction
             startChunk = endChunk;
          }
 
+         if (dstIdx+4 > dst.length)
+         {
+            output.index = dstIdx;
+            input.index = srcIdx;
+            return false;
+         }
+         
          // Emit last literals
          dst[dstIdx++] = src[srcIdx];
          dst[dstIdx++] = src[srcIdx+1];
