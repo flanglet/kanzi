@@ -23,7 +23,7 @@ import kanzi.SliceByteArray;
 // Encapsulates a sequence of transforms or functions in a function 
 public class ByteTransformSequence implements ByteFunction
 {
-   private static final byte SKIP_MASK = (byte) 0xFF;
+   private static final int SKIP_MASK = 0xFF;
    
    private final ByteTransform[] transforms; // transforms or functions
    private byte skipFlags; // skip transforms
@@ -44,7 +44,7 @@ public class ByteTransformSequence implements ByteFunction
    @Override
    public boolean forward(SliceByteArray src, SliceByteArray dst)
    {  
-      this.skipFlags = SKIP_MASK;
+      this.skipFlags = (byte) SKIP_MASK;
       
       if (src.length == 0)
          return true;
@@ -91,19 +91,22 @@ public class ByteTransformSequence implements ByteFunction
          {
             // Transform failed. Either it does not apply to this type
             // of data or a recoverable error occurred => revert
-            System.arraycopy(sa1.array, savedIIdx, sa2.array, savedOIdx, count);            
-         }
-         else
-         {
-            this.skipFlags &= ~(1<<(7-i)); 
-            count = sa2.index - savedOIdx;
+            if (sa1.array != sa2.array)
+               System.arraycopy(sa1.array, savedIIdx, sa2.array, savedOIdx, count);
+
+            sa2.index = savedOIdx + count;
+            this.skipFlags |= (1<<(7-i));
          }
 
+         count = sa2.index - savedOIdx;
          sa1.index = savedIIdx;
          sa2.index = savedOIdx;
          saIdx ^= 1;
       } 
-           
+      
+      for (int i=this.transforms.length; i<8; i++)
+          this.skipFlags |= (1<<(7-i));
+            
       if (saIdx != 1)
          System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
             
