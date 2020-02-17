@@ -26,6 +26,6 @@ public class TestBucketSort extends TestAbstractSort
     public void testBucketSort()
     {
         Assert.assertTrue(testCorrectness("BucketSort", new BucketSort(8), 20));
-        testSpeed("BucketSort", new BucketSort(16), 20000, 0xFFFF);
+        testSpeed("BucketSort", new BucketSort(16), 10000, 0xFFFF);
     }    
 }
