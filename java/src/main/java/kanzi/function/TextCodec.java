@@ -785,6 +785,7 @@ public final class TextCodec implements ByteFunction
          this.reset(output.length);
          final int srcEnd = input.index + count;
          final int dstEnd = dst.length;
+
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;

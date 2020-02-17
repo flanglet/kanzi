@@ -443,7 +443,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
              return "TEXT+BWT+SRT+ZRLT&FPAQ";
              
           case 6 :
-             return "BWT&CM";
+             return "LZP+TEXT+BWT&CM";
              
           case 7 :
              return "X86+RLT+TEXT&TPAQ";
