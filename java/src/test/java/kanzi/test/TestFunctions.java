@@ -165,7 +165,7 @@ public class TestFunctions
          System.out.println("\nTest "+ii);
          int[] arr = new int[0];
 
-         if (ii == 3)
+         if (ii == 0)
          {
             arr = new int[] {
                0, 1, 2, 2, 2, 2, 7, 9,  9, 16, 16, 16, 1, 3,
@@ -184,7 +184,7 @@ public class TestFunctions
          {
             arr = new int[] { 0, 0, 1, 1, 2, 2, 3, 3 };
          }
-         else if (ii == 0)
+         else if (ii == 3)
          {
             // For RLT
             arr = new int[512];
@@ -276,14 +276,7 @@ public class TestFunctions
 
          if (f.forward(sa1, sa2) == false)
          {
-            // ZRLT may fail if the input data has too few 0s
-            if (sa1.index != input.length)
-            {
-               System.out.println("\nNo compression (ratio > 1.0), skip reverse");
-               continue;
-            }
-            
-            if (sa1.index < sa2.index)
+            if ((sa1.index != input.length) || (sa2.index >= sa1.index))
             {
                System.out.println("\nNo compression (ratio > 1.0), skip reverse");
                continue;
@@ -417,9 +410,14 @@ public class TestFunctions
 
             if (f.forward(sa1, sa2) == false)
             {
-               // ZRLT may fail if the input data has too few 0s
-               System.out.println("Encoding error");
-               continue;
+               if ((sa1.index != input.length) || (sa2.index >= sa1.index))
+               {
+                  System.out.println("\nNo compression (ratio > 1.0), skip reverse");
+                  continue;
+               }
+
+               System.out.println("\nEncoding error");
+               System.exit(1);
             }
 
             after = System.nanoTime();

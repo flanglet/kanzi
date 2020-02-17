@@ -617,8 +617,6 @@ public class ROLZCodec implements ByteFunction
       private final int posChecks;
       private final int[] matches;
       private final int[] counters;
-      private final ROLZPredictor litPredictor;
-      private final ROLZPredictor matchPredictor;
 
 
       public ROLZCodec2()
@@ -638,8 +636,6 @@ public class ROLZCodec implements ByteFunction
          this.maskChecks = this.posChecks - 1;
          this.counters = new int[1<<16];
          this.matches = new int[HASH_SIZE<<this.logPosChecks];
-         this.litPredictor = new ROLZPredictor(9);
-         this.matchPredictor = new ROLZPredictor(LOG_POS_CHECKS2);
       }
 
 
@@ -713,10 +709,7 @@ public class ROLZCodec implements ByteFunction
          int sizeChunk = (count <= CHUNK_SIZE) ? count : CHUNK_SIZE;
          int startChunk = srcIdx;
          SliceByteArray sba1 = new SliceByteArray(dst, dstIdx);
-         this.litPredictor.reset();
-         this.matchPredictor.reset();
-         final Predictor[] predictors = new Predictor[] { this.matchPredictor, this.litPredictor };
-         ROLZEncoder re = new ROLZEncoder(predictors, sba1);
+         ROLZEncoder re = new ROLZEncoder(9, this.logPosChecks, sba1);
 
          for (int i=0; i<this.counters.length; i++)
             this.counters[i] = 0;
@@ -732,61 +725,54 @@ public class ROLZCodec implements ByteFunction
             srcIdx = startChunk;
             
             // First literals
-            this.litPredictor.setContext((byte) 0);
-            re.setContext(LITERAL_FLAG);
-            re.encodeBit(LITERAL_FLAG);
-            re.encodeByte(src[srcIdx++]);
+            re.setMode(LITERAL_FLAG);
+            re.setContext((byte) 0);
+            re.encodeBits((LITERAL_FLAG<<8)|(src[srcIdx]&0xFF), 9);
+            srcIdx++;
 
             if (startChunk+1 < srcEnd)
             {
-               re.encodeBit(LITERAL_FLAG);
-               re.encodeByte(src[srcIdx++]);
+               re.encodeBits((LITERAL_FLAG<<8)|(src[srcIdx]&0xFF), 9);
+               srcIdx++;
             }
 
             // Next chunk
             while (srcIdx < endChunk)
             {
-               this.litPredictor.setContext(src[srcIdx-1]);
-               re.setContext(LITERAL_FLAG);
+               re.setContext(src[srcIdx-1]);
                final int match = findMatch(sba2, srcIdx);
 
-               if (match == -1)
+               if (match < 0)
                {
                   // Emit one literal
-                  re.encodeBit(LITERAL_FLAG);
-                  re.encodeByte(src[srcIdx]);
+                  re.encodeBits((LITERAL_FLAG<<8)|(src[srcIdx]&0xFF), 9);
                   srcIdx++;
+                  continue;
                }
-               else
-               {
-                  // Emit one match length and index
-                  final int matchLen = match & 0xFFFF;
-                  re.encodeBit(MATCH_FLAG);
-                  re.encodeByte((byte) matchLen);
-                  final int matchIdx = match >>> 16;
-                  this.matchPredictor.setContext(src[srcIdx-1]);
-                  re.setContext(MATCH_FLAG);
 
-                  for (int shift=this.logPosChecks-1; shift>=0; shift--)
-                     re.encodeBit((matchIdx>>shift) & 1);
-
-                  srcIdx += (matchLen + MIN_MATCH);
-               }
+               // Emit one match length and index
+               final int matchLen = match & 0xFFFF;
+               re.encodeBits((MATCH_FLAG<<8)|matchLen, 9);
+               final int matchIdx = match >>> 16;
+               re.setMode(MATCH_FLAG);
+               re.setContext(src[srcIdx-1]);
+               re.encodeBits(matchIdx, this.logPosChecks);
+               re.setMode(LITERAL_FLAG);
+               srcIdx += (matchLen+MIN_MATCH);
             }
 
             startChunk = endChunk;
          }
 
          // Emit last literals
-         re.setContext(LITERAL_FLAG);
+         re.setMode(LITERAL_FLAG);
 
          for (int i=0; i<4; i++, srcIdx++)
          {
-            this.litPredictor.setContext(src[srcIdx-1]);
-            re.encodeBit(LITERAL_FLAG);
-            re.encodeByte(src[srcIdx]);
+            re.setContext(src[srcIdx-1]);
+            re.encodeBits((LITERAL_FLAG<<8)|(src[srcIdx]&0xFF), 9);
          }
-
+         
          re.dispose();
          input.index = srcIdx;
          output.index = sba1.index;
@@ -807,10 +793,7 @@ public class ROLZCodec implements ByteFunction
          int sizeChunk = (dstEnd < CHUNK_SIZE) ? dstEnd : CHUNK_SIZE;
          int startChunk = output.index;
          SliceByteArray sba = new SliceByteArray(src, srcIdx);
-         this.litPredictor.reset();
-         this.matchPredictor.reset();
-         final Predictor[] predictors = new Predictor[] { this.matchPredictor, this.litPredictor };
-         ROLZDecoder rd = new ROLZDecoder(predictors, sba);
+         ROLZDecoder rd = new ROLZDecoder(9, this.logPosChecks, sba);
 
          for (int i=0; i<this.counters.length; i++)
             this.counters[i] = 0;
@@ -825,29 +808,32 @@ public class ROLZCodec implements ByteFunction
             int dstIdx = output.index;
             
             // First literals
-            this.litPredictor.setContext((byte) 0);
-            rd.setContext(LITERAL_FLAG);
-            int bit = rd.decodeBit();
-
-            if (bit == LITERAL_FLAG)
-            {
-               dst[dstIdx++] = rd.decodeByte();
-
-               if (dstIdx < dstEnd)
-               {
-                  bit = rd.decodeBit();
-
-                  if (bit == LITERAL_FLAG)
-                     dst[dstIdx++] = rd.decodeByte();
-               }
-            }
+            rd.setMode(LITERAL_FLAG);
+            rd.setContext((byte) 0);
+            int val1 = rd.decodeBits(9);
 
             // Sanity check
-            if (bit == MATCH_FLAG)
+            if ((val1>>>8) == MATCH_FLAG) 
             {
                output.index = dstIdx;
                break;
-            }
+            }    
+
+            dst[dstIdx++] = (byte) val1;
+
+            if (dstIdx < dstEnd) 
+            {
+               val1 = rd.decodeBits(9);
+
+               // Sanity check
+               if ((val1>>>8) == MATCH_FLAG) 
+               {
+                  output.index = dstIdx;
+                  break;
+               }  
+
+               dst[dstIdx++] = (byte) val1;
+            }    
 
             // Next chunk
             while (dstIdx < endChunk)
@@ -855,13 +841,19 @@ public class ROLZCodec implements ByteFunction
                final int savedIdx = dstIdx;
                final int key = getKey(dst, dstIdx-2) & 0xFFFF;
                final int base = key << this.logPosChecks;
-               this.litPredictor.setContext(dst[dstIdx-1]);
-               rd.setContext(LITERAL_FLAG);
+               rd.setMode(LITERAL_FLAG);
+               rd.setContext(dst[dstIdx-1]);
+               final int val = rd.decodeBits(9);
 
-               if (rd.decodeBit() == MATCH_FLAG)
+               if ((val>>>8) == LITERAL_FLAG) 
+               {
+                  // Read one literal
+                  dst[dstIdx++] = (byte) val;
+               } 
+               else
                {
                   // Read one match length and index
-                  final int matchLen = rd.decodeByte() & 0xFF;
+                  final int matchLen = val & 0xFF;
 
                   // Sanity check
                   if (dstIdx+matchLen+3 > dstEnd)
@@ -870,20 +862,11 @@ public class ROLZCodec implements ByteFunction
                      break;
                   }
 
-                  this.matchPredictor.setContext(dst[dstIdx-1]);
-                  rd.setContext(MATCH_FLAG);
-                  int matchIdx = 0;
-
-                  for (int shift=this.logPosChecks-1; shift>=0; shift--)
-                     matchIdx |= (rd.decodeBit()<<shift);
-
+                  rd.setMode(MATCH_FLAG);
+                  rd.setContext(dst[dstIdx-1]);
+                  final int matchIdx = rd.decodeBits(this.logPosChecks);
                   final int ref = output.index + this.matches[base+((this.counters[key]-matchIdx)&this.maskChecks)];
                   dstIdx = emitCopy(dst, dstIdx, ref, matchLen);
-               }
-               else
-               {
-                  // Read one literal
-                  dst[dstIdx++] = rd.decodeByte();
                }
 
                // Update map
@@ -916,51 +899,84 @@ public class ROLZCodec implements ByteFunction
    {
       private static final long TOP        = 0x00FFFFFFFFFFFFFFL;
       private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
+      private static final int MATCH_FLAG   = 0;
+      private static final int LITERAL_FLAG = 1;
 
-      private final Predictor[] predictors;
       private final SliceByteArray sba;
-      private Predictor predictor;
       private long low;
       private long high;
+      private final int[][] probs;
+      private final int[] logSizes;
+      private int c1;
+      private int ctx;
+      private int pIdx;
 
 
-      public ROLZEncoder(Predictor[] predictors, SliceByteArray sba)
+      public ROLZEncoder(int litLogSize, int mLogSize, SliceByteArray sba)
       {
          this.low = 0L;
          this.high = TOP;
          this.sba = sba;
-         this.predictors = predictors;
-         this.predictor = this.predictors[0];
+         this.pIdx = LITERAL_FLAG;
+         this.c1 = 1;
+         this.probs = new int[2][];
+         this.probs[MATCH_FLAG] = new int[256<<mLogSize];
+         this.probs[LITERAL_FLAG] = new int[256<<litLogSize];
+         this.logSizes = new int[2];
+         this.logSizes[MATCH_FLAG] = mLogSize;
+         this.logSizes[LITERAL_FLAG] = litLogSize;
+         this.reset();
+      }
+        
+      private void reset()
+      {
+         final int mLogSize = this.logSizes[MATCH_FLAG];
+
+         for (int i=0; i<(256<<mLogSize); i++)
+            this.probs[MATCH_FLAG][i] = 32768;
+
+         final int litLogSize = this.logSizes[LITERAL_FLAG];
+
+         for (int i=0; i<(256<<litLogSize); i++)
+            this.probs[LITERAL_FLAG][i] = 32768;
+      }   
+
+      public void setMode(int n)
+      {
+         this.pIdx = n;
       }
 
-      public void setContext(int n)
-      {
-         this.predictor = this.predictors[n];
+      public void setContext(byte ctx) 
+      { 
+         this.ctx = (ctx&0xFF) << this.logSizes[this.pIdx]; 
       }
+        
+      public final void encodeBits(int val, int n)
+      {
+         this.c1 = 1;
 
-      public final void encodeByte(byte val)
-      {
-         this.encodeBit((val >> 7) & 1);
-         this.encodeBit((val >> 6) & 1);
-         this.encodeBit((val >> 5) & 1);
-         this.encodeBit((val >> 4) & 1);
-         this.encodeBit((val >> 3) & 1);
-         this.encodeBit((val >> 2) & 1);
-         this.encodeBit((val >> 1) & 1);
-         this.encodeBit(val & 1);
-      }
+         for (int shift=n-1; shift>=0; shift--)
+            this.encodeBit((val>>shift) & 1);
+      }         
 
       public void encodeBit(int bit)
       {
          // Calculate interval split        
-         final long split = (((this.high-this.low) >>> 4) * this.predictor.get()) >>> 8;
-      
-         // Update fields with new interval bounds
-         this.high -= (-bit & (this.high - this.low - split));
-         this.low += (~-bit & -~split);
+         final long split = (((this.high-this.low)>>>4) * (this.probs[this.pIdx][this.ctx+this.c1]>>>4)) >>> 8;
 
-         // Update predictor
-         this.predictor.update(bit);
+         // Update fields with new interval bounds
+         if (bit == 0) 
+         {
+            this.low += (split+1);
+            this.probs[this.pIdx][this.ctx+this.c1] -= (this.probs[this.pIdx][this.ctx+this.c1] >> 5);
+            this.c1 += this.c1;
+         }
+         else 
+         {
+            this.high = this.low + split;
+            this.probs[this.pIdx][this.ctx+this.c1] -= (((this.probs[this.pIdx][this.ctx+this.c1]-0xFFFF) >> 5) + 1);
+            this.c1 += (this.c1+1);
+         }
 
          // Write unchanged first 32 bits to bitstream
          while (((this.low ^ this.high) >>> 24) == 0)
@@ -990,16 +1006,21 @@ public class ROLZCodec implements ByteFunction
       private static final long TOP        = 0x00FFFFFFFFFFFFFFL;
       private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
       private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
-
-      private final Predictor[] predictors;
+      private static final int MATCH_FLAG   = 0;
+      private static final int LITERAL_FLAG = 1;
+      
       private final SliceByteArray sba;
-      private Predictor predictor;
       private long low;
       private long high;
       private long current;
+      private final int[][] probs;
+      private final int[] logSizes;
+      private int c1;
+      private int ctx;
+      private int pIdx;
 
 
-      public ROLZDecoder(Predictor[] predictors, SliceByteArray sba)
+      public ROLZDecoder(int litLogSize, int mLogSize, SliceByteArray sba)
       {
          this.low = 0L;
          this.high = TOP;
@@ -1010,46 +1031,72 @@ public class ROLZCodec implements ByteFunction
             this.current = (this.current<<8) | (long) (this.sba.array[this.sba.index+i] &0xFF);
 
          this.sba.index += 8;
-         this.predictors = predictors;
-         this.predictor = this.predictors[0];
+         this.pIdx = LITERAL_FLAG;
+         this.c1 = 1;
+         this.probs = new int[2][];
+         this.probs[MATCH_FLAG] = new int[256<<mLogSize];
+         this.probs[LITERAL_FLAG] = new int[256<<litLogSize];
+         this.logSizes = new int[2];
+         this.logSizes[MATCH_FLAG] = mLogSize;
+         this.logSizes[LITERAL_FLAG] = litLogSize;
+         this.reset();
+      }
+        
+      private void reset()
+      {
+         final int mLogSize = this.logSizes[MATCH_FLAG];
+
+         for (int i=0; i<(256<<mLogSize); i++)
+            this.probs[MATCH_FLAG][i] = 32768;
+
+         final int litLogSize = this.logSizes[LITERAL_FLAG];
+
+         for (int i=0; i<(256<<litLogSize); i++)
+            this.probs[LITERAL_FLAG][i] = 32768;
+      }   
+
+      public void setMode(int n)
+      {
+         this.pIdx = n;
       }
 
-      public void setContext(int n)
-      {
-         this.predictor = this.predictors[n];
+      public void setContext(byte ctx) 
+      { 
+         this.ctx = (ctx&0xFF) << this.logSizes[this.pIdx]; 
       }
 
-      public byte decodeByte()
+      public int decodeBits(int n)
       {
-         return (byte) ((this.decodeBit() << 7)
-               | (this.decodeBit() << 6)
-               | (this.decodeBit() << 5)
-               | (this.decodeBit() << 4)
-               | (this.decodeBit() << 3)
-               | (this.decodeBit() << 2)
-               | (this.decodeBit() << 1)
-               |  this.decodeBit());
+         this.c1 = 1;
+         int res = 0;
+
+         for (int shift=n-1; shift>=0; shift--)
+            res |= (decodeBit()<<shift);
+
+         return res;
       }
 
       public int decodeBit()
       {
          // Calculate interval split
-         final long mid = this.low + ((((this.high-this.low) >>> 4) * this.predictor.get()) >>> 8);
+         final long mid = this.low + ((((this.high-this.low)>>>4) * (this.probs[this.pIdx][this.ctx+this.c1]>>>4)) >>> 8);
          int bit;
 
-         if (mid >= this.current)
+         // Update bounds and predictor
+         if (mid >= this.current) 
          {
             bit = 1;
             this.high = mid;
+            this.probs[this.pIdx][this.ctx+this.c1] -= (((this.probs[this.pIdx][this.ctx+this.c1]-0xFFFF) >> 5) + 1);
+            this.c1 += (this.c1+1);
          }
          else
          {
             bit = 0;
-            this.low = -~mid;
+            this.low = mid + 1;
+            this.probs[this.pIdx][this.ctx+this.c1] -= (this.probs[this.pIdx][this.ctx+this.c1] >> 5);
+            this.c1 += this.c1;
          }
-
-          // Update predictor
-         this.predictor.update(bit);
 
          // Read 32 bits from bitstream
          while (((this.low ^ this.high) >>> 24) == 0)
@@ -1069,52 +1116,4 @@ public class ROLZCodec implements ByteFunction
       }
    }
 
-
-   static class ROLZPredictor implements Predictor
-   {
-      private final int[] probs;
-      private final int size;
-      private final int logSize;
-      private int c1;
-      private int ctx;
-
-      ROLZPredictor(int logPosChecks)
-      {
-         this.logSize = logPosChecks;
-         this.size = 1 << logPosChecks;
-         this.probs = new int[256*this.size];
-         this.reset();
-      }
-
-      private void reset()
-      {
-         this.c1 = 1;
-         this.ctx = 0;
-
-         for (int i=0; i<this.probs.length; i++)
-            this.probs[i] = 1 << 15;
-      }
-
-      void setContext(byte ctx)
-      {
-         this.ctx = (ctx&0xFF) << this.logSize;
-      }
-
-      @Override
-      public void update(int bit)
-      {
-         final int idx = this.ctx + this.c1;
-         this.probs[idx] -= (((this.probs[idx] - (-bit&0xFFFF)) >> 5) + bit);
-         this.c1 = (this.c1<<1) + bit;
-
-         if (this.c1 >= this.size)
-            this.c1 = 1;
-      }
-
-      @Override
-      public int get()
-      {
-         return this.probs[this.ctx+this.c1]>>> 4;
-      }
-   }
 }
