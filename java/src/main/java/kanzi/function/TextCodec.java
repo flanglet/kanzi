@@ -676,20 +676,21 @@ public final class TextCodec implements ByteFunction
             srcIdx++;
          }
 
-         // Emit last symbols
          if (res == true)
          {
+            // Emit last symbols
             final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, srcEnd, dstEnd);
             
             if (dIdx < 0)
                res = false;
             else
                dstIdx = dIdx;
+
+            res &= (srcIdx == srcEnd);         
          }
          
          output.index = dstIdx;
          input.index = srcIdx;
-         res &= (srcIdx == srcEnd);         
          return res;
       }
 
@@ -888,9 +889,9 @@ public final class TextCodec implements ByteFunction
                final byte[] buf = e.buf;
 
                // Sanity check
-               if ((e.pos < 0) || (length > MAX_WORD_LENGTH) || (dstIdx+length >= dstEnd))
+               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
                   break;
-
+               
                // Add space if only delimiter between 2 words (not an escaped delimiter)
                if ((wordRun == true) && (length > 1))
                   dst[dstIdx++] = ' ';
@@ -1442,7 +1443,7 @@ public final class TextCodec implements ByteFunction
                final byte[] buf = e.buf;
 
                // Sanity check
-               if ((e.pos < 0) || (length > MAX_WORD_LENGTH) || (dstIdx+length >= dstEnd))
+               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
                   break;
 
                // Add space if only delimiter between 2 words (not an escaped delimiter)
