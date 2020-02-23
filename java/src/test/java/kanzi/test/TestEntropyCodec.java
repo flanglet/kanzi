@@ -33,10 +33,11 @@ import kanzi.entropy.ANSRangeEncoder;
 import kanzi.entropy.CMPredictor;
 import kanzi.entropy.ExpGolombDecoder;
 import kanzi.entropy.ExpGolombEncoder;
-import kanzi.entropy.FPAQPredictor;
 import kanzi.entropy.HuffmanDecoder;
 import kanzi.entropy.HuffmanEncoder;
 import kanzi.Predictor;
+import kanzi.entropy.FPAQDecoder;
+import kanzi.entropy.FPAQEncoder;
 import kanzi.entropy.RangeDecoder;
 import kanzi.entropy.RangeEncoder;
 import kanzi.entropy.RiceGolombDecoder;
@@ -166,9 +167,6 @@ public class TestEntropyCodec
       if (type.equals("TPAQ"))
          return new TPAQPredictor(null);
 
-      if (type.equals("FPAQ"))
-         return new FPAQPredictor();
-
       if (type.equals("CM"))
          return new CMPredictor();
 
@@ -180,10 +178,12 @@ public class TestEntropyCodec
    {
       switch(name) 
       {
-         case "FPAQ":
          case "CM":
          case "TPAQ":
             return new BinaryEntropyEncoder(obs, getPredictor(name));
+
+         case "FPAQ":
+            return new FPAQEncoder(obs);
 
          case "HUFFMAN":
             return new HuffmanEncoder(obs);
@@ -214,7 +214,6 @@ public class TestEntropyCodec
    {
       switch(name) 
       {
-         case "FPAQ":
          case "CM":
          case "TPAQ":             
             Predictor pred = getPredictor(name);
@@ -226,6 +225,9 @@ public class TestEntropyCodec
             }
 
             return new BinaryEntropyDecoder(ibs, pred);
+
+         case "FPAQ":
+            return new FPAQDecoder(ibs);
 
          case "HUFFMAN":
             return new HuffmanDecoder(ibs);

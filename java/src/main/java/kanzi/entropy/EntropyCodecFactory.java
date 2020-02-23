@@ -58,7 +58,7 @@ public class EntropyCodecFactory
             return new RangeDecoder(ibs);
             
          case FPAQ_TYPE:
-            return new BinaryEntropyDecoder(ibs, new FPAQPredictor());
+            return new FPAQDecoder(ibs);
             
          case CM_TYPE:
             return new BinaryEntropyDecoder(ibs, new CMPredictor());
@@ -98,7 +98,7 @@ public class EntropyCodecFactory
             return new RangeEncoder(obs);
 
          case FPAQ_TYPE:
-            return new BinaryEntropyEncoder(obs, new FPAQPredictor());
+            return new FPAQEncoder(obs);
 
          case CM_TYPE:
             return new BinaryEntropyEncoder(obs, new CMPredictor());
