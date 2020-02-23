@@ -70,61 +70,61 @@ public class TestEntropyCodec
               if (testCorrectness("HUFFMAN") == false)
                 System.exit(1);
              
-              testSpeed("HUFFMAN");
+              testSpeed("HUFFMAN", 200);
               System.out.println("\n\nTest ANS0 Codec");
               
               if (testCorrectness("ANS0") == false)
                 System.exit(1);
              
-              testSpeed("ANS0");
+              testSpeed("ANS0", 200);
               System.out.println("\n\nTest ANS1 Codec");
               
               if (testCorrectness("ANS1") == false)
                 System.exit(1);
              
-              testSpeed("ANS1");
+              testSpeed("ANS1", 150);
               System.out.println("\n\nTest Range Codec");
               
               if (testCorrectness("RANGE")== false)
                 System.exit(1);
              
-              testSpeed("RANGE");
+              testSpeed("RANGE", 150);
               System.out.println("\n\nTest FPAQ Codec");
               
               if (testCorrectness("FPAQ") == false)
                 System.exit(1);
              
-              testSpeed("FPAQ");
+              testSpeed("FPAQ", 120);
               System.out.println("\n\nTest CM Codec");
               
               if (testCorrectness("CM") == false)
                 System.exit(1);
              
-              testSpeed("CM");
+              testSpeed("CM", 100);
               System.out.println("\n\nTestTPAQCodec");
               
               if (testCorrectness("TPAQ") == false)
                 System.exit(1);
              
-              testSpeed("TPAQ");
+              testSpeed("TPAQ", 75);
               System.out.println("\n\nTestExpGolombCodec");
               
               if (testCorrectness("EXPGOLOMB") == false)
                 System.exit(1);
              
-              testSpeed("EXPGOLOMB");
+              testSpeed("EXPGOLOMB", 150);
               System.out.println("\n\nTestRiceGolombCodec");
               
               if (testCorrectness("RICEGOLOMB") == false)
                 System.exit(1);
              
-              testSpeed("RICEGOLOMB");           
+              testSpeed("RICEGOLOMB", 150);           
            }
            else
            {
               System.out.println("Test " + type + " Codec");
               testCorrectness(type);
-              testSpeed(type);
+              testSpeed(type, 100);
            }
        }        
     }
@@ -357,13 +357,12 @@ public class TestEntropyCodec
    }
 
     
-   public static void testSpeed(String name)
+   public static void testSpeed(String name, int iter)
    {
       // Test speed
       System.out.println("\n\nSpeed test for " + name);
       int[] repeats = { 3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3 };
       final int size = 500000;
-      final int iter = 100;
       Random random = new Random();
 
       for (int jj=0; jj<3; jj++)
