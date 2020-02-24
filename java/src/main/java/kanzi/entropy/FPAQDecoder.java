@@ -40,7 +40,7 @@ public class FPAQDecoder implements EntropyDecoder
    private boolean initialized;
    private SliceByteArray sba;
    private final int[] probs; // probability of bit=1
-   private int ctxIdx; // previous bits
+   private int ctx; // previous bits
    
 
    public FPAQDecoder(InputBitStream bitstream)
@@ -53,7 +53,7 @@ public class FPAQDecoder implements EntropyDecoder
       this.high = TOP;
       this.bitstream = bitstream;  
       this.sba = new SliceByteArray(new byte[0], 0);
-      this.ctxIdx = 1;
+      this.ctx = 1;
       this.probs = new int[256];  
  
       for (int i=0; i<256; i++)
@@ -111,16 +111,16 @@ public class FPAQDecoder implements EntropyDecoder
 
    public final byte decodeByte()
    {
-      this.ctxIdx = 1;
-      
-      return (byte) ((this.decodeBit(this.probs[this.ctxIdx]>>>4) << 7)
-            | (this.decodeBit(this.probs[this.ctxIdx]>>>4) << 6)
-            | (this.decodeBit(this.probs[this.ctxIdx]>>>4) << 5)
-            | (this.decodeBit(this.probs[this.ctxIdx]>>>4) << 4)
-            | (this.decodeBit(this.probs[this.ctxIdx]>>>4) << 3)
-            | (this.decodeBit(this.probs[this.ctxIdx]>>>4) << 2)
-            | (this.decodeBit(this.probs[this.ctxIdx]>>>4) << 1)
-            |  this.decodeBit(this.probs[this.ctxIdx]>>>4));
+      this.ctx = 1;
+      this.decodeBit(this.probs[this.ctx]>>>4);
+      this.decodeBit(this.probs[this.ctx]>>>4);
+      this.decodeBit(this.probs[this.ctx]>>>4);
+      this.decodeBit(this.probs[this.ctx]>>>4);
+      this.decodeBit(this.probs[this.ctx]>>>4);
+      this.decodeBit(this.probs[this.ctx]>>>4);
+      this.decodeBit(this.probs[this.ctx]>>>4);
+      this.decodeBit(this.probs[this.ctx]>>>4);
+      return (byte) this.ctx;
    }
 
     
@@ -154,15 +154,15 @@ public class FPAQDecoder implements EntropyDecoder
       {
          bit = 1;
          this.high = split;
-         this.probs[this.ctxIdx] -= (((this.probs[this.ctxIdx]-PSCALE) >> 6) + 1);
-         this.ctxIdx = (this.ctxIdx<<1) + 1;         
+         this.probs[this.ctx] -= (((this.probs[this.ctx]-PSCALE) >> 6) + 1);
+         this.ctx = (this.ctx<<1) + 1;         
       }
       else
       {
          bit = 0;
          this.low = -~split;
-         this.probs[this.ctxIdx] -= (this.probs[this.ctxIdx] >> 6);
-         this.ctxIdx = this.ctxIdx << 1;         
+         this.probs[this.ctx] -= (this.probs[this.ctx] >> 6);
+         this.ctx = this.ctx << 1;         
       }
 
       // Read 32 bits from bitstream

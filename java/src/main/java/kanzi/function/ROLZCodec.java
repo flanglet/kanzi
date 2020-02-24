@@ -955,8 +955,11 @@ public class ROLZCodec implements ByteFunction
       {
          this.c1 = 1;
 
-         for (int shift=n-1; shift>=0; shift--)
-            this.encodeBit((val>>shift) & 1);
+         while (n != 0)
+         {
+            n--;
+            this.encodeBit(val & (1<<n));
+         }
       }         
 
       public void encodeBit(int bit)
@@ -1068,12 +1071,15 @@ public class ROLZCodec implements ByteFunction
       public int decodeBits(int n)
       {
          this.c1 = 1;
-         int res = 0;
+         final int mask = (1<<n) - 1;
 
-         for (int shift=n-1; shift>=0; shift--)
-            res |= (decodeBit()<<shift);
-
-         return res;
+         while (n != 0)
+         {
+            decodeBit();
+            n--;
+         }
+         
+         return this.c1 & mask;
       }
 
       public int decodeBit()

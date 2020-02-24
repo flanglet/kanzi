@@ -39,7 +39,6 @@ public class FPAQEncoder implements EntropyEncoder
    private boolean disposed;
    private SliceByteArray sba;
    private final int[] probs; // probability of bit=1
-   private int ctxIdx; // previous bits
    
    
    public FPAQEncoder(OutputBitStream bitstream)
@@ -51,7 +50,6 @@ public class FPAQEncoder implements EntropyEncoder
       this.high = TOP;
       this.bitstream = bitstream;
       this.sba = new SliceByteArray(new byte[0], 0);
-      this.ctxIdx = 1;
       this.probs = new int[256];  
  
       for (int i=0; i<256; i++)
@@ -106,36 +104,34 @@ public class FPAQEncoder implements EntropyEncoder
    
    public final void encodeByte(byte val)
    {
-      this.ctxIdx = 1;
-      this.encodeBit((val>>7)&1, this.probs[this.ctxIdx]>>>4);
-      this.encodeBit((val>>6)&1, this.probs[this.ctxIdx]>>>4);
-      this.encodeBit((val>>5)&1, this.probs[this.ctxIdx]>>>4);
-      this.encodeBit((val>>4)&1, this.probs[this.ctxIdx]>>>4);
-      this.encodeBit((val>>3)&1, this.probs[this.ctxIdx]>>>4);
-      this.encodeBit((val>>2)&1, this.probs[this.ctxIdx]>>>4);
-      this.encodeBit((val>>1)&1, this.probs[this.ctxIdx]>>>4);
-      this.encodeBit(val&1, this.probs[this.ctxIdx]>>>4);
+      final int bits = (val&255) + 256;
+      this.encodeBit(val&0x80, 1);
+      this.encodeBit(val&0x40, bits>>7);
+      this.encodeBit(val&0x20, bits>>6);
+      this.encodeBit(val&0x10, bits>>5);
+      this.encodeBit(val&0x08, bits>>4);
+      this.encodeBit(val&0x04, bits>>3);
+      this.encodeBit(val&0x02, bits>>2);
+      this.encodeBit(val&0x01, bits>>1);
    }
    
 
-   public void encodeBit(int bit, int pred)
+   public void encodeBit(int bit, int pIdx)
    {      
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division
-      final long split = (((this.high-this.low) >>> 4) * pred) >>> 8;
+      final long split = (((this.high-this.low) >>> 4) * (this.probs[pIdx]>>>4)) >>> 8;
         
       // Update probabilities
       if (bit == 0)
       {
          this.low += (split + 1);
-         this.probs[this.ctxIdx] -= (this.probs[this.ctxIdx] >> 6);
-         this.ctxIdx = this.ctxIdx << 1;
+         this.probs[pIdx] -= (this.probs[pIdx] >> 6);
       }
       else 
       {
          this.high = this.low + split;
-         this.probs[this.ctxIdx] -= (((this.probs[this.ctxIdx]-PSCALE) >> 6) + 1);
-         this.ctxIdx = (this.ctxIdx<<1) + 1;
+         this.probs[pIdx] -= (((this.probs[pIdx]-PSCALE) >> 6) + 1);
       }
             
       // Write unchanged first 32 bits to bitstream
