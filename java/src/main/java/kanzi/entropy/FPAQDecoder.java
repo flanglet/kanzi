@@ -142,7 +142,7 @@ public class FPAQDecoder implements EntropyDecoder
    }
 
 
-   public int decodeBit(int pred)
+   private int decodeBit(int pred)
    {
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division

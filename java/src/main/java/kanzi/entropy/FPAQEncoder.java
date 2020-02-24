@@ -116,7 +116,7 @@ public class FPAQEncoder implements EntropyEncoder
    }
    
 
-   public void encodeBit(int bit, int pIdx)
+   private void encodeBit(int bit, int pIdx)
    {      
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division
