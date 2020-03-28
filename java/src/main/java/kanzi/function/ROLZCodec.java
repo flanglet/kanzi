@@ -22,7 +22,6 @@ import kanzi.ByteFunction;
 import kanzi.InputBitStream;
 import kanzi.Memory;
 import kanzi.OutputBitStream;
-import kanzi.Predictor;
 import kanzi.SliceByteArray;
 import kanzi.bitstream.DefaultInputBitStream;
 import kanzi.bitstream.DefaultOutputBitStream;

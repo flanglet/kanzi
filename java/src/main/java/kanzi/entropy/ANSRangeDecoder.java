@@ -50,7 +50,7 @@ public class ANSRangeDecoder implements EntropyDecoder
    
    public ANSRangeDecoder(InputBitStream bs, int order)
    {
-      this(bs, order, DEFAULT_ANS0_CHUNK_SIZE<<(8*(order&1)));
+      this(bs, order, DEFAULT_ANS0_CHUNK_SIZE);
    }
 
    
@@ -70,7 +70,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          throw new IllegalArgumentException("ANS Codec: The chunk size must be at most "+MAX_CHUNK_SIZE);
 
       this.bitstream = bs;
-      this.chunkSize = chunkSize;
+      this.chunkSize = chunkSize << (8*order);
       this.order = order;
       final int dim = 255*order + 1;
       this.alphabet = new int[dim][256];
@@ -116,9 +116,11 @@ public class ANSRangeDecoder implements EntropyDecoder
             syms[i] = new Symbol();
       }
 
+      final int padding = (sizeChunk > 128) ? sizeChunk>>3 : 16;
+      
       // Add some padding
-      if (this.buffer.length < sizeChunk+(sizeChunk>>3))
-         this.buffer = new byte[sizeChunk+(sizeChunk>>3)];
+      if (this.buffer.length < sizeChunk+padding)
+         this.buffer = new byte[sizeChunk+padding];
 
       while (startChunk < end)
       {
@@ -241,7 +243,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          for (int i=1; i<alphabetSize; i+=chkSize)
          {
             // Read frequencies size for current chunk
-            final int logMax = (int) (1 + this.bitstream.readBits(llr));
+            final int logMax = (int) this.bitstream.readBits(llr);
             
             if (1<<logMax > scale)
             {
@@ -254,7 +256,7 @@ public class ANSRangeDecoder implements EntropyDecoder
             // Read frequencies
             for (int j=i; j<endj; j++)
             {
-               final int freq = (int) (1 + this.bitstream.readBits(logMax));
+               final int freq = (logMax == 0) ? 1 : (int) (1+this.bitstream.readBits(logMax));
 
                if ((freq <= 0) || (freq >= scale))
                {

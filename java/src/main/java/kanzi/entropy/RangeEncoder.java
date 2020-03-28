@@ -31,8 +31,8 @@ public final class RangeEncoder implements EntropyEncoder
     private static final long TOP_RANGE    = 0x0FFFFFFFFFFFFFFFL;
     private static final long BOTTOM_RANGE = 0x000000000000FFFFL;
     private static final long RANGE_MASK   = 0x0FFFFFFF00000000L;
-    private static final int DEFAULT_CHUNK_SIZE = 1 << 16; // 64 KB by default
-    private static final int DEFAULT_LOG_RANGE = 13;
+    private static final int DEFAULT_CHUNK_SIZE = 1 << 15; // 32 KB by default
+    private static final int DEFAULT_LOG_RANGE = 12;
 
 
     private long low;
@@ -124,7 +124,7 @@ public final class RangeEncoder implements EntropyEncoder
       for (int i=1; i<alphabetSize; i+=chkSize)
       {
          int max = frequencies[alphabet[i]] - 1;
-         int logMax = 1;
+         int logMax = 0;
          final int endj = (i+chkSize < alphabetSize) ? i+chkSize : alphabetSize;
 
          // Search for max frequency log size in next chunk
@@ -137,8 +137,11 @@ public final class RangeEncoder implements EntropyEncoder
          while (1<<logMax <= max)
             logMax++;
 
-         this.bitstream.writeBits(logMax-1, llr);
+         this.bitstream.writeBits(logMax, llr);
 
+         if (logMax == 0) // all frequencies equal one in this chunk
+            continue;
+         
          // Write frequencies
          for (int j=i; j<endj; j++)
             this.bitstream.writeBits(frequencies[alphabet[j]]-1, logMax);

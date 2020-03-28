@@ -31,7 +31,7 @@ public final class RangeDecoder implements EntropyDecoder
     private static final long TOP_RANGE    = 0x0FFFFFFFFFFFFFFFL;
     private static final long BOTTOM_RANGE = 0x000000000000FFFFL;
     private static final long RANGE_MASK   = 0x0FFFFFFF00000000L;
-    private static final int DEFAULT_CHUNK_SIZE = 1 << 16; // 64 KB by default
+    private static final int DEFAULT_CHUNK_SIZE = 1 << 15; // 32 KB by default
 
 
     private long code;
@@ -103,23 +103,30 @@ public final class RangeDecoder implements EntropyDecoder
       // Decode all frequencies (but the first one) by chunks of size 'inc'
       for (int i=1; i<alphabetSize; i+=chkSize)
       {
-         final int logMax = (int) (1 + this.bitstream.readBits(llr));
+         final int logMax = (int) this.bitstream.readBits(llr);
+         
+         if (1<<logMax > scale)
+         {
+            throw new BitStreamException("Invalid bitstream: incorrect frequency size " +
+                    logMax + " in range decoder", BitStreamException.INVALID_STREAM);
+         }
+            
          final int endj = (i+chkSize < alphabetSize) ? i + chkSize : alphabetSize;
 
          // Read frequencies
          for (int j=i; j<endj; j++)
          {
-            int val = (int) (1 + this.bitstream.readBits(logMax));
+            int freq = (logMax == 0) ? 1 : (int) (1+this.bitstream.readBits(logMax));
 
-            if ((val <= 0) || (val >= scale))
+            if ((freq <= 0) || (freq >= scale))
             {
                throw new BitStreamException("Invalid bitstream: incorrect frequency " +
-                       val + " for symbol '" + this.alphabet[j] + "' in range decoder",
+                       freq + " for symbol '" + this.alphabet[j] + "' in range decoder",
                        BitStreamException.INVALID_STREAM);
             }
 
-            frequencies[this.alphabet[j]] = val;
-            sum += val;
+            frequencies[this.alphabet[j]] = freq;
+            sum += freq;
          }
       }
 

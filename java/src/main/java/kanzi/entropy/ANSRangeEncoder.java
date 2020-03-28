@@ -50,7 +50,7 @@ public class ANSRangeEncoder implements EntropyEncoder
 
    public ANSRangeEncoder(OutputBitStream bs, int order)
    {
-      this(bs, order, DEFAULT_ANS0_CHUNK_SIZE<<(8*(order&1)), DEFAULT_LOG_RANGE);
+      this(bs, order, DEFAULT_ANS0_CHUNK_SIZE, DEFAULT_LOG_RANGE);
    }
 
 
@@ -80,7 +80,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
       this.logRange = logRange;
-      this.chunkSize = chunkSize;
+      this.chunkSize = chunkSize << (8*order);
       this.eu = new EntropyUtils();
 
       for (int i=0; i<dim; i++)
@@ -152,7 +152,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       for (int i=1; i<alphabetSize; i+=chkSize)
       {
          int max = frequencies[alphabet[i]] - 1;
-         int logMax = 1;
+         int logMax = 0;
          final int endj = (i+chkSize < alphabetSize) ? i+chkSize : alphabetSize;
 
          // Search for max frequency log size in next chunk
@@ -165,8 +165,11 @@ public class ANSRangeEncoder implements EntropyEncoder
          while (1<<logMax <= max)
             logMax++;
 
-         this.bitstream.writeBits(logMax-1, llr);
+         this.bitstream.writeBits(logMax, llr);
 
+         if (logMax == 0) // all frequencies equal one in this chunk
+            continue;
+                
          // Write frequencies
          for (int j=i; j<endj; j++)
             this.bitstream.writeBits(frequencies[alphabet[j]]-1, logMax);
