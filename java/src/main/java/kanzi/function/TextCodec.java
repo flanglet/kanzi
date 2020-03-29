@@ -230,7 +230,7 @@ public final class TextCodec implements ByteFunction
       return nbWords;
    }
    
-   
+
    private static boolean isText(byte val)
    {
       return isLowerCase(val) || isUpperCase(val);
@@ -304,7 +304,7 @@ public final class TextCodec implements ByteFunction
       }
 
       // Not text (crude threshold)
-      if ((nbTextChars < (length>>1)) || (freqs0[32] < (length>>4)))
+      if ((nbTextChars < (length>>1)) || (freqs0[32] < (length>>5)))
          return MASK_NOT_TEXT;
 
       int nbBinChars = 0;
@@ -351,10 +351,7 @@ public final class TextCodec implements ByteFunction
          }
       }
 
-      // Address the corner case where block[0] = LF
-      // In this case, unset the mask because the decoder would not know whether
-      // to add an extra CR or not.
-      if ((block[0] != LF) && (freqs0[CR] != 0) && (freqs0[CR] == freqs0[LF]))
+      if ((freqs0[CR] != 0) && (freqs0[CR] == freqs0[LF]))
       {
          res |= MASK_CRLF;
 
@@ -391,8 +388,8 @@ public final class TextCodec implements ByteFunction
 
       return true;
    }  
-
-
+   
+   
    @Override
    public int getMaxEncodedLength(int srcLength)
    {
@@ -757,7 +754,7 @@ public final class TextCodec implements ByteFunction
 
 
       private static int emitWordIndex(byte[] dst, int dstIdx, int val)
-      {
+      {       
          // Emit word index (varint 5 bits + 7 bits + 7 bits)
          if (val >= THRESHOLD1)
          {
@@ -1078,13 +1075,13 @@ public final class TextCodec implements ByteFunction
          while (srcIdx < srcEnd)
          {
             final byte cur = src[srcIdx];
-
+            
             if (isText(cur))
             {
                srcIdx++;
                continue;
             }
-
+                        
             if ((srcIdx > delimAnchor+2) && isDelimiter(cur)) // At least 2 letters
             {
                final int length = srcIdx - delimAnchor - 1;
@@ -1147,7 +1144,7 @@ public final class TextCodec implements ByteFunction
 
                         this.dictMap[h1&this.hashMask] = e;
                         words++;
-                        
+
                         // Dictionary full ? Expand or reset index to end of static dictionary
                         if (words >= this.dictSize)
                         {
@@ -1181,7 +1178,7 @@ public final class TextCodec implements ByteFunction
 
                      dstIdx = emitWordIndex(dst, dstIdx, e.data&MASK_LENGTH, ((e == e1) ? 0 : 32));
                      emitAnchor = delimAnchor + 1 + (e.data>>>24);
-                  }
+                  } 
                }
             }
 
@@ -1245,11 +1242,11 @@ public final class TextCodec implements ByteFunction
                         dst[dstIdx++] = cur;
 
                      break;
-
+                                 
                   default:
                      if ((cur & 0x80) != 0)
                         dst[dstIdx++] = ESCAPE_TOKEN1;
-
+                     
                      dst[dstIdx++] = cur;
                }
             } 
