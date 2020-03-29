@@ -23,11 +23,14 @@ import kanzi.SliceByteArray;
 // Adapted from MCM: https://github.com/mathieuchartier/mcm/blob/master/X86Binary.hpp
 public class X86Codec implements ByteFunction
 {
-   private static final int INSTRUCTION_MASK = 0xFE;
+   private static final int MASK_JUMP = 0xFE;
    private static final int INSTRUCTION_JUMP = 0xE8;
-   private static final int ADDRESS_MASK = 0xD5; 
-   private static final byte ESCAPE = 0x02; 
-   
+   private static final int INSTRUCTION_JCC = 0x80;
+   private static final int PREFIX_JCC = 0x0F;
+   private static final int MASK_JCC = 0xF0;
+   private static final int MASK_ADDRESS = 0xD5;
+   private static final byte ESCAPE = (byte) 0xF5;
+ 
    
    public X86Codec()
    {
@@ -61,16 +64,19 @@ public class X86Codec implements ByteFunction
 
       for (int i=input.index; i<input.index+end; i++) 
       {
-         if ((src[i] & INSTRUCTION_MASK) == INSTRUCTION_JUMP)
-         {
-            // Count valid relative jumps (E8/E9 .. .. .. 00/FF)
+         if ((src[i] & MASK_JUMP) == INSTRUCTION_JUMP)
+         {         
             if ((src[i+4] == 0) || (src[i+4] == -1))
             {
-               // No encoding conflict ?
-               if ((src[i] != 0) && (src[i] != 1) && (src[i] != ESCAPE))
-                  jumps++;
+               // Count valid relative jumps (E8/E9 .. .. .. 00/FF)
+               jumps++;
             }
          }
+         else if (((src[i+1] & MASK_JCC) == INSTRUCTION_JCC) && (src[i] == PREFIX_JCC)) 
+         {
+            // Count relative conditional jumps (0x0F 0x8.)
+            jumps++;
+         }            
       }
 
       if (jumps < (count>>7)) 
@@ -89,7 +95,7 @@ public class X86Codec implements ByteFunction
          dst[dstIdx++] = src[srcIdx++];  
      
          // Relative jump ?
-         if ((src[srcIdx-1] & INSTRUCTION_MASK) != INSTRUCTION_JUMP) 
+         if ((src[srcIdx-1] & MASK_JUMP) != INSTRUCTION_JUMP) 
             continue;
 
          final byte cur = src[srcIdx];
@@ -115,9 +121,9 @@ public class X86Codec implements ByteFunction
 
          addr += srcIdx;
          dst[dstIdx]   = (byte) (sgn+1);
-         dst[dstIdx+1] = (byte) (ADDRESS_MASK ^ (0xFF & (addr >> 16)));
-         dst[dstIdx+2] = (byte) (ADDRESS_MASK ^ (0xFF & (addr >>  8)));
-         dst[dstIdx+3] = (byte) (ADDRESS_MASK ^ (0xFF &  addr));
+         dst[dstIdx+1] = (byte) (MASK_ADDRESS ^ (0xFF & (addr >> 16)));
+         dst[dstIdx+2] = (byte) (MASK_ADDRESS ^ (0xFF & (addr >>  8)));
+         dst[dstIdx+3] = (byte) (MASK_ADDRESS ^ (0xFF &  addr));
          srcIdx += 4;
          dstIdx += 4;       
       }
@@ -157,32 +163,32 @@ public class X86Codec implements ByteFunction
          dst[dstIdx++] = src[srcIdx++];
 
          // Relative jump ?
-         if ((src[srcIdx-1] & INSTRUCTION_MASK) != INSTRUCTION_JUMP) 
+         if ((src[srcIdx-1] & MASK_JUMP) != INSTRUCTION_JUMP) 
             continue;
          
-         final byte sgn = src[srcIdx];
-
-         if (sgn == ESCAPE)
+         if (src[srcIdx] == ESCAPE)
          {
             // Not an encoded address. Skip escape symbol
             srcIdx++;       
             continue;
          }
 
-          // Invalid sign of jump address difference => false positive ?
-         if ((sgn != 1) && (sgn != 0)) 
+         final int sgn = src[srcIdx] - 1;
+
+         // Invalid sign of jump address difference => false positive ?
+         if ((sgn != 0) && (sgn != -1)) 
             continue;         
                           
-         int addr = (0xFF & (ADDRESS_MASK ^ src[srcIdx+3]))        | 
-                   ((0xFF & (ADDRESS_MASK ^ src[srcIdx+2])) <<  8) |
-                   ((0xFF & (ADDRESS_MASK ^ src[srcIdx+1])) << 16) | 
-                   ((0xFF & (sgn-1)) << 24);   
+         int addr = (0xFF & (MASK_ADDRESS ^ src[srcIdx+3]))        | 
+                   ((0xFF & (MASK_ADDRESS ^ src[srcIdx+2])) <<  8) |
+                   ((0xFF & (MASK_ADDRESS ^ src[srcIdx+1])) << 16) | 
+                   ((0xFF & sgn) << 24);   
          
          addr -= dstIdx;
          dst[dstIdx]   = (byte)  addr;
          dst[dstIdx+1] = (byte) (addr >>  8);
          dst[dstIdx+2] = (byte) (addr >> 16);
-         dst[dstIdx+3] = (byte) (sgn-1);
+         dst[dstIdx+3] = (byte)  sgn;
          srcIdx += 4;
          dstIdx += 4;
       }
