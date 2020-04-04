@@ -32,7 +32,7 @@ public final class TextCodec implements ByteFunction
    private static final int MAX_DICT_SIZE = 1 << 19;
    private static final int MAX_WORD_LENGTH = 31;
    private static final int MAX_BLOCK_SIZE = 1 << 30; //1 GB
-   public static final int LOG_HASHES_SIZE = 24; // 16 MB
+   private static final int LOG_HASHES_SIZE = 24; // 16 MB
    public static final byte LF = 0x0A;
    public static final byte CR = 0x0D;
    public static final byte ESCAPE_TOKEN1 = 0x0F; // dictionary word preceded by space symbol
@@ -258,7 +258,7 @@ public final class TextCodec implements ByteFunction
    // return status (8 bits):
    // 0x80 => not text
    // 0x01 => CR+LF transform
-   public static int computeStats(byte[] block, final int srcIdx, final int srcEnd, int[] freqs0)
+   public static int computeStats(byte[] block, final int srcIdx, final int srcEnd, int[] freqs0, boolean strict)
    {
       final int[][] freqs = new int[256][256];
          
@@ -295,17 +295,28 @@ public final class TextCodec implements ByteFunction
          prv = cur;
       }
 
-      int nbTextChars = 0;
+      int nbTextChars = freqs0[CR] + freqs0[LF];
+      int nbASCII = 0;
+      int nbZeros = freqs0[0];
 
-      for (int i=32; i<128; i++)
+      for (int i=0; i<128; i++) 
       {
          if (isText((byte) i) == true)
             nbTextChars += freqs0[i];
+
+         nbASCII += freqs0[i];
       }
 
-      // Not text (crude threshold)
-      if ((nbTextChars < (length>>1)) || (freqs0[32] < (length>>5)))
-         return MASK_NOT_TEXT;
+      // Not text (crude thresholds)
+      if (strict == true) {
+         if ((nbZeros >= (length/100)) || (nbTextChars < (length>>1)) || (freqs0[32] < (length>>4)))
+            return MASK_NOT_TEXT;
+      } 
+      else 
+      {
+         if ((nbASCII/95) < (length/100))
+            return MASK_NOT_TEXT;
+      }
 
       int nbBinChars = 0;
 
@@ -531,7 +542,7 @@ public final class TextCodec implements ByteFunction
          final int srcEnd = input.index + count;
          
          int[] freqs0 = new int[256];
-         final int mode = computeStats(src, srcIdx, srcEnd, freqs0);
+         final int mode = computeStats(src, srcIdx, srcEnd, freqs0, true);
 
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
@@ -1046,7 +1057,7 @@ public final class TextCodec implements ByteFunction
          final int srcEnd = input.index + count;
          
          int[] freqs0 = new int[256];
-         final int mode = computeStats(src, srcIdx, srcEnd, freqs0);
+         final int mode = computeStats(src, srcIdx, srcEnd, freqs0, false);
 
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
