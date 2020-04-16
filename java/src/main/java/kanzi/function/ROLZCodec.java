@@ -372,7 +372,7 @@ public class ROLZCodec implements ByteFunction
     
          input.index = srcIdx + 4;
          output.index = dstIdx;
-         return srcIdx == srcEnd;
+         return (srcIdx == srcEnd) && (dstIdx < count);
       }
 
 
