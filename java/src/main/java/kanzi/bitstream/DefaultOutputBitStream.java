@@ -230,9 +230,14 @@ public final class DefaultOutputBitStream implements OutputBitStream
       try
       {
          // Push last bytes (the very last byte may be incomplete)
-         final int size = ((64 - this.availBits) + 7) >> 3;
-         this.pushCurrent();
-         this.position -= (8 - size);
+         for (int shift=56; this.availBits<64; shift-=8) 
+         {
+            this.buffer[this.position++] = (byte) (this.current>>shift);
+            this.availBits += 8;
+         }
+
+         this.written -= (this.availBits-64);
+         this.availBits = 64;
          this.flush();
       }
       catch (BitStreamException e)
@@ -255,12 +260,13 @@ public final class DefaultOutputBitStream implements OutputBitStream
 
       this.closed = true;
       this.position = 0;
-
-      // Reset fields to force a flush() and trigger an exception
-      // on writeBit() or writeBits()
       this.availBits = 0;
+      this.written -= 64; // adjust because this.availBits = 0
+         
+      // Reset fields to force a flush() and trigger an exception
+      // on writeBit() or writeBits()      
       this.buffer = new byte[8];
-      this.written -= 64; // adjust for method written()
+
    }
 
 
