@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.io;
 
+import java.io.ByteArrayInputStream;
 import kanzi.function.ByteFunctionFactory;
 import kanzi.Error;
 import kanzi.Event;
@@ -584,31 +585,66 @@ public class CompressedInputStream extends InputStream
       private Status decodeBlock(SliceByteArray data, SliceByteArray buffer,
          long blockTransformType, int blockEntropyType, int currentBlockId)
       {
-         int taskId = this.processedBlockId.get();
-
          // Lock free synchronization
-         while ((taskId != CANCEL_TASKS_ID) && (taskId != currentBlockId-1))
+         while (true)
          {
+            final int taskId = this.processedBlockId.get();
+
+            if (taskId == CANCEL_TASKS_ID)
+               return new Status(data, currentBlockId, 0, 0, 0, "Canceled");
+
+            if (taskId == currentBlockId-1)
+               break;
+
             // Wait for the concurrent task processing the previous block to complete
-            // entropy decoding. Entropy decoding must happen sequentially (and
+            // entropy encoding. Entropy encoding must happen sequentially (and
             // in the correct block order) in the bitstream.
             // Backoff improves performance in heavy contention scenarios
             Thread.yield(); // Should be Thread.onSpinWait() on JDK 9 and above
-            taskId = this.processedBlockId.get();
+         }
+   
+         // Read shared bitstream sequentially (each task is gated by _processedBlockId)
+         final int lr = (this.blockSize >= 1<<28) ? 40 : 32;
+         long read = this.ibs.readBits(lr);
+
+         if (read == 0) 
+         {
+            this.processedBlockId.set(CANCEL_TASKS_ID);
+            return new Status(data, currentBlockId, 0, 0, 0, "Success");
+         }
+         
+         if (read > 1L<<34) 
+         {
+            this.processedBlockId.set(CANCEL_TASKS_ID);
+            return new Status(data, currentBlockId, 0, 0, Error.ERR_BLOCK_SIZE, "Invalid block size");
          }
 
-         // Skip, either all data have been processed or an error occurred
-         if (taskId == CANCEL_TASKS_ID)
-            return new Status(data, currentBlockId, 0, 0, 0, null);
+         final int r = (int) ((read + 7) >> 3);
 
+         if (data.array.length < Math.max(this.blockSize, r))
+            data.array = new byte[Math.max(this.blockSize, r)];
+
+         for (int n=0; read>0; )
+         {            
+            final int chkSize = (read < (long) (1<<30)) ? (int) read : 1<<30;
+            this.ibs.readBits(data.array, n, chkSize);
+            n += ((chkSize+7) >> 3);
+            read -= chkSize;
+         }
+
+         // After completion of the bitstream reading, increment the block id.
+         // It unblocks the task processing the next block (if any)
+         this.processedBlockId.incrementAndGet();
+
+         ByteArrayInputStream bais = new ByteArrayInputStream(data.array, 0, r);
+         DefaultInputBitStream is = new DefaultInputBitStream(bais, 16384);
          int checksum1 = 0;
          EntropyDecoder ed = null;
 
          try
          {
             // Extract block header directly from bitstream
-            final long read = this.ibs.read();
-            byte mode = (byte) this.ibs.readBits(8);
+            byte mode = (byte) is.readBits(8);
             byte skipFlags = 0;
 
             if ((mode & COPY_BLOCK_MASK) != 0)
@@ -619,7 +655,7 @@ public class CompressedInputStream extends InputStream
             else
             {
                if ((mode & TRANSFORMS_MASK) != 0)
-                  skipFlags = (byte) this.ibs.readBits(8);
+                  skipFlags = (byte) is.readBits(8);
                else
                   skipFlags = (byte) ((mode<<4) | 0x0F);
             }
@@ -627,7 +663,7 @@ public class CompressedInputStream extends InputStream
             final int dataSize = 1 + ((mode>>5)&0x03);
             final int length = dataSize << 3;
             final long mask = (1L<<length) - 1;
-            int preTransformLength = (int) (this.ibs.readBits(length) & mask);
+            int preTransformLength = (int) (is.readBits(length) & mask);
 
             if (preTransformLength == 0)
             {
@@ -646,7 +682,7 @@ public class CompressedInputStream extends InputStream
 
             // Extract checksum from bit stream (if any)
             if (this.hasher != null)
-               checksum1 = (int) this.ibs.readBits(32);
+               checksum1 = (int) is.readBits(32);
 
             if (this.listeners.length > 0)
             {
@@ -673,7 +709,7 @@ public class CompressedInputStream extends InputStream
 
             // Each block is decoded separately
             // Rebuild the entropy decoder to reset block statistics
-            ed = new EntropyCodecFactory().newDecoder(this.ibs, this.ctx, blockEntropyType);
+            ed = new EntropyCodecFactory().newDecoder(is, this.ctx, blockEntropyType);
 
             // Block entropy decode
             if (ed.decode(buffer.array, 0, preTransformLength) != preTransformLength)
@@ -688,14 +724,10 @@ public class CompressedInputStream extends InputStream
             {
                // Notify after entropy (block size set to size in bitstream)
                Event evt = new Event(Event.Type.AFTER_ENTROPY, currentBlockId,
-                       (int) ((this.ibs.read()-read)/8L), checksum1, this.hasher != null);
+                       (int) (is.read()>>3), checksum1, this.hasher != null);
 
                notifyListeners(this.listeners, evt);
             }
-
-            // After completion of the entropy decoding, increment the block id.
-            // It unfreezes the task processing the next block (if any)
-            this.processedBlockId.incrementAndGet();
 
             if (this.listeners.length > 0)
             {
@@ -735,6 +767,7 @@ public class CompressedInputStream extends InputStream
          }
          catch (Exception e)
          {
+            this.processedBlockId.set(CANCEL_TASKS_ID);
             return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK, 
                "Error in block "+currentBlockId+": "+e.getMessage());
          }
