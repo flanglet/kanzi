@@ -263,7 +263,7 @@ public class TPAQPredictor implements Predictor
       this.hashes = new int[hashSize];
       this.buffer = new byte[BUFFER_SIZE];
       this.statesMask = this.bigStatesMap.length - 1;
-      this.mixersMask = this.mixers.length - 1;
+      this.mixersMask = (this.mixers.length - 1) & ~1;
       this.hashMask = this.hashes.length - 1;
       this.sse0 = (this.extra == true) ? new LogisticAdaptiveProbMap(256, 6) : 
          new LogisticAdaptiveProbMap(256, 7);
@@ -291,7 +291,7 @@ public class TPAQPredictor implements Predictor
         this.binCount += ((this.c4>>7) & 1);
         
         // Select Neural Net
-        this.mixer = this.mixers[this.c4&this.mixersMask];
+        this.mixer = this.mixers[(this.c4&this.mixersMask) | ((this.matchLen!=0) ? 1 : 0)];
 
         // Add contexts to NN
         this.ctx0 = (this.c4&0xFF) << 8;
