@@ -266,7 +266,6 @@ public final class DefaultOutputBitStream implements OutputBitStream
       // Reset fields to force a flush() and trigger an exception
       // on writeBit() or writeBits()      
       this.buffer = new byte[8];
-
    }
 
 

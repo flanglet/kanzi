@@ -896,10 +896,12 @@ public class ROLZCodec implements ByteFunction
 
    static class ROLZEncoder
    {
-      private static final long TOP        = 0x00FFFFFFFFFFFFFFL;
-      private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
+      private static final long TOP         = 0x00FFFFFFFFFFFFFFL;
+      private static final long MASK_0_32   = 0x00000000FFFFFFFFL;
+      private static final int PSCALE       = 0xFFFF;
       private static final int MATCH_FLAG   = 0;
       private static final int LITERAL_FLAG = 1;
+
 
       private final SliceByteArray sba;
       private long low;
@@ -932,12 +934,12 @@ public class ROLZCodec implements ByteFunction
          final int mLogSize = this.logSizes[MATCH_FLAG];
 
          for (int i=0; i<(256<<mLogSize); i++)
-            this.probs[MATCH_FLAG][i] = 32768;
+            this.probs[MATCH_FLAG][i] = PSCALE>>1;
 
          final int litLogSize = this.logSizes[LITERAL_FLAG];
 
          for (int i=0; i<(256<<litLogSize); i++)
-            this.probs[LITERAL_FLAG][i] = 32768;
+            this.probs[LITERAL_FLAG][i] = PSCALE>>1;
       }   
 
       public void setMode(int n)
@@ -954,11 +956,12 @@ public class ROLZCodec implements ByteFunction
       {
          this.c1 = 1;
 
-         while (n != 0)
+         do
          {
             n--;
             this.encodeBit(val & (1<<n));
          }
+         while (n != 0);
       }         
 
       public void encodeBit(int bit)
@@ -970,13 +973,13 @@ public class ROLZCodec implements ByteFunction
          if (bit == 0) 
          {
             this.low += (split+1);
-            this.probs[this.pIdx][this.ctx+this.c1] -= (this.probs[this.pIdx][this.ctx+this.c1] >> 5);
+            this.probs[this.pIdx][this.ctx+this.c1] -= (this.probs[this.pIdx][this.ctx+this.c1]>>5);
             this.c1 += this.c1;
          }
          else 
          {
             this.high = this.low + split;
-            this.probs[this.pIdx][this.ctx+this.c1] -= (((this.probs[this.pIdx][this.ctx+this.c1]-0xFFFF) >> 5) + 1);
+            this.probs[this.pIdx][this.ctx+this.c1] -= (((this.probs[this.pIdx][this.ctx+this.c1]-0xFFFF)>>5) + 1);
             this.c1 += (this.c1+1);
          }
 
@@ -1005,9 +1008,10 @@ public class ROLZCodec implements ByteFunction
 
    static class ROLZDecoder
    {
-      private static final long TOP        = 0x00FFFFFFFFFFFFFFL;
-      private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
-      private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
+      private static final long TOP         = 0x00FFFFFFFFFFFFFFL;
+      private static final long MASK_0_56   = 0x00FFFFFFFFFFFFFFL;
+      private static final long MASK_0_32   = 0x00000000FFFFFFFFL;
+      private static final int PSCALE       = 0xFFFF;
       private static final int MATCH_FLAG   = 0;
       private static final int LITERAL_FLAG = 1;
       
@@ -1049,12 +1053,12 @@ public class ROLZCodec implements ByteFunction
          final int mLogSize = this.logSizes[MATCH_FLAG];
 
          for (int i=0; i<(256<<mLogSize); i++)
-            this.probs[MATCH_FLAG][i] = 32768;
+            this.probs[MATCH_FLAG][i] = PSCALE>>1;
 
          final int litLogSize = this.logSizes[LITERAL_FLAG];
 
          for (int i=0; i<(256<<litLogSize); i++)
-            this.probs[LITERAL_FLAG][i] = 32768;
+            this.probs[LITERAL_FLAG][i] = PSCALE>>1;
       }   
 
       public void setMode(int n)
@@ -1072,11 +1076,12 @@ public class ROLZCodec implements ByteFunction
          this.c1 = 1;
          final int mask = (1<<n) - 1;
 
-         while (n != 0)
+         do
          {
             decodeBit();
             n--;
          }
+         while (n != 0);
          
          return this.c1 & mask;
       }
@@ -1092,14 +1097,14 @@ public class ROLZCodec implements ByteFunction
          {
             bit = 1;
             this.high = mid;
-            this.probs[this.pIdx][this.ctx+this.c1] -= (((this.probs[this.pIdx][this.ctx+this.c1]-0xFFFF) >> 5) + 1);
+            this.probs[this.pIdx][this.ctx+this.c1] -= (((this.probs[this.pIdx][this.ctx+this.c1]-0xFFFF)>>5) + 1);
             this.c1 += (this.c1+1);
          }
          else
          {
             bit = 0;
             this.low = mid + 1;
-            this.probs[this.pIdx][this.ctx+this.c1] -= (this.probs[this.pIdx][this.ctx+this.c1] >> 5);
+            this.probs[this.pIdx][this.ctx+this.c1] -= (this.probs[this.pIdx][this.ctx+this.c1]>>5);
             this.c1 += this.c1;
          }
 
