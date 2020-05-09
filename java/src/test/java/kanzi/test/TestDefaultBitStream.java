@@ -37,7 +37,7 @@ import org.junit.Test;
 
 public class TestDefaultBitStream
 {
-   public static void main(String[] args)
+   public static void main(String[] args) 
    {
       testCorrectnessAligned1();
       testCorrectnessAligned2();
@@ -467,12 +467,12 @@ public class TestDefaultBitStream
 
       try
       {
-         final int iter = 150;
+         final int iter = 15;
          long written = 0;
          long read = 0;
          long before, after;
          long delta1 = 0, delta2 = 0;
-         int nn = 100000 * values.length;           
+         int nn = 1000000 * values.length;           
 
          for (int test=0; test<iter; test++)
          {
@@ -487,6 +487,7 @@ public class TestDefaultBitStream
 
             // Close first to force flush()
             obs.close();
+            os.close();
             after = System.nanoTime();
             delta1 += (after-before);
             written += obs.written();
@@ -536,16 +537,16 @@ public class TestDefaultBitStream
 
       try
       {
-         final int iter = 150;
+         final int iter = 15;
          long written = 0;
          long read = 0;
          long before, after;
          long delta1 = 0, delta2 = 0;
-         int nn = 3250000 * values.length;   
+         int nn = 32500000 * values.length;   
          byte[] input = new byte[nn];
          byte[] output = new byte[nn];
          
-         for (int i=0; i<3250000; i++)
+         for (int i=0; i<32500000; i++)
             System.arraycopy(values, 0, input, i*values.length, values.length);
 
          for (int test=0; test<iter; test++)
@@ -557,6 +558,7 @@ public class TestDefaultBitStream
 
             // Close first to force flush()
             obs.close();
+            os.close();
             after = System.nanoTime();
             delta1 += (after-before);
             written += obs.written();
