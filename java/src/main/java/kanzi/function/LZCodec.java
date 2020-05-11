@@ -88,13 +88,14 @@ public final class LZCodec implements ByteFunction
 
    static final class LZXCodec implements ByteFunction
    {
-      private static final int HASH_SEED      = 0x7FEB352D;
-      private static final int HASH_LOG       = 18;
-      private static final int HASH_SHIFT     = 32 - HASH_LOG;
-      private static final int MAX_DISTANCE1  = (1<<17) - 1;
-      private static final int MAX_DISTANCE2  = (1<<24) - 1;
-      private static final int MIN_MATCH      = 4;
-      private static final int MIN_LENGTH     = 16;
+      private static final int HASH_SEED          = 0x7FEB352D;
+      private static final int HASH_LOG           = 18;
+      private static final int HASH_SHIFT         = 32 - HASH_LOG;
+      private static final int MAX_DISTANCE1      = (1<<17) - 1;
+      private static final int MAX_DISTANCE2      = (1<<24) - 1;
+      private static final int MIN_MATCH          = 4;
+      private static final int MIN_LENGTH         = 16;
+      private static final int MIN_MATCH_MIN_DIST = 1 << 16;
 
       private int[] hashes;
 
@@ -200,7 +201,7 @@ public final class LZCodec implements ByteFunction
             }
 
             // No good match ?
-            if (bestLen < MIN_MATCH) 
+            if ((bestLen < MIN_MATCH) || ((bestLen == MIN_MATCH) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)))
             {
                this.hashes[h] = srcIdx;
                srcIdx++;
