@@ -90,10 +90,11 @@ public final class LZCodec implements ByteFunction
    {
       private static final int HASH_SEED          = 0x7FEB352D;
       private static final int HASH_LOG           = 18;
-      private static final int HASH_SHIFT         = 32 - HASH_LOG;
+      private static final int HASH_SHIFT         = 40 - HASH_LOG;
+      private static final int HASH_MASK          = (1<<HASH_LOG) - 1;
       private static final int MAX_DISTANCE1      = (1<<17) - 1;
       private static final int MAX_DISTANCE2      = (1<<24) - 1;
-      private static final int MIN_MATCH          = 4;
+      private static final int MIN_MATCH          = 5;
       private static final int MIN_LENGTH         = 16;
       private static final int MIN_MATCH_MIN_DIST = 1 << 16;
 
@@ -404,7 +405,7 @@ public final class LZCodec implements ByteFunction
 
       private static int hash(byte[] block, int idx)
       {
-         return (Memory.LittleEndian.readInt32(block, idx)*HASH_SEED) >>> HASH_SHIFT;      
+         return (int) ((Memory.LittleEndian.readLong64(block, idx)*HASH_SEED) >> HASH_SHIFT) & HASH_MASK;
       }
 
 
