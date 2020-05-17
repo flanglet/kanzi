@@ -255,9 +255,8 @@ public final class TextCodec implements ByteFunction
    }
    
    
-   // return status (8 bits):
-   // 0x80 => not text
-   // 0x01 => CR+LF transform
+   // Analyze the block and return an 8-bit status (see MASK flags constants)
+   // The goal is to detect test data amenable to pre-processing.
    public static int computeStats(byte[] block, final int srcIdx, final int srcEnd, int[] freqs0, boolean strict)
    {
       final int[][] freqs = new int[256][256];
@@ -297,7 +296,6 @@ public final class TextCodec implements ByteFunction
 
       int nbTextChars = freqs0[CR] + freqs0[LF];
       int nbASCII = 0;
-      int nbZeros = freqs0[0];
 
       for (int i=0; i<128; i++) 
       {
@@ -308,21 +306,17 @@ public final class TextCodec implements ByteFunction
       }
 
       // Not text (crude thresholds)
-      if (strict == true) {
-         if ((nbZeros >= (length/100)) || (nbTextChars < (length>>1)) || (freqs0[32] < (length>>4)))
-            return MASK_NOT_TEXT;
-      } 
-      else 
+      if ((nbTextChars < (length>>1)) || (freqs0[32] < (length>>5)))
+        return MASK_NOT_TEXT;
+      
+      if (strict == true)
       {
-         if ((nbASCII/95) < (length/100))
+         if ((nbTextChars < (length>>2)) || (freqs0[0] >= (length/100)) || ((nbASCII/95) < (length/100)))
             return MASK_NOT_TEXT;
       }
-
-      int nbBinChars = 0;
-
-      for (int i=128; i<256; i++)
-         nbBinChars += freqs0[i];
-
+ 
+      final int nbBinChars = length - nbASCII;
+      
       // Not text (crude threshold)
       if (nbBinChars > (length>>2))
          return MASK_NOT_TEXT;
@@ -674,7 +668,7 @@ public final class TextCodec implements ByteFunction
 
                      dst[dstIdx++] = (e == e1) ? ESCAPE_TOKEN1 : ESCAPE_TOKEN2;
                      dstIdx = emitWordIndex(dst, dstIdx, e.data&MASK_LENGTH);
-                     emitAnchor = delimAnchor + 1 + (e.data>>>24);
+                     emitAnchor = delimAnchor + 1 + (e.data>>>24);           
                   }
                }
             }
@@ -1321,13 +1315,13 @@ public final class TextCodec implements ByteFunction
             {
                // 5 + 7 + 7 => 2^19
                dst[dstIdx]   = (byte) (0xC0|mask|((val>>14)&0x1F));
-               dst[dstIdx+1] = (byte) (0x80|((val>>7)&0x7F));
+               dst[dstIdx+1] = (byte) (0x80|(val>>7));
                dst[dstIdx+2] = (byte) (val&0x7F);
                return dstIdx + 3;
             }
 
             // 5 + 7 => 2^12 = 32*128
-            dst[dstIdx]   = (byte) (0xC0|mask|((val>>7)&0x1F));
+            dst[dstIdx]   = (byte) (0xC0|mask|(val>>7));
             dst[dstIdx+1] = (byte) (val&0x7F);
             return dstIdx + 2;
          }
