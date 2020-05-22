@@ -89,7 +89,7 @@ public final class LZCodec implements ByteFunction
    static final class LZXCodec implements ByteFunction
    {
       private static final int HASH_SEED          = 0x7FEB352D;
-      private static final int HASH_LOG           = 18;
+      private static final int HASH_LOG           = 19; // 512K
       private static final int HASH_SHIFT         = 40 - HASH_LOG;
       private static final int HASH_MASK          = (1<<HASH_LOG) - 1;
       private static final int MAX_DISTANCE1      = (1<<17) - 1;
@@ -210,7 +210,7 @@ public final class LZCodec implements ByteFunction
             }
 
             // Emit token
-            // Token: 3 bits litLen + 1 bit flag + 4 bits mLen
+            // Token: 3 bits litLen + 1 bit flag + 4 bits mLen (LLLFMMMM)
             // flag = if maxDist = (1<<17)-1, then highest bit of distance
             //        else 1 if dist needs 3 bytes (> 0xFFFF) and 0 otherwise
             final int mLen = bestLen - MIN_MATCH;
