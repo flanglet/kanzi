@@ -33,7 +33,7 @@ public final class RangeEncoder implements EntropyEncoder
     private static final long RANGE_MASK   = 0x0FFFFFFF00000000L;
     private static final int DEFAULT_CHUNK_SIZE = 1 << 15; // 32 KB by default
     private static final int DEFAULT_LOG_RANGE = 12;
-
+    private static final int MAX_CHUNK_SIZE = 1 << 30;
 
     private long low;
     private long range;
@@ -54,19 +54,17 @@ public final class RangeEncoder implements EntropyEncoder
     
     
     // The chunk size indicates how many bytes are encoded (per block) before 
-    // resetting the frequency stats. 0 means that frequencies calculated at the
-    // beginning of the block apply to the whole block.
-    // The default chunk size is 65536 bytes.
+    // resetting the frequency stats. 
     public RangeEncoder(OutputBitStream bs, int chunkSize, int logRange)
     {
       if (bs == null)
          throw new NullPointerException("Range codec: Invalid null bitstream parameter");
 
-      if ((chunkSize != 0) && (chunkSize < 1024))
+      if (chunkSize < 1024)
          throw new IllegalArgumentException("Range codec: The chunk size must be at least 1024");
 
-      if (chunkSize > 1<<30)
-         throw new IllegalArgumentException("Range codec: The chunk size must be at most "+(1<<30));
+      if (chunkSize > MAX_CHUNK_SIZE)
+         throw new IllegalArgumentException("Range codec: The chunk size must be at most "+MAX_CHUNK_SIZE);
 
       if ((logRange < 8) || (logRange > 16))
          throw new IllegalArgumentException("Range codec: Invalid range parameter: "+
@@ -162,12 +160,12 @@ public final class RangeEncoder implements EntropyEncoder
           return 0;
       
        final int end = blkptr + count;
-       final int sz = (this.chunkSize == 0) ? count : this.chunkSize;
+       final int sz = this.chunkSize;
        int startChunk = blkptr;
 
        while (startChunk < end)
        {         
-           final int endChunk = (startChunk + sz < end) ? startChunk + sz : end;
+           final int endChunk = (startChunk+sz < end) ? startChunk+sz : end;
            this.range = TOP_RANGE;
            this.low = 0;
            int lr = this.logRange;

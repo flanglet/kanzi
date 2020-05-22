@@ -54,7 +54,8 @@ public class ANSRangeDecoder implements EntropyDecoder
    }
 
    
-   // chunkSize = 0 means 'use input buffer length' during decoding
+   // The chunk size indicates how many bytes are encoded (per block) before
+   // resetting the frequency stats.
    public ANSRangeDecoder(InputBitStream bs, int order, int chunkSize)
    {
       if (bs == null)
@@ -63,7 +64,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       if ((order != 0) && (order != 1))
          throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
 
-      if ((chunkSize != 0) && (chunkSize < 1024))
+      if (chunkSize < 1024)
          throw new IllegalArgumentException("ANS Codec: The chunk size must be at least 1024");
 
       if (chunkSize > MAX_CHUNK_SIZE)
@@ -100,11 +101,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          return 0;
 
       final int end = blkptr + count;
-      int sizeChunk = (this.chunkSize == 0) ? count : this.chunkSize;
-      
-      if (sizeChunk >= MAX_CHUNK_SIZE)
-         sizeChunk = MAX_CHUNK_SIZE;
-      
+      int sizeChunk =  this.chunkSize;
       int startChunk = blkptr;
       final int endk = 255*this.order + 1;
       

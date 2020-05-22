@@ -32,7 +32,7 @@ public final class RangeDecoder implements EntropyDecoder
     private static final long BOTTOM_RANGE = 0x000000000000FFFFL;
     private static final long RANGE_MASK   = 0x0FFFFFFF00000000L;
     private static final int DEFAULT_CHUNK_SIZE = 1 << 15; // 32 KB by default
-
+    private static final int MAX_CHUNK_SIZE = 1 << 30;
 
     private long code;
     private long low;
@@ -53,19 +53,17 @@ public final class RangeDecoder implements EntropyDecoder
 
 
     // The chunk size indicates how many bytes are encoded (per block) before
-    // resetting the frequency stats. 0 means that frequencies calculated at the
-    // beginning of the block apply to the whole block.
-    // The default chunk size is 65536 bytes.
+    // resetting the frequency stats. 
     public RangeDecoder(InputBitStream bitstream, int chunkSize)
     {
         if (bitstream == null)
             throw new NullPointerException("Range codec: Invalid null bitstream parameter");
 
-        if ((chunkSize != 0) && (chunkSize < 1024))
+        if (chunkSize < 1024)
            throw new IllegalArgumentException("Range codec: The chunk size must be at least 1024");
 
-        if (chunkSize > 1<<30)
-           throw new IllegalArgumentException("Range codec: The chunk size must be at most "+(1<<30));
+        if (chunkSize > MAX_CHUNK_SIZE)
+           throw new IllegalArgumentException("Range codec: The chunk size must be at most "+MAX_CHUNK_SIZE);
 
         this.range = TOP_RANGE;
         this.bitstream = bitstream;
@@ -170,7 +168,7 @@ public final class RangeDecoder implements EntropyDecoder
          return 0;
       
       final int end = blkptr + count;
-      final int sz = (this.chunkSize == 0) ? count : this.chunkSize;
+      final int sz = this.chunkSize;
       int startChunk = blkptr;
 
       while (startChunk < end)
