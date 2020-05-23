@@ -75,7 +75,7 @@ public class ROLZCodec implements ByteFunction
 
    private static int hash(final byte[] buf, final int idx)
    {
-      return ((Memory.LittleEndian.readInt32(buf, idx)&0x00FFFFFF) * HASH) & HASH_MASK;
+      return ((Memory.LittleEndian.readInt32(buf, idx)<<8) * HASH) & HASH_MASK;
    }
 
    
