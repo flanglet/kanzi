@@ -95,7 +95,7 @@ public final class LZCodec implements ByteFunction
       private static final int MAX_DISTANCE1      = (1<<17) - 1;
       private static final int MAX_DISTANCE2      = (1<<24) - 1;
       private static final int MIN_MATCH          = 5;
-      private static final int MIN_LENGTH         = 16;
+      private static final int MIN_LENGTH         = 24;
       private static final int MIN_MATCH_MIN_DIST = 1 << 16;
 
       private int[] hashes;
@@ -175,7 +175,7 @@ public final class LZCodec implements ByteFunction
          final int dstIdx0 = output.index;
          final byte[] src = input.array;
          final byte[] dst = output.array;
-         final int srcEnd = srcIdx0 + count - 8;
+         final int srcEnd = srcIdx0 + count - 16;
          int srcIdx = srcIdx0;
          int anchor = srcIdx0;
          int dstIdx = dstIdx0;
@@ -266,8 +266,8 @@ public final class LZCodec implements ByteFunction
          }
 
          // Emit last literals
-         dstIdx = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd+8-anchor);
-         input.index = srcEnd + 8;
+         dstIdx = emitLastLiterals(src, anchor, dst, dstIdx, srcEnd+16-anchor);
+         input.index = srcEnd + 16;
          output.index = dstIdx;
          return true;
       }
@@ -287,8 +287,8 @@ public final class LZCodec implements ByteFunction
          final int dstIdx0 = output.index;
          final byte[] src = input.array;
          final byte[] dst = output.array;
-         final int srcEnd = srcIdx0 + count - 8;
-         final int dstEnd = dst.length - 8;
+         final int srcEnd = srcIdx0 + count - 16;
+         final int dstEnd = dst.length - 16;
          final int maxDist = (src[srcIdx0] == 1) ? MAX_DISTANCE2 : MAX_DISTANCE1;
          int dstIdx = dstIdx0;
          int srcIdx = srcIdx0 + 1;
@@ -307,7 +307,7 @@ public final class LZCodec implements ByteFunction
                        litLen += 0xFF;
                    }
 
-                   if (srcIdx >= srcEnd + 8) {
+                   if (srcIdx >= srcEnd + 16) {
                        input.index = srcIdx;
                        output.index = dstIdx;
                        return false;
@@ -349,7 +349,7 @@ public final class LZCodec implements ByteFunction
             final int mEnd = dstIdx + mLen;
 
             // Sanity check
-            if (mEnd > dstEnd + 8) 
+            if (mEnd > dstEnd + 16) 
             {
                input.index = srcIdx;
                output.index = dstIdx;
@@ -374,16 +374,16 @@ public final class LZCodec implements ByteFunction
             }
 
             // Copy match
-            if (dist > 8) 
+            if (dist >= 16) 
             {
                int ref = dstIdx - dist;
 
                do 
                {
                    // No overlap
-                   System.arraycopy(dst, ref, dst, dstIdx, 8);
-                   ref += 8;
-                   dstIdx += 8;
+                   System.arraycopy(dst, ref, dst, dstIdx, 16);
+                   ref += 16;
+                   dstIdx += 16;
                } while (dstIdx < mEnd);
             }
             else 
@@ -399,7 +399,7 @@ public final class LZCodec implements ByteFunction
 
          output.index = dstIdx;
          input.index = srcIdx;
-         return srcIdx == srcEnd + 8;
+         return srcIdx == srcEnd + 16;
       }
 
 
