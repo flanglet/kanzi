@@ -877,10 +877,10 @@ public final class TextCodec implements ByteFunction
                   if ((idx2&0x80) != 0)
                   {
                      idx = ((idx&0x1F)<<7) | (idx2&0x7F);
-                     idx2 = src[srcIdx++];
+                     idx2 = src[srcIdx++] & 0x7F;
                   }
 
-                  idx = (idx<<7) | (idx2&0x7F);
+                  idx = (idx<<7) | idx2;
 
                   if (idx >= this.dictSize)
                      break;
@@ -1431,10 +1431,10 @@ public final class TextCodec implements ByteFunction
                   if ((idx2&0x80) != 0)
                   {
                      idx = (idx<<7) | (idx2&0x7F);
-                     idx2 = src[srcIdx++];
+                     idx2 = src[srcIdx++] & 0x7F;
                   }
 
-                  idx = (idx<<7) | (idx2&0x7F);
+                  idx = (idx<<7) | idx2;
 
                   if (idx >= this.dictSize)
                      break;
@@ -1451,20 +1451,13 @@ public final class TextCodec implements ByteFunction
                // Add space if only delimiter between 2 words (not an escaped delimiter)
                if ((wordRun == true) && (length > 1))
                   dst[dstIdx++] = ' ';
-
-               // Emit word
-               if ((cur & 0x20) == 0)
-               {
-                  dst[dstIdx++] = (byte) buf[e.pos];
-               }
-               else
-               {
-                  // Flip case of first character
-                  dst[dstIdx++] = (byte) (buf[e.pos]^0x20);
-               }
+               
+               // Flip case of first character
+               dst[dstIdx++] = (byte) (buf[e.pos]^(cur & 0x20));
 
                if (length > 1)
                {
+                  // Emit word
                   for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
                      dst[dstIdx] = buf[n];
 
