@@ -29,7 +29,6 @@ public class CMPredictor implements Predictor
    private int c1;
    private int c2;
    private int ctx;
-   private int run;
    private int idx;
    private int runMask;
    private final int[][] counter1;
@@ -39,7 +38,6 @@ public class CMPredictor implements Predictor
    public CMPredictor()
    {   
       this.ctx = 1;
-      this.run = 1;
       this.idx = 8;
       this.counter1 = new int[256][257];
       this.counter2 = new int[512][17];
@@ -72,15 +70,13 @@ public class CMPredictor implements Predictor
       if (bit == 0)
       {
          counter1_[256]        -= (counter1_[256]        >> FAST_RATE);
-         counter1_[this.c1]    -= (counter1_[this.c1]    >> MEDIUM_RATE);
-         counter2_[this.idx+1] -= (counter2_[this.idx+1] >> SLOW_RATE);         
-         counter2_[this.idx]   -= (counter2_[this.idx]   >> SLOW_RATE);
+         counter1_[this.c1]    -= (counter1_[this.c1]    >> MEDIUM_RATE);     
+         counter2_[this.idx]   -= (counter2_[this.idx]   >> SLOW_RATE);         
       } 
       else
       {
          counter1_[256]        += ((counter1_[256]^0xFFFF)        >> FAST_RATE);
          counter1_[this.c1]    += ((counter1_[this.c1]^0xFFFF)    >> MEDIUM_RATE);
-         counter2_[this.idx+1] += ((counter2_[this.idx+1]^0xFFFF) >> SLOW_RATE);
          counter2_[this.idx]   += ((counter2_[this.idx]^0xFFFF)   >> SLOW_RATE);
          this.ctx++;
       } 
@@ -90,17 +86,7 @@ public class CMPredictor implements Predictor
          this.c2 = this.c1;
          this.c1 = this.ctx & 0xFF;
          this.ctx = 1;
-
-         if (this.c1 == this.c2)
-         {
-            this.run++;
-            this.runMask = (this.run > 2) ? 256 : 0;
-         }
-         else
-         {
-            this.run = 0; 
-            this.runMask = 0;
-         }
+         this.runMask = (this.c1 == this.c2) ? 0x100 : 0;
       }
    }
    
@@ -113,9 +99,6 @@ public class CMPredictor implements Predictor
       final int p = (13*pc1[256]+14*pc1[this.c1]+5*pc1[this.c2]) >> 5;
       this.idx = p >>> 12;
       final int[] pc2 = this.counter2[this.ctx|this.runMask];
-      final int x1 = pc2[this.idx];
-      final int x2 = pc2[this.idx+1];
-      final int ssep = x1 + (((x2-x1)*(p&4095)) >> 12);
-      return (p + ssep + ssep + ssep + 32) >>> 6; // rescale to [0..4095]
+      return (p + 3*pc2[this.idx] + 32) >>> 6; // rescale to [0..4095]
    }
 }
