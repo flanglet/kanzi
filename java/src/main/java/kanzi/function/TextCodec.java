@@ -985,8 +985,8 @@ public final class TextCodec implements ByteFunction
             // Actual block size
             final int blockSize = (Integer) ctx.get("blockSize");
             
-            if (blockSize >= 8)
-               log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
+            if (blockSize >= 32)
+               log = Math.max(Math.min(Global.log2(blockSize/32), 24), 13);
          }
          
          boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
