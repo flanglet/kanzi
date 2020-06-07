@@ -58,6 +58,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    private final String inputName;
    private final String outputName;
    private final int jobs;
+   private final int from; // start block
+   private final int to; // end block
    private final ExecutorService pool;
    private final List<Listener> listeners;
 
@@ -69,6 +71,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       this.inputName = (String) map.remove("inputName");
       this.outputName = (String) map.remove("outputName");
       this.verbosity = (Integer) map.remove("verbose");
+      this.from = (map.containsKey("from") ? (Integer) map.remove("from") : -1);
+      this.to = (map.containsKey("to") ? (Integer) map.remove("to") : -1);
       int concurrency = (Integer) map.remove("jobs");
 
       if (concurrency > MAX_CONCURRENCY)
@@ -201,6 +205,12 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          ctx.put("verbosity", this.verbosity);
          ctx.put("overwrite", this.overwrite);
          ctx.put("pool", this.pool);
+         
+         if (this.from >= 0)
+            ctx.put("from", this.from);
+               
+         if (this.to >= 0)
+            ctx.put("to", this.to);
                
          // Run the task(s)
          if (nbFiles == 1)

@@ -57,7 +57,8 @@ public class CompressedInputStream extends InputStream
    private static final byte[] EMPTY_BYTE_ARRAY      = new byte[0];
    private static final int CANCEL_TASKS_ID          = -1;
    private static final int MAX_CONCURRENCY          = 64;
-
+   private static final int MAX_BLOCK_ID             = Integer.MAX_VALUE;
+   
    private int blockSize;
    private int nbInputBlocks;
    private XXHash32 hasher;
@@ -354,107 +355,124 @@ public class CompressedInputStream extends InputStream
          // Protect against future concurrent modification of the list of block listeners
          Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
          int decoded = 0;
-         this.sa.index = 0;
-         List<Callable<Status>> tasks = new ArrayList<>(this.jobs);
-         final int firstBlockId = this.blockId.get();
-         int nbJobs = this.jobs;
-         int[] jobsPerTask;
          
-         // Assign optimal number of tasks and jobs per task 
-         if (nbJobs > 1)
+         while (true)
          {
-            // If the number of input blocks is available, use it to optimize 
-            // memory usage
-            if (this.nbInputBlocks != 0)
+            this.sa.index = 0;
+            List<Callable<Status>> tasks = new ArrayList<>(this.jobs);
+            final int firstBlockId = this.blockId.get();
+            int nbJobs = this.jobs;
+            int[] jobsPerTask;
+
+            // Assign optimal number of tasks and jobs per task 
+            if (nbJobs > 1)
             {
-               // Limit the number of jobs if there are fewer blocks that this.jobs
-               // It allows more jobs per task and reduces memory usage.
-               nbJobs = Math.min(nbJobs, this.nbInputBlocks);
+               // If the number of input blocks is available, use it to optimize 
+               // memory usage
+               if (this.nbInputBlocks != 0)
+               {
+                  // Limit the number of jobs if there are fewer blocks that this.jobs
+                  // It allows more jobs per task and reduces memory usage.
+                  nbJobs = Math.min(nbJobs, this.nbInputBlocks);
+               }
+
+               jobsPerTask = Global.computeJobsPerTask(new int[nbJobs], this.jobs, nbJobs);           
             }
-  
-            jobsPerTask = Global.computeJobsPerTask(new int[nbJobs], this.jobs, nbJobs);           
-         }
-         else
-         {
-            jobsPerTask = new int[] { this.jobs };
-         }
-
-         // Create as many tasks as required
-         for (int jobId=0; jobId<nbJobs; jobId++)
-         {
-            this.buffers[2*jobId].index = 0;
-            this.buffers[2*jobId+1].index = 0;
-            
-            if (this.buffers[2*jobId].array.length < blkSize+1024)
+            else
             {
-               // Lazy instantiation of input buffers this.buffers[2*jobId]
-               // Output buffers this.buffers[2*jobId+1] are lazily instantiated
-               // by the decoding tasks.
-               this.buffers[2*jobId].array = new byte[blkSize+1024];    
-               this.buffers[2*jobId].length = blkSize+1024;
+               jobsPerTask = new int[] { this.jobs };
             }
-                         
-            Map<String, Object> map = new HashMap<>(this.ctx);
-            map.put("jobs", jobsPerTask[jobId]);
-            Callable<Status> task = new DecodingTask(this.buffers[2*jobId],
-                    this.buffers[2*jobId+1], blkSize, this.transformType,
-                    this.entropyType, firstBlockId+jobId+1,
-                    this.ibs, this.hasher, this.blockId,
-                    blockListeners, map);
-            tasks.add(task);            
-         }
 
-         List<Status> results = new ArrayList<>(tasks.size());
-
-         if (tasks.size() == 1)
-         {
-            // Synchronous call
-            Status status = tasks.get(0).call();
-            results.add(status);
-            decoded += status.decoded;
-
-            if (status.error != 0)
-               throw new kanzi.io.IOException(status.msg, status.error);
-         }
-         else
-         {
-            // Invoke the tasks concurrently and validate the results
-            for (Future<Status> result : this.pool.invokeAll(tasks))
+            // Create as many tasks as required
+            for (int jobId=0; jobId<nbJobs; jobId++)
             {
-               Status status = result.get();
+               this.buffers[2*jobId].index = 0;
+               this.buffers[2*jobId+1].index = 0;
+
+               if (this.buffers[2*jobId].array.length < blkSize+1024)
+               {
+                  // Lazy instantiation of input buffers this.buffers[2*jobId]
+                  // Output buffers this.buffers[2*jobId+1] are lazily instantiated
+                  // by the decoding tasks.
+                  this.buffers[2*jobId].array = new byte[blkSize+1024];    
+                  this.buffers[2*jobId].length = blkSize+1024;
+               }
+
+               Map<String, Object> map = new HashMap<>(this.ctx);
+               map.put("jobs", jobsPerTask[jobId]);
+               Callable<Status> task = new DecodingTask(this.buffers[2*jobId],
+                       this.buffers[2*jobId+1], blkSize, this.transformType,
+                       this.entropyType, firstBlockId+jobId+1,
+                       this.ibs, this.hasher, this.blockId,
+                       blockListeners, map);
+               tasks.add(task);            
+            }
+
+            List<Status> results = new ArrayList<>(tasks.size());
+            int skipped = 0;
+
+            if (tasks.size() == 1)
+            {
+               // Synchronous call
+               Status status = tasks.get(0).call();
                results.add(status);
+
+               if (status.skipped == true) 
+                  skipped++;
+
                decoded += status.decoded;
 
                if (status.error != 0)
                   throw new kanzi.io.IOException(status.msg, status.error);
             }
-         }
-
-         final int size = this.sa.index + decoded;
-            
-         if (size > nbJobs*this.blockSize)
-            throw new kanzi.io.IOException("Invalid data", Error.ERR_PROCESS_BLOCK);
-         
-         this.sa.length = size;
-
-         if (this.sa.array.length < this.sa.length)
-             this.sa.array = new byte[this.sa.length];
-         
-         for (Status res : results)
-         {                           
-            System.arraycopy(res.data, 0, this.sa.array, this.sa.index, res.decoded);
-            this.sa.index += res.decoded;
-                       
-            if (blockListeners.length > 0)
+            else
             {
-               // Notify after transform ... in block order !
-               Event evt = new Event(Event.Type.AFTER_TRANSFORM, res.blockId,
-                       res.decoded, res.checksum, this.hasher != null, res.completionTime);
+               // Invoke the tasks concurrently and wait for the results
+               for (Future<Status> result : this.pool.invokeAll(tasks))
+               {
+                  Status status = result.get();
+                  results.add(status);
 
-               notifyListeners(blockListeners, evt);
+                  if (status.skipped == true) 
+                     skipped++;
+
+                  decoded += status.decoded;
+
+                  if (status.error != 0)
+                     throw new kanzi.io.IOException(status.msg, status.error);
+               }
             }
-         }
 
+            final int size = this.sa.index + decoded;
+
+            if (size > nbJobs*this.blockSize)
+               throw new kanzi.io.IOException("Invalid data", Error.ERR_PROCESS_BLOCK);
+
+            this.sa.length = size;
+
+            if (this.sa.array.length < this.sa.length)
+                this.sa.array = new byte[this.sa.length];
+
+            for (Status res : results)
+            {          
+               System.arraycopy(res.data, 0, this.sa.array, this.sa.index, res.decoded);
+               this.sa.index += res.decoded;
+
+               if (blockListeners.length > 0)
+               {
+                  // Notify after transform ... in block order !
+                  Event evt = new Event(Event.Type.AFTER_TRANSFORM, res.blockId,
+                          res.decoded, res.checksum, this.hasher != null, res.completionTime);
+
+                  notifyListeners(blockListeners, evt);
+               }
+            }
+         
+            // Unless all blocks were skipped, exit the loop (usual case)
+            if (skipped != results.size())
+               break;
+         }
+         
          this.sa.index = 0;
          return decoded;
       }
@@ -635,7 +653,14 @@ public class CompressedInputStream extends InputStream
          // After completion of the bitstream reading, increment the block id.
          // It unblocks the task processing the next block (if any)
          this.processedBlockId.incrementAndGet();
+         
+         // Check if the block must be skipped
+         int from = (int) this.ctx.getOrDefault("from", 0);
+         int to = (int) this.ctx.getOrDefault("to", MAX_BLOCK_ID);
 
+         if ((this.blockId < from) || (this.blockId >= to))
+            return new Status(data, currentBlockId, 0, 0, 0, "Success", true);
+         
          ByteArrayInputStream bais = new ByteArrayInputStream(data.array, 0, r);
          DefaultInputBitStream is = new DefaultInputBitStream(bais, 16384);
          int checksum1 = 0;
@@ -789,12 +814,18 @@ public class CompressedInputStream extends InputStream
       final int blockId;
       final int decoded;
       final byte[] data;
+      final boolean skipped;
       final int error; // 0 = OK
       final String msg;
       final int checksum;
       final long completionTime;
 
       Status(SliceByteArray data, int blockId, int decoded, int checksum, int error, String msg)
+      {
+         this(data, blockId, decoded, checksum, error, msg, false);
+      }
+      
+      Status(SliceByteArray data, int blockId, int decoded, int checksum, int error, String msg, boolean skipped)
       {
          this.data = data.array;
          this.blockId = blockId;
@@ -803,6 +834,7 @@ public class CompressedInputStream extends InputStream
          this.error = error;
          this.msg = msg;
          this.completionTime = System.nanoTime();
+         this.skipped = skipped;
       }
    }
 }

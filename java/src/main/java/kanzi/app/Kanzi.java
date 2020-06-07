@@ -45,6 +45,8 @@ public class Kanzi
    private static final int ARG_IDX_JOBS = 7;
    private static final int ARG_IDX_VERBOSE = 8;
    private static final int ARG_IDX_LEVEL = 9;
+   // private static final int ARG_IDX_FROM = 10;
+   //private static final int ARG_IDX_TO = 11;
    
    private static final String APP_HEADER = "Kanzi 1.7 (C) 2020,  Frederic Langlet";
    
@@ -142,6 +144,8 @@ public class Kanzi
         String outputName = null;
         String codec = null;
         String transform = null;
+        int from = -1;
+        int to = -1;
         int tasks = 0;
         int ctx = -1;
         int level = -1;
@@ -539,6 +543,60 @@ public class Kanzi
                   return kanzi.Error.ERR_INVALID_PARAM;
               }
            }
+           
+           if (arg.startsWith("--from=") && (ctx == -1))
+           {
+               String name = arg.startsWith("--from=") ? arg.substring(7).trim() : arg;
+
+               if (from != -1)
+               {
+                  System.err.println("Warning: ignoring duplicate start block: "+name);
+                  ctx = -1;
+                  continue;
+               }
+               
+               try
+               {
+                  from = Integer.parseInt(name);
+
+                  if (from < 0)
+                     throw new NumberFormatException();
+
+                  continue;
+              }
+              catch (NumberFormatException e)
+              {
+                  System.err.println("Invalid start block provided on command line: "+arg);
+                  return kanzi.Error.ERR_INVALID_PARAM;
+              }
+           }      
+           
+           if (arg.startsWith("--to=") && (ctx == -1))
+           {
+               String name = arg.startsWith("--to=") ? arg.substring(5).trim() : arg;
+
+               if (to != -1)
+               {
+                  System.err.println("Warning: ignoring duplicate end block: "+name);
+                  ctx = -1;
+                  continue;
+               }
+               
+               try
+               {
+                  to = Integer.parseInt(name);
+
+                  if (to <= 0) // Must be > 0 (0 means nothing to do)
+                     throw new NumberFormatException();
+
+                  continue;
+              }
+              catch (NumberFormatException e)
+              {
+                  System.err.println("Invalid start block provided on command line: "+arg);
+                  return kanzi.Error.ERR_INVALID_PARAM;
+              }
+           }               
 
            if (!arg.startsWith("--verbose=") && (ctx == -1) && !arg.startsWith("--output="))
            {
@@ -568,6 +626,16 @@ public class Kanzi
               printOut("Warning: providing the 'level' option forces the transform. Ignoring ["+ transform + "]", verbose>0);
         }
         
+        if ((from >= 0) || (to >= 0))
+        {
+           if (mode != 'd')
+           {
+               printOut("Warning: ignoring start end block (only valid for decompression)", verbose>0);
+               from = -1;
+               to = -1;
+           }
+         }  
+        
         if (blockSize != -1)
            map.put("block", blockSize);
 
@@ -594,6 +662,12 @@ public class Kanzi
 
         if (skip == true)
            map.put("skipBlocks", skip);
+
+        if (from >= 0)
+           map.put("from", from);
+
+        if (to >= 0)
+           map.put("to", to);
 
         map.put("jobs", tasks);
         return 0;
