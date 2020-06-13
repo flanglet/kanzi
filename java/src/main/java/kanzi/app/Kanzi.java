@@ -630,7 +630,7 @@ public class Kanzi
         {
            if (mode != 'd')
            {
-               printOut("Warning: ignoring start end block (only valid for decompression)", verbose>0);
+               printOut("Warning: ignoring start/end block (only valid for decompression)", verbose>0);
                from = -1;
                to = -1;
            }
