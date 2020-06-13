@@ -88,7 +88,7 @@ public final class LZCodec implements ByteFunction
 
    static final class LZXCodec implements ByteFunction
    {
-      private static final int HASH_SEED          = 0x7FEB352D;
+      private static final int HASH_SEED          = 0x1E35A7BD;
       private static final int HASH_LOG           = 19; // 512K
       private static final int HASH_SHIFT         = 40 - HASH_LOG;
       private static final int HASH_MASK          = (1<<HASH_LOG) - 1;
