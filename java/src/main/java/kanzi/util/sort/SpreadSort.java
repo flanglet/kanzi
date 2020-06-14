@@ -76,9 +76,10 @@ public class SpreadSort implements IntSorter
       if (relativeWidth >= 4)
          relativeWidth = 3;
       
-      final int shift = (relativeWidth < LOG_MEAN_BIN_SIZE+LOG_MIN_SPLIT_COUNT) ? 
-         LOG_MEAN_BIN_SIZE + LOG_MIN_SPLIT_COUNT : relativeWidth;
-      
+      //final int shift = (relativeWidth < LOG_MEAN_BIN_SIZE+LOG_MIN_SPLIT_COUNT) ? 
+      //   LOG_MEAN_BIN_SIZE + LOG_MIN_SPLIT_COUNT : relativeWidth;      
+      final int shift = relativeWidth;
+         
       return 1 << shift;
    }
 

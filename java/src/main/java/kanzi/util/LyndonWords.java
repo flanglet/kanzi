@@ -109,6 +109,14 @@ public class LyndonWords
          res[n++] = bp;
       
       return res;
-   }   
+   }
    
+   
+   public static void main(String[] args)
+   {
+      String[] ss = new LyndonWords().split("TO_BE_OR_NOT_TO_BE");
+      
+      for (String s : ss)
+         System.out.println(s);  
+   }
 }

@@ -81,7 +81,7 @@ public class FlashSort implements IntSorter
 
         // Aliasing for speed
         final int[] buf = this.buffer;
-        final int len8 = buf.length;
+        final int len8 = buf.length & -8;
         final long delta = max - min;
         final long delta1 = delta + 1;
 

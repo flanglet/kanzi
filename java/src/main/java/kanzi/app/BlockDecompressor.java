@@ -90,7 +90,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       if ((this.verbosity > 0) && (map.size() > 0))
       {
          for (String k : map.keySet())
-            printOut("Ignoring invalid option [" + k + "]", this.verbosity>0);
+            printOut("Ignoring invalid option [" + k + "]", true); //this.verbosity>0
       }      
    }
    

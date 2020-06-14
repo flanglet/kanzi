@@ -372,7 +372,14 @@ public class EntropyUtils
          if (this == o)
             return true;
 
-         return ((FreqSortData) o).symbol == this.symbol;
+         try
+         {
+            return ((FreqSortData) o).symbol == this.symbol;
+         }
+         catch (ClassCastException e)
+         {
+            return false;
+         }
       }
 
 

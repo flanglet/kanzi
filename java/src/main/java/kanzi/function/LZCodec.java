@@ -499,10 +499,6 @@ public final class LZCodec implements ByteFunction
          int srcIdx = srcIdx0;
          int dstIdx = dstIdx0;
 
-         // If too small, skip
-         if (count < MIN_LENGTH)
-             return false;
-
          dst[dstIdx]   = src[srcIdx];
          dst[dstIdx+1] = src[srcIdx+1];
          dst[dstIdx+2] = src[srcIdx+2];
