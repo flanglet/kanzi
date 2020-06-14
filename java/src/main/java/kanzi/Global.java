@@ -627,7 +627,7 @@ public class Global
             if (sortBySize == false)
                return p1.compareTo(p2);
             
-            // Compare parent directory paths
+            // First, compare parent directory paths
             final int res = p1.getParent().compareTo(p2.getParent());
             
             if (res != 0)
@@ -635,7 +635,8 @@ public class Global
             
             try 
             {
-               return (int) (Files.size(p1) - Files.size(p2));
+               // Then, compare file sizes (decreasing order)
+               return (int) (Files.size(p2) - Files.size(p1));
             }
             catch (IOException e)
             {
