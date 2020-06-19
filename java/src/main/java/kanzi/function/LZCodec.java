@@ -311,12 +311,16 @@ public final class LZCodec implements ByteFunction
                }
 
                // Emit literals
+               if ((dstIdx + litLen > dstEnd) || (srcIdx + litLen > srcEnd)) {
+                  System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
+                  srcIdx += litLen;
+                  dstIdx += litLen;
+                  break;
+               }
+
                emitLiterals(src, srcIdx, dst, dstIdx, litLen);
                srcIdx += litLen;
                dstIdx += litLen;
-               
-               if ((dstIdx > dstEnd) || (srcIdx > srcEnd))
-                  break;
             }
 
             // Get match length
