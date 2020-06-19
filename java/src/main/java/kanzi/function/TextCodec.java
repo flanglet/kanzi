@@ -618,7 +618,7 @@ public final class TextCodec implements ByteFunction
                   {
                      // Word not found in the dictionary or hash collision.
                      // Replace entry if not in static dictionary
-                     if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (e1 == null))
+                     if (((length > 3) || ((length == 3) && (words < THRESHOLD2))) && (e1 == null))
                      {
                         e = this.dictList[words];
 
@@ -807,9 +807,9 @@ public final class TextCodec implements ByteFunction
                continue;
             }
 
-            if ((srcIdx > delimAnchor+2) && isDelimiter(cur))
+            if ((srcIdx > delimAnchor+3) && isDelimiter(cur))
             {
-               final int length = srcIdx - delimAnchor - 1;
+               final int length = srcIdx - delimAnchor - 1; // length > 2
                
                if (length <= MAX_WORD_LENGTH)
                {
@@ -833,7 +833,7 @@ public final class TextCodec implements ByteFunction
                   {
                      // Word not found in the dictionary or hash collision.
                      // Replace entry if not in static dictionary
-                     if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (e1 == null))
+                     if (((length > 3) || (words < THRESHOLD2)) && (e1 == null))
                      {
                         e = this.dictList[words];
 
@@ -1133,7 +1133,7 @@ public final class TextCodec implements ByteFunction
                   {
                      // Word not found in the dictionary or hash collision.
                      // Replace entry if not in static dictionary
-                     if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (e1 == null))
+                     if (((length > 3) || ((length == 3) && (words < THRESHOLD2))) && (e1 == null))
                      {
                         e = this.dictList[words];
 
@@ -1362,9 +1362,9 @@ public final class TextCodec implements ByteFunction
                continue;
             }
 
-            if ((srcIdx > delimAnchor+2) && isDelimiter(cur))
+            if ((srcIdx > delimAnchor+3) && isDelimiter(cur))
             {
-               final int length = srcIdx - delimAnchor - 1;
+               final int length = srcIdx - delimAnchor - 1; // length > 2
 
                if (length <= MAX_WORD_LENGTH)
                {
@@ -1388,7 +1388,7 @@ public final class TextCodec implements ByteFunction
                   {
                      // Word not found in the dictionary or hash collision.
                      // Replace entry if not in static dictionary
-                     if (((length > 3) || ((length > 2) && (words < THRESHOLD2))) && (e1 == null))
+                     if (((length > 3) || (words < THRESHOLD2)) && (e1 == null))
                      {
                         e = this.dictList[words];
 
