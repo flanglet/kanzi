@@ -142,19 +142,22 @@ public final class DefaultOutputBitStream implements OutputBitStream
       else
       {
          // Not byte aligned
-         final int r = 64 - this.availBits;
-
-         while (remaining >= 64)
+         if (remaining >= 64)
          {
-            final long value = Memory.BigEndian.readLong64(bits, start);
-            this.current |= (value >>> r);
-            this.pushCurrent();
-            this.current = (value << -r);
-            start += 8;
-            remaining -= 64;
-         }
+            final int r = 64 - this.availBits;
+            
+            while (remaining >= 64)
+            {
+               final long value = Memory.BigEndian.readLong64(bits, start);
+               this.current |= (value >>> r);
+               this.pushCurrent();
+               this.current = (value << -r);
+               start += 8;
+               remaining -= 64;
+            }
 
-         this.availBits -= r;
+            this.availBits -= r;
+         }
       }
 
       // Last bytes  
