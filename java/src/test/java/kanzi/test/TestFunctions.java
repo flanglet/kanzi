@@ -286,7 +286,7 @@ public class TestFunctions
             return false;
          }
 
-         if (sa1.index != input.length)
+         if ((sa1.index != input.length) || (sa1.index < sa2.index))
          {
             System.out.println("\nNo compression (ratio > 1.0), skip reverse");
             continue;
