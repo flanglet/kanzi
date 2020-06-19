@@ -94,6 +94,7 @@ public final class SliceIntArray
 
 
     @Override
+    @SuppressWarnings("lgtm [java/print-array]")
     public String toString()
     {
         StringBuilder builder = new StringBuilder(100);

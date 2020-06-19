@@ -473,7 +473,7 @@ public class ROLZCodec implements ByteFunction
                mDec.decode(mIdxBuf.array, 0, mIdxLen);
                mDec.dispose();
 
-               srcIdx += ((ibs.read()+7)>>>3);
+               srcIdx += (int) ((ibs.read()+7)>>>3);
                ibs.close();
             }
 

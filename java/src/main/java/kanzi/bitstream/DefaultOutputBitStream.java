@@ -150,10 +150,11 @@ public final class DefaultOutputBitStream implements OutputBitStream
             this.current |= (value >>> r);
             this.pushCurrent();
             this.current = (value << -r);
-            this.availBits -= r;
             start += 8;
             remaining -= 64;
          }
+
+         this.availBits -= r;
       }
 
       // Last bytes  

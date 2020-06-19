@@ -302,32 +302,21 @@ public final class LZCodec implements ByteFunction
                int litLen = token >> 5;
 
                if (litLen == 7) {
-                   while ((srcIdx < srcEnd) && (src[srcIdx] == -1)) {
-                       srcIdx++;
-                       litLen += 0xFF;
-                   }
+                  while ((srcIdx < srcEnd) && (src[srcIdx] == -1)) {
+                     srcIdx++;
+                     litLen += 0xFF;
+                  }
 
-                   if (srcIdx >= srcEnd + 16) {
-                       input.index = srcIdx;
-                       output.index = dstIdx;
-                       return false;
-                   }
-
-                   litLen += (src[srcIdx++] & 0xFF);
-               }
-
-               // Copy literals and exit ?
-               if ((dstIdx + litLen > dstEnd) || (srcIdx + litLen > srcEnd)) {
-                   System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
-                   srcIdx += litLen;
-                   dstIdx += litLen;
-                   break;
+                  litLen += (src[srcIdx++] & 0xFF);
                }
 
                // Emit literals
                emitLiterals(src, srcIdx, dst, dstIdx, litLen);
                srcIdx += litLen;
                dstIdx += litLen;
+               
+               if ((dstIdx > dstEnd) || (srcIdx > srcEnd))
+                  break;
             }
 
             // Get match length
