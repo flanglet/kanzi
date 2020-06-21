@@ -190,7 +190,8 @@ public final class LZCodec implements ByteFunction
             int bestLen = 0;
 
             // Find a match
-            if ((ref > minRef) && (differentInts(src, ref, srcIdx) == false)) {
+            if ((ref > minRef) && (differentInts(src, ref, srcIdx) == false)) 
+            {
                final int maxMatch = srcEnd - srcIdx;
                bestLen = 4;
 
@@ -294,15 +295,19 @@ public final class LZCodec implements ByteFunction
          int srcIdx = srcIdx0 + 1;
 
 
-         while (true) {
+         while (true) 
+         {
             final int token = src[srcIdx++] & 0xFF;
 
-            if (token >= 32) {
+            if (token >= 32) 
+            {
                // Get literal length
                int litLen = token >> 5;
 
-               if (litLen == 7) {
-                  while ((srcIdx < srcEnd) && (src[srcIdx] == -1)) {
+               if (litLen == 7) 
+               {
+                  while ((srcIdx < srcEnd) && (src[srcIdx] == -1)) 
+                  {
                      srcIdx++;
                      litLen += 0xFF;
                   }
@@ -311,7 +316,8 @@ public final class LZCodec implements ByteFunction
                }
 
                // Emit literals
-               if ((dstIdx + litLen > dstEnd) || (srcIdx + litLen > srcEnd)) {
+               if ((dstIdx + litLen > dstEnd) || (srcIdx + litLen > srcEnd)) 
+               {
                   System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
                   srcIdx += litLen;
                   dstIdx += litLen;
@@ -330,12 +336,12 @@ public final class LZCodec implements ByteFunction
             {
                while ((srcIdx < srcEnd) && (src[srcIdx] == -1)) 
                {
-                   srcIdx++;
-                   mLen += 0xFF;
+                  srcIdx++;
+                  mLen += 0xFF;
                }
 
                if (srcIdx < srcEnd)
-                   mLen += (src[srcIdx++] & 0xFF);
+                  mLen += (src[srcIdx++] & 0xFF);
             }
 
             mLen += MIN_MATCH;
@@ -374,17 +380,18 @@ public final class LZCodec implements ByteFunction
                do 
                {
                    // No overlap
-                   System.arraycopy(dst, ref, dst, dstIdx, 16);
-                   ref += 16;
-                   dstIdx += 16;
-               } while (dstIdx < mEnd);
+                  System.arraycopy(dst, ref, dst, dstIdx, 16);
+                  ref += 16;
+                  dstIdx += 16;
+               } 
+               while (dstIdx < mEnd);
             }
             else 
             {
                final int ref = dstIdx - dist;
 
                for (int i=0; i<mLen; i++)
-                   dst[dstIdx+i] = dst[ref+i];
+                  dst[dstIdx+i] = dst[ref+i];
             }
 
             dstIdx = mEnd;

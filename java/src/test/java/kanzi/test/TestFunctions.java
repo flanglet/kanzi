@@ -338,6 +338,8 @@ public class TestFunctions
 
                System.out.println();
             }
+
+            System.out.println("Identical");
          }
          else 
          {
@@ -345,12 +347,12 @@ public class TestFunctions
             System.out.println();
 
             for (int i=0; i<idx; i++)
-               System.out.println(i+" "+sa1.array[i]+" "+sa3.array[i]);
+               System.out.println(i+": "+sa1.array[i]+" "+sa3.array[i]);
             
-            System.out.println(idx+" "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
+            System.out.println(idx+": "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
+            return false;
          }
          
-         System.out.println("Identical");
          System.out.println();
       }
       
