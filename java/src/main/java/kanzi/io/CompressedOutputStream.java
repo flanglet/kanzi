@@ -413,10 +413,14 @@ public class CompressedOutputStream extends OutputStream
             this.buffers[2*jobId].index = 0;
             this.buffers[2*jobId+1].index = 0;
             
-            if (this.buffers[2*jobId].array.length < sz)
+            // Add padding for incompressible data
+            final int length = Math.max(sz+(sz>>6), sz+1024);
+
+            // Grow encoding buffer if required
+            if (this.buffers[2*jobId].array.length < length)
             {
-               this.buffers[2*jobId].array = new byte[sz];
-               this.buffers[2*jobId].length = sz;
+               this.buffers[2*jobId].array = new byte[length];
+               this.buffers[2*jobId].length = length;
             }
             
             System.arraycopy(this.sa.array, this.sa.index, this.buffers[2*jobId].array, 0, sz);
