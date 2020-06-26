@@ -590,6 +590,26 @@ public class Global
    }
    
    
+   // Return the first order entropy in the [0..1024] range
+   // Fills in the histogram with order 0 frequencies. Incoming array size must be 256
+   public static int computeFirstOrderEntropy1024(byte[] block, int blkptr, int length, int[] histo)
+   {
+      if (length == 0)
+         return 0;
+      Global.computeHistogramOrder0(block, blkptr, blkptr + length, histo, false);
+      long sum = 0;
+      final int logLength1024 = Global.log2_1024(length);
+      for (int i = 0; i < 256; i++)
+      {
+         if (histo[i] == 0)
+            continue;
+         final long count = histo[i];
+         sum += ((count * (logLength1024 - Global.log2_1024(histo[i]))) >> 3);
+      }
+      return (int) (sum / length);
+   }
+
+
    public static int[] computeJobsPerTask(int[] jobsPerTask, int jobs, int tasks)
    {
       if (tasks <= 0)

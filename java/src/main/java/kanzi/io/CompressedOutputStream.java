@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
+import kanzi.Global;
 import kanzi.SliceByteArray;
 import kanzi.OutputBitStream;
 import kanzi.bitstream.DefaultOutputBitStream;
@@ -592,7 +593,7 @@ public class CompressedOutputStream extends OutputStream
                if (skipHighEntropyBlocks == true)
                {
                   int[] histo = new int[256];
-                  final int entropy = EntropyUtils.computeFirstOrderEntropy1024(data.array, data.index, blockLength, histo);
+                  final int entropy = Global.computeFirstOrderEntropy1024(data.array, data.index, blockLength, histo);
                   //this.ctx.put("histo0", histo);
 
                   if (entropy >= EntropyUtils.INCOMPRESSIBLE_THRESHOLD)
