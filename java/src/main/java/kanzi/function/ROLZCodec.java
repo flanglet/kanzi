@@ -257,7 +257,7 @@ public class ROLZCodec implements ByteFunction
          for (int i=0; i<this.counters.length; i++)
             this.counters[i] = 0;
 
-         final int litOrder = (count < 1<<17) ? 0 : 1;
+         final int litOrder = 0;
          dst[dstIdx++] = (byte) litOrder;
          
          // Main loop
