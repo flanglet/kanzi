@@ -735,14 +735,19 @@ public class CompressedOutputStream extends OutputStream
             // Emit block size in bits (max size pre-entropy is 1 GB = 1 << 30 bytes)
             final int lw = (blockLength >= 1<<28) ? 40 : 32;
             this.obs.writeBits(written, lw);
+            int chkSize = (int) Math.min(written, 1<<30);
+            
+            // Protect against pathological cases 
+            if (data.array.length < (chkSize>>3))
+               this.data.array = new byte[chkSize>>3];
 
             // Emit data to shared bitstream
             for (int n=0; written>0; )
             {
-               final int chkSize = (written < (long) (1<<30)) ? (int) written : 1<<30;
                this.obs.writeBits(this.data.array, n, chkSize);
                n += ((chkSize+7) >> 3);
                written -= chkSize;
+               chkSize = (int) Math.min(written, 1<<30);
             }
 
             // After completion of the entropy coding, increment the block id.
