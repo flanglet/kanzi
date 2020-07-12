@@ -630,7 +630,7 @@ public class CompressedOutputStream extends OutputStream
             }
             
             this.ctx.put("size", postTransformLength);
-            int dataSize = (postTransformLength < 2) ? 1 : (Global.log2(postTransformLength)+7) >> 3;
+            final int dataSize = (postTransformLength < 256) ? 1 : (Global.log2(postTransformLength)>>3) + 1;
 
             if (dataSize > 4) 
             {
