@@ -630,20 +630,16 @@ public class CompressedOutputStream extends OutputStream
             }
             
             this.ctx.put("size", postTransformLength);
-            int dataSize = 0;
+            int dataSize = (postTransformLength < 2) ? 1 : (Global.log2(postTransformLength)+7) >> 3;
 
-            for (long n=0xFF; n<postTransformLength; n<<=8)
-               dataSize++;
-
-            if (dataSize > 3) 
+            if (dataSize > 4) 
             {
                this.processedBlockId.set(CANCEL_TASKS_ID);
                return new Status(currentBlockId, Error.ERR_WRITE_FILE, "Invalid block data length");
             }
             
             // Record size of 'block size' - 1 in bytes
-            mode |= ((dataSize & 0x03) << 5);               
-            dataSize++;
+            mode |= (((dataSize-1) & 0x03) << 5);               
 
             if (this.listeners.length > 0)
             {
