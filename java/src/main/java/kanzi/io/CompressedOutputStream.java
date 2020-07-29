@@ -415,7 +415,7 @@ public class CompressedOutputStream extends OutputStream
             this.buffers[2*jobId+1].index = 0;
             
             // Add padding for incompressible data
-            final int length = Math.max(sz+(sz>>6), sz+1024);
+            final int length = Math.max(sz+(sz>>6), 32768);
 
             // Grow encoding buffer if required
             if (this.buffers[2*jobId].array.length < length)
@@ -731,11 +731,7 @@ public class CompressedOutputStream extends OutputStream
             // Emit block size in bits (max size pre-entropy is 1 GB = 1 << 30 bytes)
             final int lw = (blockLength >= 1<<28) ? 40 : 32;
             this.obs.writeBits(written, lw);
-            int chkSize = (int) Math.min(written, 1<<30);
-            
-            // Protect against pathological cases 
-            if (data.array.length < (chkSize>>3))
-               this.data.array = new byte[chkSize>>3];
+            int chkSize = (int) Math.min(written, 1<<30);           
 
             // Emit data to shared bitstream
             for (int n=0; written>0; )
