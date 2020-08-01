@@ -56,6 +56,9 @@ public class RLT implements ByteFunction
    {
       if (input.length == 0)
          return true;
+
+      if (input.length < 16)
+         return false;
       
       if (input.array == output.array)
          return false;
@@ -64,7 +67,7 @@ public class RLT implements ByteFunction
       
       if (output.length - output.index < getMaxEncodedLength(count))
          return false;
-     
+           
       final byte[] src = input.array;
       final byte[] dst = output.array;     
 
@@ -216,7 +219,7 @@ public class RLT implements ByteFunction
          res = srcIdx == srcEnd;
       }
       
-      res &= (dstIdx-output.index) < (srcIdx-input.index);
+      res &= ((dstIdx-output.index) < (srcIdx-input.index));
       input.index = srcIdx;
       output.index = dstIdx;
       return res;
@@ -274,7 +277,7 @@ public class RLT implements ByteFunction
       int dstIdx = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int srcEnd = srcIdx + count - 1;
+      final int srcEnd = srcIdx + count - 4;
       final int dstEnd = dst.length;
       boolean res = true;
       byte escape = src[srcIdx++];
@@ -375,9 +378,11 @@ public class RLT implements ByteFunction
      
       if (res == true)
       {
-         // Emit last symbol separately (may be an escape)
-         res &= (srcIdx == srcEnd);   
-         dst[dstIdx++] = src[srcIdx++];
+         res &= (srcIdx == srcEnd); 
+         
+         // Copy the last few bytes
+         while ((srcIdx < srcEnd+4) && (dstIdx < dstEnd))
+            dst[dstIdx++] = src[srcIdx++];
       }
 
       input.index = srcIdx;
