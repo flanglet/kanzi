@@ -274,7 +274,7 @@ public class RLT implements ByteFunction
       int dstIdx = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int srcEnd = srcIdx + count;
+      final int srcEnd = srcIdx + count - 1;
       final int dstEnd = dst.length;
       boolean res = true;
       byte escape = src[srcIdx++];
@@ -372,8 +372,14 @@ public class RLT implements ByteFunction
          while (run-- > 0)
             dst[dstIdx++] = val;
       }
-         
-      res &= srcIdx == srcEnd;   
+     
+      if (res == true)
+      {
+         // Emit last symbol separately (may be an escape)
+         res &= (srcIdx == srcEnd);   
+         dst[dstIdx++] = src[srcIdx++];
+      }
+
       input.index = srcIdx;
       output.index = dstIdx;
       return res;
