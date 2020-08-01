@@ -314,7 +314,7 @@ public class TestDefaultBitStream
                   System.out.println();                                     
             }
 
-            int count = 8 + test*(20+(test&1)) + (test&3);
+            int count = 24 + test*(20+(test&1)) + (test&3);
             System.out.println();
             System.out.println();
             dbs.writeBits(input, 0, count);
@@ -328,7 +328,9 @@ public class TestDefaultBitStream
             InputBitStream ibs = new DefaultInputBitStream(is, 16384);
             System.out.println("Read:");
 
-            int r = ibs.readBits(output, 0, count);
+            int chkSize8 = (count/3) & -8;
+            int r = ibs.readBits(output, 0, chkSize8); // read in 2 chunks as a test
+            r += ibs.readBits(output, chkSize8/8, count-chkSize8);
             boolean ok = r == count;
             
             if (ok == true)

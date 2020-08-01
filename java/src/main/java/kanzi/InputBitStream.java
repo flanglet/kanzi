@@ -25,7 +25,8 @@ public interface InputBitStream
    // Throws if the stream is closed.
    public long readBits(int length) throws BitStreamException;
 
-   // Read bits and put them in the byte array. Length is the number of bits
+   // Read bits and put them in the byte array at index 'start'. 
+   // Length is the number of bits
    // Return the number of bits read.
    // Throws if the stream is closed.
    public int readBits(byte[] bits, int start, int length) throws BitStreamException;
