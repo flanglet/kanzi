@@ -56,7 +56,7 @@ public class RLT implements ByteFunction
    {
       if (input.length == 0)
          return true;
-
+      
       if (input.length < 16)
          return false;
       
@@ -67,11 +67,11 @@ public class RLT implements ByteFunction
       
       if (output.length - output.index < getMaxEncodedLength(count))
          return false;
-           
+     
       final byte[] src = input.array;
       final byte[] dst = output.array;     
 
-      // Step 1: find escape symbol
+      // Find escape symbol
       int srcIdx = input.index;
       int dstIdx = output.index;
       final int srcEnd = srcIdx + count;
@@ -82,7 +82,6 @@ public class RLT implements ByteFunction
          this.freqs[i] = 0;
       
       Global.computeHistogramOrder0(src, srcIdx, srcEnd, this.freqs, false);
-      
       int minIdx = 0;
       
       // Select escape symbol
@@ -111,7 +110,7 @@ public class RLT implements ByteFunction
          dst[dstIdx++] = 0;
   
       // Main loop
-      while (srcIdx < srcEnd4)
+      while (true)
       {
          if (prev == src[srcIdx])
          {
@@ -129,7 +128,7 @@ public class RLT implements ByteFunction
                   {
                      srcIdx++; run++;
                      
-                     if (run < MAX_RUN4)
+                     if ((run < MAX_RUN4) && (srcIdx < srcEnd4))
                         continue;
                   }
                }
@@ -180,15 +179,18 @@ public class RLT implements ByteFunction
          prev = src[srcIdx];
          srcIdx++;
          run = 1; 
+         
+         if (srcIdx >= srcEnd4)
+            break;
       }
   
-      if (res == true)
+      if (res == true) 
       {
          // Process any remaining run
          if (run > RUN_THRESHOLD)
          {
             final int dIdx = emitRunLength(dst, dstIdx, dstEnd, run, escape, prev);
-            
+
             if (dIdx > dstIdx)
                dstIdx = dIdx;
          }
@@ -197,8 +199,8 @@ public class RLT implements ByteFunction
             if (dstIdx+run < dstEnd)
             {
                while (run-- > 0)
-                  dst[dstIdx++] = prev;  
-            }
+                  dst[dstIdx++] = prev;   
+            }  
          }
          else // escape literal
          {
@@ -207,16 +209,32 @@ public class RLT implements ByteFunction
                while (run-- > 0)
                {
                   dst[dstIdx++] = escape; 
-                  dst[dstIdx++] = 0; 
-               }
+                  dst[dstIdx++] = 0;
+               } 
             }
+         }        
+         
+         // Emit the last few bytes
+         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
+         {
+            if (src[srcIdx] == escape)
+            {
+               if (dstIdx+2 >= dstEnd)
+               {
+                  res = false;
+                  break;
+               }
+
+               dst[dstIdx++] = escape; 
+               dst[dstIdx++] = 0;
+               srcIdx++;
+               continue;
+            }
+            
+            dst[dstIdx++] = src[srcIdx++];
          }
          
-         // Copy the last few bytes
-         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
-            dst[dstIdx++] = src[srcIdx++];
-         
-         res = srcIdx == srcEnd;
+         res &= (srcIdx == srcEnd);
       }
       
       res &= ((dstIdx-output.index) < (srcIdx-input.index));
@@ -277,7 +295,7 @@ public class RLT implements ByteFunction
       int dstIdx = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int srcEnd = srcIdx + count - 4;
+      final int srcEnd = srcIdx + count;
       final int dstEnd = dst.length;
       boolean res = true;
       byte escape = src[srcIdx++];
@@ -375,16 +393,8 @@ public class RLT implements ByteFunction
          while (run-- > 0)
             dst[dstIdx++] = val;
       }
-     
-      if (res == true)
-      {
-         res &= (srcIdx == srcEnd); 
          
-         // Copy the last few bytes
-         while ((srcIdx < srcEnd+4) && (dstIdx < dstEnd))
-            dst[dstIdx++] = src[srcIdx++];
-      }
-
+      res &= (srcIdx == srcEnd);   
       input.index = srcIdx;
       output.index = dstIdx;
       return res;
