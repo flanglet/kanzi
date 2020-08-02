@@ -415,7 +415,7 @@ public class CompressedOutputStream extends OutputStream
             this.buffers[2*jobId+1].index = 0;
             
             // Add padding for incompressible data
-            final int length = Math.max(sz+(sz>>6), 32768);
+            final int length = Math.max(sz+(sz>>6), 65536);
 
             // Grow encoding buffer if required
             if (this.buffers[2*jobId].array.length < length)
