@@ -113,11 +113,11 @@ public class ANSRangeDecoder implements EntropyDecoder
             syms[i] = new Symbol();
       }
 
-      final int padding = (sizeChunk > 128) ? sizeChunk>>3 : 16;
+      final int size = Math.max(Math.min(sizeChunk+(sizeChunk>>3), 2*count), 65536);
       
       // Add some padding
-      if (this.buffer.length < sizeChunk+padding)
-         this.buffer = new byte[sizeChunk+padding];
+      if (this.buffer.length < size)
+         this.buffer = new byte[size];
 
       while (startChunk < end)
       {
