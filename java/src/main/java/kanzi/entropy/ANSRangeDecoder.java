@@ -101,7 +101,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          return 0;
 
       final int end = blkptr + count;
-      int sizeChunk =  this.chunkSize;
+      int sizeChunk = this.chunkSize;
       int startChunk = blkptr;
       final int endk = 255*this.order + 1;
       
