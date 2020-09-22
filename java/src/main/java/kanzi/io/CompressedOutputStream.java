@@ -348,8 +348,8 @@ public class CompressedOutputStream extends OutputStream
       try
       {
          // Write end block of size 0
-         final int lw = (this.blockSize >= 1<<28) ? 40 : 32;
-         this.obs.writeBits(0, lw);
+         this.obs.writeBits(0, 5); // write length-3 (5 bits max)
+         this.obs.writeBits(0, 3);
          this.obs.close();
       }
       catch (BitStreamException e)
@@ -729,7 +729,8 @@ public class CompressedOutputStream extends OutputStream
             }
             
             // Emit block size in bits (max size pre-entropy is 1 GB = 1 << 30 bytes)
-            final int lw = (blockLength >= 1<<28) ? 40 : 32;
+            final int lw = (written < 8) ? 3 : Global.log2((int) written >> 3) + 4;
+            this.obs.writeBits(lw-3, 5); // write length-3 (5 bits max)
             this.obs.writeBits(written, lw);
             int chkSize = (int) Math.min(written, 1<<30);           
 
