@@ -43,6 +43,7 @@ public class ByteFunctionFactory
    public static final short ROLZX_TYPE   = 12; // ROLZ Extra codec
    public static final short SRT_TYPE     = 13; // Sorted Rank
    public static final short LZP_TYPE     = 14; // Lempel Ziv Predict
+   public static final short FSD_TYPE     = 15; // Fix Shift Delta codec
  
 
    // The returned type contains 8 transform values
@@ -123,6 +124,9 @@ public class ByteFunctionFactory
 
          case "X86":
             return X86_TYPE;
+
+         case "FSD":
+            return FSD_TYPE;
 
          case "NONE":
             return NONE_TYPE;
@@ -220,6 +224,9 @@ public class ByteFunctionFactory
          case X86_TYPE:
             return new X86Codec(ctx);
             
+         case FSD_TYPE:
+            return new FSDCodec(ctx);
+            
          case NONE_TYPE:
             return new NullFunction(ctx);
             
@@ -297,6 +304,9 @@ public class ByteFunctionFactory
                         
          case LZP_TYPE:
             return "LZP";
+                        
+         case FSD_TYPE:
+            return "FSD";
                         
          case NONE_TYPE:
             return "NONE";

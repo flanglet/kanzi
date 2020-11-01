@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Random;
 import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
+import kanzi.function.FSDCodec;
 import kanzi.function.LZCodec;
 import kanzi.function.RLT;
 import kanzi.function.ROLZCodec;
@@ -82,6 +83,13 @@ public class TestFunctions
                System.exit(1);
 
             testSpeed("SRT");                 
+
+            System.out.println("\n\nTestFSD");
+
+            if (testCorrectness("FSD") == false)
+               System.exit(1);
+
+            //testSpeed("FSD"); no good data
          }
          else
          {
@@ -114,6 +122,9 @@ public class TestFunctions
       System.out.println("\n\nTestZRLT");
       Assert.assertTrue(testCorrectness("ZRLT"));
       //testSpeed("ZRLT");
+      System.out.println("\n\nTestFSD");
+      Assert.assertTrue(testCorrectness("FSD"));
+      //testSpeed("FSD");   
       System.out.println("\n\nTestRLT");
       Assert.assertTrue(testCorrectness("RLT"));
       //testSpeed("RLT");   
@@ -135,6 +146,9 @@ public class TestFunctions
 
          case "SRT":
             return new SRT();
+
+         case "FSD":
+            return new FSDCodec();
 
          case "ROLZ":
             return new ROLZCodec(false);
@@ -187,15 +201,18 @@ public class TestFunctions
          else if (ii == 3)
          {
             // For RLT
-            arr = new int[512];
+            arr = new int[1025];
             
-            for (int i=0; i<256; i++)
+            for (int i=0; i<255; i++)
             {
-               arr[2*i] = i;
-               arr[2*i+1] = i;
+               arr[4*i+4] = i;
+               arr[4*i+5] = i;
+               arr[4*i+6] = i;
+               arr[4*i+7] = i;
             }
             
-            arr[1] = 255; // force RLT escape to be first symbol
+            arr[0] = 255; // force RLT escape to be first symbol
+            arr[arr.length-1] = 255; // force RLT escape to be last symbol
          }
          else if (ii < 6)
          {
@@ -221,7 +238,7 @@ public class TestFunctions
             for (int j=20; j<arr.length; j++)
                arr[j] = rnd.nextInt(range);
          }
-         else
+         else if (ii < 16)
          {
             arr = new int[1024];
             
@@ -242,6 +259,19 @@ public class TestFunctions
                   arr[j] = val;
 
                idx += len;
+            }
+         }
+         else 
+         {
+            arr = new int[4096];
+
+            // 4-shift correlation (for FSD)
+            for (int j=0; j<arr.length; j+=4)
+            {
+               arr[j]   = 5 + rnd.nextInt(5);
+               arr[j+1] = 30 + rnd.nextInt(10);
+               arr[j+2] = 80 + rnd.nextInt(15);
+               arr[j+3] = 200 + rnd.nextInt(30);
             }
          }
          
@@ -286,7 +316,7 @@ public class TestFunctions
             return false;
          }
 
-         if ((sa1.index != input.length) || (sa1.index < sa2.index))
+         if (sa1.index != input.length)
          {
             System.out.println("\nNo compression (ratio > 1.0), skip reverse");
             continue;
