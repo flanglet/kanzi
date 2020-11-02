@@ -103,7 +103,7 @@ public class FSDCodec implements ByteFunction
          return false;
 
       // Emit step value
-      final int dist = (minIdx <= 4) ? minIdx : 3*2032;      
+      final int dist = (minIdx <= 4) ? minIdx : 8;      
       dst[dstIdx++] = (byte) dist;
  
       // Emit first bytes

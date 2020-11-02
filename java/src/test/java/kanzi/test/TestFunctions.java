@@ -177,7 +177,7 @@ public class TestFunctions
       for (int ii=0; ii<20; ii++)
       {
          System.out.println("\nTest "+ii);
-         int[] arr = new int[0];
+         int[] arr;
 
          if (ii == 0)
          {
@@ -201,7 +201,7 @@ public class TestFunctions
          else if (ii == 3)
          {
             // For RLT
-            arr = new int[1025];
+            arr = new int[1030];
             
             for (int i=0; i<255; i++)
             {
