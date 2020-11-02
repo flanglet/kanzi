@@ -357,17 +357,18 @@ public class TestFunctions
 
          if (idx == -1)
          {
-            if (ii == 1)
-            {
-               System.out.println("1 8 ("+(arr.length-2)+" times)");
-            }
-            else
-            {
-               for (int i=0; i<reverse.length; i++)
-                  System.out.print((reverse[i] & 255) + " ");
-
-               System.out.println();
-            }
+            // Do not display successful inverse to limit log size
+//            if (ii == 1)
+//            {
+//               System.out.println("1 8 ("+(arr.length-2)+" times)");
+//            }
+//            else
+//            {
+//               for (int i=0; i<reverse.length; i++)
+//                  System.out.print((reverse[i] & 255) + " ");
+//
+//               System.out.println();
+//            }
 
             System.out.println("Identical");
          }
