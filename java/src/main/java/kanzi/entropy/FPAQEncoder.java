@@ -31,7 +31,7 @@ public class FPAQEncoder implements EntropyEncoder
    private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
    private static final long MASK_0_24  = 0x0000000000FFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
-   private final int PSCALE = 65536;
+   private static final int PSCALE = 65536;
 
    private long low;
    private long high;

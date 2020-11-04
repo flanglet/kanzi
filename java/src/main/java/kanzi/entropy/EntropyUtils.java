@@ -17,7 +17,6 @@ package kanzi.entropy;
 
 import java.util.PriorityQueue;
 import kanzi.BitStreamException;
-import kanzi.Global;
 import kanzi.InputBitStream;
 import kanzi.OutputBitStream;
 
@@ -113,7 +112,7 @@ public class EntropyUtils
             alphabetSize = 256;
          else
          {
-            int log = 1 + (int) ibs.readBits(3);
+            final int log = 1 + (int) ibs.readBits(3);
             alphabetSize = (int) ibs.readBits(log);
          }
 

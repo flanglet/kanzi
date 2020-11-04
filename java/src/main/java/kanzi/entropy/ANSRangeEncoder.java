@@ -175,7 +175,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          for (int j=i; j<endj; j++)
             this.bitstream.writeBits(frequencies[alphabet[j]]-1, logMax);
       }
-
+    
       return true;
    }
 
