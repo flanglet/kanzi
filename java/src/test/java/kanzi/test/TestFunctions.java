@@ -316,7 +316,7 @@ public class TestFunctions
             return false;
          }
 
-         if (sa1.index != input.length)
+         if ((sa1.index != input.length) || (sa2.index >= sa1.index))
          {
             System.out.println("\nNo compression (ratio > 1.0), skip reverse");
             continue;
@@ -489,6 +489,7 @@ public class TestFunctions
 
          if (idx >= 0) {
             System.out.println("Failure at index "+idx+" ("+sa1.array[idx]+"<->"+sa3.array[idx]+")");
+            
             for (int i=0; i<idx; i++)
                System.out.println(i+" "+sa1.array[i]+" "+sa3.array[i]);
             
