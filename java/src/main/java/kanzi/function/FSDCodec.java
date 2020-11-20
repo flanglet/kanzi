@@ -67,7 +67,7 @@ public class FSDCodec implements ByteFunction
       final int srcEnd = srcIdx + count;
       final int dstEnd = dstIdx + this.getMaxEncodedLength(count);
       final int count5 = count / 5;
-      final int length1 = (this.isFast == true) ? count5>>1 : count5;
+      final int count10 = count / 10;
       int idx1 = 0;
       int idx2 = count5 * 1;
       int idx3 = count5 * 2;
@@ -75,7 +75,18 @@ public class FSDCodec implements ByteFunction
       int idx8 = count5 * 4;
       
       // Check several step values on a sub-block (no memory allocation)
-      for (int i=8; i<length1; i++)
+      // Sample 2 sub-blocks
+      for (int i=3*count5; i<(3*count5)+count10; i++)
+      {
+         final int b = src[i];
+         dst[idx1++] = (byte) (b ^ src[i-1]);
+         dst[idx2++] = (byte) (b ^ src[i-2]);
+         dst[idx3++] = (byte) (b ^ src[i-3]);
+         dst[idx4++] = (byte) (b ^ src[i-4]);
+         dst[idx8++] = (byte) (b ^ src[i-8]);
+      }
+      
+      for (int i=1*count5+count10; i<2*count5; i++)
       {
          final int b = src[i];
          dst[idx1++] = (byte) (b ^ src[i-1]);
@@ -88,12 +99,12 @@ public class FSDCodec implements ByteFunction
       // Find if entropy is lower post transform 
       int[] histo = new int[256];
       int[] ent = new int[6];
-      ent[0] = Global.computeFirstOrderEntropy1024(src,          8, length1-8, histo);
-      ent[1] = Global.computeFirstOrderEntropy1024(dst,          8, length1-8, histo);
-      ent[2] = Global.computeFirstOrderEntropy1024(dst, 1*count5+8, length1-8, histo);
-      ent[3] = Global.computeFirstOrderEntropy1024(dst, 2*count5+8, length1-8, histo);
-      ent[4] = Global.computeFirstOrderEntropy1024(dst, 3*count5+8, length1-8, histo);
-      ent[5] = Global.computeFirstOrderEntropy1024(dst, 4*count5+8, length1-8, histo);
+      ent[0] = Global.computeFirstOrderEntropy1024(src, count/3, count/3, histo);
+      ent[1] = Global.computeFirstOrderEntropy1024(dst,        0, count5, histo);
+      ent[2] = Global.computeFirstOrderEntropy1024(dst, 1*count5, count5, histo);
+      ent[3] = Global.computeFirstOrderEntropy1024(dst, 2*count5, count5, histo);
+      ent[4] = Global.computeFirstOrderEntropy1024(dst, 3*count5, count5, histo);
+      ent[5] = Global.computeFirstOrderEntropy1024(dst, 4*count5, count5, histo);
       
       int minIdx = 0;
 
@@ -104,7 +115,7 @@ public class FSDCodec implements ByteFunction
       }
 
       // If not 'better enough', quick exit
-      if (ent[minIdx] >= ((123*ent[0])>>7)) 
+      if ((this.isFast == true) && (ent[minIdx] >= ((123*ent[0])>>7)))
          return false;
 
       // Emit step value
@@ -140,8 +151,8 @@ public class FSDCodec implements ByteFunction
          return false;
 
       // Extra check that the transform makes sense
-      final int length2 = (this.isFast == true) ? dstIdx>>1 : dstIdx;
-      final int entropy = Global.computeFirstOrderEntropy1024(dst, (dstIdx-length2)>>1, length2, histo);
+      final int length = (this.isFast == true) ? dstIdx>>1 : dstIdx;
+      final int entropy = Global.computeFirstOrderEntropy1024(dst, (dstIdx-length)>>1, length, histo);
 
       if (entropy >= ent[0])
          return false;
