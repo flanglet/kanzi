@@ -257,7 +257,7 @@ public class ROLZCodec implements ByteFunction
          for (int i=0; i<this.counters.length; i++)
             this.counters[i] = 0;
 
-         final int litOrder = 0;
+         final int litOrder = (count < 1<<17) ? 0 : 1;
          dst[dstIdx++] = (byte) litOrder;
          
          // Main loop
@@ -712,7 +712,7 @@ public class ROLZCodec implements ByteFunction
 
          for (int i=0; i<this.counters.length; i++)
             this.counters[i] = 0;
-
+         
          // Main loop
          while (startChunk < srcEnd)
          {
@@ -753,7 +753,7 @@ public class ROLZCodec implements ByteFunction
                final int matchLen = match & 0xFFFF;
                re.encodeBits((MATCH_FLAG<<8)|matchLen, 9);
                final int matchIdx = match >>> 16;
-               re.setMode(MATCH_FLAG);
+               re.setMode(MATCH_FLAG);               
                re.setContext(src[srcIdx-1]);
                re.encodeBits(matchIdx, this.logPosChecks);
                re.setMode(LITERAL_FLAG);
