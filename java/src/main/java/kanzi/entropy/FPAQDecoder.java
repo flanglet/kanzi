@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.entropy;
 
 
+import java.util.Arrays;
 import kanzi.EntropyDecoder;
 import kanzi.InputBitStream;
 import kanzi.Memory;
@@ -31,7 +32,7 @@ public class FPAQDecoder implements EntropyDecoder
    private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
    private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
-   private final int PSCALE = 65536;
+   private static final int PSCALE = 65536;
    
    private long low;
    private long high;
@@ -39,7 +40,8 @@ public class FPAQDecoder implements EntropyDecoder
    private final InputBitStream bitstream;
    private boolean initialized;
    private SliceByteArray sba;
-   private final int[] probs; // probability of bit=1
+   private final int[][] probs; // probability of bit=1
+   private int[] p; // pointer to current prob   
    private int ctx; // previous bits
    
 
@@ -54,10 +56,11 @@ public class FPAQDecoder implements EntropyDecoder
       this.bitstream = bitstream;  
       this.sba = new SliceByteArray(new byte[0], 0);
       this.ctx = 1;
-      this.probs = new int[256];  
+      this.probs = new int[4][256];  
+      this.p = this.probs[0];
  
-      for (int i=0; i<256; i++)
-         this.probs[i] = PSCALE >> 1;      
+      for (int i=0; i<4; i++)
+         Arrays.fill(this.probs[i], PSCALE>>1);  
    }
 
 
@@ -98,9 +101,22 @@ public class FPAQDecoder implements EntropyDecoder
          
          this.sba.index = 0;
          final int endChunk = startChunk + chunkSize;
+         this.p = this.probs[0];
 
          for (int i=startChunk; i<endChunk; i++)
-            block[i] = this.decodeByte();
+         {
+            this.ctx = 1;
+            this.decodeBit(this.p[this.ctx]>>>4);
+            this.decodeBit(this.p[this.ctx]>>>4);
+            this.decodeBit(this.p[this.ctx]>>>4);
+            this.decodeBit(this.p[this.ctx]>>>4);
+            this.decodeBit(this.p[this.ctx]>>>4);
+            this.decodeBit(this.p[this.ctx]>>>4);
+            this.decodeBit(this.p[this.ctx]>>>4);
+            this.decodeBit(this.p[this.ctx]>>>4);
+            block[i] = (byte) this.ctx;
+            this.p = this.probs[(this.ctx&0xFF)>>>6];
+         }
          
          startChunk = endChunk;
       }
@@ -108,22 +124,7 @@ public class FPAQDecoder implements EntropyDecoder
       return count;   
    }
    
-
-   public final byte decodeByte()
-   {
-      this.ctx = 1;
-      this.decodeBit(this.probs[this.ctx]>>>4);
-      this.decodeBit(this.probs[this.ctx]>>>4);
-      this.decodeBit(this.probs[this.ctx]>>>4);
-      this.decodeBit(this.probs[this.ctx]>>>4);
-      this.decodeBit(this.probs[this.ctx]>>>4);
-      this.decodeBit(this.probs[this.ctx]>>>4);
-      this.decodeBit(this.probs[this.ctx]>>>4);
-      this.decodeBit(this.probs[this.ctx]>>>4);
-      return (byte) this.ctx;
-   }
-
-    
+  
    // Not thread safe
    public boolean isInitialized()
    {
@@ -154,14 +155,14 @@ public class FPAQDecoder implements EntropyDecoder
       {
          bit = 1;
          this.high = split;
-         this.probs[this.ctx] -= (((this.probs[this.ctx]-PSCALE) >> 6) + 1);
+         this.p[this.ctx] -= ((this.p[this.ctx]-PSCALE+64) >> 6);
          this.ctx = (this.ctx<<1) + 1;         
       }
       else
       {
          bit = 0;
          this.low = -~split;
-         this.probs[this.ctx] -= (this.probs[this.ctx] >> 6);
+         this.p[this.ctx] -= (this.p[this.ctx] >> 6);
          this.ctx = this.ctx << 1;         
       }
 

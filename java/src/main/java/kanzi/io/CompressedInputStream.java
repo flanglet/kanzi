@@ -622,7 +622,7 @@ public class CompressedInputStream extends InputStream
          }
    
          // Read shared bitstream sequentially (each task is gated by _processedBlockId)
-         final int lr = (this.blockSize >= 1<<28) ? 40 : 32;
+         final int lr = (int) this.ibs.readBits(5) + 3;
          long read = this.ibs.readBits(lr);
 
          if (read == 0) 

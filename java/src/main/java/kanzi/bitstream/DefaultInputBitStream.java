@@ -242,6 +242,7 @@ public final class DefaultInputBitStream implements InputBitStream
 
       // Reset fields to force a readFromInputStream() and trigger an exception
       // on readBit() or readBits()
+      this.read -= this.availBits;
       this.availBits = 0;
       this.maxPosition = -1;
    }

@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
+import kanzi.Global;
 import kanzi.SliceByteArray;
 import kanzi.OutputBitStream;
 import kanzi.bitstream.DefaultOutputBitStream;
@@ -347,8 +348,8 @@ public class CompressedOutputStream extends OutputStream
       try
       {
          // Write end block of size 0
-         final int lw = (this.blockSize >= 1<<28) ? 40 : 32;
-         this.obs.writeBits(0, lw);
+         this.obs.writeBits(0, 5); // write length-3 (5 bits max)
+         this.obs.writeBits(0, 3);
          this.obs.close();
       }
       catch (BitStreamException e)
@@ -414,7 +415,7 @@ public class CompressedOutputStream extends OutputStream
             this.buffers[2*jobId+1].index = 0;
             
             // Add padding for incompressible data
-            final int length = Math.max(sz+(sz>>6), sz+1024);
+            final int length = Math.max(sz+(sz>>6), 65536);
 
             // Grow encoding buffer if required
             if (this.buffers[2*jobId].array.length < length)
@@ -592,7 +593,7 @@ public class CompressedOutputStream extends OutputStream
                if (skipHighEntropyBlocks == true)
                {
                   int[] histo = new int[256];
-                  final int entropy = EntropyUtils.computeFirstOrderEntropy1024(data.array, data.index, blockLength, histo);
+                  final int entropy = Global.computeFirstOrderEntropy1024(data.array, data.index, blockLength, histo);
                   //this.ctx.put("histo0", histo);
 
                   if (entropy >= EntropyUtils.INCOMPRESSIBLE_THRESHOLD)
@@ -629,20 +630,16 @@ public class CompressedOutputStream extends OutputStream
             }
             
             this.ctx.put("size", postTransformLength);
-            int dataSize = 0;
+            final int dataSize = (postTransformLength < 256) ? 1 : (Global.log2(postTransformLength)>>3) + 1;
 
-            for (long n=0xFF; n<postTransformLength; n<<=8)
-               dataSize++;
-
-            if (dataSize > 3) 
+            if (dataSize > 4) 
             {
                this.processedBlockId.set(CANCEL_TASKS_ID);
                return new Status(currentBlockId, Error.ERR_WRITE_FILE, "Invalid block data length");
             }
             
             // Record size of 'block size' - 1 in bytes
-            mode |= ((dataSize & 0x03) << 5);               
-            dataSize++;
+            mode |= (((dataSize-1) & 0x03) << 5);               
 
             if (this.listeners.length > 0)
             {
@@ -732,16 +729,18 @@ public class CompressedOutputStream extends OutputStream
             }
             
             // Emit block size in bits (max size pre-entropy is 1 GB = 1 << 30 bytes)
-            final int lw = (blockLength >= 1<<28) ? 40 : 32;
+            final int lw = (written < 8) ? 3 : Global.log2((int) written >> 3) + 4;
+            this.obs.writeBits(lw-3, 5); // write length-3 (5 bits max)
             this.obs.writeBits(written, lw);
+            int chkSize = (int) Math.min(written, 1<<30);           
 
             // Emit data to shared bitstream
             for (int n=0; written>0; )
             {
-               final int chkSize = (written < (long) (1<<30)) ? (int) written : 1<<30;
                this.obs.writeBits(this.data.array, n, chkSize);
                n += ((chkSize+7) >> 3);
                written -= chkSize;
+               chkSize = (int) Math.min(written, 1<<30);
             }
 
             // After completion of the entropy coding, increment the block id.

@@ -276,7 +276,7 @@ public class Kanzi
                   printOut("   -b, --block=<size>", true);
                   printOut("        size of blocks, multiple of 16 (default 1 MB, max 1 GB, min 1 KB).\n", true);
                   printOut("   -l, --level=<compression>", true);
-                  printOut("        set the compression level [0..6]", true);
+                  printOut("        set the compression level [0..8]", true);
                   printOut("        Providing this option forces entropy and transform.", true);
                   printOut("        0=None&None (store), 1=TEXT+LZ&HUFFMAN, 2=TEXT+ROLZ", true);
                   printOut("        3=TEXT+ROLZX, 4=TEXT+BWT+RANK+ZRLT&ANS0, 5=TEXT+BWT+SRT+ZRLT&FPAQ", true);

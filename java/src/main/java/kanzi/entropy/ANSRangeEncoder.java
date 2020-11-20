@@ -175,7 +175,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          for (int j=i; j<endj; j++)
             this.bitstream.writeBits(frequencies[alphabet[j]]-1, logMax);
       }
-
+    
       return true;
    }
 
@@ -203,9 +203,11 @@ public class ANSRangeEncoder implements EntropyEncoder
             syms[i] = new Symbol();
       }
 
+      final int size = Math.max(Math.min(sizeChunk+(sizeChunk>>3), 2*count), 65536);
+      
       // Add some padding
-      if (this.buffer.length < sizeChunk+(sizeChunk>>3))
-         this.buffer = new byte[sizeChunk+(sizeChunk>>3)];
+      if (this.buffer.length < size)
+         this.buffer = new byte[size];
 
       while (startChunk < end)
       {
@@ -316,9 +318,9 @@ public class ANSRangeEncoder implements EntropyEncoder
    {
       if (this.order == 0)
          Global.computeHistogramOrder0(block, start, end, this.freqs[0], true);
-      else         
+      else
          Global.computeHistogramOrder1(block, start, end, this.freqs, true);
-      
+         
       return this.updateFrequencies(this.freqs, lr);
    }
 
