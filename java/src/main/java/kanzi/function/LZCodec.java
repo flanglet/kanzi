@@ -310,7 +310,7 @@ public final class LZCodec implements ByteFunction
          final int dstEnd = dst.length - 16;
          int mIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
          
-         if (mIdx >= srcIdx0 + count)
+         if (mIdx > srcIdx0 + count)
             return false;
          
          final int srcEnd = srcIdx0 + mIdx - 5;

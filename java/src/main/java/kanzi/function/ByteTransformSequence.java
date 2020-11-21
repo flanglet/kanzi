@@ -44,34 +44,26 @@ public class ByteTransformSequence implements ByteFunction
    @Override
    public boolean forward(SliceByteArray src, SliceByteArray dst)
    {  
-      this.skipFlags = (byte) SKIP_MASK;
-      
-      if (src.length == 0)
-         return true;
-      
       int count = src.length;
       
       if ((count < 0) || (count+src.index > src.array.length))
          return false;
 
+      this.skipFlags = (byte) SKIP_MASK;
+      
+      if (src.length == 0)
+         return true;
+      
       final int blockSize = count;
-      SliceByteArray[] sa = new SliceByteArray[] 
-      { 
-         new SliceByteArray(src.array, src.length, src.index),
-         new SliceByteArray(dst.array, dst.length, dst.index)
-      };
-      
-      int saIdx = 0;
-      
       final int requiredSize = this.getMaxEncodedLength(count);
-      this.skipFlags = 0;
+      SliceByteArray[] sa = new SliceByteArray[] { src, dst };
+      SliceByteArray sa1 = sa[0];
+      SliceByteArray sa2 = sa[1];
+      int saIdx = 0;
       
       // Process transforms sequentially
       for (int i=0; i<this.transforms.length; i++)
-      {        
-         SliceByteArray sa1 = sa[saIdx];
-         SliceByteArray sa2 = sa[saIdx^1];
-            
+      {                                
          // Check that the output buffer has enough room. If not, allocate a new one.
          if (sa2.length < requiredSize)
          {
@@ -82,30 +74,33 @@ public class ByteTransformSequence implements ByteFunction
          }
          
          final int savedIIdx = sa1.index;
-         final int savedOIdx = sa2.index;
-         ByteTransform transform = this.transforms[i];                 
+         final int savedOIdx = sa2.index;  
+         final int savedLength = sa1.length;
          sa1.length = count;
          
          // Apply forward transform            
-         if (transform.forward(sa1, sa2) == false)
+         if (this.transforms[i].forward(sa1, sa2) == false)
          {
             // Transform failed. Either it does not apply to this type
             // of data or a recoverable error occurred => revert
             if (sa1.array != sa2.array)
                System.arraycopy(sa1.array, savedIIdx, sa2.array, savedOIdx, count);
 
-            sa2.index = savedOIdx + count;
-            this.skipFlags |= (1<<(7-i));
+            sa1.index = savedIIdx;
+            sa2.index = savedOIdx;
+            sa1.length = savedLength;
+            continue;         
          }
 
+         this.skipFlags &= ~(1<<(7-i));
          count = sa2.index - savedOIdx;
          sa1.index = savedIIdx;
          sa2.index = savedOIdx;
+         sa1.length = savedLength;
          saIdx ^= 1;
+         sa1 = sa[saIdx];
+         sa2 = sa[saIdx^1];         
       } 
-      
-      for (int i=this.transforms.length; i<8; i++)
-          this.skipFlags |= (1<<(7-i));
             
       if (saIdx != 1)
          System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
@@ -139,12 +134,7 @@ public class ByteTransformSequence implements ByteFunction
       
       final int blockSize = count;
       boolean res = true;
-      SliceByteArray[] sa = new SliceByteArray[] 
-      { 
-         new SliceByteArray(src.array, src.length, src.index),
-         new SliceByteArray(dst.array, dst.length, dst.index)
-      };
-      
+      SliceByteArray[] sa = new SliceByteArray[] { src, dst };
       int saIdx = 0;
      
       // Process transforms sequentially in reverse order
@@ -157,8 +147,9 @@ public class ByteTransformSequence implements ByteFunction
          saIdx ^= 1;
          SliceByteArray sa2 = sa[saIdx];
          final int savedIIdx = sa1.index;
-         final int savedOIdx = sa2.index;
-         ByteTransform transform = this.transforms[i];                 
+         final int savedOIdx = sa2.index;             
+         final int savedILen = sa1.length;             
+         final int savedOLen = sa2.length;             
                   
          // Apply inverse transform
          sa1.length = count; 
@@ -167,10 +158,12 @@ public class ByteTransformSequence implements ByteFunction
          if (sa2.array.length < sa2.length)
             sa2.array = new byte[sa2.length];
          
-         res = transform.inverse(sa1, sa2);                  
+         res = this.transforms[i].inverse(sa1, sa2);                  
          count = sa2.index - savedOIdx;
          sa1.index = savedIIdx;
          sa2.index = savedOIdx;
+         sa1.length = savedILen;
+         sa2.length = savedOLen;
          
          // All inverse transforms must succeed
          if (res == false)

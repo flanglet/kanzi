@@ -501,8 +501,34 @@ public class Global
       // return 1024 * sqrt(x)
       return (val - ((x - (val*val)) >>> 31)) << (10 - (shift >> 1));
    }
+   
 
+   // Szudzik pairing
+   public static int encodePair(int x, int y)
+   {
+      return (x >= y) ? x*x+x+y : y*y+x;
+   }
+   
+   
+   // Szudzik pairing 
+   public static int[] decodePair(int n, int[] res)
+   {
+      final int s = sqrt(n) >> 10;
+      int x = n - s*s;
+      int y = s;
+      
+      if (x >= y)
+      {
+         y = x - s;
+         x = s;
+      }
+      
+      res[0] = x;
+      res[1] = y;
+      return res;
+   }
 
+   
    // If withTotal is true, the last spot in the frequencies array is for the total
    public static void computeHistogramOrder0(byte[] block, int start, int end, int[] freqs, boolean withTotal)
    {                  

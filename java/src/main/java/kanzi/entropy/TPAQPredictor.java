@@ -29,7 +29,6 @@ public class TPAQPredictor implements Predictor
    private static final int MAX_LENGTH = 88;
    private static final int BUFFER_SIZE = 64*1024*1024;
    private static final int HASH_SIZE = 16*1024*1024;
-   private static final int MASK_BUFFER = BUFFER_SIZE - 1;
    private static final int MASK_80808080 = 0x80808080;
    private static final int MASK_F0F0F000 = 0xF0F0F000;
    private static final int MASK_4F4FFFFF = 0x4F4FFFFF;
@@ -169,6 +168,7 @@ public class TPAQPredictor implements Predictor
    private final int statesMask;
    private final int mixersMask;
    private final int hashMask;
+   private final int bufferMask;
    private final LogisticAdaptiveProbMap sse0;   
    private final LogisticAdaptiveProbMap sse1;
    private final Mixer[] mixers;
@@ -207,6 +207,7 @@ public class TPAQPredictor implements Predictor
       int mixersSize = 1 << 12;
       int hashSize = HASH_SIZE;
       int extraMem = 0;
+      int bufferSize = BUFFER_SIZE;
     
       if (ctx != null)
       {
@@ -218,7 +219,7 @@ public class TPAQPredictor implements Predictor
          
          // Block size requested by the user
          // The user can request a big block size to force more states
-         final int rbsz = (Integer) ctx.getOrDefault("blockSize", 1024*1024);
+         final int rbsz = (Integer) ctx.getOrDefault("blockSize", 32768);
 
          if (rbsz >= 64*1024*1024)
             statesSize = 1 << 29;
@@ -242,7 +243,9 @@ public class TPAQPredictor implements Predictor
          else if (absz >= 4*1024*1024)
             mixersSize = 1 << 12;
          else  
-            mixersSize = (absz >= 1024*1024) ? 1 << 10 : 1 << 9;          
+            mixersSize = (absz >= 1024*1024) ? 1 << 10 : 1 << 9; 
+
+         bufferSize = Math.min(BUFFER_SIZE, rbsz); ;
       }
 
       mixersSize <<= extraMem;
@@ -262,10 +265,11 @@ public class TPAQPredictor implements Predictor
       this.smallStatesMap0 = new byte[1<<16];
       this.smallStatesMap1 = new byte[1<<24];
       this.hashes = new int[hashSize];
-      this.buffer = new byte[BUFFER_SIZE];
+      this.buffer = new byte[bufferSize];
       this.statesMask = this.bigStatesMap.length - 1;
       this.mixersMask = (this.mixers.length - 1) & ~1;
       this.hashMask = this.hashes.length - 1;
+      this.bufferMask = this.buffer.length - 1;
       this.sse0 = (this.extra == true) ? new LogisticAdaptiveProbMap(256, 6) : 
          new LogisticAdaptiveProbMap(256, 7);
       this.sse1 = (this.extra == true) ? new LogisticAdaptiveProbMap(65536, 7) : null;
@@ -282,7 +286,7 @@ public class TPAQPredictor implements Predictor
 
      if (this.c0 > 255)
      {
-        this.buffer[this.pos&MASK_BUFFER] = (byte) this.c0;
+        this.buffer[this.pos&this.bufferMask] = (byte) this.c0;
         this.pos++;
         this.c8 = (this.c8<<8) | (this.c4>>>24);
         this.c4 = (this.c4<<8) | (this.c0&0xFF);
@@ -413,7 +417,7 @@ public class TPAQPredictor implements Predictor
          this.matchPos = this.hashes[this.hash];
 
          // Detect match
-         if ((this.matchPos != 0) && (this.pos - this.matchPos <= MASK_BUFFER))
+         if ((this.matchPos != 0) && (this.pos - this.matchPos <= this.bufferMask))
          {
             int r = this.matchLen + 2;
             int s = this.pos - r;
@@ -421,10 +425,10 @@ public class TPAQPredictor implements Predictor
 
             while (r <= MAX_LENGTH) 
             {
-               if (this.buffer[s&MASK_BUFFER] != this.buffer[t&MASK_BUFFER])
+               if (this.buffer[s&this.bufferMask] != this.buffer[t&this.bufferMask])
                   break;
                
-               if (this.buffer[(s-1)&MASK_BUFFER] != this.buffer[(t-1)&MASK_BUFFER])
+               if (this.buffer[(s-1)&this.bufferMask] != this.buffer[(t-1)&this.bufferMask])
                   break;
 
                r += 2;
@@ -441,11 +445,11 @@ public class TPAQPredictor implements Predictor
    // Get a prediction from the match model in [-2047..2048]
    private int getMatchContextPred()
    {
-      if (this.c0 == ((this.buffer[this.matchPos&MASK_BUFFER]&0xFF) | 256) >> this.bpos)
+      if (this.c0 == ((this.buffer[this.matchPos&this.bufferMask]&0xFF) | 256) >> this.bpos)
       {
          int p = (this.matchLen<=24) ? this.matchLen : 24+((this.matchLen-24)>>3);
 
-         if (((this.buffer[this.matchPos&MASK_BUFFER] >> (this.bpos-1)) & 1) == 0)
+         if (((this.buffer[this.matchPos&this.bufferMask] >> (this.bpos-1)) & 1) == 0)
             return -p << 6;
 
          return p << 6;
