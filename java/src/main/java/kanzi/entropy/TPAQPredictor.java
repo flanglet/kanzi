@@ -245,7 +245,7 @@ public class TPAQPredictor implements Predictor
          else  
             mixersSize = (absz >= 1024*1024) ? 1 << 10 : 1 << 9; 
 
-         bufferSize = Math.min(BUFFER_SIZE, rbsz); ;
+         bufferSize = Math.min(BUFFER_SIZE, rbsz);
       }
 
       mixersSize <<= extraMem;

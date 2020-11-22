@@ -696,7 +696,7 @@ public final class TextCodec implements ByteFunction
          return res;
       }
 
-
+      
       private boolean expandDictionary()
       {
          if (this.dictSize >= MAX_DICT_SIZE)
