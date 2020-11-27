@@ -40,7 +40,7 @@ public class FSDCodec implements ByteFunction
    
    public FSDCodec(Map<String, Object> ctx)      
    {  
-      this.isFast = (Boolean) ctx.getOrDefault("fullFSD", false);
+      this.isFast = (Boolean) ctx.getOrDefault("fullFSD", true);
    }
 
    
@@ -118,6 +118,9 @@ public class FSDCodec implements ByteFunction
             minIdx = i;
       }
 
+      if (minIdx == 0)
+         return false;
+      
       // If not 'better enough', quick exit
       if ((this.isFast == true) && (ent[minIdx] >= ((123*ent[0])>>7)))
          return false;
@@ -233,9 +236,7 @@ public class FSDCodec implements ByteFunction
       {
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
-            final byte b = src[srcIdx];
-
-            if (b == ESCAPE_TOKEN)
+            if (src[srcIdx] == ESCAPE_TOKEN)
             {
                srcIdx++;
                
