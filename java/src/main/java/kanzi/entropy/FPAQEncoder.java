@@ -118,7 +118,6 @@ public class FPAQEncoder implements EntropyEncoder
       return count;
    }
 
-   
 
    private void encodeBit(int bit, int pIdx)
    {      

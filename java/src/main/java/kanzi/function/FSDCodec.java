@@ -26,6 +26,8 @@ public class FSDCodec implements ByteFunction
 {
    private static final int MIN_LENGTH = 4096;
    private static final byte ESCAPE_TOKEN = (byte) 255;
+   private static final byte DELTA_CODING = (byte) 0;
+   private static final byte XOR_CODING = (byte) 1;
    
    private final boolean isFast;
    
@@ -62,10 +64,6 @@ public class FSDCodec implements ByteFunction
       
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      int srcIdx = input.index;
-      int dstIdx = output.index;
-      final int srcEnd = srcIdx + count;
-      final int dstEnd = dstIdx + this.getMaxEncodedLength(count);
       final int count5 = count / 5;
       final int count10 = count / 10;
       int idx1 = 0;
@@ -99,12 +97,18 @@ public class FSDCodec implements ByteFunction
       // Find if entropy is lower post transform 
       int[] histo = new int[256];
       int[] ent = new int[6];
-      ent[0] = Global.computeFirstOrderEntropy1024(src, count/3, count/3, histo);
-      ent[1] = Global.computeFirstOrderEntropy1024(dst,        0, count5, histo);
-      ent[2] = Global.computeFirstOrderEntropy1024(dst, 1*count5, count5, histo);
-      ent[3] = Global.computeFirstOrderEntropy1024(dst, 2*count5, count5, histo);
-      ent[4] = Global.computeFirstOrderEntropy1024(dst, 3*count5, count5, histo);
-      ent[5] = Global.computeFirstOrderEntropy1024(dst, 4*count5, count5, histo);
+      Global.computeHistogramOrder0(src, count/3, 2*count/3, histo, false);
+      ent[0] = Global.computeFirstOrderEntropy1024(count/3, histo);
+      Global.computeHistogramOrder0(dst, 0, 1*count5, histo, false);
+      ent[1] = Global.computeFirstOrderEntropy1024(count5, histo);
+      Global.computeHistogramOrder0(dst, 1*count5, 2*count5, histo, false);
+      ent[2] = Global.computeFirstOrderEntropy1024(count5, histo);
+      Global.computeHistogramOrder0(dst, 2*count5, 3*count5, histo, false);
+      ent[3] = Global.computeFirstOrderEntropy1024(count5, histo);
+      Global.computeHistogramOrder0(dst, 3*count5, 4*count5, histo, false);
+      ent[4] = Global.computeFirstOrderEntropy1024(count5, histo);
+      Global.computeHistogramOrder0(dst, 4*count5, 5*count5, histo, false);
+      ent[5] = Global.computeFirstOrderEntropy1024(count5, histo);
       
       int minIdx = 0;
 
@@ -118,33 +122,63 @@ public class FSDCodec implements ByteFunction
       if ((this.isFast == true) && (ent[minIdx] >= ((123*ent[0])>>7)))
          return false;
 
-      // Emit step value
       final int dist = (minIdx <= 4) ? minIdx : 8;      
-      dst[dstIdx++] = (byte) dist;
- 
+      int largeDeltas = 0;
+
+      // Detect best coding by sampling for large deltas
+      for (int i=2*count5; i<3*count5; i++) 
+      {
+         final int delta = (src[i]&0xFF) - (src[i-dist]&0xFF);
+
+         if ((delta < -127) || (delta > 127))
+            largeDeltas++;
+      }
+
+      // Delta coding works better for pictures & xor coding better for wav files
+      // Select xor coding if large deltas are over 3% (ad-hoc threshold)
+      final byte mode = (largeDeltas > (count5>>5)) ? XOR_CODING : DELTA_CODING;
+      int srcIdx = input.index;
+      int dstIdx = output.index;
+      dst[dstIdx] = mode;
+      dst[dstIdx+1] = (byte) dist;
+      dstIdx += 2;
+      final int srcEnd = srcIdx + count;
+      final int dstEnd = dstIdx + this.getMaxEncodedLength(count);
+    
       // Emit first bytes
       for (int i=0; i<dist; i++)
          dst[dstIdx++] = src[srcIdx++];
        
       // Emit modified bytes
-      while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
+      if (mode == DELTA_CODING) 
       {
-         final int delta = (src[srcIdx]&0xFF) - (src[srcIdx-dist]&0xFF); 
-         
-         if ((delta < -127) || (delta > 127)) 
+         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
-            if (dstIdx == dstEnd-1)
-               break;
-               
-            // Skip delta, direct encode
-            dst[dstIdx++] = ESCAPE_TOKEN;   
-            dst[dstIdx++] = (byte) src[srcIdx];
-            srcIdx++;
-            continue;
-         }
+            final int delta = (src[srcIdx]&0xFF) - (src[srcIdx-dist]&0xFF); 
 
-         dst[dstIdx++] = (byte) ((delta>>31) ^ (delta<<1)); // zigzag encode delta
-         srcIdx++;
+            if ((delta < -127) || (delta > 127)) 
+            {
+               if (dstIdx == dstEnd-1)
+                  break;
+
+               // Skip delta, encode with escape
+               dst[dstIdx++] = ESCAPE_TOKEN;   
+               dst[dstIdx++] = (byte) (src[srcIdx] ^ src[srcIdx-dist]);
+               srcIdx++;
+               continue;
+            }
+
+            dst[dstIdx++] = (byte) ((delta>>31) ^ (delta<<1)); // zigzag encode delta
+            srcIdx++;
+         }
+      }
+      else // mode == XOR_CODING
+      { 
+         while (srcIdx < srcEnd) 
+         {
+            dst[dstIdx++] = (byte) (src[srcIdx] ^ src[srcIdx-dist]);
+            srcIdx++;
+         }
       }
 
       if (srcIdx != srcEnd)
@@ -152,7 +186,8 @@ public class FSDCodec implements ByteFunction
 
       // Extra check that the transform makes sense
       final int length = (this.isFast == true) ? dstIdx>>1 : dstIdx;
-      final int entropy = Global.computeFirstOrderEntropy1024(dst, (dstIdx-length)>>1, length, histo);
+      Global.computeHistogramOrder0(dst, (dstIdx-length)>>1, (dstIdx+length)>>1, histo, false);
+      final int entropy = Global.computeFirstOrderEntropy1024(length, histo);
 
       if (entropy >= ent[0])
          return false;
@@ -178,9 +213,12 @@ public class FSDCodec implements ByteFunction
       int srcIdx = input.index;
       int dstIdx = output.index; 
       final int srcEnd = srcIdx + count;
+      final int dstEnd = output.length;
       
-      // Retrieve step value
-      final int dist = src[srcIdx++];
+      // Retrieve mode & step value
+      final byte mode = src[srcIdx];
+      final int dist = src[srcIdx+1] & 0xFF;
+      srcIdx += 2;
       
       // Sanity check
       if ((dist < 1) || ((dist > 4) && (dist != 8)))
@@ -190,25 +228,40 @@ public class FSDCodec implements ByteFunction
       for (int i=0; i<dist; i++)
          dst[dstIdx++] = src[srcIdx++];
 
-      // Invert bytes
-      while (srcIdx < srcEnd)
+      // Recover original bytes
+      if (mode == DELTA_CODING) 
       {
-         final byte b = src[srcIdx];
-         
-         if (b == ESCAPE_TOKEN)
+         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
-            if (srcIdx == srcEnd-1)
-               break;
+            final byte b = src[srcIdx];
 
-            dst[dstIdx++] = src[srcIdx+1];
-            srcIdx += 2;
-            continue;
+            if (b == ESCAPE_TOKEN)
+            {
+               srcIdx++;
+               
+               if (srcIdx == srcEnd)
+                  break;
+
+               dst[dstIdx] = (byte) (src[srcIdx] ^ dst[dstIdx-dist]);
+               srcIdx++;
+               dstIdx++;
+               continue;
+            }
+
+            final int delta = (src[srcIdx]>>>1) ^ -(src[srcIdx]&1); // zigzag decode delta
+            dst[dstIdx] = (byte) ((dst[dstIdx-dist]&0xFF) + delta);
+            srcIdx++;
+            dstIdx++;
          }
-         
-         final int diff = (src[srcIdx]>>>1) ^ -(src[srcIdx]&1); // zigzag decode
-         dst[dstIdx] = (byte) ((dst[dstIdx-dist]&0xFF) + diff);
-         srcIdx++;
-         dstIdx++;
+      }
+      else // mode == XOR_CODING
+      {
+        while (srcIdx < srcEnd) 
+        {
+            dst[dstIdx] = (byte) (src[srcIdx] ^ dst[dstIdx-dist]);
+            srcIdx++;
+            dstIdx++;
+         }
       }
       
       input.index = srcIdx;

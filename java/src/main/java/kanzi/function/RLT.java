@@ -186,15 +186,8 @@ public class RLT implements ByteFunction
   
       if (res == true) 
       {
-         // Process any remaining run
-         if (run > RUN_THRESHOLD)
-         {
-            final int dIdx = emitRunLength(dst, dstIdx, dstEnd, run, escape, prev);
-
-            if (dIdx > dstIdx)
-               dstIdx = dIdx;
-         }
-         else if (prev != escape)
+         // run == 1
+         if (prev != escape)
          {
             if (dstIdx+run < dstEnd)
             {

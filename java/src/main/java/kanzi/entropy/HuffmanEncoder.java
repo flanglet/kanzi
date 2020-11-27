@@ -112,17 +112,26 @@ public class HuffmanEncoder implements EntropyEncoder
             throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
                HuffmanCommon.MAX_SYMBOL_SIZE + " bits) exceeded");
          
+         int[] f = new int[count];
          int totalFreq = 0;
 
          for (int i=0; i<count; i++) 
-            totalFreq += frequencies[this.alphabet[i]];
+         {
+            f[i] = frequencies[this.alphabet[i]];
+            totalFreq += f[i];
+         }
          
          // Copy alphabet (modified by normalizeFrequencies)
          int[] symbols = new int[count];
          System.arraycopy(this.alphabet, 0, symbols, 0, count);
          retries++;
-         new EntropyUtils().normalizeFrequencies(frequencies, symbols, totalFreq, 
+         
+         // Normalize to a smaller scale
+         new EntropyUtils().normalizeFrequencies(f, symbols, totalFreq, 
               HuffmanCommon.MAX_CHUNK_SIZE>>(2*retries));
+         
+         for (int i=0; i<count; i++)
+            frequencies[this.alphabet[i]] = f[i];
       }
       
       // Transmit code lengths only, frequencies and codes do not matter

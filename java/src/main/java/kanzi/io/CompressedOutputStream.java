@@ -593,7 +593,8 @@ public class CompressedOutputStream extends OutputStream
                if (skipHighEntropyBlocks == true)
                {
                   int[] histo = new int[256];
-                  final int entropy = Global.computeFirstOrderEntropy1024(data.array, data.index, blockLength, histo);
+                  Global.computeHistogramOrder0(data.array, data.index, data.index+blockLength, histo, false);
+                  final int entropy = Global.computeFirstOrderEntropy1024(blockLength, histo);
                   //this.ctx.put("histo0", histo);
 
                   if (entropy >= EntropyUtils.INCOMPRESSIBLE_THRESHOLD)

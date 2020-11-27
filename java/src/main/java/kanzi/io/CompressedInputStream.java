@@ -371,7 +371,7 @@ public class CompressedInputStream extends InputStream
                // memory usage
                if (this.nbInputBlocks != 0)
                {
-                  // Limit the number of jobs if there are fewer blocks that this.jobs
+                  // Limit the number of jobs if there are fewer blocks that this.nbInputBlocks
                   // It allows more jobs per task and reduces memory usage.
                   nbJobs = Math.min(nbJobs, this.nbInputBlocks);
                }
@@ -744,7 +744,11 @@ public class CompressedInputStream extends InputStream
                return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK,
                   "Entropy decoding failed");
             }
-
+            
+            is.close();
+            ed.dispose();
+            ed = null;
+            
             if (this.listeners.length > 0)
             {
                // Notify after entropy (block size set to size in bitstream)
@@ -753,7 +757,7 @@ public class CompressedInputStream extends InputStream
 
                notifyListeners(this.listeners, evt);
             }
-
+            
             if (this.listeners.length > 0)
             {
                // Notify before transform (block size after entropy decoding)
