@@ -210,7 +210,6 @@ public final class TextCodec implements ByteFunction
             if (i > anchor)
             {
                dict[nbWords] = new DictEntry(words, anchor, h, nbWords, i-anchor);            
-               System.out.println(dict[nbWords]);
                nbWords++;
                anchor = i;
                h = HASH1;
@@ -225,7 +224,6 @@ public final class TextCodec implements ByteFunction
       if (nbWords < maxWords)
       {
          dict[nbWords] = new DictEntry(words, anchor, h, nbWords, words.length-anchor);
-         System.out.println(dict[nbWords]);
          nbWords++;
       }
       
