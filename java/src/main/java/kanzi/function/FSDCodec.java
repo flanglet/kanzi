@@ -249,7 +249,7 @@ public class FSDCodec implements ByteFunction
                continue;
             }
 
-            final int delta = (src[srcIdx]>>>1) ^ -(src[srcIdx]&1); // zigzag decode delta
+            final int delta = ((src[srcIdx]&0xFF)>>1) ^ -(src[srcIdx]&1); // zigzag decode delta
             dst[dstIdx] = (byte) ((dst[dstIdx-dist]&0xFF) + delta);
             srcIdx++;
             dstIdx++;
