@@ -72,11 +72,13 @@ public final class DefaultInputBitStream implements InputBitStream
       if (this.isClosed() == true)
          throw new BitStreamException("Stream closed", BitStreamException.STREAM_CLOSED);
 
+      if (count == 0)
+         return 0;
+      
       int size = -1;
       
       try
       {
-         this.read += (((long) this.maxPosition+1) << 3);
          size = this.is.read(this.buffer, 0, count);
 
          if (size <= 0)
@@ -94,6 +96,7 @@ public final class DefaultInputBitStream implements InputBitStream
       finally 
       {
          this.position = 0;
+         this.read += (((long) this.maxPosition+1) << 3);
          this.maxPosition = (size <= 0) ? -1 : size - 1;
       }
    }
