@@ -81,8 +81,15 @@ public class CompressedOutputStream extends OutputStream
 
    public CompressedOutputStream(OutputStream os, Map<String, Object> ctx)
    {
-      if (os == null)
-         throw new NullPointerException("Invalid null output stream parameter");
+      this(new DefaultOutputBitStream(os, DEFAULT_BUFFER_SIZE), ctx);      
+   }
+
+   
+   // Allow caller to provide custom output bitstream
+   public CompressedOutputStream(OutputBitStream obs, Map<String, Object> ctx)
+   {
+      if (obs == null)
+         throw new NullPointerException("Invalid null output bitstream parameter");
             
       if (ctx == null)
          throw new NullPointerException("Invalid null context parameter");
@@ -121,7 +128,7 @@ public class CompressedOutputStream extends OutputStream
       if ((tasks > 1) && (threadPool == null))
          throw new IllegalArgumentException("The thread pool cannot be null when the number of jobs is "+tasks);
 
-      this.obs = new DefaultOutputBitStream(os, DEFAULT_BUFFER_SIZE);
+      this.obs = obs;
       this.entropyType = EntropyCodecFactory.getType(entropyCodec);
       this.transformType = new ByteFunctionFactory().getType(transform);
       this.blockSize = bSize;
@@ -151,7 +158,6 @@ public class CompressedOutputStream extends OutputStream
       this.listeners = new ArrayList<>(10);
       this.ctx = ctx;
    }
-
 
    protected void writeHeader() throws IOException
    {

@@ -79,8 +79,15 @@ public class CompressedInputStream extends InputStream
    
    public CompressedInputStream(InputStream is, Map<String, Object> ctx)
    {
-      if (is == null)
-         throw new NullPointerException("Invalid null input stream parameter");
+      this(new DefaultInputBitStream(is, DEFAULT_BUFFER_SIZE), ctx);
+   }
+
+   
+   // Allow caller to provide custom input bitstream
+   public CompressedInputStream(InputBitStream ibs, Map<String, Object> ctx)
+   {
+      if (ibs == null)
+         throw new NullPointerException("Invalid null input bitstream parameter");
             
       if (ctx == null)
          throw new NullPointerException("Invalid null context parameter");
@@ -95,7 +102,7 @@ public class CompressedInputStream extends InputStream
       if ((tasks > 1) && (threadPool == null))
          throw new IllegalArgumentException("The thread pool cannot be null when the number of jobs is "+tasks);
 
-      this.ibs = new DefaultInputBitStream(is, DEFAULT_BUFFER_SIZE);
+      this.ibs = ibs;
       this.sa = new SliceByteArray();
       this.jobs = tasks;
       this.pool = threadPool;
@@ -114,7 +121,7 @@ public class CompressedInputStream extends InputStream
       this.transformType = ByteFunctionFactory.NONE_TYPE;
    }
 
-
+   
    protected void readHeader() throws IOException
    {
       // Read stream type
