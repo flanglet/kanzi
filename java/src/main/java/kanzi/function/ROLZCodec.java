@@ -43,6 +43,7 @@ public class ROLZCodec implements ByteFunction
    private static final int HASH = 200002979;
    private static final int HASH_MASK = ~(CHUNK_SIZE - 1);
    private static final int MAX_BLOCK_SIZE = 1 << 30; // 1 GB
+   private static final int MIN_BLOCK_SIZE = 64; 
 
 
    private final ByteFunction delegate;
@@ -120,6 +121,9 @@ public class ROLZCodec implements ByteFunction
    {
       if (src.length == 0)
          return true;
+
+      if (src.length < MIN_BLOCK_SIZE)
+         return false;
 
       if (src.array == dst.array)
          return false;
