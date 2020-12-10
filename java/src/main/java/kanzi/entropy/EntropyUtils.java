@@ -59,15 +59,9 @@ public class EntropyUtils
            obs.writeBit(ALPHABET_256); // shortcut
          else
          {
-            int log = 1;
-
-            while (1<<log <= count)
-               log++;
-
             // Write alphabet size
             obs.writeBit(ALPHABET_NOT_256);
-            obs.writeBits(log-1, 3);
-            obs.writeBits(count, log);
+            obs.writeBits(count, 8);
          }
       }
       else
@@ -79,16 +73,7 @@ public class EntropyUtils
          for (int i=0; i<count; i++)
             masks[alphabet[i]>>3] |= (1 << (alphabet[i]&7));
 
-         int lastMask = 31;
-
-         while (lastMask > 0)
-         {
-            if (masks[lastMask] != 0)
-               break;
-
-            lastMask--;
-         }
-
+         final int lastMask = alphabet[count-1] >> 3;
          obs.writeBits(lastMask, 5);
 
          for (int i=0; i<=lastMask; i++)
