@@ -121,11 +121,23 @@ public class ANSRangeDecoder implements EntropyDecoder
 
       while (startChunk < end)
       {
-         if (this.decodeHeader(this.freqs) == 0)
+         final int endChunk = Math.min(startChunk+sizeChunk, end);
+         final int alphabetSize = this.decodeHeader(this.freqs);
+
+         if (alphabetSize == 0)
             return startChunk - blkptr;
       
-         final int endChunk = (startChunk+sizeChunk < end) ? startChunk + sizeChunk : end;
-         this.decodeChunk(block, startChunk, endChunk);        
+         if ((this.order == 0) && (alphabetSize == 1))
+         {
+            // Shortcut for chunks with only one symbol
+            for (int i=startChunk; i<endChunk; i++)
+               block[i] = (byte) this.alphabet[0][0];
+         }
+         else
+         {
+            this.decodeChunk(block, startChunk, endChunk); 
+         }
+         
          startChunk = endChunk;
       }
 

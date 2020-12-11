@@ -173,13 +173,26 @@ public final class RangeDecoder implements EntropyDecoder
 
       while (startChunk < end)
       {
-         if (this.decodeHeader(this.freqs) == 0)
+         final int endChunk = (startChunk + sz < end) ? startChunk + sz : end;
+         final int alphabetSize = this.decodeHeader(this.freqs);
+
+        if (alphabetSize == 0)
             return startChunk - blkptr;
+ 
+        if (alphabetSize == 1) 
+        {
+            // Shortcut for chunks with only one symbol
+            for (int i=startChunk; i<endChunk; i++)
+               block[i] = (byte) this.alphabet[0];
+
+            startChunk = endChunk;
+            continue;
+        }
+
 
          this.range = TOP_RANGE;
          this.low = 0;
          this.code = this.bitstream.readBits(60);
-         final int endChunk = (startChunk + sz < end) ? startChunk + sz : end;
 
          for (int i=startChunk; i<endChunk; i++)
             block[i] = this.decodeByte();

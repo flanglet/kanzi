@@ -162,12 +162,24 @@ public class HuffmanDecoder implements EntropyDecoder
 
       while (startChunk < end)
       {
+         final int endChunk = (startChunk+this.chunkSize < end) ? startChunk+this.chunkSize : end;
+
          // For each chunk, read code lengths, rebuild codes, rebuild decoding table
          final int alphabetSize = this.readLengths();
          
          if (alphabetSize <= 0)
             return startChunk - blkptr;
 
+         if (alphabetSize == 1) 
+         {
+            // Shortcut for chunks with only one symbol
+            for (int i=startChunk; i<endChunk; i++)
+               block[i] = (byte) this.alphabet[0];
+
+            startChunk = endChunk;
+            continue;
+        }
+         
          // Compute minimum number of bits required in bitstream for fast decoding
          final int minCodeLen = this.sizes[this.alphabet[0]]; // not 0
          int padding = 64 / minCodeLen;
@@ -175,7 +187,6 @@ public class HuffmanDecoder implements EntropyDecoder
          if (minCodeLen * padding != 64)
             padding++;
 
-         final int endChunk = (startChunk+this.chunkSize < end) ? startChunk+this.chunkSize : end;
          final int endChunk4 = startChunk + Math.max(((endChunk-startChunk-padding)&-4), 0);
 
          for (int i=startChunk; i<endChunk4; i+=4)

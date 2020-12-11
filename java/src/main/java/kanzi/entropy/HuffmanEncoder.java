@@ -270,7 +270,14 @@ public class HuffmanEncoder implements EntropyEncoder
          // Update frequencies and rebuild Huffman codes
          final int endChunk = (startChunk+this.chunkSize < end) ? startChunk+this.chunkSize : end;
          Global.computeHistogramOrder0(block, startChunk, endChunk, this.freqs, false);
-         this.updateFrequencies(this.freqs);
+         
+         if (this.updateFrequencies(this.freqs) <= 1)
+         {
+            // Skip chunk if only one symbol
+            startChunk = endChunk;
+            continue;
+         }
+
          final OutputBitStream bitstream = this.bs;                 
          final int[] c = this.codes;
          final int endChunk4 = ((endChunk-startChunk) & -4) + startChunk;

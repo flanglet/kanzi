@@ -174,9 +174,13 @@ public final class RangeEncoder implements EntropyEncoder
            while ((lr > 8) && (1<<lr > endChunk-startChunk))
               lr--;        
           
-           if (this.rebuildStatistics(block, startChunk, endChunk, lr) < 0)
-              return startChunk;
-         
+           if (this.rebuildStatistics(block, startChunk, endChunk, lr) <= 1)
+           {
+               // Skip chunk if only one symbol
+               startChunk = endChunk;
+               continue;
+           } 
+           
            this.shift = lr;
            
            for (int i=startChunk; i<endChunk; i++)
