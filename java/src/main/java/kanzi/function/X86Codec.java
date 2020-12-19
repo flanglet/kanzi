@@ -60,33 +60,10 @@ public class X86Codec implements ByteFunction
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int end = count - 8;
-      int jumps = 0;
 
-      for (int i=input.index; i<input.index+end; i++) 
-      {
-         if ((src[i] & MASK_JUMP) == INSTRUCTION_JUMP)
-         {         
-            if ((src[i+4] == 0) || (src[i+4] == -1))
-            {
-               // Count valid relative jumps (E8/E9 .. .. .. 00/FF)
-               jumps++;
-            }
-         }
-         else if (((src[i+1] & MASK_JCC) == INSTRUCTION_JCC) && (src[i] == PREFIX_JCC)) 
-         {
-            // Count relative conditional jumps (0x0F 0x8.)
-            jumps++;
-         }            
-      }
-
-      if (jumps < (count>>7)) 
-      {
-         // Number of jump instructions too small => either not a binary
-         // or not worth the change => skip. Very crude filter obviously.
-         // Also, binaries usually have a lot of 0x88..0x8C (MOV) instructions.
+      if (this.isExeBlock(src, input.index, input.index+end, count) == false)
          return false;
-      }
-
+      
       int srcIdx = input.index;
       int dstIdx = output.index;
 
@@ -211,5 +188,33 @@ public class X86Codec implements ByteFunction
          return srcLen;
       
       return (srcLen <= 512) ? srcLen+32 : srcLen+srcLen/16;
-   }      
+   } 
+   
+   
+   private boolean isExeBlock(byte[] src, int start, int end, int count)
+   {
+      int jumps = 0;
+
+      for (int i=start; i<end; i++) 
+      {
+         if ((src[i] & MASK_JUMP) == INSTRUCTION_JUMP)
+         {         
+            if ((src[i+4] == 0) || (src[i+4] == -1))
+            {
+               // Count valid relative jumps (E8/E9 .. .. .. 00/FF)
+               jumps++;
+            }
+         }
+         else if ((src[i] == PREFIX_JCC) && ((src[i+1] & MASK_JCC) == INSTRUCTION_JCC))
+         {
+            // Count relative conditional jumps (0x0F 0x8.)
+            jumps++;
+         }            
+      }
+
+      // Number of jump instructions too small => either not a binary
+      // or not worth the change => skip. Very crude filter obviously.
+      // Also, binaries usually have a lot of 0x88..0x8C (MOV) instructions.
+      return jumps >= (count>>7);     
+   }
 }
