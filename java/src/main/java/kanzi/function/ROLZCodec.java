@@ -202,9 +202,6 @@ public class ROLZCodec implements ByteFunction
          {
             int ref = this.matches[base+(i&this.maskChecks)];
 
-            if (ref == 0)
-               break;
-
             // Hash check may save a memory access ...
             if ((ref & HASH_MASK) != hash32)
                continue;
@@ -659,9 +656,6 @@ public class ROLZCodec implements ByteFunction
          for (int i=counter; i>counter-this.posChecks; i--)
          {
             int ref = this.matches[base+(i&this.maskChecks)];
-
-            if (ref == 0)
-               break;
 
             // Hash check may save a memory access ...
             if ((ref & HASH_MASK) != hash32)
