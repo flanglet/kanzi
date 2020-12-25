@@ -17,6 +17,7 @@ package kanzi.function;
 
 import java.util.Map;
 import kanzi.ByteFunction;
+import kanzi.Global;
 import kanzi.SliceByteArray;
 
 
@@ -31,6 +32,8 @@ public class X86Codec implements ByteFunction
    private static final int MASK_ADDRESS = 0xD5;
    private static final byte ESCAPE = (byte) 0xF5;
  
+   private Map<String, Object> ctx;
+   
    
    public X86Codec()
    {
@@ -39,6 +42,7 @@ public class X86Codec implements ByteFunction
 
    public X86Codec(Map<String, Object> ctx)
    {
+      this.ctx = ctx;
    }
 
    
@@ -61,8 +65,20 @@ public class X86Codec implements ByteFunction
       final byte[] dst = output.array;
       final int end = count - 8;
 
+      if (this.ctx != null) 
+      {
+         Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
+            Global.DataType.UNDEFINED);
+         
+         if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.X86))
+            return false;
+      }
+      
       if (this.isExeBlock(src, input.index, input.index+end, count) == false)
          return false;
+      
+      if (this.ctx != null) 
+         this.ctx.put("dataType", Global.DataType.X86);
       
       int srcIdx = input.index;
       int dstIdx = output.index;

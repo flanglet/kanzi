@@ -26,6 +26,11 @@ import java.util.List;
 
 public class Global
 {
+   public enum DataType 
+   {
+      UNDEFINED, TEXT, MULTIMEDIA, X86
+   }
+   
    private Global() 
    {      
    }

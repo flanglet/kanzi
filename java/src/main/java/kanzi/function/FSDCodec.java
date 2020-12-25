@@ -29,18 +29,17 @@ public class FSDCodec implements ByteFunction
    private static final byte DELTA_CODING = (byte) 0;
    private static final byte XOR_CODING = (byte) 1;
    
-   private final boolean isFast;
+   private Map<String, Object> ctx;
    
    
    public FSDCodec()      
    {      
-      this.isFast = true;
    }
 
    
    public FSDCodec(Map<String, Object> ctx)      
    {  
-      this.isFast = (Boolean) ctx.getOrDefault("fullFSD", true);
+      this.ctx = ctx;
    }
 
    
@@ -72,6 +71,15 @@ public class FSDCodec implements ByteFunction
       int idx4 = count5 * 3;
       int idx8 = count5 * 4;
       
+      if (this.ctx != null) 
+      {
+         Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
+            Global.DataType.UNDEFINED);
+         
+         if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.MULTIMEDIA))
+            return false;
+      }
+
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
       for (int i=3*count5; i<(3*count5)+count10; i++)
@@ -121,10 +129,15 @@ public class FSDCodec implements ByteFunction
       if (minIdx == 0)
          return false;
       
+      boolean isFast = (this.ctx == null) ? true : (this.ctx.getOrDefault("fullFSD", false) == Boolean.FALSE);
+      
       // If not 'better enough', quick exit
-      if ((this.isFast == true) && (ent[minIdx] >= ((123*ent[0])>>7)))
+      if ((isFast == true) && (ent[minIdx] >= ((123*ent[0])>>7)))
          return false;
 
+      if (this.ctx != null)
+         this.ctx.put("dataType", Global.DataType.MULTIMEDIA);
+            
       final int dist = (minIdx <= 4) ? minIdx : 8;      
       int largeDeltas = 0;
 
@@ -188,7 +201,7 @@ public class FSDCodec implements ByteFunction
          return false;
 
       // Extra check that the transform makes sense
-      final int length = (this.isFast == true) ? dstIdx>>1 : dstIdx;
+      final int length = (isFast == true) ? dstIdx>>1 : dstIdx;
       Global.computeHistogramOrder0(dst, (dstIdx-length)>>1, (dstIdx+length)>>1, histo, false);
       final int entropy = Global.computeFirstOrderEntropy1024(length, histo);
 

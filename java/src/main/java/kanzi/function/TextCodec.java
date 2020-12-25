@@ -445,6 +445,7 @@ public final class TextCodec implements ByteFunction
       private final int hashMask;
       private boolean isCRLF; // EOL = CR+LF ?
       private int dictSize;
+      private Map<String, Object> ctx;
 
 
       public TextCodec1()
@@ -479,6 +480,7 @@ public final class TextCodec implements ByteFunction
          this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
          this.staticDictSize = STATIC_DICT_WORDS + 2;
+         this.ctx = ctx;
       }
 
 
@@ -535,6 +537,15 @@ public final class TextCodec implements ByteFunction
          int dstIdx = output.index;
          final int srcEnd = input.index + count;
          
+         if (this.ctx != null) 
+         {
+            Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
+               Global.DataType.UNDEFINED);
+
+            if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.TEXT))
+               return false;
+         }
+         
          int[] freqs0 = new int[256];
          final int mode = computeStats(src, srcIdx, srcEnd, freqs0, true);
 
@@ -542,6 +553,9 @@ public final class TextCodec implements ByteFunction
          if ((mode & MASK_NOT_TEXT) != 0)
             return false;
 
+         if (this.ctx != null)
+            this.ctx.put("dataType", Global.DataType.TEXT);
+            
          this.reset(count);
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd4 = dstEnd - 4;
@@ -963,6 +977,7 @@ public final class TextCodec implements ByteFunction
       private final int hashMask;
       private boolean isCRLF; // EOL = CR+LF ?
       private int dictSize;
+      private Map<String, Object> ctx;
 
       
       public TextCodec2()
@@ -997,6 +1012,7 @@ public final class TextCodec implements ByteFunction
          this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
          this.staticDictSize = STATIC_DICT_WORDS;
+         this.ctx = ctx;
       }
 
 
@@ -1050,6 +1066,15 @@ public final class TextCodec implements ByteFunction
          int dstIdx = output.index;
          final int srcEnd = input.index + count;
          
+         if (this.ctx != null) 
+         {
+            Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
+               Global.DataType.UNDEFINED);
+
+            if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.TEXT))
+               return false;
+         }
+         
          int[] freqs0 = new int[256];
          final int mode = computeStats(src, srcIdx, srcEnd, freqs0, false);
 
@@ -1057,6 +1082,9 @@ public final class TextCodec implements ByteFunction
          if ((mode & MASK_NOT_TEXT) != 0)
             return false;
 
+         if (this.ctx != null)
+            this.ctx.put("dataType", Global.DataType.TEXT);
+         
          this.reset(count);
          final int dstEnd = output.index + this.getMaxEncodedLength(count);
          final int dstEnd3 = dstEnd - 3;
