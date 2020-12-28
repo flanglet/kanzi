@@ -251,8 +251,9 @@ public class ROLZCodec implements ByteFunction
          int sizeChunk = (count <= CHUNK_SIZE) ? count : CHUNK_SIZE;
          int startChunk = srcIdx;
          final SliceByteArray litBuf = new SliceByteArray(new byte[this.getMaxEncodedLength(sizeChunk)], 0);
-         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
+         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/6], 0);
          final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
+         final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk/6], 0);
          ByteArrayOutputStream baos = new ByteArrayOutputStream(this.getMaxEncodedLength(sizeChunk));
 
          for (int i=0; i<this.counters.length; i++)
@@ -267,6 +268,7 @@ public class ROLZCodec implements ByteFunction
             litBuf.index = 0;
             lenBuf.index = 0;
             mIdxBuf.index = 0;
+            tkBuf.index = 0;
 
             for (int i=0; i<this.matches.length; i++)
                this.matches[i] = 0;
@@ -293,12 +295,27 @@ public class ROLZCodec implements ByteFunction
                   continue;
                }
 
+               // mode LLLLLMMM -> L lit length, M match length
                final int litLen = srcIdx - firstLitIdx;
-               emitTokens(lenBuf, litLen, match&0xFFFF);
+               final int mode = (litLen < 31) ? (litLen << 3) : 0xF8;
+               final int mLen = match & 0xFFFF;
 
+               if (mLen >= 7) 
+               {
+                  tkBuf.array[tkBuf.index++] = (byte) (mode | 0x07);
+                  lenBuf.array[lenBuf.index++] = (byte) (mLen - 7);
+               }
+               else 
+               {
+                  tkBuf.array[tkBuf.index++] = (byte) (mode | mLen);
+               }
+               
                // Emit literals
                if (litLen >= 16)
                {
+                  if (litLen >= 31)
+                     emitLength(lenBuf, litLen - 31);
+                  
                   System.arraycopy(src, firstLitIdx, litBuf.array, litBuf.index, litLen);
                }
                else
@@ -317,7 +334,11 @@ public class ROLZCodec implements ByteFunction
 
             // Emit last chunk literals
             final int litLen = srcIdx - firstLitIdx;
-            emitTokens(lenBuf, litLen, 0);
+            final int mode = (litLen < 31) ? (litLen << 3) : 0xF8;
+            tkBuf.array[tkBuf.index++] = (byte) mode;
+
+            if (litLen >= 31)
+               emitLength(lenBuf, litLen - 31);
 
             for (int i=0; i<litLen; i++)
                litBuf.array[litBuf.index+i] = src[firstLitIdx+i];
@@ -330,6 +351,7 @@ public class ROLZCodec implements ByteFunction
                baos.reset();
                OutputBitStream obs = new DefaultOutputBitStream(baos, 65536);
                obs.writeBits(litBuf.index, 32);
+               obs.writeBits(tkBuf.index, 32);
                obs.writeBits(lenBuf.index, 32);
                obs.writeBits(mIdxBuf.index, 32);
                
@@ -337,6 +359,7 @@ public class ROLZCodec implements ByteFunction
                litEnc.encode(litBuf.array, 0, litBuf.index);
                litEnc.dispose();
                ANSRangeEncoder mEnc = new ANSRangeEncoder(obs, 0);
+               mEnc.encode(tkBuf.array, 0, tkBuf.index);
                mEnc.encode(lenBuf.array, 0, lenBuf.index);
                mEnc.encode(mIdxBuf.array, 0, mIdxBuf.index);
                mEnc.dispose();
@@ -377,40 +400,22 @@ public class ROLZCodec implements ByteFunction
       }
 
 
-      private static void emitTokens(SliceByteArray lenBuf, int litLen, int mLen)
+      private static void emitLength(SliceByteArray lenBuf, int length)
       {
-         // mode LLLLLMMM -> L lit length, M match length
-         final int mode = (litLen<31) ? (litLen<<3) : 0xF8;
-       
-         if (mLen >= 7)
+         if (length >= 1<<7)
          {
-            lenBuf.array[lenBuf.index++] = (byte) (mode|0x07);
-            lenBuf.array[lenBuf.index++] = (byte) (mLen-7);      
-         }
-         else
-         {
-            lenBuf.array[lenBuf.index++] = (byte) (mode|mLen);
-         }
-  
-         if (litLen >= 31)
-         {
-            litLen -= 31;
-            
-            if (litLen >= 1<<7)
+            if (length >= 1<<14)
             {
-               if (litLen >= 1<<14)
-               {
-                  if (litLen >= 1<<21)
-                     lenBuf.array[lenBuf.index++] = (byte) (0x80|(litLen>>21));
+               if (length >= 1<<21)
+                  lenBuf.array[lenBuf.index++] = (byte) (0x80|(length>>21));
 
-                  lenBuf.array[lenBuf.index++] = (byte) (0x80|(litLen>>14));
-               }
-               
-               lenBuf.array[lenBuf.index++] = (byte) (0x80|(litLen>>7));
+               lenBuf.array[lenBuf.index++] = (byte) (0x80|(length>>14));
             }
-            
-            lenBuf.array[lenBuf.index++] = (byte) (litLen&0x7F);
+
+            lenBuf.array[lenBuf.index++] = (byte) (0x80|(length>>7));
          }
+
+         lenBuf.array[lenBuf.index++] = (byte) (length&0x7F);
       }
 
 
@@ -427,8 +432,9 @@ public class ROLZCodec implements ByteFunction
          int sizeChunk = (dstEnd <= CHUNK_SIZE) ? dstEnd : CHUNK_SIZE;
          int startChunk = output.index;
          final SliceByteArray litBuf  = new SliceByteArray(new byte[this.getMaxEncodedLength(sizeChunk)], 0);
-         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
+         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/6], 0);
          final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
+         final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk/6], 0);
          final int[] lengths = new int[2];
 
          for (int i=0; i<this.counters.length; i++)
@@ -442,6 +448,7 @@ public class ROLZCodec implements ByteFunction
             litBuf.index = 0;
             lenBuf.index = 0;
             mIdxBuf.index = 0;
+            tkBuf.index = 0;
 
             for (int i=0; i<this.matches.length; i++)
                this.matches[i] = 0;
@@ -456,10 +463,11 @@ public class ROLZCodec implements ByteFunction
                ByteArrayInputStream bais = new ByteArrayInputStream(src, srcIdx, count-srcIdx);
                InputBitStream ibs = new DefaultInputBitStream(bais, 65536);
                int litLen  = (int) ibs.readBits(32);
+               int tkLen = (int) ibs.readBits(32);
                int mLenLen = (int) ibs.readBits(32);
                int mIdxLen = (int) ibs.readBits(32);
 
-               if ((litLen>sizeChunk) || (mLenLen>sizeChunk) || (mIdxLen>sizeChunk))
+               if ((litLen>sizeChunk) || (tkLen>sizeChunk) || (mLenLen>sizeChunk) || (mIdxLen>sizeChunk))
                {
                   input.index = srcIdx;
                   output.index = dstIdx;
@@ -470,6 +478,7 @@ public class ROLZCodec implements ByteFunction
                litDec.decode(litBuf.array, 0, litLen);
                litDec.dispose();
                ANSRangeDecoder mDec = new ANSRangeDecoder(ibs, 0);
+               mDec.decode(tkBuf.array, 0, tkLen);
                mDec.decode(lenBuf.array, 0, mLenLen);
                mDec.decode(mIdxBuf.array, 0, mIdxLen);
                mDec.dispose();
@@ -486,8 +495,14 @@ public class ROLZCodec implements ByteFunction
             // Next chunk
             while (dstIdx < endChunk)
             {
-               readLengths(lenBuf, lengths);
-               final int litLen = lengths[0];
+               // mode LLLLLMMM -> L lit length, M match length
+               final int mode = tkBuf.array[tkBuf.index++] & 0xFF;
+               int matchLen = mode & 0x07;
+   
+               if (matchLen == 7)
+                  matchLen += (lenBuf.array[lenBuf.index++] & 0xFF);
+   
+               final int litLen = (mode < 0xF8) ? mode >> 3 : readLength(lenBuf);
                this.emitLiterals(litBuf, dst, dstIdx, output.index, litLen);
                litBuf.index += litLen;
                dstIdx += litLen;
@@ -502,8 +517,6 @@ public class ROLZCodec implements ByteFunction
                   input.index = srcIdx;
                   return false;
                }
-
-               final int matchLen = lengths[1];
 
                // Sanity check
                if (dstIdx+matchLen+MIN_MATCH > dstEnd)
@@ -538,45 +551,30 @@ public class ROLZCodec implements ByteFunction
       }
 
 
-      private static void readLengths(SliceByteArray lenBuf, int[] lengths)
+      private static int readLength(SliceByteArray lenBuf)
       {
-         // mode LLLLLMMM -> L lit length, M match length
-         final int mode = lenBuf.array[lenBuf.index++] & 0xFF;
-         int mLen = mode & 0x07;
-         
-         if (mLen == 7)
-            mLen += (lenBuf.array[lenBuf.index++] & 0xFF);
-         
-         lengths[1] = mLen;
-         
-         if (mode < 0xF8)
-         {
-            lengths[0] = mode >>> 3;
-            return;
-         }
-         
          int next = lenBuf.array[lenBuf.index++];
-         int litLen = next & 0x7F;
+         int length = next & 0x7F;
 
          if ((next & 0x80) != 0)
          {
             next = lenBuf.array[lenBuf.index++];
-            litLen = (litLen<<7) | (next&0x7F);
+            length = (length<<7) | (next&0x7F);
 
             if ((next & 0x80) != 0)
             {
                next = lenBuf.array[lenBuf.index++];
-               litLen = (litLen<<7) | (next&0x7F);
+               length = (length<<7) | (next&0x7F);
 
                if ((next & 0x80) != 0)
                {
                   next = lenBuf.array[lenBuf.index++];
-                  litLen = (litLen<<7) | (next&0x7F);
+                  length = (length<<7) | (next&0x7F);
                }
             }
          }
 
-         lengths[0] = litLen + 31;
+         return length + 31;
       }
       
 
