@@ -390,7 +390,7 @@ public class TPAQPredictor implements Predictor
          
          // SSE (Secondary Symbol Estimation)
          if (this.binCount < (this.pos>>3))
-            p = (3*this.sse1.get(bit, p, this.ctx0+c) + p) >> 2;
+            p = (3*this.sse0.get(bit, p, this.c0) + p) >> 2;
       }
       else
       {
