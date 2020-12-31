@@ -96,7 +96,7 @@ public class CMPredictor implements Predictor
    public int get()
    {
       final int[] pc1 = this.counter1[this.ctx];
-      final int p = (13*pc1[256]+14*pc1[this.c1]+5*pc1[this.c2]) >> 5;
+      final int p = (13*(pc1[256]+pc1[this.c1])+6*pc1[this.c2]) >> 5;
       this.idx = p >>> 12;
       final int[] pc2 = this.counter2[this.ctx|this.runMask];
       return (p + 3*pc2[this.idx] + 32) >>> 6; // rescale to [0..4095]
