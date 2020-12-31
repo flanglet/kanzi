@@ -337,7 +337,7 @@ public class TPAQPredictor implements Predictor
         else
         {
            // Mostly binary
-           this.ctx4 = createContext(HASH, this.c4^(this.c4&0x000FFFFF));
+           this.ctx4 = createContext(HASH+this.matchLen, this.c4^(this.c4&0x000FFFFF));
            this.ctx5 = this.ctx0 | (this.c8<<16);
            
            if (this.extra == true)
