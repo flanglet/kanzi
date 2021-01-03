@@ -44,6 +44,7 @@ public class ByteFunctionFactory
    public static final short SRT_TYPE     = 13; // Sorted Rank
    public static final short LZP_TYPE     = 14; // Lempel Ziv Predict
    public static final short FSD_TYPE     = 15; // Fix Shift Delta codec
+   public static final short LZX_TYPE     = 16; // Lempel Ziv Extra
  
 
    // The returned type contains 8 transform values
@@ -97,6 +98,9 @@ public class ByteFunctionFactory
 
          case "LZ":
             return LZ_TYPE;
+
+         case "LZX":
+            return LZX_TYPE;
 
          case "LZP":
             return LZP_TYPE;
@@ -217,6 +221,10 @@ public class ByteFunctionFactory
             ctx.put("lz", LZ_TYPE);
             return new LZCodec(ctx);
             
+         case LZX_TYPE:
+            ctx.put("lz", LZX_TYPE);
+            return new LZCodec(ctx);
+            
          case LZP_TYPE:
             ctx.put("lz", LZP_TYPE);
             return new LZCodec(ctx);
@@ -301,6 +309,9 @@ public class ByteFunctionFactory
             
          case LZ_TYPE:
             return "LZ";
+                        
+         case LZX_TYPE:
+            return "LZX";
                         
          case LZP_TYPE:
             return "LZP";

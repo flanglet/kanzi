@@ -40,7 +40,7 @@ public final class LZCodec implements ByteFunction
    {
       // Encode the word indexes as varints with a token or with a mask
       final short lzType = (short) ctx.getOrDefault("lz", ByteFunctionFactory.LZ_TYPE);
-      this.delegate = (lzType == ByteFunctionFactory.LZ_TYPE) ? new LZXCodec(ctx) : new LZPCodec(ctx);
+      this.delegate = (lzType == ByteFunctionFactory.LZP_TYPE) ? new LZPCodec(ctx) : new LZXCodec(ctx);
    }
    
    
@@ -90,9 +90,12 @@ public final class LZCodec implements ByteFunction
    static final class LZXCodec implements ByteFunction
    {
       private static final int HASH_SEED          = 0x1E35A7BD;
-      private static final int HASH_LOG           = 19; // 512K
-      private static final int HASH_SHIFT         = 40 - HASH_LOG;
-      private static final int HASH_MASK          = (1<<HASH_LOG) - 1;
+      private static final int HASH_LOG1          = 16;
+      private static final int HASH_SHIFT1        = 40 - HASH_LOG1;
+      private static final int HASH_MASK1         = (1<<HASH_LOG1) - 1;
+      private static final int HASH_LOG2          = 21;
+      private static final int HASH_SHIFT2        = 40 - HASH_LOG2;
+      private static final int HASH_MASK2         = (1<<HASH_LOG2) - 1;
       private static final int MAX_DISTANCE1      = (1<<17) - 1;
       private static final int MAX_DISTANCE2      = (1<<24) - 1;
       private static final int MIN_MATCH          = 5;
@@ -103,6 +106,7 @@ public final class LZCodec implements ByteFunction
       private int[] hashes;
       private byte[] mBuf;
       private byte[] tkBuf;
+      private final boolean extra;
 
 
       public LZXCodec()
@@ -110,6 +114,7 @@ public final class LZCodec implements ByteFunction
          this.hashes = new int[0];
          this.mBuf = new byte[0];
          this.tkBuf = new byte[0];
+         this.extra = false;
       }
 
 
@@ -118,6 +123,8 @@ public final class LZCodec implements ByteFunction
          this.hashes = new int[0];
          this.mBuf = new byte[0];
          this.tkBuf = new byte[0];
+         short lzType = (short) ctx.getOrDefault("lz", ByteFunctionFactory.LZ_TYPE);
+         this.extra = lzType == ByteFunctionFactory.LZX_TYPE;
       }
 
 
@@ -207,7 +214,7 @@ public final class LZCodec implements ByteFunction
 
          if (this.hashes.length == 0) 
          {
-            this.hashes = new int[1<<HASH_LOG];
+            this.hashes = (this.extra == true) ? new int[1<<HASH_LOG2] : new int[1<<HASH_LOG1];
          } 
          else 
          {
@@ -509,9 +516,12 @@ public final class LZCodec implements ByteFunction
       }
 
 
-      private static int hash(byte[] block, int idx)
+      private int hash(byte[] block, int idx)
       {
-         return (int) ((Memory.LittleEndian.readLong64(block, idx)*HASH_SEED) >> HASH_SHIFT) & HASH_MASK;
+         if (this.extra == true)
+            return (int) ((Memory.LittleEndian.readLong64(block, idx)*HASH_SEED) >> HASH_SHIFT2) & HASH_MASK2;
+         
+         return (int) ((Memory.LittleEndian.readLong64(block, idx)*HASH_SEED) >> HASH_SHIFT1) & HASH_MASK1;
       }
 
 
