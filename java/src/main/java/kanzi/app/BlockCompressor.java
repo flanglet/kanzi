@@ -188,13 +188,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          printOut("Using " + ecodec + " entropy codec (stage 2)", printFlag);
       }
 
-      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);      
-
-      if ((this.jobs>1) && (STDOUT.equalsIgnoreCase(this.outputName)))
-      {
-         System.err.println("Cannot output to STDOUT with multiple jobs");
-         return Error.ERR_CREATE_FILE;
-      }      
+      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);           
             
       // Limit verbosity level when files are processed concurrently
       if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1)) {
@@ -385,97 +379,100 @@ public class BlockCompressor implements Runnable, Callable<Integer>
     }
 
 
-    private static void printOut(String msg, boolean print)
-    {
-       if ((print == true) && (msg != null))
-          System.out.println(msg);
-    }
+   private static void printOut(String msg, boolean print)
+   {
+      if ((print == true) && (msg != null))
+         System.out.println(msg);
+   }
     
 
-    public final boolean addListener(Listener bl)
-    {
-       return (bl != null) ? this.listeners.add(bl) : false;
-    }
-
-   
-    public final boolean removeListener(Listener bl)
-    {
-       return (bl != null) ? this.listeners.remove(bl) : false;
-    }
-    
-    
-    static void notifyListeners(Listener[] listeners, Event evt)
-    {
-       for (Listener bl : listeners)
-       {
-          try 
-          {
-             bl.processEvent(evt);
-          }
-          catch (Exception e)
-          {
-            // Ignore exceptions in listeners
-          }
-       }
-    }
-   
-    
-    private static String getTransformAndCodec(int level)
-    {
-       switch (level)
-       {
-          case 0 :
-             return "NONE&NONE";
-             
-          case 1 :
-             return "TEXT+LZ&HUFFMAN";
-             
-          case 2 :
-             return "TEXT+FSD+ROLZ&NONE";
-             
-          case 3 :
-             return "TEXT+FSD+ROLZX&NONE";
-             
-          case 4 :
-             return "TEXT+BWT+RANK+ZRLT&ANS0";
-             
-          case 5 :
-             return "TEXT+BWT+SRT+ZRLT&FPAQ";
-             
-          case 6 :
-             return "LZP+TEXT+BWT&CM";
-             
-          case 7 :
-             return "X86+RLT+TEXT&TPAQ";
-             
-          case 8 :
-             return "X86+RLT+TEXT&TPAQX";
-             
-          default :
-             return "Unknown&Unknown";             
-       }
-    }
-   
-    
-
-    static class FileCompressResult
-    {
-       final int code;
-       final long read; 
-       final long written; 
+   public final boolean addListener(Listener bl)
+   {
+      return (bl != null) ? this.listeners.add(bl) : false;
+   }
 
 
-       public FileCompressResult(int code, long read, long written)
-       {
-          this.code = code;
-          this.read = read;
-          this.written = written;
-       }  
-    }
-    
+   public final boolean removeListener(Listener bl)
+   {
+      return (bl != null) ? this.listeners.remove(bl) : false;
+   }
+
+
+   static void notifyListeners(Listener[] listeners, Event evt)
+   {
+      for (Listener bl : listeners)
+      {
+         try 
+         {
+            bl.processEvent(evt);
+         }
+         catch (Exception e)
+         {
+           // Ignore exceptions in listeners
+         }
+      }
+   }
+
+
+   private static String getTransformAndCodec(int level)
+   {
+      switch (level)
+      {
+        case 0 :
+           return "NONE&NONE";
+
+        case 1 :
+           return "TEXT+LZ&HUFFMAN";
+
+        case 2 :
+           return "TEXT+FSD+LZX&HUFFMAN";
+
+        case 3 :
+           return "TEXT+FSD+ROLZ&NONE";
+
+        case 4 :
+           return "TEXT+FSD+ROLZX&NONE";
+
+        case 5 :
+           return "TEXT+BWT+RANK+ZRLT&ANS0";
+
+        case 6 :
+           return "TEXT+BWT+SRT+ZRLT&FPAQ";
+
+        case 7 :
+           return "LZP+TEXT+BWT&CM";
+
+        case 8 :
+           return "X86+RLT+TEXT&TPAQ";
+
+        case 9 :
+           return "X86+RLT+TEXT&TPAQX";
+
+        default :
+           return "Unknown&Unknown";             
+      }
+   }
+
+
+
+   static class FileCompressResult
+   {
+      final int code;
+      final long read; 
+      final long written; 
+
+
+      public FileCompressResult(int code, long read, long written)
+      {
+         this.code = code;
+         this.read = read;
+         this.written = written;
+      }  
+   }
+
   
-    static class FileCompressTask implements Callable<FileCompressResult>
-    {
+   static class FileCompressTask implements Callable<FileCompressResult>
+   {
       private final Map<String, Object> ctx;
       private InputStream is;
       private CompressedOutputStream cos;

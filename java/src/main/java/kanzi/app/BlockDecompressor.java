@@ -138,13 +138,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       printOut(nbFiles+strFiles+" to decompress\n", this.verbosity > 0);
       printOut("Verbosity set to "+this.verbosity, printFlag);
       printOut("Overwrite set to "+this.overwrite, printFlag);
-      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);      
-    
-      if ((this.jobs>1) && (STDOUT.equalsIgnoreCase(this.outputName)))
-      {
-         System.err.println("Cannot output to STDOUT with multiple jobs");
-         return Error.ERR_CREATE_FILE;
-      }   
+      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);       
 
       // Limit verbosity level when files are processed concurrently
       if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1)) {
