@@ -61,16 +61,6 @@ public class FSDCodec implements ByteFunction
       if (count < MIN_LENGTH)
           return false;    
       
-      final byte[] src = input.array;
-      final byte[] dst = output.array;
-      final int count5 = count / 5;
-      final int count10 = count / 10;
-      int idx1 = 0;
-      int idx2 = count5 * 1;
-      int idx3 = count5 * 2;
-      int idx4 = count5 * 3;
-      int idx8 = count5 * 4;
-      
       if (this.ctx != null) 
       {
          Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
@@ -80,61 +70,53 @@ public class FSDCodec implements ByteFunction
             return false;
       }
 
+      final byte[] src = input.array;
+      final byte[] dst = output.array;
+      final int count5 = count / 5;
+      final int count10 = count / 10;
+      final int[][] histo = new int[6][256];
+      
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
       for (int i=3*count5; i<(3*count5)+count10; i++)
       {
-         final int b = src[i];
-         dst[idx1++] = (byte) (b ^ src[i-1]);
-         dst[idx2++] = (byte) (b ^ src[i-2]);
-         dst[idx3++] = (byte) (b ^ src[i-3]);
-         dst[idx4++] = (byte) (b ^ src[i-4]);
-         dst[idx8++] = (byte) (b ^ src[i-8]);
+         final byte b = src[i];
+         histo[0][b&0xFF]++;
+         histo[1][(b^src[i-1])&0xFF]++;
+         histo[2][(b^src[i-2])&0xFF]++;
+         histo[3][(b^src[i-3])&0xFF]++;
+         histo[4][(b^src[i-4])&0xFF]++;
+         histo[5][(b^src[i-8])&0xFF]++;
       }
       
       for (int i=1*count5+count10; i<2*count5; i++)
       {
-         final int b = src[i];
-         dst[idx1++] = (byte) (b ^ src[i-1]);
-         dst[idx2++] = (byte) (b ^ src[i-2]);
-         dst[idx3++] = (byte) (b ^ src[i-3]);
-         dst[idx4++] = (byte) (b ^ src[i-4]);
-         dst[idx8++] = (byte) (b ^ src[i-8]);
+         final byte b = src[i];
+         histo[0][b&0xFF]++;
+         histo[1][(b^src[i-1])&0xFF]++;
+         histo[2][(b^src[i-2])&0xFF]++;
+         histo[3][(b^src[i-3])&0xFF]++;
+         histo[4][(b^src[i-4])&0xFF]++;
+         histo[5][(b^src[i-8])&0xFF]++;
       }
       
       // Find if entropy is lower post transform 
-      int[] histo = new int[256];
       int[] ent = new int[6];
-      Global.computeHistogramOrder0(src, count/3, 2*count/3, histo, false);
-      ent[0] = Global.computeFirstOrderEntropy1024(count/3, histo);
-      Global.computeHistogramOrder0(dst, 0, 1*count5, histo, false);
-      ent[1] = Global.computeFirstOrderEntropy1024(count5, histo);
-      Global.computeHistogramOrder0(dst, 1*count5, 2*count5, histo, false);
-      ent[2] = Global.computeFirstOrderEntropy1024(count5, histo);
-      Global.computeHistogramOrder0(dst, 2*count5, 3*count5, histo, false);
-      ent[3] = Global.computeFirstOrderEntropy1024(count5, histo);
-      Global.computeHistogramOrder0(dst, 3*count5, 4*count5, histo, false);
-      ent[4] = Global.computeFirstOrderEntropy1024(count5, histo);
-      Global.computeHistogramOrder0(dst, 4*count5, 5*count5, histo, false);
-      ent[5] = Global.computeFirstOrderEntropy1024(count5, histo);
-      
+      ent[0] = Global.computeFirstOrderEntropy1024(count5, histo[0]);      
       int minIdx = 0;
 
       for (int i=1; i<ent.length; i++)
       {
+         ent[i] = Global.computeFirstOrderEntropy1024(count5, histo[i]);
+         
          if (ent[i] < ent[minIdx])
             minIdx = i;
       }
 
-      if (minIdx == 0)
+      // If not better, quick exit
+      if ((minIdx == 0) || (ent[minIdx] >= ent[0]))
          return false;
       
-      boolean isFast = (this.ctx == null) ? true : (this.ctx.getOrDefault("fullFSD", false) == Boolean.FALSE);
-      
-      // If not 'better enough', quick exit
-      if ((isFast == true) && (ent[minIdx] >= ((123*ent[0])>>7)))
-         return false;
-
       if (this.ctx != null)
          this.ctx.put("dataType", Global.DataType.MULTIMEDIA);
             
@@ -201,9 +183,10 @@ public class FSDCodec implements ByteFunction
          return false;
 
       // Extra check that the transform makes sense
+      boolean isFast = (this.ctx == null) ? true : (this.ctx.getOrDefault("fullFSD", false) == Boolean.FALSE);
       final int length = (isFast == true) ? dstIdx>>1 : dstIdx;
-      Global.computeHistogramOrder0(dst, (dstIdx-length)>>1, (dstIdx+length)>>1, histo, false);
-      final int entropy = Global.computeFirstOrderEntropy1024(length, histo);
+      Global.computeHistogramOrder0(dst, (dstIdx-length)>>1, (dstIdx+length)>>1, histo[0], false);
+      final int entropy = Global.computeFirstOrderEntropy1024(length, histo[0]);
 
       if (entropy >= ent[0])
          return false;
