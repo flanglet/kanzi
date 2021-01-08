@@ -251,9 +251,9 @@ public class ROLZCodec implements ByteFunction
          int sizeChunk = (count <= CHUNK_SIZE) ? count : CHUNK_SIZE;
          int startChunk = srcIdx;
          final SliceByteArray litBuf = new SliceByteArray(new byte[this.getMaxEncodedLength(sizeChunk)], 0);
-         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/6], 0);
+         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/5], 0);
          final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
-         final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk/6], 0);
+         final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk/5], 0);
          ByteArrayOutputStream baos = new ByteArrayOutputStream(this.getMaxEncodedLength(sizeChunk));
 
          for (int i=0; i<this.counters.length; i++)
@@ -432,9 +432,9 @@ public class ROLZCodec implements ByteFunction
          int sizeChunk = (dstEnd <= CHUNK_SIZE) ? dstEnd : CHUNK_SIZE;
          int startChunk = output.index;
          final SliceByteArray litBuf  = new SliceByteArray(new byte[this.getMaxEncodedLength(sizeChunk)], 0);
-         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/6], 0);
+         final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/5], 0);
          final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
-         final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk/6], 0);
+         final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk/5], 0);
          final int[] lengths = new int[2];
 
          for (int i=0; i<this.counters.length; i++)
