@@ -127,7 +127,7 @@ public class HuffmanEncoder implements EntropyEncoder
          retries++;
          
          // Normalize to a smaller scale
-         new EntropyUtils().normalizeFrequencies(f, symbols, totalFreq, 
+         EntropyUtils.normalizeFrequencies(f, symbols, totalFreq, 
               HuffmanCommon.MAX_CHUNK_SIZE>>(2*retries));
          
          for (int i=0; i<count; i++)

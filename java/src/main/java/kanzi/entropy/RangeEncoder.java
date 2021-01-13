@@ -40,7 +40,6 @@ public final class RangeEncoder implements EntropyEncoder
     private final int[] alphabet;
     private final int[] freqs;
     private final long[] cumFreqs;
-    private final EntropyUtils eu;
     private final OutputBitStream bitstream;
     private final int chunkSize;
     private final int logRange;
@@ -76,7 +75,6 @@ public final class RangeEncoder implements EntropyEncoder
       this.cumFreqs = new long[257];
       this.logRange = logRange;
       this.chunkSize = chunkSize;
-      this.eu = new EntropyUtils();
     }
 
     
@@ -85,7 +83,7 @@ public final class RangeEncoder implements EntropyEncoder
       if ((frequencies == null) || (frequencies.length != 256))
          return -1;
 
-      int alphabetSize = this.eu.normalizeFrequencies(frequencies, this.alphabet, size, 1<<lr);
+      int alphabetSize = EntropyUtils.normalizeFrequencies(frequencies, this.alphabet, size, 1<<lr);
       
       if (alphabetSize > 0)
       {

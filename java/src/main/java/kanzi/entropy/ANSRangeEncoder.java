@@ -36,7 +36,6 @@ public class ANSRangeEncoder implements EntropyEncoder
    private final int[][] freqs;
    private final Symbol[][] symbols;
    private byte[] buffer;
-   private final EntropyUtils eu;
    private final int chunkSize;
    private final int order;
    private int logRange;
@@ -82,7 +81,6 @@ public class ANSRangeEncoder implements EntropyEncoder
       this.buffer = new byte[0];
       this.logRange = logRange;
       this.chunkSize = chunkSize << (8*order);
-      this.eu = new EntropyUtils();
 
       for (int i=0; i<dim; i++)
       {
@@ -105,7 +103,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          final int[] f = frequencies[k];
          final Symbol[] symb = this.symbols[k];
          final int[] alphabet_ = this.alphabet[k];
-         final int alphabetSize = this.eu.normalizeFrequencies(f, alphabet_, f[256], 1<<lr);
+         final int alphabetSize = EntropyUtils.normalizeFrequencies(f, alphabet_, f[256], 1<<lr);
 
          if (alphabetSize > 0)
          {

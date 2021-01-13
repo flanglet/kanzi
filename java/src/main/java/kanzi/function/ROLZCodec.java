@@ -435,7 +435,6 @@ public class ROLZCodec implements ByteFunction
          final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/5], 0);
          final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
          final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk/5], 0);
-         final int[] lengths = new int[2];
 
          for (int i=0; i<this.counters.length; i++)
             this.counters[i] = 0;

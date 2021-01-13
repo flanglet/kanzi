@@ -27,16 +27,7 @@ public class EntropyUtils
    private static final int FULL_ALPHABET = 0;
    private static final int PARTIAL_ALPHABET = 1;
    private static final int ALPHABET_256 = 0;
-   private static final int ALPHABET_NOT_256 = 1;
-
-
-   private int[] buffer;
-
-
-   public EntropyUtils()
-   {
-      this.buffer = new int[0];
-   }
+   private static final int ALPHABET_0 = 1;
 
 
    // alphabet must be sorted in increasing order
@@ -50,34 +41,33 @@ public class EntropyUtils
       if ((alphabet.length > 256) || (count > alphabet.length))
          return -1;
 
-      if ((count == 0) || (count == alphabet.length))
+      switch (count)
       {
-         // Full alphabet
-         obs.writeBit(FULL_ALPHABET);
-
-         if (count == 256)
-           obs.writeBit(ALPHABET_256); // shortcut
-         else
-         {
-            // Write alphabet size
-            obs.writeBit(ALPHABET_NOT_256);
-            obs.writeBits(count, 8);
-         }
-      }
-      else
-      {
-         // Partial alphabet
-         obs.writeBit(PARTIAL_ALPHABET);
-         byte[] masks = new byte[32];
-
-         for (int i=0; i<count; i++)
-            masks[alphabet[i]>>3] |= (1 << (alphabet[i]&7));
-
-         final int lastMask = alphabet[count-1] >> 3;
-         obs.writeBits(lastMask, 5);
-
-         for (int i=0; i<=lastMask; i++)
-            obs.writeBits(masks[i], 8);
+         case 0:
+            obs.writeBit(FULL_ALPHABET);
+            obs.writeBit(ALPHABET_0);
+            break;
+            
+         case 256:
+            obs.writeBit(FULL_ALPHABET);
+            obs.writeBit(ALPHABET_256);
+            break;
+            
+         default:
+            // Partial alphabet
+            obs.writeBit(PARTIAL_ALPHABET);
+            byte[] masks = new byte[32];
+            
+            for (int i=0; i<count; i++)
+               masks[alphabet[i]>>3] |= (1 << (alphabet[i]&7));
+            
+            final int lastMask = alphabet[count-1] >> 3;
+            obs.writeBits(lastMask, 5);
+            
+            for (int i=0; i<=lastMask; i++)
+               obs.writeBits(masks[i], 8);
+            
+            break;
       }
 
       return count;
@@ -127,7 +117,7 @@ public class EntropyUtils
    // Not thread safe
    // Return the size of the alphabet
    // The alphabet and freqs parameters are updated
-   public int normalizeFrequencies(int[] freqs, int[] alphabet, int totalFreq, int scale)
+   public static int normalizeFrequencies(int[] freqs, int[] alphabet, int totalFreq, int scale)
    {
       if (alphabet.length > 1<<8)
          throw new IllegalArgumentException("Invalid alphabet size parameter: "+ alphabet.length +
@@ -154,10 +144,6 @@ public class EntropyUtils
          return alphabetSize;
       }
 
-      if (this.buffer.length < alphabet.length)
-         this.buffer = new int[alphabet.length];
-
-      final int[] errors = this.buffer;
       int sumScaledFreq = 0;
       int freqMax = 0;
       int idxMax = -1;
@@ -166,7 +152,6 @@ public class EntropyUtils
       for (int i=0; i<alphabet.length; i++)
       {
          alphabet[i] = 0;
-         errors[i] = 0;
          final int f = freqs[i];
 
          if (f == 0)
@@ -194,14 +179,7 @@ public class EntropyUtils
             long errFloor = sf - (scaledFreq * (long) totalFreq);
 
             if (errCeiling < errFloor)
-            {
                scaledFreq++;
-               errors[i] = (int) errCeiling;
-            }
-            else
-            {
-               errors[i] = (int) errFloor;
-            }
          }
 
          alphabet[alphabetSize++] = i;
@@ -217,13 +195,16 @@ public class EntropyUtils
          freqs[alphabet[0]] = scale;
          return 1;
       }
-
+           
       if (sumScaledFreq != scale)
       {
-         if (freqs[idxMax] > sumScaledFreq - scale)
+         final int delta = (int) (sumScaledFreq-scale);
+         
+         if (Math.abs(delta) * 100 < freqs[idxMax] * 5) 
          {
-            // Fast path: just adjust the max frequency
-            freqs[idxMax] += (scale - sumScaledFreq);
+            // Fast path: just adjust the max frequency (or do nothing)
+            if (freqs[idxMax] > delta) 
+               freqs[idxMax] -= delta;
          }
          else
          {
@@ -231,31 +212,26 @@ public class EntropyUtils
             final int inc = (sumScaledFreq > scale) ? -1 : 1;
             PriorityQueue<FreqSortData> queue = new PriorityQueue<FreqSortData>();
 
-            // Create sorted queue of present symbols (except those with 'quantum frequency')
+            // Create sorted queue of present symbols
             for (int i=0; i<alphabetSize; i++)
-            {
-               if ((errors[alphabet[i]] >= 0) && (freqs[alphabet[i]] != -inc))
-                  queue.add(new FreqSortData(errors, freqs, alphabet[i]));
-            }
+               queue.add(new FreqSortData(freqs, alphabet[i]));
 
             while ((sumScaledFreq != scale) && (queue.size() > 0))
             {
-                // Remove symbol with highest error
-                FreqSortData fsd = queue.poll();
+               // Remove symbol with highest frequency
+               FreqSortData fsd = queue.poll();
 
-                // Do not zero out any frequency
-                if (freqs[fsd.symbol] == -inc)
-                   continue;
+               // Do not zero out any frequency
+               if (freqs[fsd.symbol] == -inc)
+                  continue;
 
-                // Distort frequency and error
-                freqs[fsd.symbol] += inc;
-                errors[fsd.symbol] -= scale;
-                sumScaledFreq += inc;
-                queue.add(fsd);
+               // Distort frequency
+               freqs[fsd.symbol] += inc;
+               sumScaledFreq += inc;
             }
          }
       }
-
+    
       return alphabetSize;
    }
 
@@ -303,13 +279,11 @@ public class EntropyUtils
    private static class FreqSortData implements Comparable<FreqSortData>
    {
       final int symbol;
-      final int[] errors;
       final int[] frequencies;
 
 
-      public FreqSortData(int[] errors, int[] frequencies, int symbol)
+      public FreqSortData(int[] frequencies, int symbol)
       {
-         this.errors = errors;
          this.frequencies = frequencies;
          this.symbol = symbol & 0xFFFF;
       }
@@ -345,20 +319,11 @@ public class EntropyUtils
       @Override
       public int compareTo(FreqSortData sd)
       {
-         // Decreasing error
-         int res = sd.errors[sd.symbol] - this.errors[this.symbol];
-
          // Decreasing frequency
-         if (res == 0)
-         {
-            res = sd.frequencies[sd.symbol] - this.frequencies[this.symbol];
+         final int res = sd.frequencies[sd.symbol] - this.frequencies[this.symbol];
 
-            // Decreasing symbol
-            if (res == 0)
-               return sd.symbol - this.symbol;
-         }
-
-         return res;
+         // Decreasing symbol
+         return (res != 0) ? res : sd.symbol - this.symbol;
       }
    }
 }
