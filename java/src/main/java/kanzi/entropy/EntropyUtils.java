@@ -81,7 +81,7 @@ public class EntropyUtils
 
       if (alphabetType == FULL_ALPHABET)
       {
-         final int alphabetSize = (ibs.readBit() == ALPHABET_256) ? 256 : (int) ibs.readBits(8);
+         final int alphabetSize = (ibs.readBit() == ALPHABET_256) ? 256 : 0;
 
          if (alphabetSize > alphabet.length)
             throw new BitStreamException("Invalid bitstream: incorrect alphabet size: " + alphabetSize,
