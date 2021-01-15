@@ -247,6 +247,7 @@ public final class LZCodec implements ByteFunction
             final int minRef = Math.max(srcIdx-maxDist, srcIdx0);
             int h = hash(src, srcIdx);
             int ref = this.hashes[h];
+            this.hashes[h] = srcIdx;
             int bestLen = 0;
 
             // Find a match
@@ -259,7 +260,6 @@ public final class LZCodec implements ByteFunction
             // No good match ?
             if ((bestLen < MIN_MATCH) || ((bestLen == MIN_MATCH) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)))
             {
-               this.hashes[h] = srcIdx;
                srcIdx++;
                continue;
             }
@@ -267,6 +267,7 @@ public final class LZCodec implements ByteFunction
             // Check if better match at next position
             final int h2 = hash(src, srcIdx+1);
             final int ref2 = this.hashes[h2];
+            this.hashes[h2] = srcIdx + 1;
             int bestLen2 = 0;
 
             if (ref2 > minRef + 1) 
@@ -343,7 +344,6 @@ public final class LZCodec implements ByteFunction
 
             // Fill _hashes and update positions
             anchor = srcIdx + bestLen;
-            this.hashes[h] = srcIdx;
             srcIdx++;
 
             while (srcIdx < anchor) 
