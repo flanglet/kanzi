@@ -15,7 +15,10 @@ limitations under the License.
 
 package kanzi.entropy;
 
-import java.util.PriorityQueue;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import kanzi.BitStreamException;
 import kanzi.InputBitStream;
 import kanzi.OutputBitStream;
@@ -81,7 +84,10 @@ public class EntropyUtils
 
       if (alphabetType == FULL_ALPHABET)
       {
-         final int alphabetSize = (ibs.readBit() == ALPHABET_256) ? 256 : 0;
+         if (ibs.readBit() == ALPHABET_0)
+            return 0;
+         
+         final int alphabetSize = 256;
 
          if (alphabetSize > alphabet.length)
             throw new BitStreamException("Invalid bitstream: incorrect alphabet size: " + alphabetSize,
@@ -210,16 +216,18 @@ public class EntropyUtils
          {
             // Slow path: spread error across frequencies
             final int inc = (sumScaledFreq > scale) ? -1 : 1;
-            PriorityQueue<FreqSortData> queue = new PriorityQueue<FreqSortData>();
+            ArrayList<FreqSortData> list = new ArrayList<>(alphabetSize);
 
-            // Create sorted queue of present symbols
             for (int i=0; i<alphabetSize; i++)
-               queue.add(new FreqSortData(freqs, alphabet[i]));
+               list.add(new FreqSortData(freqs, alphabet[i]));
+            
+            Collections.sort(list);
+            Deque<FreqSortData> queue = new ArrayDeque<>(list);
 
             while ((sumScaledFreq != scale) && (queue.size() > 0))
             {
                // Remove symbol with highest frequency
-               FreqSortData fsd = queue.poll();
+               FreqSortData fsd = queue.removeFirst();
 
                // Do not zero out any frequency
                if (freqs[fsd.symbol] == -inc)
@@ -228,6 +236,7 @@ public class EntropyUtils
                // Distort frequency
                freqs[fsd.symbol] += inc;
                sumScaledFreq += inc;
+               queue.addLast(fsd);
             }
          }
       }
@@ -323,7 +332,7 @@ public class EntropyUtils
          final int res = sd.frequencies[sd.symbol] - this.frequencies[this.symbol];
 
          // Decreasing symbol
-         return (res != 0) ? res : sd.symbol - this.symbol;
+         return (res == 0) ? sd.symbol - this.symbol : res;
       }
    }
 }
