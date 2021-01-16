@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -128,7 +128,7 @@ public final class DebugInputBitStream implements InputBitStream
             if (this.showByte())
                this.printByte(this.current);
             else
-               this.out.print(" "); 
+               this.out.print(" ");
          }
       }
       else if ((this.lineIndex & 7) == 0)
@@ -136,7 +136,7 @@ public final class DebugInputBitStream implements InputBitStream
          if (this.showByte())
             this.printByte(this.current);
          else
-            this.out.print(" "); 
+            this.out.print(" ");
       }
 
       return res;
@@ -174,7 +174,7 @@ public final class DebugInputBitStream implements InputBitStream
                if (this.showByte())
                   this.printByte(this.current);
                else
-                  this.out.print(" "); 
+                  this.out.print(" ");
             }
          }
          else if ((this.lineIndex & 7) == 0)
@@ -182,19 +182,19 @@ public final class DebugInputBitStream implements InputBitStream
             if (this.showByte())
                this.printByte(this.current);
             else
-               this.out.print(" "); 
+               this.out.print(" ");
          }
       }
 
       return res;
    }
-        
-    
+
+
    @Override
    public synchronized int readBits(byte[] bits, int start, int count) throws BitStreamException
    {
       count = this.delegate.readBits(bits, start, count);
-      
+
       for (int i=start; i<start+(count>>3); i++)
       {
          for (int j=7; j>=0; j--)
@@ -223,7 +223,7 @@ public final class DebugInputBitStream implements InputBitStream
                   if (this.showByte())
                      this.printByte(this.current);
                   else
-                     this.out.print(" "); 
+                     this.out.print(" ");
                }
             }
             else if ((this.lineIndex & 7) == 0)
@@ -231,11 +231,11 @@ public final class DebugInputBitStream implements InputBitStream
                if (this.showByte())
                   this.printByte(this.current);
                else
-                  this.out.print(" "); 
+                  this.out.print(" ");
             }
          }
       }
-     
+
       return count;
    }
 
@@ -255,7 +255,7 @@ public final class DebugInputBitStream implements InputBitStream
 
 
    @Override
-   public boolean hasMoreToRead()    
+   public boolean hasMoreToRead()
    {
       return this.delegate.hasMoreToRead();
    }

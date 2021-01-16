@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -37,7 +37,7 @@ public class EntropyUtils
       // Alphabet length must be a power of 2
       if ((alphabet.length & (alphabet.length-1)) != 0)
          return -1;
-      
+
       if ((alphabet.length > 256) || (count > alphabet.length))
          return -1;
 
@@ -47,26 +47,26 @@ public class EntropyUtils
             obs.writeBit(FULL_ALPHABET);
             obs.writeBit(ALPHABET_0);
             break;
-            
+
          case 256:
             obs.writeBit(FULL_ALPHABET);
             obs.writeBit(ALPHABET_256);
             break;
-            
+
          default:
             // Partial alphabet
             obs.writeBit(PARTIAL_ALPHABET);
             byte[] masks = new byte[32];
-            
+
             for (int i=0; i<count; i++)
                masks[alphabet[i]>>3] |= (1 << (alphabet[i]&7));
-            
+
             final int lastMask = alphabet[count-1] >> 3;
             obs.writeBits(lastMask, 5);
-            
+
             for (int i=0; i<=lastMask; i++)
                obs.writeBits(masks[i], 8);
-            
+
             break;
       }
 
@@ -113,7 +113,7 @@ public class EntropyUtils
       return count;
    }
 
-   
+
    // Not thread safe
    // Return the size of the alphabet
    // The alphabet and freqs parameters are updated
@@ -195,15 +195,15 @@ public class EntropyUtils
          freqs[alphabet[0]] = scale;
          return 1;
       }
-           
+
       if (sumScaledFreq != scale)
       {
          final int delta = (int) (sumScaledFreq-scale);
-         
-         if (Math.abs(delta) * 100 < freqs[idxMax] * 5) 
+
+         if (Math.abs(delta) * 100 < freqs[idxMax] * 5)
          {
             // Fast path: just adjust the max frequency (or do nothing)
-            if (freqs[idxMax] > delta) 
+            if (freqs[idxMax] > delta)
                freqs[idxMax] -= delta;
          }
          else
@@ -231,7 +231,7 @@ public class EntropyUtils
             }
          }
       }
-    
+
       return alphabetSize;
    }
 
@@ -275,7 +275,7 @@ public class EntropyUtils
       return res;
    }
 
-   
+
    private static class FreqSortData implements Comparable<FreqSortData>
    {
       final int symbol;

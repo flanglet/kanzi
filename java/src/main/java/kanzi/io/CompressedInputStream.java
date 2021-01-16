@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -58,7 +58,7 @@ public class CompressedInputStream extends InputStream
    private static final int CANCEL_TASKS_ID          = -1;
    private static final int MAX_CONCURRENCY          = 64;
    private static final int MAX_BLOCK_ID             = Integer.MAX_VALUE;
-   
+
    private int blockSize;
    private int nbInputBlocks;
    private XXHash32 hasher;
@@ -76,29 +76,29 @@ public class CompressedInputStream extends InputStream
    private final List<Listener> listeners;
    private final Map<String, Object> ctx;
 
-   
+
    public CompressedInputStream(InputStream is, Map<String, Object> ctx)
    {
       this(new DefaultInputBitStream(is, DEFAULT_BUFFER_SIZE), ctx);
    }
 
-   
+
    // Allow caller to provide custom input bitstream
    public CompressedInputStream(InputBitStream ibs, Map<String, Object> ctx)
    {
       if (ibs == null)
          throw new NullPointerException("Invalid null input bitstream parameter");
-            
+
       if (ctx == null)
          throw new NullPointerException("Invalid null context parameter");
-            
+
       final int tasks = (Integer) ctx.get("jobs");
- 
-      if ((tasks <= 0) || (tasks > MAX_CONCURRENCY)) 
+
+      if ((tasks <= 0) || (tasks > MAX_CONCURRENCY))
          throw new IllegalArgumentException("The number of jobs must be in [1.." + MAX_CONCURRENCY+ "]");
 
       ExecutorService threadPool = (ExecutorService) ctx.get("pool");
-      
+
       if ((tasks > 1) && (threadPool == null))
          throw new IllegalArgumentException("The thread pool cannot be null when the number of jobs is "+tasks);
 
@@ -121,7 +121,7 @@ public class CompressedInputStream extends InputStream
       this.transformType = ByteFunctionFactory.NONE_TYPE;
    }
 
-   
+
    protected void readHeader() throws IOException
    {
       // Read stream type
@@ -145,12 +145,12 @@ public class CompressedInputStream extends InputStream
 
       // Read entropy codec
       this.entropyType = (int) this.ibs.readBits(5);
-      this.ctx.put("codec", EntropyCodecFactory.getName(this.entropyType));      
-      this.ctx.put("extra", this.entropyType == EntropyCodecFactory.TPAQX_TYPE);      
+      this.ctx.put("codec", EntropyCodecFactory.getName(this.entropyType));
+      this.ctx.put("extra", this.entropyType == EntropyCodecFactory.TPAQX_TYPE);
 
       // Read transforms: 8*6 bits
       this.transformType = this.ibs.readBits(48);
-      this.ctx.put("transform", new ByteFunctionFactory().getName(this.transformType));      
+      this.ctx.put("transform", new ByteFunctionFactory().getName(this.transformType));
 
       // Read block size
       this.blockSize = (int) this.ibs.readBits(28) << 4;
@@ -165,9 +165,9 @@ public class CompressedInputStream extends InputStream
 
       // Read number of blocks in input. 0 means 'unknown' and 63 means 63 or more.
       this.nbInputBlocks = (int) this.ibs.readBits(6);
-      
+
       // Read reserved bits
-      this.ibs.readBits(3);   
+      this.ibs.readBits(3);
 
       if (this.listeners.size() > 0)
       {
@@ -189,7 +189,7 @@ public class CompressedInputStream extends InputStream
             throw new kanzi.io.IOException("Invalid bitstream, unknown entropy codec type: "+
                     this.entropyType , Error.ERR_INVALID_CODEC);
          }
-        
+
          try
          {
             String w2 = new ByteFunctionFactory().getName(this.transformType);
@@ -208,7 +208,7 @@ public class CompressedInputStream extends InputStream
          // Protect against future concurrent modification of the block listeners list
          Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
          Event evt = new Event(Event.Type.AFTER_HEADER_DECODING, 0, sb.toString());
-         notifyListeners(blockListeners, evt);        
+         notifyListeners(blockListeners, evt);
       }
    }
 
@@ -362,7 +362,7 @@ public class CompressedInputStream extends InputStream
          // Protect against future concurrent modification of the list of block listeners
          Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
          int decoded = 0;
-         
+
          while (true)
          {
             this.sa.index = 0;
@@ -371,10 +371,10 @@ public class CompressedInputStream extends InputStream
             int nbJobs = this.jobs;
             int[] jobsPerTask;
 
-            // Assign optimal number of tasks and jobs per task 
+            // Assign optimal number of tasks and jobs per task
             if (nbJobs > 1)
             {
-               // If the number of input blocks is available, use it to optimize 
+               // If the number of input blocks is available, use it to optimize
                // memory usage
                if (this.nbInputBlocks != 0)
                {
@@ -383,7 +383,7 @@ public class CompressedInputStream extends InputStream
                   nbJobs = Math.min(nbJobs, this.nbInputBlocks);
                }
 
-               jobsPerTask = Global.computeJobsPerTask(new int[nbJobs], this.jobs, nbJobs);           
+               jobsPerTask = Global.computeJobsPerTask(new int[nbJobs], this.jobs, nbJobs);
             }
             else
             {
@@ -401,7 +401,7 @@ public class CompressedInputStream extends InputStream
                   // Lazy instantiation of input buffers this.buffers[2*jobId]
                   // Output buffers this.buffers[2*jobId+1] are lazily instantiated
                   // by the decoding tasks.
-                  this.buffers[2*jobId].array = new byte[blkSize+1024];    
+                  this.buffers[2*jobId].array = new byte[blkSize+1024];
                   this.buffers[2*jobId].length = blkSize+1024;
                }
 
@@ -412,7 +412,7 @@ public class CompressedInputStream extends InputStream
                        this.entropyType, firstBlockId+jobId+1,
                        this.ibs, this.hasher, this.blockId,
                        blockListeners, map);
-               tasks.add(task);            
+               tasks.add(task);
             }
 
             List<Status> results = new ArrayList<>(tasks.size());
@@ -424,7 +424,7 @@ public class CompressedInputStream extends InputStream
                Status status = tasks.get(0).call();
                results.add(status);
 
-               if (status.skipped == true) 
+               if (status.skipped == true)
                   skipped++;
 
                decoded += status.decoded;
@@ -440,7 +440,7 @@ public class CompressedInputStream extends InputStream
                   Status status = result.get();
                   results.add(status);
 
-                  if (status.skipped == true) 
+                  if (status.skipped == true)
                      skipped++;
 
                   decoded += status.decoded;
@@ -461,7 +461,7 @@ public class CompressedInputStream extends InputStream
                 this.sa.array = new byte[this.sa.length];
 
             for (Status res : results)
-            {          
+            {
                System.arraycopy(res.data, 0, this.sa.array, this.sa.index, res.decoded);
                this.sa.index += res.decoded;
 
@@ -474,12 +474,12 @@ public class CompressedInputStream extends InputStream
                   notifyListeners(blockListeners, evt);
                }
             }
-         
+
             // Unless all blocks were skipped, exit the loop (usual case)
             if (skipped != results.size())
                break;
          }
-         
+
          this.sa.index = 0;
          return decoded;
       }
@@ -627,18 +627,18 @@ public class CompressedInputStream extends InputStream
             // Backoff improves performance in heavy contention scenarios
             Thread.yield(); // Should be Thread.onSpinWait() on JDK 9 and above
          }
-   
+
          // Read shared bitstream sequentially (each task is gated by _processedBlockId)
          final int lr = (int) this.ibs.readBits(5) + 3;
          long read = this.ibs.readBits(lr);
 
-         if (read == 0) 
+         if (read == 0)
          {
             this.processedBlockId.set(CANCEL_TASKS_ID);
             return new Status(data, currentBlockId, 0, 0, 0, "Success");
          }
-         
-         if (read > 1L<<34) 
+
+         if (read > 1L<<34)
          {
             this.processedBlockId.set(CANCEL_TASKS_ID);
             return new Status(data, currentBlockId, 0, 0, Error.ERR_BLOCK_SIZE, "Invalid block size");
@@ -650,7 +650,7 @@ public class CompressedInputStream extends InputStream
             data.array = new byte[Math.max(this.blockSize, r)];
 
          for (int n=0; read>0; )
-         {            
+         {
             final int chkSize = (read < (long) (1<<30)) ? (int) read : 1<<30;
             this.ibs.readBits(data.array, n, chkSize);
             n += ((chkSize+7) >> 3);
@@ -660,14 +660,14 @@ public class CompressedInputStream extends InputStream
          // After completion of the bitstream reading, increment the block id.
          // It unblocks the task processing the next block (if any)
          this.processedBlockId.incrementAndGet();
-         
+
          // Check if the block must be skipped
          int from = (int) this.ctx.getOrDefault("from", 0);
          int to = (int) this.ctx.getOrDefault("to", MAX_BLOCK_ID);
 
          if ((this.blockId < from) || (this.blockId >= to))
             return new Status(data, currentBlockId, 0, 0, 0, "Success", true);
-         
+
          ByteArrayInputStream bais = new ByteArrayInputStream(data.array, 0, r);
          DefaultInputBitStream is = new DefaultInputBitStream(bais, 16384);
          int checksum1 = 0;
@@ -691,7 +691,7 @@ public class CompressedInputStream extends InputStream
                else
                   skipFlags = (byte) ((mode<<4) | 0x0F);
             }
-            
+
             final int dataSize = 1 + ((mode>>5)&0x03);
             final int length = dataSize << 3;
             final long mask = (1L<<length) - 1;
@@ -731,11 +731,11 @@ public class CompressedInputStream extends InputStream
             if (buffer.length < bufferSize)
             {
                buffer.length = bufferSize;
-               
+
                if (buffer.array.length < buffer.length)
                   buffer.array = new byte[buffer.length];
             }
-            
+
             final int savedIdx = data.index;
             this.ctx.put("size", preTransformLength);
 
@@ -751,11 +751,11 @@ public class CompressedInputStream extends InputStream
                return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK,
                   "Entropy decoding failed");
             }
-            
+
             is.close();
             ed.dispose();
             ed = null;
-            
+
             if (this.listeners.length > 0)
             {
                // Notify after entropy (block size set to size in bitstream)
@@ -764,7 +764,7 @@ public class CompressedInputStream extends InputStream
 
                notifyListeners(this.listeners, evt);
             }
-            
+
             if (this.listeners.length > 0)
             {
                // Notify before transform (block size after entropy decoding)
@@ -804,7 +804,7 @@ public class CompressedInputStream extends InputStream
          catch (Exception e)
          {
             this.processedBlockId.set(CANCEL_TASKS_ID);
-            return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK, 
+            return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK,
                "Error in block "+currentBlockId+": "+e.getMessage());
          }
          finally
@@ -835,7 +835,7 @@ public class CompressedInputStream extends InputStream
       {
          this(data, blockId, decoded, checksum, error, msg, false);
       }
-      
+
       Status(SliceByteArray data, int blockId, int decoded, int checksum, int error, String msg, boolean skipped)
       {
          this.data = data.array;

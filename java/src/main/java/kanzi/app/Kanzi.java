@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -47,23 +47,23 @@ public class Kanzi
    private static final int ARG_IDX_LEVEL = 9;
    // private static final int ARG_IDX_FROM = 10;
    //private static final int ARG_IDX_TO = 11;
-   
+
    private static final String APP_HEADER = "Kanzi 1.8 (C) 2020,  Frederic Langlet";
-   
-  
+
+
    public static void main(String[] args)
    {
       Map<String, Object> map = new HashMap<>();
-      int status = processCommandLine(args, map); 
-      
+      int status = processCommandLine(args, map);
+
       // Command line processing error ?
       if (status != 0)
          System.exit(status);
-      
+
       // Help mode only ?
       if (map.containsKey("mode") == false)
          System.exit(0);
-         
+
       char mode = (char) map.remove("mode");
 
       if (mode == 'c')
@@ -93,7 +93,7 @@ public class Kanzi
             System.err.println("Compression failure for '" + inputName+"' : " + e.getMessage());
             code = kanzi.Error.ERR_WRITE_FILE;
          }
-         
+
          System.exit(code);
       }
 
@@ -112,7 +112,7 @@ public class Kanzi
          }
 
          int code = bd.call();
-         
+
          try
          {
             if (code != 0)
@@ -124,7 +124,7 @@ public class Kanzi
             System.err.println("Decompression failure for '" + inputName+"' : " + e.getMessage());
             code = kanzi.Error.ERR_WRITE_FILE;
          }
-         
+
          System.exit(code);
       }
 
@@ -253,7 +253,7 @@ public class Kanzi
                printOut("        Provide " + File.separator + ". at the end of the directory name to avoid recursion", true);
                printOut("        (EG: myDir" + File.separator + ". => no recursion)\n", true);
                printOut("   -o, --output=<outputName>", true);
-               
+
                if (mode == 'c')
                {
                   printOut("        optional name of the output file or directory (defaults to", true);
@@ -281,7 +281,7 @@ public class Kanzi
                   printOut("        0=None&None (store), 1=TEXT+LZ&HUFFMAN, 2=TEXT+FSD+LZX&HUFFMAN", true);
                   printOut("        3=TEXT+FSD+ROLZ, 4=TEXT+FSD+ROLZX, 5=TEXT+BWT+RANK+ZRLT&ANS0", true);
                   printOut("        6=TEXT+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+BWT&CM, 8=X86+RLT+TEXT&TPAQ", true);
-                  printOut("        9=X86+RLT+TEXT&TPAQX\n", true);                 
+                  printOut("        9=X86+RLT+TEXT&TPAQX\n", true);
                   printOut("   -e, --entropy=<codec>", true);
                   printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
                   printOut("        (default is ANS0)\n", true);
@@ -385,7 +385,7 @@ public class Kanzi
                if (outputName != null)
                   System.err.println("Warning: ignoring duplicate output name: "+name);
                else
-                  outputName = name;                  
+                  outputName = name;
 
                ctx = -1;
                continue;
@@ -413,7 +413,7 @@ public class Kanzi
                   System.err.println("Warning: ignoring duplicate entropy: "+name);
                else
                   codec = name;
-                     
+
                ctx = -1;
                continue;
            }
@@ -430,7 +430,7 @@ public class Kanzi
 
                while ((transform.length()>0) && (transform.charAt(0) == '+'))
                   transform = transform.substring(1);
-               
+
                while ((transform.length()>0) && (transform.charAt(transform.length()-1) == '+'))
                   transform = transform.substring(0, transform.length()-1);
 
@@ -442,14 +442,14 @@ public class Kanzi
            {
                String name = arg.startsWith("--level=") ? arg.substring(8).trim().toUpperCase() :
                  arg.toUpperCase();
-              
+
                if (level != -1)
                {
                   System.err.println("Warning: ignoring duplicate level: "+name);
                   ctx = -1;
                   continue;
                }
-               
+
                try
                {
                   level = Integer.parseInt(name);
@@ -463,9 +463,9 @@ public class Kanzi
                if ((level < 0) || (level > 9))
                {
                   System.err.println("Invalid compression level provided on command line: "+arg);
-                  return kanzi.Error.ERR_INVALID_PARAM;                  
+                  return kanzi.Error.ERR_INVALID_PARAM;
                }
-               
+
                ctx = -1;
                continue;
            }
@@ -474,14 +474,14 @@ public class Kanzi
            {
                String name = arg.startsWith("--block=") ? arg.substring(8).toUpperCase().trim() :
                   arg.toUpperCase();
-               
+
                if (blockSize != -1)
                {
                   System.err.println("Warning: ignoring duplicate block size: "+name);
                   ctx = -1;
                   continue;
                }
-                              
+
                char lastChar = (name.length() == 0) ? ' ' : name.charAt(name.length()-1);
                int scale = 1;
 
@@ -527,7 +527,7 @@ public class Kanzi
                   ctx = -1;
                   continue;
                }
-               
+
                try
                {
                   tasks = Integer.parseInt(name);
@@ -544,7 +544,7 @@ public class Kanzi
                   return kanzi.Error.ERR_INVALID_PARAM;
               }
            }
-           
+
            if (arg.startsWith("--from=") && (ctx == -1))
            {
                String name = arg.startsWith("--from=") ? arg.substring(7).trim() : arg;
@@ -555,7 +555,7 @@ public class Kanzi
                   ctx = -1;
                   continue;
                }
-               
+
                try
                {
                   from = Integer.parseInt(name);
@@ -570,8 +570,8 @@ public class Kanzi
                   System.err.println("Invalid start block provided on command line: "+arg);
                   return kanzi.Error.ERR_INVALID_PARAM;
               }
-           }      
-           
+           }
+
            if (arg.startsWith("--to=") && (ctx == -1))
            {
                String name = arg.startsWith("--to=") ? arg.substring(5).trim() : arg;
@@ -582,7 +582,7 @@ public class Kanzi
                   ctx = -1;
                   continue;
                }
-               
+
                try
                {
                   to = Integer.parseInt(name);
@@ -597,7 +597,7 @@ public class Kanzi
                   System.err.println("Invalid start block provided on command line: "+arg);
                   return kanzi.Error.ERR_INVALID_PARAM;
               }
-           }               
+           }
 
            if (!arg.startsWith("--verbose=") && (ctx == -1) && !arg.startsWith("--output="))
            {
@@ -626,7 +626,7 @@ public class Kanzi
            if (transform != null)
               printOut("Warning: providing the 'level' option forces the transform. Ignoring ["+ transform + "]", verbose>0);
         }
-        
+
         if ((from >= 0) || (to >= 0))
         {
            if (mode != 'd')
@@ -635,14 +635,14 @@ public class Kanzi
                from = -1;
                to = -1;
            }
-         }  
-        
+         }
+
         if (blockSize != -1)
            map.put("block", blockSize);
 
         map.put("verbose", verbose);
         map.put("mode", mode);
-        
+
         if ((mode == 'c') || (level != -1))
            map.put("level", level);
 
@@ -680,37 +680,37 @@ public class Kanzi
        if ((print == true) && (msg != null))
           System.out.println(msg);
     }
-    
-    
+
+
     public static void createFileList(String target, List<Path> files) throws IOException
     {
        if (target == null)
           return;
-       
+
        Path root = Paths.get(target);
-       
-       if (Files.exists(root) == false) 
+
+       if (Files.exists(root) == false)
           throw new IOException("Cannot access input file '"+root+"'");
-       
+
        if ((Files.isRegularFile(root) == true) && (Files.isHidden(root) == true))
           throw new IOException("Cannot access input file '"+root+"'");
-       
+
        if (Files.isRegularFile(root) == true)
        {
           if (target.charAt(0) != '.')
              files.add(root);
-          
+
           return;
-       }       
-        
-       // If not a regular file and not a directory (a link ?), fail 
+       }
+
+       // If not a regular file and not a directory (a link ?), fail
        if (Files.isDirectory(root) == false)
           throw new IOException("Invalid file type '"+root+"'");
-       
+
        String suffix = File.separator + ".";
        String strRoot = root.toString();
-       boolean isRecursive = !strRoot.endsWith(suffix); 
-       
+       boolean isRecursive = !strRoot.endsWith(suffix);
+
        if (isRecursive == true)
        {
           if (strRoot.endsWith(File.separator) == false)
@@ -721,10 +721,10 @@ public class Kanzi
           // Remove suffix
           root = Paths.get(strRoot.substring(0, strRoot.length()-1));
        }
-       
-       try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) 
+
+       try (DirectoryStream<Path> stream = Files.newDirectoryStream(root))
        {
-          for (Path entry: stream) 
+          for (Path entry: stream)
           {
              if ((Files.exists(entry) == false) || (Files.isHidden(entry) == true))
                 continue;
@@ -734,10 +734,10 @@ public class Kanzi
              else if ((isRecursive == true) && (Files.isDirectory(entry) == true))
                 createFileList(entry.toString(), files);
           }
-       } 
-       catch (DirectoryIteratorException e) 
+       }
+       catch (DirectoryIteratorException e)
        {
          throw e.getCause();
        }
     }
-}    
+}

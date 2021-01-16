@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -44,7 +44,7 @@ public final class RadixSort implements IntSorter, ByteSorter
       this.buffers = new int[8][256];
    }
 
-    
+
    @Override
    public boolean sort(int[] input, int blkptr, int count)
    {
@@ -52,16 +52,16 @@ public final class RadixSort implements IntSorter, ByteSorter
           return false;
 
       if (count == 1)
-         return true; 
-      
-      return (this.bitsRadix == 4) ? this.sort16(input, blkptr, count) : 
+         return true;
+
+      return (this.bitsRadix == 4) ? this.sort16(input, blkptr, count) :
          this.sort256(input, blkptr, count);
    }
-   
-   
+
+
    private boolean sort16(int[] input, int blkptr, int count)
    {
-      final int end = blkptr + count;        
+      final int end = blkptr + count;
       final int[][] buf = this.buffers;
       int max = input[blkptr];
 
@@ -78,38 +78,38 @@ public final class RadixSort implements IntSorter, ByteSorter
       }
 
       // Generate histograms
-      for (int i=blkptr; i<end; i++) 
-      { 
+      for (int i=blkptr; i<end; i++)
+      {
          int val = input[i];
 
          if (val > max)
             max = val;
 
          buf[0][val&0x0F]++;
-         val >>= 4;      
+         val >>= 4;
          buf[1][val&0x0F]++;
-         val >>= 4;      
+         val >>= 4;
          buf[2][val&0x0F]++;
-         val >>= 4;      
-         buf[3][val&0x0F]++;     
-         val >>= 4;      
+         val >>= 4;
+         buf[3][val&0x0F]++;
+         val >>= 4;
          buf[4][val&0x0F]++;
-         val >>= 4;      
+         val >>= 4;
          buf[5][val&0x0F]++;
-         val >>= 4;      
+         val >>= 4;
          buf[6][val&0x0F]++;
-         val >>= 4;      
-         buf[7][val&0x0F]++;            
+         val >>= 4;
+         buf[7][val&0x0F]++;
       }
 
       int iter = 1;
-      
+
       while ((iter < 8) && (max>>(4*iter) > 0))
          iter++;
 
       // Convert to indices
-      for (int j=0; j<iter; j++) 
-      {             
+      for (int j=0; j<iter; j++)
+      {
          int sum = 0;
          final int[] buckets = buf[j];
 
@@ -118,7 +118,7 @@ public final class RadixSort implements IntSorter, ByteSorter
             final int tmp = buckets[i];
             buckets[i] = sum;
             sum += tmp;
-         }       
+         }
       }
 
       int[] ptr1 = input;
@@ -126,12 +126,12 @@ public final class RadixSort implements IntSorter, ByteSorter
 
       // Sort by current LSB
       for (int j=0; j<iter; j++)
-      {    
+      {
          final int[] buckets = buf[j];
          final int shift = j << 2;
 
-         for (int i=blkptr; i<end; i++) 
-         {     
+         for (int i=blkptr; i<end; i++)
+         {
             final int val = ptr1[i];
             ptr2[buckets[(val>>shift)&0x0F]++] = val;
          }
@@ -143,14 +143,14 @@ public final class RadixSort implements IntSorter, ByteSorter
 
       if ((iter & 1) == 1)
          System.arraycopy(ptr1, 0, input, blkptr, count);
-         
+
       return true;
-   }    
-   
-   
+   }
+
+
    private boolean sort256(int[] input, int blkptr, int count)
    {
-      final int end = blkptr + count;        
+      final int end = blkptr + count;
       final int[][] buf = this.buffers;
       int max = input[blkptr];
 
@@ -163,30 +163,30 @@ public final class RadixSort implements IntSorter, ByteSorter
       }
 
       // Generate histograms
-      for (int i=blkptr; i<end; i++) 
-      { 
+      for (int i=blkptr; i<end; i++)
+      {
          int val = input[i];
 
          if (val > max)
             max = val;
 
          buf[0][val&0xFF]++;
-         val >>= 8;      
+         val >>= 8;
          buf[1][val&0xFF]++;
-         val >>= 8;      
+         val >>= 8;
          buf[2][val&0xFF]++;
-         val >>= 8;      
-         buf[3][val&0xFF]++; 
+         val >>= 8;
+         buf[3][val&0xFF]++;
       }
 
       int iter = 1;
-      
+
       while ((iter < 4) && (max>>(8*iter) > 0))
          iter++;
-  
+
       // Convert to indices
-      for (int j=0; j<iter; j++) 
-      {             
+      for (int j=0; j<iter; j++)
+      {
          int sum = 0;
          final int[] buckets = buf[j];
 
@@ -195,7 +195,7 @@ public final class RadixSort implements IntSorter, ByteSorter
             final int tmp = buckets[i];
             buckets[i] = sum;
             sum += tmp;
-         }       
+         }
       }
 
       int[] ptr1 = input;
@@ -203,12 +203,12 @@ public final class RadixSort implements IntSorter, ByteSorter
 
       // Sort by current LSB
       for (int j=0; j<iter; j++)
-      {    
+      {
          final int[] buckets = buf[j];
          final int shift = j << 3;
 
-         for (int i=blkptr; i<end; i++) 
-         {     
+         for (int i=blkptr; i<end; i++)
+         {
             final int val = ptr1[i];
             ptr2[buckets[(val>>shift)&0xFF]++] = val;
          }
@@ -222,9 +222,9 @@ public final class RadixSort implements IntSorter, ByteSorter
          System.arraycopy(ptr1, 0, input, blkptr, count);
 
       return true;
-   }     
-   
-     
+   }
+
+
    @Override
    public boolean sort(byte[] input, int blkptr, int count)
    {
@@ -232,16 +232,16 @@ public final class RadixSort implements IntSorter, ByteSorter
           return false;
 
       if (count == 1)
-         return true; 
-      
-      return (this.bitsRadix == 4) ? this.sort16(input, blkptr, count) : 
+         return true;
+
+      return (this.bitsRadix == 4) ? this.sort16(input, blkptr, count) :
          this.sort256(input, blkptr, count);
    }
 
-   
+
    private boolean sort16(byte[] input, int blkptr, int count)
    {
-      final int end = blkptr + count;        
+      final int end = blkptr + count;
       final int[] buf0 = this.buffers[0];
       final int[] buf1 = this.buffers[1];
 
@@ -252,17 +252,17 @@ public final class RadixSort implements IntSorter, ByteSorter
       }
 
       // Generate histograms
-      for (int i=blkptr; i<end; i++) 
-      { 
+      for (int i=blkptr; i<end; i++)
+      {
          int val = input[i];
          buf0[val&0x0F]++;
-         val >>= 4;      
+         val >>= 4;
          buf1[val&0x0F]++;
       }
 
       // Convert to indices
-      for (int j=0; j<2; j++) 
-      {             
+      for (int j=0; j<2; j++)
+      {
          int sum = 0;
          final int[] buckets = this.buffers[j];
 
@@ -271,7 +271,7 @@ public final class RadixSort implements IntSorter, ByteSorter
             final int tmp = buckets[i];
             buckets[i] = sum;
             sum += tmp;
-         }       
+         }
       }
 
       byte[] ptr1 = input;
@@ -279,12 +279,12 @@ public final class RadixSort implements IntSorter, ByteSorter
 
       // Sort by current LSB
       for (int j=0; j<2; j++)
-      {    
+      {
          final int[] buckets = this.buffers[j];
          final int shift = j << 2;
 
-         for (int i=blkptr; i<end; i++) 
-         {     
+         for (int i=blkptr; i<end; i++)
+         {
             final int val = ptr1[i];
             ptr2[buckets[(val>>shift)&0x0F]++] = (byte) val;
          }
@@ -295,13 +295,13 @@ public final class RadixSort implements IntSorter, ByteSorter
       }
 
       return true;
-   }    
-   
-   
+   }
+
+
    // Similar to bucket sort
    private boolean sort256(byte[] input, int blkptr, int count)
    {
       return new BucketSort().sort(input, blkptr, count);
-   }     
-   
+   }
+
 }

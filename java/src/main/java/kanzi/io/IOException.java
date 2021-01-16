@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -16,19 +16,19 @@ limitations under the License.
 package kanzi.io;
 
 
-public class IOException extends java.io.IOException 
+public class IOException extends java.io.IOException
 {
    private static final long serialVersionUID = -9153775235137373283L;
 
    private final int code;
-   
+
    public IOException(String msg, int code)
    {
       super(msg);
       this.code = code;
    }
-   
-   
+
+
    public int getErrorCode()
    {
       return this.code;

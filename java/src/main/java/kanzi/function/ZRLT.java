@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -43,7 +43,7 @@ public final class ZRLT implements ByteFunction
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
          return false;
 
@@ -70,13 +70,13 @@ public final class ZRLT implements ByteFunction
 
                while ((srcIdx+runLength < srcEnd) && (src[srcIdx+runLength] == src[srcIdx]))
                   runLength++;
-     
+
                srcIdx += runLength;
-               
+
                // Encode length
                runLength++;
                int log2 = (runLength<=256) ? Global.LOG2[runLength-1] : 31-Integer.numberOfLeadingZeros(runLength);
-               
+
                if (dstIdx >= dstEnd-log2)
                   break;
 
@@ -126,7 +126,7 @@ public final class ZRLT implements ByteFunction
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
          return false;
 
@@ -141,7 +141,7 @@ public final class ZRLT implements ByteFunction
 
       if (srcIdx < srcEnd)
       {
-mainLoop:         
+mainLoop:
          while (dstIdx < dstEnd)
          {
             if (runLength > 1)
@@ -170,7 +170,7 @@ mainLoop:
 
                continue;
             }
-            
+
             // Regular data processing
             if (val == 0xFF)
             {
@@ -188,9 +188,9 @@ mainLoop:
 
             srcIdx++;
             dstIdx++;
-            
+
             if (srcIdx >= srcEnd)
-               break;            
+               break;
          }
       }
 

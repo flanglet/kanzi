@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -17,13 +17,13 @@ package kanzi;
 
 // Interface used by the binary entropy coder to predict probabilities of 0 and 1
 // symbols in the input signal
-public interface Predictor 
+public interface Predictor
 {
     // Update the probability model
     public void update(int bit);
-   
-    
-    // Return the split value representing the probability of 1 in the [0..4095] range. 
+
+
+    // Return the split value representing the probability of 1 in the [0..4095] range.
     // E.G. 410 represents roughly a probability of 10% for 1
     public int get();
 }

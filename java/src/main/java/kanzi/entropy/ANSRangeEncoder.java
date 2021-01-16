@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -28,7 +28,7 @@ public class ANSRangeEncoder implements EntropyEncoder
 {
    private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<23
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
-   private static final int DEFAULT_LOG_RANGE = 12; 
+   private static final int DEFAULT_LOG_RANGE = 12;
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final OutputBitStream bitstream;
@@ -52,7 +52,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       this(bs, order, DEFAULT_ANS0_CHUNK_SIZE, DEFAULT_LOG_RANGE);
    }
 
-   
+
    // The chunk size indicates how many bytes are encoded (per block) before
    // resetting the frequency stats.
    public ANSRangeEncoder(OutputBitStream bs, int order, int chunkSize, int logRange)
@@ -131,7 +131,7 @@ public class ANSRangeEncoder implements EntropyEncoder
    protected boolean encodeHeader(int alphabetSize, int[] alphabet, int[] frequencies, int lr)
    {
       final int encoded = EntropyUtils.encodeAlphabet(this.bitstream, alphabet, alphabetSize);
- 
+
       if (encoded < 0)
          return false;
 
@@ -165,12 +165,12 @@ public class ANSRangeEncoder implements EntropyEncoder
 
          if (logMax == 0) // all frequencies equal one in this chunk
             continue;
-                
+
          // Write frequencies
          for (int j=i; j<endj; j++)
             this.bitstream.writeBits(frequencies[alphabet[j]]-1, logMax);
       }
-    
+
       return true;
    }
 
@@ -199,7 +199,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       }
 
       final int size = Math.max(Math.min(sizeChunk+(sizeChunk>>3), 2*count), 65536);
-      
+
       // Add some padding
       if (this.buffer.length < size)
          this.buffer = new byte[size];
@@ -214,14 +214,14 @@ public class ANSRangeEncoder implements EntropyEncoder
             lr--;
 
          final int alphabetSize = this.rebuildStatistics(block, startChunk, endChunk, lr);
-         
+
          // Skip chunk if only one symbol
          if ((alphabetSize <= 1) && (this.order == 0))
          {
             startChunk = endChunk;
-            continue;               
+            continue;
          }
-         
+
          this.encodeChunk(block, startChunk, endChunk);
          startChunk = endChunk;
       }
@@ -281,7 +281,7 @@ public class ANSRangeEncoder implements EntropyEncoder
             // Compute next ANS state
             // C(s,x) = M floor(x/q_s) + mod(x,q_s) + b_s where b_s = q_0 + ... + q_{s-1}
             // st = ((st / freq) << lr) + (st % freq) + cumFreq[cur][prv];
-            final long q = (st*sym.invFreq) >>> sym.invShift;            
+            final long q = (st*sym.invFreq) >>> sym.invShift;
             st = (int) (st + sym.bias + q*sym.cmplFreq);
             prv = cur;
          }
@@ -303,7 +303,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       }
 
       n++;
-      
+
       // Write chunk size
       EntropyUtils.writeVarInt(this.bitstream, this.buffer.length-n);
 
@@ -323,7 +323,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          Global.computeHistogramOrder0(block, start, end, this.freqs[0], true);
       else
          Global.computeHistogramOrder1(block, start, end, this.freqs, true);
-         
+
       return this.updateFrequencies(this.freqs, lr);
    }
 
@@ -356,7 +356,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          // Make sure xMax is a positive int32
          if (freq >= 1<<logRange)
             freq = (1<<logRange) - 1;
-                  
+
          this.xMax = ((ANS_TOP>>>logRange) << 16) * freq;
          this.cmplFreq = (1<<logRange) - freq;
 

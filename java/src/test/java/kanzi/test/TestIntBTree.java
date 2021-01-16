@@ -1,5 +1,5 @@
 /*
- Copyright 2011-2017 Frederic Langlet
+ Copyright 2011-2021 Frederic Langlet
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  you may obtain a copy of the License at
@@ -77,7 +77,7 @@ public class TestIntBTree
                int r = tree.rank(array[i]);
                System.out.println("Rank "+array[i]+": "+r);
             }
-            
+
             while (tree.size() > 0)
             {
                min = tree.min();

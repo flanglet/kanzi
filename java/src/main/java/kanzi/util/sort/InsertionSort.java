@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -24,26 +24,26 @@ import kanzi.IntSorter;
 public class InsertionSort implements IntSorter
 {
     private final ArrayComparator cmp;
-    
-    
+
+
     public InsertionSort()
     {
         this(null);
     }
-    
-    
+
+
     public InsertionSort(ArrayComparator cmp)
     {
         this.cmp = cmp;
     }
-    
+
 
     protected ArrayComparator getComparator()
     {
         return this.cmp;
     }
 
-    
+
    @Override
     public boolean sort(int[] input, int blkptr, int len)
     {
@@ -52,16 +52,16 @@ public class InsertionSort implements IntSorter
 
         if (len == 1)
            return true;
-        
+
         if (this.cmp == null)
             sortNoComparator(input, blkptr, blkptr+len);
         else
             sortWithComparator(input, blkptr, blkptr+len, this.cmp);
-        
+
         return true;
     }
-    
-    
+
+
     private static void sortWithComparator(int[] array, int blkptr, int end, ArrayComparator comp)
     {
         // Shortcut for 2 element-sub-array
@@ -128,18 +128,18 @@ public class InsertionSort implements IntSorter
         {
             final int val = array[i];
             int j = i;
-            
+
             while ((j > blkptr) && (comp.compare(array[j-1], val) > 0))
             {
                 array[j] = array[j-1];
                 j--;
             }
-            
+
             array[j] = val;
         }
     }
-    
-    
+
+
     private static void sortNoComparator(int[] array, int blkptr, int end)
     {
         // Shortcut for 2 element-sub-array
@@ -198,7 +198,7 @@ public class InsertionSort implements IntSorter
                 array[blkptr+1] = a3;
                 array[end]      = a1;
             }
-            
+
             return;
         }
 
@@ -207,15 +207,15 @@ public class InsertionSort implements IntSorter
         {
             final int val = array[i];
             int j = i;
-            
+
             while ((j > blkptr) && (array[j-1] > val))
             {
                 array[j] = array[j-1];
                 j--;
             }
-            
+
             array[j] = val;
         }
     }
-    
+
 }

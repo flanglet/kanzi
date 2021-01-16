@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -37,14 +37,14 @@ public class TestSort
    {
       Assert.assertTrue(doSorting(1000000, 10));
    }
-   
-   
+
+
    public static void main(String args)
    {
       doSorting(1000000, 400);
    }
-   
-   
+
+
    private static boolean doSorting(int len, int max)
    {
       int[] array = new int[len];
@@ -170,7 +170,7 @@ public class TestSort
                   sum9 += (after - before);
 
                   if (ii == 0)
-                    check("Merge Sort", array);  
+                    check("Merge Sort", array);
 
                   System.arraycopy(copy, 0, array, 0, array.length);
                   before = System.nanoTime();
@@ -179,7 +179,7 @@ public class TestSort
                   sum10 += (after - before);
 
                   if (ii == 0)
-                    check("Spread Sort", array);                
+                    check("Spread Sort", array);
               }
           }
 
@@ -275,7 +275,7 @@ public class TestSort
                   sum7 += (after - before);
 
                   if (ii == 0)
-                     check("Flash Sort", array);                   
+                     check("Flash Sort", array);
 
                   System.arraycopy(copy, 0, array, 0, array.length);
                   before = System.nanoTime();
@@ -293,7 +293,7 @@ public class TestSort
                   sum9 += (after - before);
 
                   if (ii == 0)
-                     check("Merge Sort", array);  
+                     check("Merge Sort", array);
 
                   System.arraycopy(copy, 0, array, 0, array.length);
                   before = System.nanoTime();
@@ -302,7 +302,7 @@ public class TestSort
                   sum2 += (after - before);
 
                   if (ii == 0)
-                     check("Spread Sort", array);   
+                     check("Spread Sort", array);
               }
          }
 
@@ -316,27 +316,27 @@ public class TestSort
         System.out.println("MergeSort       Elapsed [ms]: " + (sum9  / 1000000));
         System.out.println("SpreadSort      Elapsed [ms]: " + (sum2  / 1000000));
         System.out.println("ParallelSort    Elapsed [ms]: " + (sum8  / 1000000));
-      
+
       }
       catch (Exception e)
       {
          e.printStackTrace();
          return false;
       }
-      finally 
+      finally
       {
-         pool.shutdown();      
+         pool.shutdown();
       }
 
       return true;
    }
 
 
-   private static void check(String name, int[] array) 
+   private static void check(String name, int[] array)
    {
-      for (int i=1; i<array.length; i++) 
+      for (int i=1; i<array.length; i++)
       {
-         if (array[i] < array[i-1]) 
+         if (array[i] < array[i-1])
          {
             for (int j=0; j<=i; j++)
                 System.out.print(array[j] + " ");

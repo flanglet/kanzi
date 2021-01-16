@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -26,7 +26,7 @@ import kanzi.util.hash.XXHash64;
 public class TestHash
 {
   public static void main(String[] args)
-  {    
+  {
       try
       {
          String fileName = (args.length > 0) ? args[0] : "c:\\temp\\rt.jar";
@@ -46,28 +46,28 @@ public class TestHash
             long sum = 0;
 
             while ((len = fis.read(array, 0, array.length)) > 0)
-            { 
+            {
                long before = System.nanoTime();
-               
+
                for (int i=0; i<iter; i++)
                {
                   hash.setSeed(0);
                   res += hash.hash(array, 0, len);
                }
-               
+
                long after = System.nanoTime();
                sum += (after - before);
                size += (len * iter);
             }
-           
+
             fis.close();
             System.out.println("XXHash32 res="+Integer.toHexString(res));
             System.out.println("Elapsed [ms]: " +sum/1000000L);
             System.out.println("Throughput [MB/s]: " +(size/1024*1000/1024)/(sum/1000000L));
          }
-         
+
          System.out.println();
-         
+
          {
             System.out.println("XXHash64 speed test");
             File input = new File(fileName);
@@ -80,28 +80,28 @@ public class TestHash
             long sum = 0;
 
             while ((len = fis.read(array, 0, array.length)) > 0)
-            { 
+            {
                long before = System.nanoTime();
-               
+
                for (int i=0; i<iter; i++)
                {
                   hash.setSeed(0);
                   res += hash.hash(array, 0, len);
                }
-               
+
                long after = System.nanoTime();
                sum += (after - before);
                size += (len * iter);
             }
-           
+
             fis.close();
             System.out.println("XXHash64 res="+Long.toHexString(res));
             System.out.println("Elapsed [ms]: " +sum/1000000L);
             System.out.println("Throughput [MB/s]: " +(size/1024*1000/1024)/(sum/1000000L));
          }
-         
+
          System.out.println();
-         
+
          {
             System.out.println("MurmurHash3 speed test");
             File input = new File(fileName);
@@ -114,29 +114,29 @@ public class TestHash
             long sum = 0;
 
             while ((len = fis.read(array, 0, array.length)) > 0)
-            { 
+            {
                long before = System.nanoTime();
 
                for (int i=0; i<iter; i++)
                {
                   hash.setSeed(0);
-                  res += hash.hash(array, 0, len);     
-               }               
+                  res += hash.hash(array, 0, len);
+               }
 
                long after = System.nanoTime();
                sum += (after - before);
                size += (len * iter);
-            }            
-            
+            }
+
             fis.close();
             System.out.println("MurmurHash res="+Integer.toHexString(res));
             System.out.println("Elapsed [ms]: " +sum/1000000L);
             System.out.println("Throughput [MB/s]: " +(size/1024*1000/1024)/(sum/1000000L));
          }
 
-         
+
          System.out.println();
-         
+
          {
             System.out.println("SipHash_2_4 speed test");
             File input = new File(fileName);
@@ -149,20 +149,20 @@ public class TestHash
             long sum = 0;
 
             while ((len = fis.read(array, 0, array.length)) > 0)
-            { 
+            {
                long before = System.nanoTime();
-   
+
                for (int i=0; i<iter; i++)
                {
                   hash.setSeed(0, 0);
-                  res += hash.hash(array, 0, len);     
+                  res += hash.hash(array, 0, len);
                }
-               
+
                long after = System.nanoTime();
                sum += (after - before);
                size += (len * iter);
-            }            
-            
+            }
+
             fis.close();
             System.out.println("SipHash_2_4 res="+Long.toHexString(res));
             System.out.println("Elapsed [ms]: " +sum/1000000L);
@@ -173,5 +173,5 @@ public class TestHash
       {
          e.printStackTrace();
       }
-  }  
+  }
 }

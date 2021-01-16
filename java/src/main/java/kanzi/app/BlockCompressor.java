@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -47,13 +47,13 @@ import kanzi.Listener;
 public class BlockCompressor implements Runnable, Callable<Integer>
 {
    private static final int DEFAULT_BUFFER_SIZE = 65536;
-   private static final int DEFAULT_BLOCK_SIZE  = 1024*1024; 
+   private static final int DEFAULT_BLOCK_SIZE  = 1024*1024;
    private static final int DEFAULT_CONCURRENCY = 1;
-   private static final int MAX_CONCURRENCY = 64;  
+   private static final int MAX_CONCURRENCY = 64;
    private static final String STDOUT = "STDOUT";
    private static final String STDIN = "STDIN";
    private static final String NONE = "NONE";
-   
+
    private int verbosity;
    private final boolean overwrite;
    private final boolean checksum;
@@ -68,27 +68,27 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private final List<Listener> listeners;
    private final ExecutorService pool;
 
-   
+
    public BlockCompressor(Map<String, Object> map)
    {
       this.level = (Integer) map.remove("level");
       Boolean bForce = (Boolean) map.remove("overwrite");
       this.overwrite = (bForce == null) ? false : bForce;
-      Boolean bSkip = (Boolean) map.remove("skipBlocks"); 
+      Boolean bSkip = (Boolean) map.remove("skipBlocks");
       this.skipBlocks = (bSkip == null) ? false : bSkip;
       this.inputName = (String) map.remove("inputName");
       this.outputName = (String) map.remove("outputName");
       String strTransf;
       String strCodec;
-      
+
       if (this.level >= 0)
       {
          String tranformAndCodec = getTransformAndCodec(this.level);
          String[] tokens = tranformAndCodec.split("&");
          strTransf = tokens[0];
          strCodec = tokens[1];
-      } 
-      else 
+      }
+      else
       {
          strTransf = (String) map.remove("transform");
          strCodec = (String) map.remove("entropy");
@@ -97,12 +97,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.codec = (strCodec == null) ? "ANS0" : strCodec;
       Integer iBlockSize = (Integer) map.remove("block");
       this.blockSize = (iBlockSize == null) ? DEFAULT_BLOCK_SIZE : ((iBlockSize + 15) & -16);
-      
+
       if (this.blockSize > 1024*1024*1024)
          throw new IllegalArgumentException("Maximum block size is 1 GB (1073741824 bytes), got "+this.blockSize+" bytes");
-      
-      // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)          
-      ByteFunctionFactory bff = new ByteFunctionFactory();      
+
+      // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)
+      ByteFunctionFactory bff = new ByteFunctionFactory();
       this.transform = (strTransf == null) ? "BWT+RANK+ZRLT" : bff.getName(bff.getType(strTransf));
       Boolean bChecksum = (Boolean) map.remove("checksum");
       this.checksum = (bChecksum == null) ? false : bChecksum;
@@ -113,10 +113,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       {
          if (this.verbosity > 0)
             System.err.println("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY);
-         
+
          concurrency = MAX_CONCURRENCY;
       }
-   
+
       this.jobs = (concurrency == 0) ? DEFAULT_CONCURRENCY : concurrency;
       this.pool = Executors.newFixedThreadPool(this.jobs);
       this.listeners = new ArrayList<>(10);
@@ -125,9 +125,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       {
          for (String k : map.keySet())
             printOut("Ignoring invalid option [" + k + "]", true); //this.verbosity>0
-      }  
+      }
    }
- 
+
 
    public void dispose()
    {
@@ -146,12 +146,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    // Return status (success = 0, error < 0)
    @Override
    public Integer call()
-   { 
+   {
       List<Path> files = new ArrayList<>();
       long before = System.nanoTime();
       boolean printFlag = this.verbosity > 2;
       int nbFiles = 1;
-      
+
       if (STDIN.equalsIgnoreCase(this.inputName) == false)
       {
          try
@@ -174,7 +174,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          String strFiles = (nbFiles > 1) ? " files" : " file";
          printOut(nbFiles+strFiles+" to compress\n", this.verbosity > 0);
       }
-      
+
       printOut("Block size set to " + this.blockSize + " bytes", printFlag);
       printOut("Verbosity set to " + this.verbosity, printFlag);
       printOut("Overwrite set to " + this.overwrite, printFlag);
@@ -188,31 +188,31 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          printOut("Using " + ecodec + " entropy codec (stage 2)", printFlag);
       }
 
-      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);           
-            
+      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);
+
       // Limit verbosity level when files are processed concurrently
       if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1)) {
          printOut("Warning: limiting verbosity to 1 due to concurrent processing of input files.\n", true);
          this.verbosity = 1;
       }
-      
+
       if (this.verbosity > 2)
          this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.ENCODING, System.out));
-         
+
       int res = 0;
       long read = 0;
-      long written = 0;            
+      long written = 0;
       boolean inputIsDir = false;
       String formattedOutName = this.outputName;
       String formattedInName = this.inputName;
-      boolean specialOutput = (NONE.equalsIgnoreCase(formattedOutName)) || 
+      boolean specialOutput = (NONE.equalsIgnoreCase(formattedOutName)) ||
          (STDOUT.equalsIgnoreCase(formattedOutName));
 
       try
       {
          if (STDIN.equalsIgnoreCase(this.inputName) == false)
          {
-            if (Files.isDirectory(Paths.get(formattedInName))) 
+            if (Files.isDirectory(Paths.get(formattedInName)))
             {
                inputIsDir = true;
 
@@ -222,7 +222,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                if (formattedInName.endsWith(File.separator) == false)
                   formattedInName += File.separator;
 
-               if ((formattedOutName != null) && (specialOutput == false))          
+               if ((formattedOutName != null) && (specialOutput == false))
                {
                   if (Files.isDirectory(Paths.get(formattedOutName)) == false)
                   {
@@ -233,10 +233,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                   if (formattedOutName.endsWith(File.separator) == false)
                      formattedOutName += File.separator;
                }
-            } 
+            }
             else
             {
-               if ((formattedOutName != null) && (specialOutput == false))           
+               if ((formattedOutName != null) && (specialOutput == false))
                {
                   if (Files.isDirectory(Paths.get(formattedOutName)) == true)
                   {
@@ -246,7 +246,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                }
             }
          }
-     
+
          Map<String, Object> ctx = new HashMap<>();
          ctx.put("verbosity", this.verbosity);
          ctx.put("overwrite", this.overwrite);
@@ -257,13 +257,13 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          ctx.put("codec", this.codec);
          ctx.put("transform", this.transform);
          ctx.put("extra", "TPAQX".equals(this.codec));
-               
+
          // Run the task(s)
          if (nbFiles == 1)
          {
             String oName = formattedOutName;
             String iName = STDIN;
-            
+
             if (STDIN.equalsIgnoreCase(this.inputName) == false)
             {
                iName = files.get(0).toString();
@@ -278,7 +278,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                   oName = formattedOutName + iName.substring(formattedInName.length()+1) + ".knz";
                }
             }
-            
+
             ctx.put("inputName", iName);
             ctx.put("outputName", oName);
             ctx.put("jobs", this.jobs);
@@ -311,28 +311,28 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                {
                   oName = formattedOutName + iName.substring(formattedInName.length()) + ".knz";
                }
-            
+
                taskCtx.put("fileSize", fileSize);
                taskCtx.put("inputName", iName);
                taskCtx.put("outputName", oName);
                taskCtx.put("jobs", jobsPerTask[n++]);
                FileCompressTask task = new FileCompressTask(taskCtx, this.listeners);
-               
+
                if (queue.offer(task) == false)
                   throw new RuntimeException("Could not create a compression task");
             }
-       
+
             List<FileCompressWorker> workers = new ArrayList<>(this.jobs);
-            
+
 		  	   // Create one worker per job and run it. A worker calls several tasks sequentially.
             for (int i=0; i<this.jobs; i++)
                workers.add(new FileCompressWorker(queue));
-            
+
             // Invoke the tasks concurrently and wait for results
             // Using workers instead of tasks direclty, allows for early exit on failure
             for (Future<FileCompressResult> result : this.pool.invokeAll(workers))
             {
-               FileCompressResult fcr = result.get();   
+               FileCompressResult fcr = result.get();
                read += fcr.read;
                written += fcr.written;
 
@@ -350,31 +350,31 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          System.err.println("An unexpected error occurred: " + e.getMessage());
          res = Error.ERR_UNKNOWN;
       }
-      
+
       long after = System.nanoTime();
-      
-      if (nbFiles > 1) 
+
+      if (nbFiles > 1)
       {
          long delta = (after - before) / 1000000L; // convert to ms
          printOut("", this.verbosity>0);
          String str;
-         
-         if (delta >= 100000) {            
+
+         if (delta >= 100000) {
             str = String.format("%1$.1f", (float) delta/1000) + " s";
          } else {
             str = String.valueOf(delta) + " ms";
          }
-         
+
          printOut("Total encoding time: "+str, this.verbosity > 0);
          printOut("Total output size: "+written+" byte"+((written>1)?"s":""), this.verbosity > 0);
-         
+
          if (read > 0)
          {
             float f = written / (float) read;
             printOut("Compression ratio: "+String.format("%1$.6f", f), this.verbosity > 0);
          }
       }
-      
+
       return res;
     }
 
@@ -384,7 +384,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       if ((print == true) && (msg != null))
          System.out.println(msg);
    }
-    
+
 
    public final boolean addListener(Listener bl)
    {
@@ -402,7 +402,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    {
       for (Listener bl : listeners)
       {
-         try 
+         try
          {
             bl.processEvent(evt);
          }
@@ -449,7 +449,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
            return "X86+RLT+TEXT&TPAQX";
 
         default :
-           return "Unknown&Unknown";             
+           return "Unknown&Unknown";
       }
    }
 
@@ -458,8 +458,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    static class FileCompressResult
    {
       final int code;
-      final long read; 
-      final long written; 
+      final long read;
+      final long written;
 
 
       public FileCompressResult(int code, long read, long written)
@@ -467,10 +467,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          this.code = code;
          this.read = read;
          this.written = written;
-      }  
+      }
    }
 
-  
+
    static class FileCompressTask implements Callable<FileCompressResult>
    {
       private final Map<String, Object> ctx;
@@ -484,8 +484,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          this.ctx = ctx;
          this.listeners = listeners;
       }
-      
-       
+
+
       @Override
       public FileCompressResult call() throws Exception
       {
@@ -500,10 +500,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          OutputStream os;
 
          try
-         {  
+         {
             if (NONE.equalsIgnoreCase(outputName))
             {
-               os = new NullOutputStream(); 
+               os = new NullOutputStream();
             }
             else if (STDOUT.equalsIgnoreCase(outputName))
             {
@@ -534,10 +534,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                   if (path1.equals(path2))
                   {
                      System.err.println("The input and output files must be different");
-                     return new FileCompressResult(Error.ERR_CREATE_FILE, 0, 0); 
+                     return new FileCompressResult(Error.ERR_CREATE_FILE, 0, 0);
                   }
                }
-             
+
                try
                {
                   os = new FileOutputStream(output);
@@ -546,13 +546,13 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                {
                   if (overwrite == false)
                      throw e1;
-                  
-                  try 
+
+                  try
                   {
                      // Attempt to create the full folder hierarchy to file
                      Files.createDirectories(FileSystems.getDefault().getPath(outputName).getParent());
                      os = new FileOutputStream(output);
-                  } 
+                  }
                   catch (IOException e2)
                   {
                      throw e1;
@@ -607,7 +607,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          long before = System.nanoTime();
 
          try
-         {       
+         {
             while (true)
             {
                try
@@ -617,7 +617,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                catch (Exception e)
                {
                   System.err.print("Failed to read block from file '"+inputName+"': ");
-                  System.err.println(e.getMessage());                
+                  System.err.println(e.getMessage());
                   return new FileCompressResult(Error.ERR_READ_FILE, read, this.cos.getWritten());
                }
 
@@ -644,16 +644,16 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          finally
          {
             // Close streams to ensure all data are flushed
-            this.dispose(); 
+            this.dispose();
 
-            try 
+            try
             {
                os.close();
-            } 
+            }
             catch (IOException e)
             {
                // Ignore
-            }              
+            }
          }
 
          if (read == 0)
@@ -667,19 +667,19 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          String str;
          printOut("", verbosity>1);
 
-         if (delta >= 100000) {            
+         if (delta >= 100000) {
             str = String.format("%1$.1f", (float) delta/1000) + " s";
          } else {
             str = String.valueOf(delta) + " ms";
          }
-         
+
          printOut("Encoding:          "+str, printFlag);
          printOut("Input size:        "+read, printFlag);
          printOut("Output size:       "+this.cos.getWritten(), printFlag);
          float f = this.cos.getWritten() / (float) read;
          printOut("Compression ratio: "+String.format("%1$.6f", f), printFlag);
-         
-         if (delta >= 100000) {            
+
+         if (delta >= 100000) {
             str = String.format("%1$.1f", (float) delta/1000) + " s";
          } else {
             str = String.valueOf(delta) + " ms";
@@ -698,12 +698,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             Event evt = new Event(Event.Type.COMPRESSION_END, -1, this.cos.getWritten());
             Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
             notifyListeners(array, evt);
-         }          
+         }
 
-         return new FileCompressResult(0, read, this.cos.getWritten());         
-      }     
-      
-      
+         return new FileCompressResult(0, read, this.cos.getWritten());
+      }
+
+
       public void dispose() throws IOException
       {
          if (this.is != null)
@@ -711,10 +711,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          if (this.cos != null)
             this.cos.close();
-      }      
+      }
    }
-    
-   
+
+
    static class FileCompressWorker implements Callable<FileCompressResult>
    {
       private final ArrayBlockingQueue<FileCompressTask> queue;
@@ -724,18 +724,18 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       {
          this.queue = queue;
       }
-       
+
       @Override
       public FileCompressResult call() throws Exception
       {
          int res = 0;
-         long read = 0;         
+         long read = 0;
          long written = 0;
-         
+
          while (res == 0)
          {
             FileCompressTask task = this.queue.poll();
-            
+
             if (task == null)
                break;
 

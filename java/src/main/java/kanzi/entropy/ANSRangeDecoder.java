@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -47,13 +47,13 @@ public class ANSRangeDecoder implements EntropyDecoder
       this(bs, 0, DEFAULT_ANS0_CHUNK_SIZE);
    }
 
-   
+
    public ANSRangeDecoder(InputBitStream bs, int order)
    {
       this(bs, order, DEFAULT_ANS0_CHUNK_SIZE);
    }
 
-   
+
    // The chunk size indicates how many bytes are encoded (per block) before
    // resetting the frequency stats.
    public ANSRangeDecoder(InputBitStream bs, int order, int chunkSize)
@@ -80,7 +80,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
       this.logRange = DEFAULT_LOG_RANGE;
-      
+
       for (int i=0; i<dim; i++)
       {
          this.alphabet[i] = new int[256];
@@ -104,7 +104,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       int sizeChunk = this.chunkSize;
       int startChunk = blkptr;
       final int endk = 255*this.order + 1;
-      
+
       for (int k=0; k<endk; k++)
       {
          Symbol[] syms = this.symbols[k];
@@ -114,7 +114,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       }
 
       final int size = Math.max(Math.min(sizeChunk+(sizeChunk>>3), 2*count), 65536);
-      
+
       // Add some padding
       if (this.buffer.length < size)
          this.buffer = new byte[size];
@@ -126,7 +126,7 @@ public class ANSRangeDecoder implements EntropyDecoder
 
          if (alphabetSize == 0)
             return startChunk - blkptr;
-      
+
          if ((this.order == 0) && (alphabetSize == 1))
          {
             // Shortcut for chunks with only one symbol
@@ -135,27 +135,27 @@ public class ANSRangeDecoder implements EntropyDecoder
          }
          else
          {
-            this.decodeChunk(block, startChunk, endChunk); 
+            this.decodeChunk(block, startChunk, endChunk);
          }
-         
+
          startChunk = endChunk;
       }
 
       return count;
    }
 
-   
+
    protected void decodeChunk(byte[] block, int start, final int end)
    {
       // Read chunk size
       final int sz = EntropyUtils.readVarInt(this.bitstream) & (MAX_CHUNK_SIZE-1);
-           
+
       // Read initial ANS state
       int st = (int) this.bitstream.readBits(32);
-      
+
       if (sz != 0)
          this.bitstream.readBits(this.buffer, 0, 8*sz);
-      
+
       int n = 0;
       final int mask = (1<<this.logRange) - 1;
 
@@ -163,22 +163,22 @@ public class ANSRangeDecoder implements EntropyDecoder
       {
          final byte[] freq2sym = this.f2s[0];
          final Symbol[] symb = this.symbols[0];
-            
+
          for (int i=start; i<end; i++)
          {
             final byte cur = freq2sym[st&mask];
-            block[i] = cur;                     
+            block[i] = cur;
             final Symbol sym = symb[cur&0xFF];
-            
+
             // Compute next ANS state
             // D(x) = (s, q_s (x/M) + mod(x,M) - b_s) where s is such b_s <= x mod M < b_{s+1}
             st = sym.freq * (st>>>this.logRange) + (st&mask) - sym.cumFreq;
 
             // Normalize
-            while (st < ANS_TOP) 
+            while (st < ANS_TOP)
             {
-               st = (st<<8) | (this.buffer[n] & 0xFF);         
-               st = (st<<8) | (this.buffer[n+1] & 0xFF);  
+               st = (st<<8) | (this.buffer[n] & 0xFF);
+               st = (st<<8) | (this.buffer[n+1] & 0xFF);
                n += 2;
             }
          }
@@ -186,7 +186,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       else
       {
          int prv = 0;
-         
+
          for (int i=start; i<end; i++)
          {
             final int cur = this.f2s[prv][st&mask] & 0xFF;
@@ -198,18 +198,18 @@ public class ANSRangeDecoder implements EntropyDecoder
             st = sym.freq * (st>>>this.logRange) + (st&mask) - sym.cumFreq;
 
             // Normalize
-            while (st < ANS_TOP) 
+            while (st < ANS_TOP)
             {
-               st = (st<<8) | (this.buffer[n] & 0xFF);         
-               st = (st<<8) | (this.buffer[n+1] & 0xFF);  
+               st = (st<<8) | (this.buffer[n] & 0xFF);
+               st = (st<<8) | (this.buffer[n+1] & 0xFF);
                n += 2;
             }
 
             prv = cur;
-         }             
-      } 
+         }
+      }
    }
-   
+
 
    // Decode alphabet and frequencies
    protected int decodeHeader(int[][] frequencies)
@@ -248,12 +248,12 @@ public class ANSRangeDecoder implements EntropyDecoder
          while (1<<llr <= this.logRange)
             llr++;
 
-         // Decode all frequencies (but the first one) by chunks 
+         // Decode all frequencies (but the first one) by chunks
          for (int i=1; i<alphabetSize; i+=chkSize)
          {
             // Read frequencies size for current chunk
             final int logMax = (int) this.bitstream.readBits(llr);
-            
+
             if (1<<logMax > scale)
             {
                throw new BitStreamException("Invalid bitstream: incorrect frequency size " +
@@ -297,7 +297,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          {
             if (f[i] == 0)
                continue;
-            
+
             for (int j=f[i]-1; j>=0; j--)
                freq2sym[sum+j] = (byte) i;
 
@@ -320,11 +320,11 @@ public class ANSRangeDecoder implements EntropyDecoder
 
 
    @Override
-   public void dispose() 
+   public void dispose()
    {
    }
-   
-   
+
+
    static class Symbol
    {
       int cumFreq;
@@ -332,9 +332,9 @@ public class ANSRangeDecoder implements EntropyDecoder
 
 
       public void reset(int cumFreq, int freq, int logRange)
-      {     
+      {
          this.cumFreq = cumFreq;
-         this.freq = (freq >= 1<<logRange) ? (1<<logRange) - 1 : freq; // Mirror encoder        
+         this.freq = (freq >= 1<<logRange) ? (1<<logRange) - 1 : freq; // Mirror encoder
       }
-   }   
+   }
 }

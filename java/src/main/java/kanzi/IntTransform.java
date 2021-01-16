@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -20,12 +20,12 @@ public interface IntTransform
 {
    // Read src.length ints from src.array[src.index], process them and
    // write them to dst.array[dst.index]. The index of each slice is updated
-   // with the number of ints respectively read from and written to.  
+   // with the number of ints respectively read from and written to.
    public boolean forward(SliceIntArray src, SliceIntArray dst);
 
 
    // Read src.length ints from src.array[src.index], process them and
    // write them to dst.array[dst.index]. The index of each slice is updated
-   // with the number of ints respectively read from and written to.  
+   // with the number of ints respectively read from and written to.
    public boolean inverse(SliceIntArray src, SliceIntArray dst);
 }

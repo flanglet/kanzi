@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -55,7 +55,7 @@ public final class DefaultInputBitStream implements InputBitStream
    }
 
 
-   // Return 1 or 0. Trigger exception if stream is closed   
+   // Return 1 or 0. Trigger exception if stream is closed
    @Override
    public int readBit() throws BitStreamException
    {
@@ -74,9 +74,9 @@ public final class DefaultInputBitStream implements InputBitStream
 
       if (count == 0)
          return 0;
-      
+
       int size = -1;
-      
+
       try
       {
          size = this.is.read(this.buffer, 0, count);
@@ -93,7 +93,7 @@ public final class DefaultInputBitStream implements InputBitStream
       {
          throw new BitStreamException(e.getMessage(), BitStreamException.INPUT_OUTPUT);
       }
-      finally 
+      finally
       {
          this.position = 0;
          this.read += (((long) this.maxPosition+1) << 3);
@@ -102,7 +102,7 @@ public final class DefaultInputBitStream implements InputBitStream
    }
 
 
-   // Return value of 'count' next bits as a long. Trigger exception if stream is closed   
+   // Return value of 'count' next bits as a long. Trigger exception if stream is closed
    @Override
    public long readBits(int count) throws BitStreamException
    {
@@ -110,8 +110,8 @@ public final class DefaultInputBitStream implements InputBitStream
          throw new IllegalArgumentException("Invalid bit count: "+count+" (must be in [1..64])");
 
       if (count <= this.availBits)
-      {         
-         // Enough spots available in 'current'     
+      {
+         // Enough spots available in 'current'
          this.availBits -= count;
          return (this.current >>> this.availBits) & (-1L >>> -count);
       }
@@ -137,7 +137,7 @@ public final class DefaultInputBitStream implements InputBitStream
 
       if (count == 0)
          return 0;
-      
+
       int remaining = count;
 
       // Byte aligned cursor ?
@@ -203,14 +203,14 @@ public final class DefaultInputBitStream implements InputBitStream
       return count;
    }
 
-   
+
    // Pull 64 bits of current value from buffer.
    private void pullCurrent()
    {
       if (this.position > this.maxPosition)
-         this.readFromInputStream(this.buffer.length);   
-      
-      if (this.position+7 > this.maxPosition) 
+         this.readFromInputStream(this.buffer.length);
+
+      if (this.position+7 > this.maxPosition)
       {
          // End of stream: overshoot max position => adjust bit index
          int shift = (this.maxPosition - this.position) << 3;
@@ -231,10 +231,10 @@ public final class DefaultInputBitStream implements InputBitStream
          this.current = Memory.BigEndian.readLong64(this.buffer, this.position);
          this.availBits = 64;
          this.position += 8;
-      }       
+      }
    }
 
-   
+
    @Override
    public void close()
    {
@@ -279,10 +279,10 @@ public final class DefaultInputBitStream implements InputBitStream
 
       return true;
    }
-   
-   
+
+
    public boolean isClosed()
    {
       return this.closed;
-   }   
+   }
 }

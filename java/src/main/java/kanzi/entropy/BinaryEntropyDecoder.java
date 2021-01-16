@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -30,7 +30,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder
    private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
    private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
-   
+
    private final Predictor predictor;
    private long low;
    private long high;
@@ -52,7 +52,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder
       this.low = 0L;
       this.high = TOP;
       this.bitstream = bitstream;
-      this.predictor = predictor;      
+      this.predictor = predictor;
       this.sba = new SliceByteArray(new byte[0], 0);
    }
 
@@ -75,35 +75,35 @@ public class BinaryEntropyDecoder implements EntropyDecoder
          // If the block is big (>=64MB), split the decoding to avoid allocating
          // too much memory.
          length = (count < (1<<29)) ? count >> 3 : count >> 4;
-      }  
-      
+      }
+
       // Split block into chunks, read bit array from bitstream and decode chunk
       while (startChunk < end)
       {
          final int chunkSize = startChunk+length < end ? length : end-startChunk;
-       
+
          if (this.sba.array.length < (chunkSize*9)>>3)
             this.sba.array = new byte[(chunkSize*9)>>3];
 
-         final int szBytes = EntropyUtils.readVarInt(this.bitstream);                 
+         final int szBytes = EntropyUtils.readVarInt(this.bitstream);
          this.current = this.bitstream.readBits(56);
          this.initialized = true;
-         
+
          if (szBytes != 0)
             this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
-         
+
          this.sba.index = 0;
          final int endChunk = startChunk + chunkSize;
 
          for (int i=startChunk; i<endChunk; i++)
             block[i] = this.decodeByte();
-         
+
          startChunk = endChunk;
       }
 
-      return count;   
+      return count;
    }
-   
+
 
    public final byte decodeByte()
    {
@@ -117,7 +117,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder
             |  this.decodeBit(this.predictor.get()));
    }
 
-    
+
    // Not thread safe
    public boolean isInitialized()
    {
@@ -167,8 +167,8 @@ public class BinaryEntropyDecoder implements EntropyDecoder
 
    protected void read()
    {
-      this.low = (this.low<<32) & MASK_0_56;           
-      this.high = ((this.high<<32) | MASK_0_32) & MASK_0_56;        
+      this.low = (this.low<<32) & MASK_0_56;
+      this.high = ((this.high<<32) | MASK_0_32) & MASK_0_56;
       final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
       this.current = ((this.current<<32) | val) & MASK_0_56;
       this.sba.index += 4;
@@ -181,9 +181,9 @@ public class BinaryEntropyDecoder implements EntropyDecoder
       return this.bitstream;
    }
 
-   
+
    @Override
-   public void dispose() 
+   public void dispose()
    {
    }
 }

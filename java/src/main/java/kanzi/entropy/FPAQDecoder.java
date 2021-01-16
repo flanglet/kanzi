@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -33,7 +33,7 @@ public class FPAQDecoder implements EntropyDecoder
    private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
    private static final int PSCALE = 65536;
-   
+
    private long low;
    private long high;
    private long current;
@@ -41,9 +41,9 @@ public class FPAQDecoder implements EntropyDecoder
    private boolean initialized;
    private SliceByteArray sba;
    private final int[][] probs; // probability of bit=1
-   private int[] p; // pointer to current prob   
+   private int[] p; // pointer to current prob
    private int ctx; // previous bits
-   
+
 
    public FPAQDecoder(InputBitStream bitstream)
    {
@@ -53,14 +53,14 @@ public class FPAQDecoder implements EntropyDecoder
       // Defer stream reading. We are creating the object, we should not do any I/O
       this.low = 0L;
       this.high = TOP;
-      this.bitstream = bitstream;  
+      this.bitstream = bitstream;
       this.sba = new SliceByteArray(new byte[0], 0);
       this.ctx = 1;
-      this.probs = new int[4][256];  
+      this.probs = new int[4][256];
       this.p = this.probs[0];
- 
+
       for (int i=0; i<4; i++)
-         Arrays.fill(this.probs[i], PSCALE>>1);  
+         Arrays.fill(this.probs[i], PSCALE>>1);
    }
 
 
@@ -82,23 +82,23 @@ public class FPAQDecoder implements EntropyDecoder
          // If the block is big (>=64MB), split the decoding to avoid allocating
          // too much memory.
          length = (count < (1<<29)) ? count >> 3 : count >> 4;
-      }  
-      
+      }
+
       // Split block into chunks, read bit array from bitstream and decode chunk
       while (startChunk < end)
       {
          final int chunkSize = startChunk+length < end ? length : end-startChunk;
-       
+
          if (this.sba.array.length < (chunkSize*9)>>3)
             this.sba.array = new byte[(chunkSize*9)>>3];
 
-         final int szBytes = EntropyUtils.readVarInt(this.bitstream);                 
+         final int szBytes = EntropyUtils.readVarInt(this.bitstream);
          this.current = this.bitstream.readBits(56);
          this.initialized = true;
-         
+
          if (szBytes != 0)
             this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
-         
+
          this.sba.index = 0;
          final int endChunk = startChunk + chunkSize;
          this.p = this.probs[0];
@@ -117,14 +117,14 @@ public class FPAQDecoder implements EntropyDecoder
             block[i] = (byte) this.ctx;
             this.p = this.probs[(this.ctx&0xFF)>>>6];
          }
-         
+
          startChunk = endChunk;
       }
 
-      return count;   
+      return count;
    }
-   
-  
+
+
    // Not thread safe
    public boolean isInitialized()
    {
@@ -156,14 +156,14 @@ public class FPAQDecoder implements EntropyDecoder
          bit = 1;
          this.high = split;
          this.p[this.ctx] -= ((this.p[this.ctx]-PSCALE+64) >> 6);
-         this.ctx = (this.ctx<<1) + 1;         
+         this.ctx = (this.ctx<<1) + 1;
       }
       else
       {
          bit = 0;
          this.low = -~split;
          this.p[this.ctx] -= (this.p[this.ctx] >> 6);
-         this.ctx = this.ctx << 1;         
+         this.ctx = this.ctx << 1;
       }
 
       // Read 32 bits from bitstream
@@ -176,8 +176,8 @@ public class FPAQDecoder implements EntropyDecoder
 
    protected void read()
    {
-      this.low = (this.low<<32) & MASK_0_56;           
-      this.high = ((this.high<<32) | MASK_0_32) & MASK_0_56;        
+      this.low = (this.low<<32) & MASK_0_56;
+      this.high = ((this.high<<32) | MASK_0_32) & MASK_0_56;
       final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
       this.current = ((this.current<<32) | val) & MASK_0_56;
       this.sba.index += 4;
@@ -190,9 +190,9 @@ public class FPAQDecoder implements EntropyDecoder
       return this.bitstream;
    }
 
-   
+
    @Override
-   public void dispose() 
+   public void dispose()
    {
    }
 }

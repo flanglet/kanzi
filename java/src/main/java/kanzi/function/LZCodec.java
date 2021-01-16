@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -23,27 +23,27 @@ import kanzi.SliceByteArray;
 
 // Simple byte oriented LZ77 implementation.
 // It is a based on a heavily modified LZ4 with a bigger window, a bigger
-// hash map, 3+n*8 bit literal lengths, repetition distance and 17 or 24 bit 
+// hash map, 3+n*8 bit literal lengths, repetition distance and 17 or 24 bit
 // match lengths.
 public final class LZCodec implements ByteFunction
 {
    private final ByteFunction delegate;
-  
-   
+
+
    public LZCodec()
    {
       this.delegate = new LZXCodec();
    }
-  
-   
+
+
    public LZCodec(Map<String, Object> ctx)
    {
       // Encode the word indexes as varints with a token or with a mask
       final short lzType = (short) ctx.getOrDefault("lz", ByteFunctionFactory.LZ_TYPE);
       this.delegate = (lzType == ByteFunctionFactory.LZP_TYPE) ? new LZPCodec(ctx) : new LZXCodec(ctx);
    }
-   
-   
+
+
    @Override
    public int getMaxEncodedLength(int srcLength)
    {
@@ -59,10 +59,10 @@ public final class LZCodec implements ByteFunction
 
       if (src.array == dst.array)
          return false;
-  
-      return this.delegate.forward(src, dst);   
+
+      return this.delegate.forward(src, dst);
    }
-      
+
 
    @Override
    public boolean inverse(SliceByteArray src, SliceByteArray dst)
@@ -75,7 +75,7 @@ public final class LZCodec implements ByteFunction
 
       return this.delegate.inverse(src, dst);
    }
-   
+
 
    private static boolean differentInts(byte[] array, int srcIdx, int dstIdx)
    {
@@ -83,8 +83,8 @@ public final class LZCodec implements ByteFunction
               (array[srcIdx+1] != array[dstIdx+1]) ||
               (array[srcIdx+2] != array[dstIdx+2]) ||
               (array[srcIdx+3] != array[dstIdx+3]));
-   }   
-   
+   }
+
 
 
    static final class LZXCodec implements ByteFunction
@@ -136,7 +136,7 @@ public final class LZCodec implements ByteFunction
             return idx+1;
          }
 
-         if (length < 65536 + 254) 
+         if (length < 65536 + 254)
          {
             length -= 254;
             block[idx] = (byte) 254;
@@ -161,7 +161,7 @@ public final class LZCodec implements ByteFunction
          if (res < 254)
             return res;
 
-         if (res == 254) 
+         if (res == 254)
          {
             res += ((sba.array[sba.index++] & 0xFF) << 8);
             res +=  (sba.array[sba.index++] & 0xFF);
@@ -175,7 +175,7 @@ public final class LZCodec implements ByteFunction
          return res;
       }
 
-      
+
       private static int findMatch(byte[] src, int srcIdx, int ref, int maxMatch)
       {
          int bestLen = 0;
@@ -191,8 +191,8 @@ public final class LZCodec implements ByteFunction
           }
 
          return bestLen;
-      }  
-      
+      }
+
 
       @Override
       public boolean forward(SliceByteArray input, SliceByteArray output)
@@ -212,11 +212,11 @@ public final class LZCodec implements ByteFunction
          if (count < MIN_BLOCK_LENGTH)
              return false;
 
-         if (this.hashes.length == 0) 
+         if (this.hashes.length == 0)
          {
             this.hashes = (this.extra == true) ? new int[1<<HASH_LOG2] : new int[1<<HASH_LOG1];
-         } 
-         else 
+         }
+         else
          {
             for (int i=0; i<this.hashes.length; i++)
                this.hashes[i] = 0;
@@ -224,10 +224,10 @@ public final class LZCodec implements ByteFunction
 
          if (this.mBuf.length < Math.max(count/5, 256))
             this.mBuf = new byte[Math.max(count/5, 256)];
-            
+
          if (this.tkBuf.length < Math.max(count/5, 256))
             this.tkBuf = new byte[Math.max(count/5, 256)];
-            
+
          final int srcIdx0 = input.index;
          final int dstIdx0 = output.index;
          final byte[] src = input.array;
@@ -242,7 +242,7 @@ public final class LZCodec implements ByteFunction
          int tkIdx = 0;
          int repd = 0;
 
-         while (srcIdx < srcEnd) 
+         while (srcIdx < srcEnd)
          {
             final int minRef = Math.max(srcIdx-maxDist, srcIdx0);
             int h = hash(src, srcIdx);
@@ -251,26 +251,26 @@ public final class LZCodec implements ByteFunction
             int bestLen = 0;
 
             // Find a match
-            if (ref > minRef) 
+            if (ref > minRef)
             {
                final int maxMatch = Math.min(srcEnd-srcIdx, MAX_MATCH);
                bestLen = findMatch(src, srcIdx, ref, maxMatch);
             }
-            
+
             // No good match ?
             if ((bestLen < MIN_MATCH) || ((bestLen == MIN_MATCH) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)))
             {
                srcIdx++;
                continue;
             }
-            
+
             // Check if better match at next position
             final int h2 = hash(src, srcIdx+1);
             final int ref2 = this.hashes[h2];
             this.hashes[h2] = srcIdx + 1;
             int bestLen2 = 0;
 
-            if (ref2 > minRef + 1) 
+            if (ref2 > minRef + 1)
             {
                final int maxMatch = Math.min(srcEnd-srcIdx-1, MAX_MATCH);
                bestLen2 = findMatch(src, srcIdx+1, ref2, maxMatch);
@@ -296,11 +296,11 @@ public final class LZCodec implements ByteFunction
             final int token = ((dist>0xFFFF) ? 0x10 : 0) | Math.min(mLen, 0x0F);
 
             // Literals to process ?
-            if (anchor == srcIdx) 
+            if (anchor == srcIdx)
             {
                this.tkBuf[tkIdx++] = (byte) token;
             }
-            else 
+            else
             {
                // Process literals
                final int litLen = srcIdx - anchor;
@@ -309,11 +309,11 @@ public final class LZCodec implements ByteFunction
                if (litLen >= 7) {
                   if (litLen >= (1 << 24))
                      return false;
- 
+
                   this.tkBuf[tkIdx++] = (byte) ((7<<5)|token);
                   dstIdx = emitLength(dst, dstIdx, litLen-7);
                }
-               else 
+               else
                {
                   this.tkBuf[tkIdx++] = (byte) ((litLen<<5)|token);
                }
@@ -333,8 +333,8 @@ public final class LZCodec implements ByteFunction
 
             this.mBuf[mIdx++] = (byte) (dist>>8);
             this.mBuf[mIdx++] = (byte) (dist);
-            
-            if (mIdx >= this.mBuf.length-4) 
+
+            if (mIdx >= this.mBuf.length-4)
             {
                // Expand match buffer
                byte[] buf = new byte[this.mBuf.length<<1];
@@ -346,7 +346,7 @@ public final class LZCodec implements ByteFunction
             anchor = srcIdx + bestLen;
             srcIdx++;
 
-            while (srcIdx < anchor) 
+            while (srcIdx < anchor)
             {
                this.hashes[hash(src, srcIdx)] = srcIdx;
                srcIdx++;
@@ -355,16 +355,16 @@ public final class LZCodec implements ByteFunction
 
          if ((dstIdx+tkIdx+mIdx) > (output.length - output.index))
             return false;
-         
+
          // Emit last literals
          final int litLen = count - anchor;
 
-         if (litLen >= 7) 
+         if (litLen >= 7)
          {
             this.tkBuf[tkIdx++] = (byte) (7<<5);
             dstIdx = emitLength(dst, dstIdx, litLen-7);
          }
-         else 
+         else
          {
             this.tkBuf[tkIdx++] = (byte) (litLen<<5);
          }
@@ -394,7 +394,7 @@ public final class LZCodec implements ByteFunction
          if (input.array == output.array)
             return false;
 
-         final int count = input.length;     
+         final int count = input.length;
          final int srcIdx0 = input.index;
          final int dstIdx0 = output.index;
          final byte[] src = input.array;
@@ -402,10 +402,10 @@ public final class LZCodec implements ByteFunction
          final int dstEnd = dst.length - 16;
          int tkIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
          int mIdx = tkIdx + Memory.LittleEndian.readInt32(src, srcIdx0+4);
-         
+
          if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (tkIdx > srcIdx0+count) || (mIdx > srcIdx0+count))
             return false;
-         
+
          final int srcEnd = srcIdx0 + tkIdx - 9;
          final int maxDist = (src[srcIdx0+8] == 1) ? MAX_DISTANCE2 : MAX_DISTANCE1;
          int srcIdx = srcIdx0 + 9;
@@ -414,24 +414,24 @@ public final class LZCodec implements ByteFunction
          SliceByteArray sba1 = new SliceByteArray(src, srcIdx);
          SliceByteArray sba2 = new SliceByteArray(src, mIdx);
 
-         while (true) 
+         while (true)
          {
             final int token = src[tkIdx++] & 0xFF;
 
-            if (token >= 32) 
+            if (token >= 32)
             {
                // Get literal length
                int litLen = token >> 5;
 
-               if (litLen == 7) 
+               if (litLen == 7)
                {
                   sba1.index = srcIdx;
                   litLen += readLength(sba1);
                   srcIdx = sba1.index;
                }
-               
+
                // Emit literals
-               if ((dstIdx+litLen > dstEnd) || (srcIdx+litLen >= srcEnd)) 
+               if ((dstIdx+litLen > dstEnd) || (srcIdx+litLen >= srcEnd))
                {
                   System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
                   srcIdx += litLen;
@@ -447,18 +447,18 @@ public final class LZCodec implements ByteFunction
             // Get match length
             int mLen = token & 0x0F;
 
-            if (mLen == 15) 
+            if (mLen == 15)
             {
                sba2.index = mIdx;
                mLen += readLength(sba2);
                mIdx = sba2.index;
             }
-            
+
             mLen += MIN_MATCH;
             final int mEnd = dstIdx + mLen;
 
             // Sanity check
-            if (mEnd > dstEnd+16) 
+            if (mEnd > dstEnd+16)
             {
                input.index = srcIdx;
                output.index = dstIdx;
@@ -468,17 +468,17 @@ public final class LZCodec implements ByteFunction
             // Get distance
             int d = ((src[mIdx]&0xFF) << 8) | (src[mIdx+1]&0xFF);
             mIdx += 2;
-            
-            if ((token&0x10) != 0) 
+
+            if ((token&0x10) != 0)
             {
                d = (maxDist==MAX_DISTANCE1) ? d+65536 : (d<<8) | (src[mIdx++]&0xFF);
             }
-            
+
             final int dist = (d == 0) ? repd : d - 1;
             repd = dist;
-        
+
             // Sanity check
-            if ((dstIdx-dist < dstIdx0) || (dist > maxDist)) 
+            if ((dstIdx-dist < dstIdx0) || (dist > maxDist))
             {
                input.index = srcIdx;
                output.index = dstIdx;
@@ -486,20 +486,20 @@ public final class LZCodec implements ByteFunction
             }
 
             // Copy match
-            if (dist >= 16) 
+            if (dist >= 16)
             {
                int ref = dstIdx - dist;
 
-               do 
+               do
                {
                   // No overlap
                   System.arraycopy(dst, ref, dst, dstIdx, 16);
                   ref += 16;
                   dstIdx += 16;
-               } 
+               }
                while (dstIdx < mEnd);
             }
-            else 
+            else
             {
                final int ref = dstIdx - dist;
 
@@ -520,7 +520,7 @@ public final class LZCodec implements ByteFunction
       {
          if (this.extra == true)
             return (int) ((Memory.LittleEndian.readLong64(block, idx)*HASH_SEED) >> HASH_SHIFT2) & HASH_MASK2;
-         
+
          return (int) ((Memory.LittleEndian.readLong64(block, idx)*HASH_SEED) >> HASH_SHIFT1) & HASH_MASK1;
       }
 
@@ -534,7 +534,7 @@ public final class LZCodec implements ByteFunction
          dst[dstIdx+4] = src[srcIdx+4];
          dst[dstIdx+5] = src[srcIdx+5];
          dst[dstIdx+6] = src[srcIdx+6];
-         dst[dstIdx+7] = src[srcIdx+7];  
+         dst[dstIdx+7] = src[srcIdx+7];
       }
 
 
@@ -551,9 +551,9 @@ public final class LZCodec implements ByteFunction
          return (srcLen <= 1024) ? srcLen+16 : srcLen+(srcLen/64);
       }
    }
-   
-   
-   
+
+
+
    static final class LZPCodec implements ByteFunction
    {
       private static final int HASH_SEED        = 0x7FEB352D;
@@ -596,11 +596,11 @@ public final class LZCodec implements ByteFunction
          if (count < MIN_BLOCK_LENGTH)
              return false;
 
-         if (this.hashes.length == 0) 
+         if (this.hashes.length == 0)
          {
             this.hashes = new int[1<<HASH_LOG];
-         } 
-         else 
+         }
+         else
          {
             for (int i=0; i<(1<<HASH_LOG); i++)
                this.hashes[i] = 0;
@@ -631,7 +631,7 @@ public final class LZCodec implements ByteFunction
             int bestLen = 0;
 
             // Find a match
-            if ((ref > minRef) && (LZCodec.differentInts(src, ref, srcIdx) == false)) 
+            if ((ref > minRef) && (LZCodec.differentInts(src, ref, srcIdx) == false))
             {
                final int maxMatch = srcEnd - srcIdx;
                bestLen = 4;
@@ -644,13 +644,13 @@ public final class LZCodec implements ByteFunction
             }
 
             // No good match ?
-            if (bestLen < MIN_MATCH) 
+            if (bestLen < MIN_MATCH)
             {
                final int val = src[srcIdx] & 0xFF;
                ctx = (ctx<<8) | val;
                dst[dstIdx++] = src[srcIdx++];
 
-               if (ref != 0) 
+               if (ref != 0)
                {
                   if (val == MATCH_FLAG)
                      dst[dstIdx++] = (byte) 0xFF;
@@ -680,7 +680,7 @@ public final class LZCodec implements ByteFunction
             dst[dstIdx++] = (byte) bestLen;
          }
 
-         while ((srcIdx < srcEnd+8) && (dstIdx < dstEnd)) 
+         while ((srcIdx < srcEnd+8) && (dstIdx < dstEnd))
          {
             final int h = (HASH_SEED*ctx) >>> HASH_SHIFT;
             final int ref = this.hashes[h];
@@ -695,7 +695,7 @@ public final class LZCodec implements ByteFunction
 
          input.index = srcIdx;
          output.index = dstIdx;
-         return (srcIdx == count) && (dstIdx < (count-(count>>6))); 
+         return (srcIdx == count) && (dstIdx < (count-(count>>6)));
       }
 
 
@@ -708,18 +708,18 @@ public final class LZCodec implements ByteFunction
          if (input.array == output.array)
             return false;
 
-         final int count = input.length;     
+         final int count = input.length;
          final byte[] src = input.array;
          final byte[] dst = output.array;
          final int srcEnd = input.index + count;
          int srcIdx = input.index;
          int dstIdx = output.index;
-         
-         if (this.hashes.length == 0) 
+
+         if (this.hashes.length == 0)
          {
             this.hashes = new int[1<<HASH_LOG];
-         } 
-         else 
+         }
+         else
          {
             for (int i=0; i<(1<<HASH_LOG); i++)
                this.hashes[i] = 0;
@@ -733,13 +733,13 @@ public final class LZCodec implements ByteFunction
          srcIdx += 4;
          dstIdx += 4;
 
-         while (srcIdx < srcEnd) 
+         while (srcIdx < srcEnd)
          {
             final int h = (HASH_SEED*ctx) >>> HASH_SHIFT;
             final int ref = this.hashes[h];
             this.hashes[h] = dstIdx;
 
-            if ((ref == 0) || (src[srcIdx] != (byte) MATCH_FLAG)) 
+            if ((ref == 0) || (src[srcIdx] != (byte) MATCH_FLAG))
             {
                dst[dstIdx] = src[srcIdx];
                ctx = (ctx<<8) | (dst[dstIdx]&0xFF);
@@ -750,7 +750,7 @@ public final class LZCodec implements ByteFunction
 
             srcIdx++;
 
-            if (src[srcIdx] == (byte) 0xFF) 
+            if (src[srcIdx] == (byte) 0xFF)
             {
                dst[dstIdx] = (byte) MATCH_FLAG;
                ctx = (ctx<<8) | MATCH_FLAG;
@@ -761,7 +761,7 @@ public final class LZCodec implements ByteFunction
 
             int mLen = MIN_MATCH;
 
-            while ((srcIdx < srcEnd) && (src[srcIdx] == (byte) 0xFE)) 
+            while ((srcIdx < srcEnd) && (src[srcIdx] == (byte) 0xFE))
             {
                srcIdx++;
                mLen += 254;
@@ -783,12 +783,12 @@ public final class LZCodec implements ByteFunction
         output.index = dstIdx;
         return srcIdx == srcEnd;
       }
-          
-      
+
+
       @Override
       public int getMaxEncodedLength(int srcLen)
       {
          return (srcLen <= 1024) ? srcLen+16 : srcLen+(srcLen/64);
-      }   
-   }   
+      }
+   }
 }

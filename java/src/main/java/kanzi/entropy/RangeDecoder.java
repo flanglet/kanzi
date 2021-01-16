@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -45,7 +45,7 @@ public final class RangeDecoder implements EntropyDecoder
     private final int chunkSize;
     private int shift;
 
-    
+
     public RangeDecoder(InputBitStream bitstream)
     {
        this(bitstream, DEFAULT_CHUNK_SIZE);
@@ -53,7 +53,7 @@ public final class RangeDecoder implements EntropyDecoder
 
 
     // The chunk size indicates how many bytes are encoded (per block) before
-    // resetting the frequency stats. 
+    // resetting the frequency stats.
     public RangeDecoder(InputBitStream bitstream, int chunkSize)
     {
         if (bitstream == null)
@@ -102,13 +102,13 @@ public final class RangeDecoder implements EntropyDecoder
       for (int i=1; i<alphabetSize; i+=chkSize)
       {
          final int logMax = (int) this.bitstream.readBits(llr);
-         
+
          if (1<<logMax > scale)
          {
             throw new BitStreamException("Invalid bitstream: incorrect frequency size " +
                     logMax + " in range decoder", BitStreamException.INVALID_STREAM);
          }
-            
+
          final int endj = (i+chkSize < alphabetSize) ? i + chkSize : alphabetSize;
 
          // Read frequencies
@@ -151,10 +151,10 @@ public final class RangeDecoder implements EntropyDecoder
          for (int j=frequencies[i]-1; j>=0; j--)
             this.f2s[base+j] = (short) i;
       }
-      
+
       return alphabetSize;
     }
-   
+
 
     // Initialize once (if necessary) at the beginning, the use the faster decodeByte_()
     // Reset frequency stats for each chunk of data in the block
@@ -166,7 +166,7 @@ public final class RangeDecoder implements EntropyDecoder
 
       if (count == 0)
          return 0;
-      
+
       final int end = blkptr + count;
       final int sz = this.chunkSize;
       int startChunk = blkptr;
@@ -178,8 +178,8 @@ public final class RangeDecoder implements EntropyDecoder
 
         if (alphabetSize == 0)
             return startChunk - blkptr;
- 
-        if (alphabetSize == 1) 
+
+        if (alphabetSize == 1)
         {
             // Shortcut for chunks with only one symbol
             for (int i=startChunk; i<endChunk; i++)
@@ -222,7 +222,7 @@ public final class RangeDecoder implements EntropyDecoder
           {
              if (this.range > BOTTOM_RANGE)
                 break;
-             
+
              // Normalize
              this.range = -this.low & BOTTOM_RANGE;
           }
@@ -242,9 +242,9 @@ public final class RangeDecoder implements EntropyDecoder
        return this.bitstream;
     }
 
-   
-    @Override  
-    public void dispose() 
+
+    @Override
+    public void dispose()
     {
     }
 }

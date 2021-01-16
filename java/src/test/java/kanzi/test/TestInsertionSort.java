@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -27,5 +27,5 @@ public class TestInsertionSort extends TestAbstractSort
     {
         Assert.assertTrue(testCorrectness("InsertionSort", new InsertionSort(), 20));
         testSpeed("InsertionSort", new InsertionSort(), 500);
-    }    
+    }
 }

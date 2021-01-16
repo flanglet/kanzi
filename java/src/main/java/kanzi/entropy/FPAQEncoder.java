@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -41,8 +41,8 @@ public class FPAQEncoder implements EntropyEncoder
    private SliceByteArray sba;
    private final int[][] probs; // probability of bit=1
    private int[] p; // pointer to current prob
-   
-   
+
+
    public FPAQEncoder(OutputBitStream bitstream)
    {
       if (bitstream == null)
@@ -52,11 +52,11 @@ public class FPAQEncoder implements EntropyEncoder
       this.high = TOP;
       this.bitstream = bitstream;
       this.sba = new SliceByteArray(new byte[0], 0);
-      this.probs = new int[4][256];  
+      this.probs = new int[4][256];
       this.p = this.probs[0];
-       
+
       for (int i=0; i<4; i++)
-         Arrays.fill(this.probs[i], PSCALE>>1);  
+         Arrays.fill(this.probs[i], PSCALE>>1);
    }
 
 
@@ -65,7 +65,7 @@ public class FPAQEncoder implements EntropyEncoder
    {
       if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
          return -1;
-      
+
       if (count == 0)
          return 0;
 
@@ -78,16 +78,16 @@ public class FPAQEncoder implements EntropyEncoder
          // If the block is big (>=64MB), split the encoding to avoid allocating
          // too much memory.
          length = (count < (1<<29)) ? count >> 3 : count >> 4;
-      }  
+      }
 
       // Split block into chunks, encode chunk and write bit array to bitstream
       while (startChunk < end)
       {
          final int chunkSize = startChunk+length < end ? length : end-startChunk;
-        
+
          if (this.sba.array.length < (chunkSize+(chunkSize>>3)))
             this.sba.array = new byte[chunkSize+(chunkSize>>3)];
-         
+
          this.sba.index = 0;
          final int endChunk = startChunk + chunkSize;
          this.p = this.probs[0];
@@ -106,13 +106,13 @@ public class FPAQEncoder implements EntropyEncoder
             this.encodeBit(val&0x01, bits>>1);
             this.p = this.probs[(val&0xFF)>>>6];
          }
-    
+
          EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
-         this.bitstream.writeBits(this.sba.array, 0, 8*this.sba.index); 
+         this.bitstream.writeBits(this.sba.array, 0, 8*this.sba.index);
          startChunk += chunkSize;
 
-         if (startChunk < end)         
-            this.bitstream.writeBits(this.low | MASK_0_24, 56);         
+         if (startChunk < end)
+            this.bitstream.writeBits(this.low | MASK_0_24, 56);
       }
 
       return count;
@@ -120,28 +120,28 @@ public class FPAQEncoder implements EntropyEncoder
 
 
    private void encodeBit(int bit, int pIdx)
-   {      
+   {
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division
       final long split = (((this.high-this.low) >>> 4) * (this.p[pIdx]>>>4)) >>> 8;
-        
+
       // Update probabilities
       if (bit == 0)
       {
          this.low += (split + 1);
          this.p[pIdx] -= (this.p[pIdx] >> 6);
       }
-      else 
+      else
       {
          this.high = this.low + split;
          this.p[pIdx] -= ((this.p[pIdx]-PSCALE+64) >> 6);
       }
-            
+
       // Write unchanged first 32 bits to bitstream
       while (((this.low ^ this.high) & MASK_24_56) == 0)
          this.flush();
    }
-      
+
 
    private void flush()
    {

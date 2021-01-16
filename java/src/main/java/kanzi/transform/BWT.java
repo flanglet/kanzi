@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -70,8 +70,8 @@ public class BWT implements ByteTransform
    private static final int NB_FASTBITS = 17;
    private static final int MASK_FASTBITS = 1 << NB_FASTBITS;
 
-   
-   private int[] buffer1;  
+
+   private int[] buffer1;
    private short[] buffer2;
    private int[] buckets;
    private int[] freqs;
@@ -84,8 +84,8 @@ public class BWT implements ByteTransform
    // Static allocation of memory
    public BWT()
    {
-      this.buffer1 = new int[0];   
-      this.buffer2 = new short[0]; 
+      this.buffer1 = new int[0];
+      this.buffer2 = new short[0];
       this.buckets = new int[256];
       this.freqs = new int[256];
       this.primaryIndexes = new int[8];
@@ -207,12 +207,12 @@ public class BWT implements ByteTransform
          final int step = (chunks*st == count) ? st : st+1;
          output[dstIdx] = input[srcIdx2+count];
          int idx = 0;
-       
+
          for (int i=0; i<count; i++)
          {
             if ((sa[i]%step) != 0)
                continue;
-            
+
             res &= this.setPrimaryIndex(sa[i]/step, i+1);
             idx++;
 
@@ -221,7 +221,7 @@ public class BWT implements ByteTransform
          }
 
          final int pIdx0 = this.getPrimaryIndex(0);
-         
+
          for (int i=0; i<pIdx0-1; i++)
             output[dstIdx2+i] = input[srcIdx2+sa[i]];
 
@@ -321,13 +321,13 @@ public class BWT implements ByteTransform
          output[dstIdx+i] = (byte) ptr;
          t = ptr >>> 8;
       }
-      
+
       src.index += count;
       dst.index += count;
       return true;
    }
 
-   
+
    // When count >= 1<<24, biPSIv2 algo
    // Possibly multiple chunks
    private boolean inverseBigBlock(SliceByteArray src, SliceByteArray dst, int count)
@@ -338,7 +338,7 @@ public class BWT implements ByteTransform
 
       if (this.buckets.length < 65536)
          this.buckets = new int[65536];
-      
+
       if (this.buffer2.length < MASK_FASTBITS+1)
          this.buffer2 = new short[MASK_FASTBITS+1];
 
@@ -451,7 +451,7 @@ public class BWT implements ByteTransform
       for (int c=0; c<256; c++)
       {
          final int c256 = c << 8;
-         
+
          for (int d=0; d<c; d++)
          {
             final int tmp = buckets_[(d<<8)|c];
@@ -461,7 +461,7 @@ public class BWT implements ByteTransform
       }
 
       final int chunks = getBWTChunks(count);
-    
+
       // Build inverse
       if (chunks == 1)
       {
@@ -476,7 +476,7 @@ public class BWT implements ByteTransform
             output[dstIdx+i-1] = (byte) (c>>>8);
             output[dstIdx+i] = (byte) c;
             p = data[p];
-         }  
+         }
       }
       else
       {

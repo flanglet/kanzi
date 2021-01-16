@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -22,47 +22,47 @@ import java.util.Objects;
 public final class SliceByteArray
 {
     public byte[] array; // array.length is the slice capacity
-    public int length;    
+    public int length;
     public int index;
-    
-    
+
+
     public SliceByteArray()
     {
        this(new byte[0], 0, 0);
     }
-    
-        
+
+
     public SliceByteArray(byte[] array, int idx)
     {
         if (array == null)
            throw new NullPointerException("The array cannot be null");
-        
+
         if (idx < 0)
            throw new NullPointerException("The index cannot be negative");
-        
+
         this.array = array;
         this.length = array.length;
-        this.index = idx;       
-    }  
-    
-    
+        this.index = idx;
+    }
+
+
     public SliceByteArray(byte[] array, int length, int idx)
     {
         if (array == null)
            throw new NullPointerException("The array cannot be null");
-        
+
         if (length < 0)
            throw new IllegalArgumentException("The length cannot be negative");
-        
+
         if (idx < 0)
            throw new NullPointerException("The index cannot be negative");
-        
+
         this.array = array;
         this.length = length;
         this.index = idx;
     }
-    
-    
+
+
     @Override
     public boolean equals(Object o)
     {
@@ -75,8 +75,8 @@ public final class SliceByteArray
                return true;
 
             SliceByteArray sa = (SliceByteArray) o;
-            return ((this.array == sa.array)   && 
-                    (this.length == sa.length) && 
+            return ((this.array == sa.array)   &&
+                    (this.length == sa.length) &&
                     (this.index == sa.index));
         }
         catch (ClassCastException e)
@@ -92,7 +92,7 @@ public final class SliceByteArray
        return Objects.hashCode(this.array);
     }
 
-    
+
     @Override
     @SuppressWarnings("lgtm [java/print-array]")
     public String toString()
@@ -100,29 +100,29 @@ public final class SliceByteArray
         StringBuilder builder = new StringBuilder(100);
         builder.append("[ data=");
         builder.append(String.valueOf(this.array));
-        builder.append(", len="); 
-        builder.append(this.length); 
-        builder.append(", idx="); 
-        builder.append(this.index); 
-        builder.append("]"); 
+        builder.append(", len=");
+        builder.append(this.length);
+        builder.append(", idx=");
+        builder.append(this.index);
+        builder.append("]");
         return builder.toString();
     }
-    
-    
+
+
     public static boolean isValid(SliceByteArray sa)
     {
        if (sa == null)
           return false;
-       
+
        if (sa.array == null)
           return false;
-       
+
        if (sa.index < 0)
           return false;
-       
+
        if (sa.length < 0)
           return false;
-       
+
        return (sa.index <= sa.array.length);
-    }    
+    }
 }

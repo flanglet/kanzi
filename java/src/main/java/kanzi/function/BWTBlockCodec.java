@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -40,88 +40,88 @@ public class BWTBlockCodec implements ByteFunction
 
    private final BWT bwt;
 
-   
+
    public BWTBlockCodec()
    {
-      this.bwt = new BWT();   
+      this.bwt = new BWT();
    }
-   
+
 
    public BWTBlockCodec(Map<String, Object> ctx)
    {
-      this.bwt = new BWT(ctx);   
+      this.bwt = new BWT(ctx);
    }
-   
 
-   // Return true if the compression chain succeeded. In this case, the input data 
+
+   // Return true if the compression chain succeeded. In this case, the input data
    // may be modified. If the compression failed, the input data is returned unmodified.
    @Override
    public boolean forward(SliceByteArray input, SliceByteArray output)
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
          return false;
-      
+
       final int blockSize = input.length;
 
       if (output.length - output.index < getMaxEncodedLength(blockSize))
          return false;
-      
+
       final int savedOIdx = output.index;
       final int chunks = BWT.getBWTChunks(blockSize);
       int log = 1;
 
       while (1<<log <= blockSize)
-         log++; 
-      
+         log++;
+
       // Estimate header size based on block size
       final int headerSizeBytes1 = chunks * ((2+log+7) >>> 3);
       output.index += headerSizeBytes1;
       output.length -= headerSizeBytes1;
-     
+
       // Apply forward transform
       if (this.bwt.forward(input, output) == false)
          return false;
 
       int headerSizeBytes2 = 0;
-      
+
       for (int i=0; i<chunks; i++)
       {
          final int primaryIndex = this.bwt.getPrimaryIndex(i);
          int pIndexSizeBits = 6;
 
          while ((1<<pIndexSizeBits) <= primaryIndex)
-            pIndexSizeBits++;          
+            pIndexSizeBits++;
 
          // Compute block size based on primary index
          headerSizeBytes2 += ((2+pIndexSizeBits+7) >>> 3);
       }
-      
+
       if (headerSizeBytes2 != headerSizeBytes1)
       {
          // Adjust space for header
-         System.arraycopy(output.array, savedOIdx+headerSizeBytes1, 
+         System.arraycopy(output.array, savedOIdx+headerSizeBytes1,
             output.array, savedOIdx+headerSizeBytes2, blockSize);
 
          output.index = output.index - headerSizeBytes1 + headerSizeBytes2;
-      }     
-      
+      }
+
       int idx = savedOIdx;
-      
+
       for (int i=0; i<chunks; i++)
       {
          final int primaryIndex = this.bwt.getPrimaryIndex(i);
          int pIndexSizeBits = 6;
 
          while ((1<<pIndexSizeBits) <= primaryIndex)
-            pIndexSizeBits++;          
+            pIndexSizeBits++;
 
          // Compute primary index size
          final int pIndexSizeBytes = (2+pIndexSizeBits+7) >>> 3;
-   
-         // Write block header (mode + primary index). See top of file for format 
+
+         // Write block header (mode + primary index). See top of file for format
          int shift = (pIndexSizeBytes - 1) << 3;
          int blockMode = (pIndexSizeBits + 1) >>> 3;
          blockMode = (blockMode << 6) | ((primaryIndex >>> shift) & 0x3F);
@@ -133,7 +133,7 @@ public class BWTBlockCodec implements ByteFunction
             output.array[idx++] = (byte) (primaryIndex >> shift);
          }
       }
-      
+
       return true;
    }
 
@@ -143,10 +143,10 @@ public class BWTBlockCodec implements ByteFunction
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
          return false;
-      
+
       int blockSize = input.length;
       final int chunks = BWT.getBWTChunks(blockSize);
 
@@ -169,19 +169,19 @@ public class BWTBlockCodec implements ByteFunction
             shift -= 8;
             primaryIndex |= ((input.array[input.index++] & 0xFF) << shift);
          }
-       
+
          if (this.bwt.setPrimaryIndex(i, primaryIndex) == false)
             return false;
       }
-    
-      // Apply inverse Transform            
-      return this.bwt.inverse(input, output);      
+
+      // Apply inverse Transform
+      return this.bwt.inverse(input, output);
    }
-   
-     
+
+
    @Override
    public int getMaxEncodedLength(int srcLen)
    {
-      return srcLen + BWT_MAX_HEADER_SIZE; 
+      return srcLen + BWT_MAX_HEADER_SIZE;
    }
 }

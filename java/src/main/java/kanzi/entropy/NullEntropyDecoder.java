@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -43,7 +43,7 @@ public final class NullEntropyDecoder implements EntropyDecoder
 
       int res = 0;
 
-      while (count > 0) 
+      while (count > 0)
       {
          final int ckSize = (count < 1<<23) ? count : 1<<23;
          res += (this.bitstream.readBits(block, blkptr, 8*ckSize) >> 3);
@@ -69,7 +69,7 @@ public final class NullEntropyDecoder implements EntropyDecoder
 
 
    @Override
-   public void dispose() 
+   public void dispose()
    {
    }
 }

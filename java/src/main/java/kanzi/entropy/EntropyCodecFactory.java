@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -47,31 +47,31 @@ public class EntropyCodecFactory
          // Rebuild the entropy decoder to reset block statistics
          case HUFFMAN_TYPE:
             return new HuffmanDecoder(ibs);
-            
+
          case ANS0_TYPE:
             return new ANSRangeDecoder(ibs, 0);
-            
+
          case ANS1_TYPE:
             return new ANSRangeDecoder(ibs, 1);
-            
+
          case RANGE_TYPE:
             return new RangeDecoder(ibs);
-            
+
          case FPAQ_TYPE:
             return new FPAQDecoder(ibs);
-            
+
          case CM_TYPE:
             return new BinaryEntropyDecoder(ibs, new CMPredictor());
-            
+
          case TPAQ_TYPE:
             return new BinaryEntropyDecoder(ibs, new TPAQPredictor(ctx));
-            
+
          case TPAQX_TYPE:
             return new BinaryEntropyDecoder(ibs, new TPAQPredictor(ctx));
-            
+
          case NONE_TYPE:
             return new NullEntropyDecoder(ibs);
-            
+
          default:
             throw new IllegalArgumentException("Unsupported entropy codec type: " + (char) entropyType);
       }

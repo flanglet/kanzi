@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -40,7 +40,7 @@ public class TestFunctions
 
       String type = args[0].toUpperCase();
 
-      if (type.startsWith("-TYPE=")) 
+      if (type.startsWith("-TYPE="))
       {
          type = type.substring(6);
          System.out.println("Transform: " + type);
@@ -58,13 +58,13 @@ public class TestFunctions
             if (testCorrectness("ROLZ") == false)
                System.exit(1);
 
-            testSpeed("ROLZ"); 
+            testSpeed("ROLZ");
             System.out.println("\n\nTestROLZX");
 
             if (testCorrectness("ROLZX") == false)
                System.exit(1);
 
-            testSpeed("ROLZX"); 
+            testSpeed("ROLZX");
             System.out.println("\n\nTestZRLT");
 
             if (testCorrectness("ZRLT") == false)
@@ -76,13 +76,13 @@ public class TestFunctions
             if (testCorrectness("RLT") == false)
                System.exit(1);
 
-            testSpeed("RLT");                 
+            testSpeed("RLT");
             System.out.println("\n\nTestSRT");
 
             if (testCorrectness("SRT") == false)
                System.exit(1);
 
-            testSpeed("SRT");                 
+            testSpeed("SRT");
 
             System.out.println("\n\nTestFSD");
 
@@ -100,10 +100,10 @@ public class TestFunctions
 
             testSpeed(type);
          }
-      }        
+      }
    }
 
-    
+
    @Test
    public void testFunctions()
    {
@@ -115,25 +115,25 @@ public class TestFunctions
       //testSpeed("LZ");
       System.out.println("\n\nTestROLZ");
       Assert.assertTrue(testCorrectness("ROLZ"));
-      //testSpeed("ROLZ");   
+      //testSpeed("ROLZ");
       System.out.println("\n\nTestROLZX");
       Assert.assertTrue(testCorrectness("ROLZX"));
-      //testSpeed("ROLZX");   
+      //testSpeed("ROLZX");
       System.out.println("\n\nTestZRLT");
       Assert.assertTrue(testCorrectness("ZRLT"));
       //testSpeed("ZRLT");
       System.out.println("\n\nTestFSD");
       Assert.assertTrue(testCorrectness("FSD"));
-      //testSpeed("FSD");   
+      //testSpeed("FSD");
       System.out.println("\n\nTestRLT");
       Assert.assertTrue(testCorrectness("RLT"));
-      //testSpeed("RLT");   
+      //testSpeed("RLT");
    }
-   
-   
+
+
    private static ByteFunction getByteFunction(String name)
    {
-      switch(name) 
+      switch(name)
       {
          case "LZ":
             return new LZCodec();
@@ -162,9 +162,9 @@ public class TestFunctions
       }
    }
 
-    
+
    private static boolean testCorrectness(String name)
-   {        
+   {
       byte[] input;
       byte[] output;
       byte[] reverse;
@@ -202,7 +202,7 @@ public class TestFunctions
          {
             // For RLT
             arr = new int[1030];
-            
+
             for (int i=0; i<255; i++)
             {
                arr[4*i+4] = i;
@@ -210,7 +210,7 @@ public class TestFunctions
                arr[4*i+6] = i;
                arr[4*i+7] = i;
             }
-            
+
             arr[0] = 255; // force RLT escape to be first symbol
             arr[arr.length-1] = 255; // force RLT escape to be last symbol
          }
@@ -227,7 +227,7 @@ public class TestFunctions
                   val = 0;
 
                arr[i] = val;
-            }    
+            }
          }
          else if (ii == 6)
          {
@@ -241,7 +241,7 @@ public class TestFunctions
          else if (ii < 16)
          {
             arr = new int[1024];
-            
+
             // Leave zeros at the beginning for ZRLT to succeed
             int idx = 20;
 
@@ -261,7 +261,7 @@ public class TestFunctions
                idx += len;
             }
          }
-         else 
+         else
          {
             arr = new int[4096];
 
@@ -274,7 +274,7 @@ public class TestFunctions
                arr[j+3] = 200 + rnd.nextInt(30);
             }
          }
-         
+
          int size = arr.length;
          ByteFunction f = getByteFunction(name);
          input = new byte[size];
@@ -342,7 +342,7 @@ public class TestFunctions
             System.out.println("Decoding error");
             return false;
          }
-         
+
          System.out.println("Decoded: ");
          int idx = -1;
 
@@ -372,25 +372,25 @@ public class TestFunctions
 
             System.out.println("Identical");
          }
-         else 
+         else
          {
             System.out.println("Different (index "+idx+": "+input[idx]+" - "+reverse[idx]+")");
             System.out.println();
 
             for (int i=0; i<idx; i++)
                System.out.println(i+": "+sa1.array[i]+" "+sa3.array[i]);
-            
+
             System.out.println(idx+": "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
             return false;
          }
-         
+
          System.out.println();
       }
-      
+
       return true;
    }
 
-    
+
    public static void testSpeed(String name)
    {
       // Test speed
@@ -419,14 +419,14 @@ public class TestFunctions
          // Leave zeros at the beginning for ZRLT to succeed
          int n = iter/20;
 
-         while (n < input.length)        
+         while (n < input.length)
          {
             byte val = (byte) rnd.nextInt(range);
             input[n++] = val;
             int run = rnd.nextInt(256);
             run -= 220;
 
-            while ((--run > 0) && (n < input.length))       
+            while ((--run > 0) && (n < input.length))
                input[n++] = val;
          }
 
@@ -489,13 +489,13 @@ public class TestFunctions
 
          if (idx >= 0) {
             System.out.println("Failure at index "+idx+" ("+sa1.array[idx]+"<->"+sa3.array[idx]+")");
-            
+
             for (int i=0; i<idx; i++)
                System.out.println(i+" "+sa1.array[i]+" "+sa3.array[i]);
-            
+
             System.out.println(idx+" "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
          }
-         
+
          final long prod = (long) iter * (long) size;
          System.out.println(name + " encoding [ms]: " + delta1 / 1000000);
          System.out.println("Throughput [MB/s]: " + prod * 1000000L / delta1 * 1000L / (1024*1024));

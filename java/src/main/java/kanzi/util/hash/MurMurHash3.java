@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -28,10 +28,10 @@ public class MurMurHash3
   private static final int C3 = 0xe6546b64;
   private static final int C4 = 0x85ebca6b;
   private static final int C5 = 0xc2b2ae35;
-  
+
   private int seed;
 
-  
+
   public MurMurHash3()
   {
      this((int) System.nanoTime());
@@ -43,19 +43,19 @@ public class MurMurHash3
      this.seed = seed;
   }
 
-  
+
   public void setSeed(int seed)
   {
      this.seed = seed;
   }
-  
-  
+
+
   public int hash(byte[] data)
   {
      return this.hash(data, 0, data.length);
   }
-  
-  
+
+
   public int hash(byte[] data, int offset, int length)
   {
      int h1 = this.seed; // aliasing
@@ -65,15 +65,15 @@ public class MurMurHash3
      if (length >= 4)
      {
          final int end = offset + length - 4;
-         
+
          for ( ; n<end; n+=4)
          {
             int k1 = Memory.LittleEndian.readInt32(data, n);
             k1 *= C1;
             k1 = (k1 << 15) | (k1 >>> 17);
-            k1 *= C2; 
+            k1 *= C2;
             h1 ^= k1;
-            h1 = (h1 << 13) | (h1 >>> 19); 
+            h1 = (h1 << 13) | (h1 >>> 19);
             h1 = (h1*5) + C3;
          }
      }
@@ -83,22 +83,22 @@ public class MurMurHash3
 
      switch(length & 3)
      {
-        case 3: 
+        case 3:
            k1 ^= ((data[n+2] & 0xFF) << 16);
            // Fallthrough
 
-        case 2: 
+        case 2:
            k1 ^= ((data[n+1] & 0xFF) << 8);
            // Fallthrough
 
-        case 1: 
+        case 1:
            k1 ^= (data[n] & 0xFF);
            k1 *= C1;
            k1 = (k1 << 15) | (k1 >>> 17);
            k1 *= C2;
            h1 ^= k1;
            // Fallthrough
-           
+
         default:
            // Fallthrough
       }

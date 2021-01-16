@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -36,7 +36,7 @@ public class TestTransforms
 
       String type = args[0].toUpperCase();
 
-      if (type.startsWith("-TYPE=")) 
+      if (type.startsWith("-TYPE="))
       {
          type = type.substring(6);
          System.out.println("Transform: " + type);
@@ -54,13 +54,13 @@ public class TestTransforms
             if (testCorrectness("MTFT") == false)
                System.exit(1);
 
-            testSpeed("MTFT"); 
+            testSpeed("MTFT");
             System.out.println("\n\nTestBWTS");
 
             if (testCorrectness("BWTS") == false)
                System.exit(1);
 
-            testSpeed("BWTS");                            
+            testSpeed("BWTS");
          }
          else
          {
@@ -71,10 +71,10 @@ public class TestTransforms
 
             testSpeed(type);
          }
-      }        
+      }
    }
 
-    
+
    @Test
    public void testFunctions()
    {
@@ -83,16 +83,16 @@ public class TestTransforms
       //testSpeed("RANK");
       System.out.println("\n\nTestMTFT");
       Assert.assertTrue(testCorrectness("MTFT"));
-      //testSpeed("MTFT");   
+      //testSpeed("MTFT");
       System.out.println("\n\nTestBWTS");
       Assert.assertTrue(testCorrectness("BWTS"));
-      //testSpeed("BWTS"); 
+      //testSpeed("BWTS");
    }
-   
-   
+
+
    private static ByteTransform getByteTransform(String name)
    {
-      switch(name) 
+      switch(name)
       {
          case "RANK":
             return new SBRT(SBRT.MODE_RANK);
@@ -109,9 +109,9 @@ public class TestTransforms
       }
    }
 
-    
+
    private static boolean testCorrectness(String name)
-   {        
+   {
       byte[] input;
       byte[] output;
       byte[] reverse;
@@ -148,14 +148,14 @@ public class TestTransforms
          else if (ii == 3)
          {
             arr = new int[512];
-            
+
             for (int i=0; i<256; i++)
             {
                arr[2*i] = i;
                arr[2*i+1] = i;
             }
-            
-            arr[1] = 255; 
+
+            arr[1] = 255;
          }
          else if (ii < 6)
          {
@@ -170,7 +170,7 @@ public class TestTransforms
                   val = 0;
 
                arr[i] = val;
-            }    
+            }
          }
          else if (ii == 6)
          {
@@ -201,7 +201,7 @@ public class TestTransforms
                idx += len;
             }
          }
-         
+
          int size = arr.length;
          ByteTransform f = getByteTransform(name);
          input = new byte[size];
@@ -281,7 +281,7 @@ public class TestTransforms
                break;
             }
          }
-         
+
          if (idx == -1)
          {
             if (ii == 1)
@@ -298,25 +298,25 @@ public class TestTransforms
 
             System.out.println("Identical");
          }
-         else 
+         else
          {
             System.out.println("Different (index "+idx+": "+input[idx]+" - "+reverse[idx]+")");
             System.out.println("");
 
             for (int i=0; i<idx; i++)
                System.out.println(i+": "+sa1.array[i]+" "+sa3.array[i]);
-            
+
             System.out.println(idx+": "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
             return false;
          }
-         
+
          System.out.println();
       }
-      
+
       return true;
    }
 
-    
+
    public static void testSpeed(String name)
    {
       // Test speed
@@ -345,14 +345,14 @@ public class TestTransforms
          // Leave zeros at the beginning for ZRLT to succeed
          int n = iter/20;
 
-         while (n < input.length)        
+         while (n < input.length)
          {
             byte val = (byte) rnd.nextInt(range);
             input[n++] = val;
             int run = rnd.nextInt(256);
             run -= 220;
 
-            while ((--run > 0) && (n < input.length))       
+            while ((--run > 0) && (n < input.length))
                input[n++] = val;
          }
 
@@ -411,10 +411,10 @@ public class TestTransforms
             System.out.println("Failure at index "+idx+" ("+sa1.array[idx]+"<->"+sa3.array[idx]+")");
             for (int i=0; i<idx; i++)
                System.out.println(i+" "+sa1.array[i]+" "+sa3.array[i]);
-            
+
             System.out.println(idx+" "+sa1.array[idx]+"* "+sa3.array[idx]+"*");
          }
-         
+
          final long prod = (long) iter * (long) size;
          System.out.println(name + " encoding [ms]: " + delta1 / 1000000);
          System.out.println("Throughput [MB/s]: " + prod * 1000000L / delta1 * 1000L / (1024*1024));
@@ -422,4 +422,4 @@ public class TestTransforms
          System.out.println("Throughput [MB/s]: " + prod * 1000000L / delta2 * 1000L / (1024*1024));
       }
    }
-} 
+}

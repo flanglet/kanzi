@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -27,19 +27,19 @@ import org.junit.Test;
 public class TestBWT
 {
    @Test
-   public void testBWT() 
+   public void testBWT()
    {
       Assert.assertTrue(testCorrectness(true, 200));
       Assert.assertTrue(testCorrectness(false, 200));
    }
-   
-   
+
+
    public static void main(String[] args)
-   {   
+   {
       if (args.length > 0)
       {
          byte[] buf1 = args[0].getBytes();
-         byte[] buf2 = new byte[buf1.length];           
+         byte[] buf2 = new byte[buf1.length];
          SliceByteArray sa1 = new SliceByteArray(buf1, 0);
          SliceByteArray sa2 = new SliceByteArray(buf2, 0);
          BWT bwt = new BWT();
@@ -55,18 +55,18 @@ public class TestBWT
       }
 
       System.out.println("TestBWT and TestBWTS");
-      
+
       if (testCorrectness(true, 20) == false)
          System.exit(1);
-      
+
       if (testCorrectness(false, 20) == false)
          System.exit(1);
-      
+
       testSpeed(true);
       testSpeed(false);
    }
-    
-    
+
+
     public static boolean testCorrectness(boolean isBWT, int iters)
     {
       System.out.println("\nBWT"+(!isBWT?"S":"")+" Correctness test");
@@ -81,7 +81,7 @@ public class TestBWT
 
          if (ii == 1)
          {
-            buf1 = "mississippi".getBytes();   
+            buf1 = "mississippi".getBytes();
          }
          else if (ii == 2)
          {
@@ -105,7 +105,7 @@ public class TestBWT
             buf1 = new byte[8*1024*1024];
 
             for (int i=0; i<buf1.length; i++)
-               buf1[i] = (byte) i;            
+               buf1[i] = (byte) i;
          }
 
          byte[] buf2 = new byte[buf1.length];
@@ -115,33 +115,33 @@ public class TestBWT
          SliceByteArray sa3 = new SliceByteArray(buf3, 0);
          ByteTransform transform = (isBWT) ? new BWT() : new BWTS();
          String str1 = new String(buf1, start, buf1.length-start);
-         
+
          if (str1.length() < 512)
             System.out.println("Input:   "+str1);
-         
+
          sa1.index = start;
          sa2.index = 0;
          transform.forward(sa1, sa2);
          String str2 = new String(buf2);
-         
+
           if (str2.length() < 512)
             System.out.print("Encoded: "+str2+"  ");
-          
+
          if (isBWT)
          {
             BWT bwt = (BWT) transform;
             int chunks = BWT.getBWTChunks(buf1.length);
             int[] pi = new int[chunks];
-            
+
             for (int i=0; i<chunks; i++)
             {
                pi[i] = bwt.getPrimaryIndex(i);
                System.out.println("(Primary index="+pi[i]+")");
             }
-            
+
             transform = new BWT();
             bwt = (BWT) transform;
-            
+
             for (int i=0; i<chunks; i++)
                bwt.setPrimaryIndex(i, pi[i]);
          }
@@ -153,10 +153,10 @@ public class TestBWT
 
          sa2.index = 0;
          sa3.index = start;
-         
+
          transform.inverse(sa2, sa3);
          String str3 = new String(buf3, start, buf3.length-start);
-         
+
          if (str3.length() < 512)
             System.out.println("Output:  "+str3);
 
@@ -167,25 +167,25 @@ public class TestBWT
          else
          {
             int idx = -1;
-            
+
             for (int i=0; i<buf1.length; i++)
             {
-               if (buf1[i] != buf3[i]) 
+               if (buf1[i] != buf3[i])
                {
                   idx = i;
                   break;
                }
             }
-            
-            System.out.println("Different at index "+idx+" "+buf1[idx]+" <-> "+buf3[idx]);        
+
+            System.out.println("Different at index "+idx+" "+buf1[idx]+" <-> "+buf3[idx]);
             return false;
          }
       }
 
       return true;
    }
-    
-    
+
+
    public static void testSpeed(boolean isBWT)
    {
       System.out.println("\nBWT"+(!isBWT?"S":"")+" Speed test");
@@ -239,7 +239,7 @@ public class TestBWT
             }
 
             if (idx >= 0)
-               System.out.println("Failure at index "+idx+" ("+buf1[idx]+"<->"+buf3[idx]+")");             
+               System.out.println("Failure at index "+idx+" ("+buf1[idx]+"<->"+buf3[idx]+")");
          }
 
          final long prod = (long) iter * (long) size;

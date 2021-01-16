@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -37,7 +37,7 @@ import org.junit.Test;
 
 public class TestDefaultBitStream
 {
-   public static void main(String[] args) 
+   public static void main(String[] args)
    {
       testCorrectnessAligned1();
       testCorrectnessAligned2();
@@ -46,8 +46,8 @@ public class TestDefaultBitStream
       testSpeed1(args); // Writes big output.bin file to local dir (or specified file name) !!!
       testSpeed2(args); // Writes big output.bin file to local dir (or specified file name) !!!
    }
-    
-    
+
+
    @Test
    public void testDefaultBitStream()
    {
@@ -56,10 +56,10 @@ public class TestDefaultBitStream
       Assert.assertTrue(testCorrectnessMisaligned1());
       Assert.assertTrue(testCorrectnessMisaligned2());
    }
-    
-    
+
+
    public static boolean testCorrectnessAligned1()
-   {    
+   {
       // Test correctness (byte aligned)
       System.out.println("Correctness Test - write long - byte aligned");
       int[] values = new int[100];
@@ -67,13 +67,13 @@ public class TestDefaultBitStream
       System.out.println("\nInitial");
 
       try
-      {  
+      {
          // Check correctness of read() and written()
          for (int t=1; t<=32; t++)
          {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(4*values.length);
             OutputStream os = new BufferedOutputStream(baos);
-            OutputBitStream obs = new DefaultOutputBitStream(os, 16384);   
+            OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
             System.out.println();
             obs.writeBits(0x0123456789ABCDEFL, t);
             System.out.println("Written (before close): " + obs.written());
@@ -84,9 +84,9 @@ public class TestDefaultBitStream
             ByteArrayInputStream bais = new ByteArrayInputStream(output);
             InputStream is = new BufferedInputStream(bais);
             InputBitStream ibs = new DefaultInputBitStream(is, 16384);
-            ibs.readBits(t);            
+            ibs.readBits(t);
             System.out.println(ibs.read()==t?"OK":"KO");
-            System.out.println("Read (before close): " + ibs.read()); 
+            System.out.println("Read (before close): " + ibs.read());
             ibs.close();
             System.out.println("Read (after close): " + ibs.read());
             System.out.println();
@@ -98,7 +98,7 @@ public class TestDefaultBitStream
             OutputStream os = new BufferedOutputStream(baos);
             OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
             DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
-            dbs.showByte(true);       
+            dbs.showByte(true);
 
             for (int i=0; i<values.length; i++)
             {
@@ -106,14 +106,14 @@ public class TestDefaultBitStream
                System.out.print(values[i]+" ");
 
                if ((i % 20) == 19)
-                  System.out.println();                                     
+                  System.out.println();
             }
 
             System.out.println();
             System.out.println();
 
             for (int i=0; i<values.length; i++)
-            {                   
+            {
                dbs.writeBits(values[i], 32);
             }
 
@@ -127,14 +127,14 @@ public class TestDefaultBitStream
             boolean ok = true;
 
             for (int i=0; i<values.length; i++)
-            {                
+            {
                int x = (int) ibs.readBits(32);
                System.out.print(x);
                System.out.print((x == values[i]) ? " ": "* ");
                ok &= (x == values[i]);
 
                if ((i % 20) == 19)
-                  System.out.println();                                      
+                  System.out.println();
             }
 
             ibs.close();
@@ -151,26 +151,26 @@ public class TestDefaultBitStream
          e.printStackTrace();
          return false;
       }
-      
+
       return true;
    }
 
 
    public static boolean testCorrectnessMisaligned1()
-   {    
+   {
       // Test correctness (not byte aligned)
       System.out.println("Correctness Test - write long - not byte aligned");
       int[] values = new int[100];
       Random rnd = new Random();
 
       try
-      {    
+      {
          // Check correctness of read() and written()
          for (int t=1; t<32; t++)
          {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(4*values.length);
             OutputStream os = new BufferedOutputStream(baos);
-            OutputBitStream obs = new DefaultOutputBitStream(os, 16384);   
+            OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
             System.out.println();
             obs.writeBit(1);
             obs.writeBits(0x0123456789ABCDEFL, t);
@@ -183,9 +183,9 @@ public class TestDefaultBitStream
             InputStream is = new BufferedInputStream(bais);
             InputBitStream ibs = new DefaultInputBitStream(is, 16384);
             ibs.readBit();
-            ibs.readBits(t);            
+            ibs.readBits(t);
             System.out.println(ibs.read()==t+1?"OK":"KO");
-            System.out.println("Read (before close): " + ibs.read()); 
+            System.out.println("Read (before close): " + ibs.read());
             ibs.close();
             System.out.println("Read (after close): " + ibs.read());
             System.out.println();
@@ -197,7 +197,7 @@ public class TestDefaultBitStream
             OutputStream os = new BufferedOutputStream(baos);
             OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
             DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
-            dbs.showByte(true);       
+            dbs.showByte(true);
 
             for (int i=0; i<values.length; i++)
             {
@@ -207,7 +207,7 @@ public class TestDefaultBitStream
                System.out.print(values[i]+" ");
 
                if ((i % 20) == 19)
-                  System.out.println();                   
+                  System.out.println();
             }
 
             System.out.println();
@@ -222,7 +222,7 @@ public class TestDefaultBitStream
             dbs.close();
 
             if (test == 10)
-            {           
+            {
                try
                {
                   System.out.println();
@@ -251,7 +251,7 @@ public class TestDefaultBitStream
                ok &= (x == values[i]);
 
                if ((i % 20) == 19)
-                  System.out.println();                   
+                  System.out.println();
             }
 
             ibs.close();
@@ -281,13 +281,13 @@ public class TestDefaultBitStream
          e.printStackTrace();
          return false;
       }
-      
+
       return true;
    }
 
-   
+
    public static boolean testCorrectnessAligned2()
-   {    
+   {
       // Test correctness (byte aligned)
       System.out.println("Correctness Test - write array - byte aligned");
       byte[] input = new byte[100];
@@ -303,7 +303,7 @@ public class TestDefaultBitStream
             OutputStream os = new BufferedOutputStream(baos);
             OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
             DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
-            dbs.showByte(true);       
+            dbs.showByte(true);
 
             for (int i=0; i<input.length; i++)
             {
@@ -311,7 +311,7 @@ public class TestDefaultBitStream
                System.out.print((input[i]&0xFF)+" ");
 
                if ((i % 20) == 19)
-                  System.out.println();                                     
+                  System.out.println();
             }
 
             int count = 24 + test*(20+(test&1)) + (test&3);
@@ -332,20 +332,20 @@ public class TestDefaultBitStream
             int r = ibs.readBits(output, 0, chkSize8); // read in 2 chunks as a test
             r += ibs.readBits(output, chkSize8/8, count-chkSize8);
             boolean ok = r == count;
-            
+
             if (ok == true)
             {
                for (int i=0; i<(r>>3); i++)
-               {               
+               {
                   System.out.print(output[i] & 0xFF);
                   System.out.print((output[i] == input[i]) ? " ": "* ");
                   ok &= (output[i] == input[i]);
 
                   if ((i % 20) == 19)
-                     System.out.println();                                      
+                     System.out.println();
                }
             }
-            
+
             ibs.close();
             System.out.println("\n");
             System.out.println("Bits written: "+dbs.written());
@@ -360,13 +360,13 @@ public class TestDefaultBitStream
          e.printStackTrace();
          return false;
       }
-      
+
       return true;
    }
 
 
    public static boolean testCorrectnessMisaligned2()
-   {    
+   {
       // Test correctness (not byte aligned)
       System.out.println("Correctness Test - write array - not byte aligned");
       byte[] input = new byte[100];
@@ -381,7 +381,7 @@ public class TestDefaultBitStream
             OutputStream os = new BufferedOutputStream(baos);
             OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
             DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
-            dbs.showByte(true);       
+            dbs.showByte(true);
 
             for (int i=0; i<input.length; i++)
             {
@@ -389,7 +389,7 @@ public class TestDefaultBitStream
                System.out.print((input[i]&0xFF)+" ");
 
                if ((i % 20) == 19)
-                  System.out.println();                   
+                  System.out.println();
             }
 
             int count = 8 + test*(20+(test&1)) + (test&3);
@@ -411,20 +411,20 @@ public class TestDefaultBitStream
             ibs.readBit();
             int r = ibs.readBits(output, 1, count);
             boolean ok = r == count;
-            
+
             if (ok == true)
             {
                for (int i=1; i<1+(r>>3); i++)
-               {               
+               {
                   System.out.print(output[i] & 0xFF);
                   System.out.print((output[i] == input[i]) ? " ": "* ");
                   ok &= (output[i] == input[i]);
 
                   if ((i % 20) == 19)
-                     System.out.println();                                      
+                     System.out.println();
                }
             }
-            
+
             ibs.close();
             System.out.println("\n");
             System.out.println("Bits written: "+dbs.written());
@@ -452,13 +452,13 @@ public class TestDefaultBitStream
          e.printStackTrace();
          return false;
       }
-      
+
       return true;
    }
 
-   
+
    public static boolean testSpeed1(String[] args)
-   {    
+   {
       // Test speed
       System.out.println("\n\nSpeed Test1");
       String fileName = (args.length > 0) ? args[0] : "r:\\output.bin";
@@ -474,7 +474,7 @@ public class TestDefaultBitStream
          long read = 0;
          long before, after;
          long delta1 = 0, delta2 = 0;
-         int nn = 1000000 * values.length;           
+         int nn = 1000000 * values.length;
 
          for (int test=0; test<iter; test++)
          {
@@ -522,13 +522,13 @@ public class TestDefaultBitStream
          e.printStackTrace();
          return false;
       }
-      
+
       return true;
    }
 
 
    public static boolean testSpeed2(String[] args)
-   {    
+   {
       // Test speed
       System.out.println("\n\nSpeed Test2");
       String fileName = (args.length > 0) ? args[0] : "r:\\output.bin";
@@ -544,10 +544,10 @@ public class TestDefaultBitStream
          long read = 0;
          long before, after;
          long delta1 = 0, delta2 = 0;
-         int nn = 32500000 * values.length;   
+         int nn = 32500000 * values.length;
          byte[] input = new byte[nn];
          byte[] output = new byte[nn];
-         
+
          for (int i=0; i<32500000; i++)
             System.arraycopy(values, 0, input, i*values.length, values.length);
 
@@ -569,7 +569,7 @@ public class TestDefaultBitStream
             InputBitStream ibs = new DefaultInputBitStream(is, 1024*1024);
             before = System.nanoTime();
             ibs.readBits(output, 0, output.length);
-            
+
             ibs.close();
             after = System.nanoTime();
             delta2 += (after-before);
@@ -589,7 +589,7 @@ public class TestDefaultBitStream
          e.printStackTrace();
          return false;
       }
-      
+
       return true;
    }
 }

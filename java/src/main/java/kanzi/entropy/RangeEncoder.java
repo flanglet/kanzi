@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -44,16 +44,16 @@ public final class RangeEncoder implements EntropyEncoder
     private final int chunkSize;
     private final int logRange;
     private int shift;
-    
-    
+
+
     public RangeEncoder(OutputBitStream bitstream)
     {
        this(bitstream, DEFAULT_CHUNK_SIZE, DEFAULT_LOG_RANGE);
     }
-    
-    
-    // The chunk size indicates how many bytes are encoded (per block) before 
-    // resetting the frequency stats. 
+
+
+    // The chunk size indicates how many bytes are encoded (per block) before
+    // resetting the frequency stats.
     public RangeEncoder(OutputBitStream bs, int chunkSize, int logRange)
     {
       if (bs == null)
@@ -77,14 +77,14 @@ public final class RangeEncoder implements EntropyEncoder
       this.chunkSize = chunkSize;
     }
 
-    
+
    private int updateFrequencies(int[] frequencies, int size, int lr)
    {
       if ((frequencies == null) || (frequencies.length != 256))
          return -1;
 
       int alphabetSize = EntropyUtils.normalizeFrequencies(frequencies, this.alphabet, size, 1<<lr);
-      
+
       if (alphabetSize > 0)
       {
          this.cumFreqs[0] = 0;
@@ -93,12 +93,12 @@ public final class RangeEncoder implements EntropyEncoder
          for (int i=0; i<256; i++)
             this.cumFreqs[i+1] = this.cumFreqs[i] + frequencies[i];
       }
-          
+
       this.encodeHeader(alphabetSize, this.alphabet, frequencies, lr);
       return alphabetSize;
    }
 
-   
+
    protected boolean encodeHeader(int alphabetSize, int[] alphabet, int[] frequencies, int lr)
    {
       final int encoded = EntropyUtils.encodeAlphabet(this.bitstream, alphabet, alphabetSize);
@@ -137,7 +137,7 @@ public final class RangeEncoder implements EntropyEncoder
 
          if (logMax == 0) // all frequencies equal one in this chunk
             continue;
-         
+
          // Write frequencies
          for (int j=i; j<endj; j++)
             this.bitstream.writeBits(frequencies[alphabet[j]]-1, logMax);
@@ -146,23 +146,23 @@ public final class RangeEncoder implements EntropyEncoder
       return true;
    }
 
-    
+
     // Reset frequency stats for each chunk of data in the block
     @Override
     public int encode(byte[] block, int blkptr, int count)
     {
        if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
           return -1;
-        
+
        if (count == 0)
           return 0;
-      
+
        final int end = blkptr + count;
        final int sz = this.chunkSize;
        int startChunk = blkptr;
 
        while (startChunk < end)
-       {         
+       {
            final int endChunk = (startChunk+sz < end) ? startChunk+sz : end;
            this.range = TOP_RANGE;
            this.low = 0;
@@ -170,28 +170,28 @@ public final class RangeEncoder implements EntropyEncoder
 
            // Lower log range if the size of the data chunk is small
            while ((lr > 8) && (1<<lr > endChunk-startChunk))
-              lr--;        
-          
+              lr--;
+
            if (this.rebuildStatistics(block, startChunk, endChunk, lr) <= 1)
            {
                // Skip chunk if only one symbol
                startChunk = endChunk;
                continue;
-           } 
-           
+           }
+
            this.shift = lr;
-           
+
            for (int i=startChunk; i<endChunk; i++)
               this.encodeByte(block[i]);
-          
+
            // Flush 'low'
            this.bitstream.writeBits(this.low, 60);
            startChunk = endChunk;
        }
-       
+
        return count;
     }
-    
+
 
     protected void encodeByte(byte b)
     {
@@ -202,7 +202,7 @@ public final class RangeEncoder implements EntropyEncoder
         this.range >>>= this.shift;
         this.low += (cumFreq * this.range);
         this.range *= freq;
- 
+
         // If the left-most digits are the same throughout the range, write bits to bitstream
         while (true)
         {
@@ -226,19 +226,19 @@ public final class RangeEncoder implements EntropyEncoder
    private int rebuildStatistics(byte[] block, int start, int end, int lr)
    {
       Global.computeHistogramOrder0(block, start, end, this.freqs, false);
-      return this.updateFrequencies(this.freqs, end-start, lr);      
+      return this.updateFrequencies(this.freqs, end-start, lr);
    }
-   
-   
+
+
    @Override
     public OutputBitStream getBitStream()
     {
        return this.bitstream;
     }
 
-   
+
     @Override
-    public void dispose() 
+    public void dispose()
     {
     }
 }

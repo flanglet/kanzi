@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -19,8 +19,8 @@ import java.util.Random;
 import kanzi.IntSorter;
 
 
-public class TestAbstractSort 
-{  
+public class TestAbstractSort
+{
     public static boolean testCorrectness(String sortName, IntSorter sorter, int iters)
     {
         System.out.println("\n\nTest" + sortName);
@@ -56,7 +56,7 @@ public class TestAbstractSort
             for (int i=ii; i<array.length; i++)
             {
                 System.out.print(array[i]+" ");
-                
+
                 if ((i > 0) && (array[i] < array[i-1]))
                 {
                    System.err.println("Error at position "+(i-ii));
@@ -64,17 +64,17 @@ public class TestAbstractSort
                 }
             }
         }
-        
+
         return true;
     }
 
-  
+
     public static void testSpeed(String sortName, IntSorter sorter, int iters)
     {
        testSpeed(sortName, sorter, iters, -1);
     }
-    
-    
+
+
     public static void testSpeed(String sortName, IntSorter sorter, int iters, int mask)
     {
         System.out.println("\n\nSpeed test");
@@ -117,5 +117,5 @@ public class TestAbstractSort
              System.out.println("Elapsed arrays.sort"+adjust2+" [ms]: "+sum2/1000000);
          }
     }
-   
+
 }

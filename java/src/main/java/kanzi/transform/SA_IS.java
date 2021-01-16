@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -31,7 +31,7 @@ import kanzi.SliceIntArray;
 // Step 3 - Problem induction: based on the suffix array of the reduced problem, that of the
 //          unreduced problem is induced
 
-public class SA_IS 
+public class SA_IS
 {
       // find the start or end of each bucket
       private static void getCounts(SliceIntArray src, SliceIntArray dst, int n, int k)
@@ -137,7 +137,7 @@ public class SA_IS
 
           if (j <= 0)
              continue;
-          
+
           final int c0 = srcArray[srcIdx+j];
 
           if (c0 != c1)
@@ -182,8 +182,8 @@ public class SA_IS
             sa[j++] = ~p;
             sa[i-1] = 0;
           }
-          while (j != m);               
-          
+          while (j != m);
+
         }
 
         // store the length of all substrings
@@ -285,7 +285,7 @@ public class SA_IS
 
           if (j <= 0)
              continue;
-          
+
           j--;
           final int c0 = srcArray[srcIdx+j];
 
@@ -296,7 +296,7 @@ public class SA_IS
              b = bufArray[bufIdx+c1];
           }
 
-          sa[b++] = ((j > 0) && (srcArray[srcIdx+j-1] < c1)) ? ~j : j;          
+          sa[b++] = ((j > 0) && (srcArray[srcIdx+j-1] < c1)) ? ~j : j;
         }
 
         // compute sas
@@ -317,7 +317,7 @@ public class SA_IS
              sa[i] = ~j;
              continue;
           }
-          
+
           j--;
           final int c0 = srcArray[srcIdx+j];
 
@@ -417,7 +417,7 @@ public class SA_IS
 
       // Find the suffix array sa of data[0..n-1] in {0..k-1}^n
       // Return the primary index if isbwt is true (0 otherwise)
-      public static int computeSuffixArray(SliceIntArray data, int[] sa, int fs, 
+      public static int computeSuffixArray(SliceIntArray data, int[] sa, int fs,
               int n, int k, boolean isBWT)
       {
         SliceIntArray C;
@@ -504,7 +504,7 @@ public class SA_IS
 
           if (i < arrayIdx)
              break;
-          
+
           if (b >= 0)
              sa[b] = j;
 
@@ -522,7 +522,7 @@ public class SA_IS
         }
 
         int name = 0;
-        
+
         if (m > 1)
         {
           sortLMSSuffixes(data, sa, C, B, n, k);
@@ -579,7 +579,7 @@ public class SA_IS
 
             if (i < arrayIdx)
                break;
-            
+
             sa[j--] = i - arrayIdx + 1;
 
             do
@@ -649,5 +649,5 @@ public class SA_IS
         }
 
         return computeBWT(data, sa, C, B, n, k);
-     }   
+     }
 }

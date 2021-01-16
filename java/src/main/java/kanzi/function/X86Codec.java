@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -31,10 +31,10 @@ public class X86Codec implements ByteFunction
    private static final int MASK_JCC = 0xF0;
    private static final int MASK_ADDRESS = 0xD5;
    private static final byte ESCAPE = (byte) 0xF5;
- 
+
    private Map<String, Object> ctx;
-   
-   
+
+
    public X86Codec()
    {
    }
@@ -45,50 +45,50 @@ public class X86Codec implements ByteFunction
       this.ctx = ctx;
    }
 
-   
+
    @Override
    public boolean forward(SliceByteArray input, SliceByteArray output)
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
          return false;
-      
+
       final int count = input.length;
-      
+
       if (output.length - output.index < getMaxEncodedLength(count))
          return false;
-      
+
       // Aliasing
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int end = count - 8;
 
-      if (this.ctx != null) 
+      if (this.ctx != null)
       {
          Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
             Global.DataType.UNDEFINED);
-         
+
          if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.X86))
             return false;
       }
-      
+
       if (this.isExeBlock(src, input.index, input.index+end, count) == false)
          return false;
-      
-      if (this.ctx != null) 
+
+      if (this.ctx != null)
          this.ctx.put("dataType", Global.DataType.X86);
-      
+
       int srcIdx = input.index;
       int dstIdx = output.index;
 
-      while (srcIdx < end) 
+      while (srcIdx < end)
       {
-         dst[dstIdx++] = src[srcIdx++];  
-     
+         dst[dstIdx++] = src[srcIdx++];
+
          // Relative jump ?
-         if ((src[srcIdx-1] & MASK_JUMP) != INSTRUCTION_JUMP) 
+         if ((src[srcIdx-1] & MASK_JUMP) != INSTRUCTION_JUMP)
             continue;
 
          final byte cur = src[srcIdx];
@@ -106,8 +106,8 @@ public class X86Codec implements ByteFunction
          final byte sgn = src[srcIdx+3];
 
          // Invalid sign of jump address difference => false positive ?
-         if ((sgn != 0) && (sgn != -1)) 
-            continue;         
+         if ((sgn != 0) && (sgn != -1))
+            continue;
 
          int addr = (0xFF & src[srcIdx]) | ((0xFF & src[srcIdx+1]) << 8) |
                    ((0xFF & src[srcIdx+2]) << 16) | ((0xFF & sgn) << 24);
@@ -118,29 +118,29 @@ public class X86Codec implements ByteFunction
          dst[dstIdx+2] = (byte) (MASK_ADDRESS ^ (0xFF & (addr >>  8)));
          dst[dstIdx+3] = (byte) (MASK_ADDRESS ^ (0xFF &  addr));
          srcIdx += 4;
-         dstIdx += 4;       
+         dstIdx += 4;
       }
 
-      while (srcIdx < count) 
+      while (srcIdx < count)
          dst[dstIdx++] = src[srcIdx++];
-         
+
       input.index = srcIdx;
       output.index = dstIdx;
       return true;
    }
-  
+
 
    @Override
    public boolean inverse(SliceByteArray input, SliceByteArray output)
-   {    
+   {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
           return false;
-        
+
       final int count = input.length;
-      
+
       if (input.index + count > input.array.length)
          return false;
 
@@ -151,32 +151,32 @@ public class X86Codec implements ByteFunction
       int dstIdx = output.index;
       final int end = count - 8;
 
-      while (srcIdx < end) 
+      while (srcIdx < end)
       {
          dst[dstIdx++] = src[srcIdx++];
 
          // Relative jump ?
-         if ((src[srcIdx-1] & MASK_JUMP) != INSTRUCTION_JUMP) 
+         if ((src[srcIdx-1] & MASK_JUMP) != INSTRUCTION_JUMP)
             continue;
-         
+
          if (src[srcIdx] == ESCAPE)
          {
             // Not an encoded address. Skip escape symbol
-            srcIdx++;       
+            srcIdx++;
             continue;
          }
 
          final int sgn = src[srcIdx] - 1;
 
          // Invalid sign of jump address difference => false positive ?
-         if ((sgn != 0) && (sgn != -1)) 
-            continue;         
-                          
-         int addr = (0xFF & (MASK_ADDRESS ^ src[srcIdx+3]))        | 
+         if ((sgn != 0) && (sgn != -1))
+            continue;
+
+         int addr = (0xFF & (MASK_ADDRESS ^ src[srcIdx+3]))        |
                    ((0xFF & (MASK_ADDRESS ^ src[srcIdx+2])) <<  8) |
-                   ((0xFF & (MASK_ADDRESS ^ src[srcIdx+1])) << 16) | 
-                   ((0xFF & sgn) << 24);   
-         
+                   ((0xFF & (MASK_ADDRESS ^ src[srcIdx+1])) << 16) |
+                   ((0xFF & sgn) << 24);
+
          addr -= dstIdx;
          dst[dstIdx]   = (byte)  addr;
          dst[dstIdx+1] = (byte) (addr >>  8);
@@ -186,15 +186,15 @@ public class X86Codec implements ByteFunction
          dstIdx += 4;
       }
 
-      while (srcIdx < count) 
+      while (srcIdx < count)
          dst[dstIdx++] = src[srcIdx++];
-         
+
       input.index = srcIdx;
       output.index = dstIdx;
       return true;
    }
-    
-   
+
+
    @Override
    public int getMaxEncodedLength(int srcLen)
    {
@@ -202,19 +202,19 @@ public class X86Codec implements ByteFunction
       // allocate some extra buffer for incompressible data.
       if (srcLen >= 1<<30)
          return srcLen;
-      
+
       return (srcLen <= 512) ? srcLen+32 : srcLen+srcLen/16;
-   } 
-   
-   
+   }
+
+
    private boolean isExeBlock(byte[] src, int start, int end, int count)
    {
       int jumps = 0;
 
-      for (int i=start; i<end; i++) 
+      for (int i=start; i<end; i++)
       {
          if ((src[i] & MASK_JUMP) == INSTRUCTION_JUMP)
-         {         
+         {
             if ((src[i+4] == 0) || (src[i+4] == -1))
             {
                // Count valid relative jumps (E8/E9 .. .. .. 00/FF)
@@ -225,12 +225,12 @@ public class X86Codec implements ByteFunction
          {
             // Count relative conditional jumps (0x0F 0x8.)
             jumps++;
-         }            
+         }
       }
 
       // Number of jump instructions too small => either not a binary
       // or not worth the change => skip. Very crude filter obviously.
       // Also, binaries usually have a lot of 0x88..0x8C (MOV) instructions.
-      return jumps >= (count>>7);     
+      return jumps >= (count>>7);
    }
 }

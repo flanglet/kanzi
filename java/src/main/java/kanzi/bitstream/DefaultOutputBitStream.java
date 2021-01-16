@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -82,7 +82,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
 
       this.current |= ((value << (64 - count)) >>> (64 - this.availBits));
       int remaining = count;
- 
+
       if (count >= this.availBits) {
          remaining -= this.availBits;
          pushCurrent();
@@ -90,7 +90,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
          if (remaining != 0)
             this.current = value << (64 - remaining);
       }
- 
+
       this.availBits -= remaining;
       return count;
    }
@@ -145,7 +145,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
          if (remaining >= 64)
          {
             final int r = 64 - this.availBits;
-            
+
             while (remaining >= 64)
             {
                final long value = Memory.BigEndian.readLong64(bits, start);
@@ -160,7 +160,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
          }
       }
 
-      // Last bytes  
+      // Last bytes
       while (remaining >= 8)
       {
          this.writeBits((long) (bits[start]&0xFF), 8);
@@ -223,7 +223,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
       try
       {
          // Push last bytes (the very last byte may be incomplete)
-         for (int shift=56; this.availBits<64; shift-=8) 
+         for (int shift=56; this.availBits<64; shift-=8)
          {
             this.buffer[this.position++] = (byte) (this.current>>shift);
             this.availBits += 8;
@@ -255,9 +255,9 @@ public final class DefaultOutputBitStream implements OutputBitStream
       this.position = 0;
       this.availBits = 0;
       this.written -= 64; // adjust because this.availBits = 0
-         
+
       // Reset fields to force a flush() and trigger an exception
-      // on writeBit() or writeBits()      
+      // on writeBit() or writeBits()
       this.buffer = new byte[8];
    }
 

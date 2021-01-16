@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -19,7 +19,7 @@ package kanzi;
 public class BitStreamException extends RuntimeException
 {
     private static final long serialVersionUID = 7279737120722476336L;
-    
+
     public static final int UNDEFINED = 0;
     public static final int INPUT_OUTPUT   = 1;
     public static final int END_OF_STREAM  = 2;
@@ -27,35 +27,35 @@ public class BitStreamException extends RuntimeException
     public static final int STREAM_CLOSED  = 4;
 
     private final int code;
-    
-    
+
+
     protected BitStreamException()
     {
         this.code = UNDEFINED;
     }
-    
-    
+
+
     public BitStreamException(String message, int code)
     {
         super(message);
         this.code = code;
     }
-    
-    
+
+
     public BitStreamException(String message, Throwable cause, int code)
     {
         super(message, cause);
         this.code = code;
     }
-    
-    
+
+
     public BitStreamException(Throwable cause, int code)
     {
         super(cause);
         this.code = code;
     }
-    
-    
+
+
     public int getErrorCode()
     {
         return this.code;

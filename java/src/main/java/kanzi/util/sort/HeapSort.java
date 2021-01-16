@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -43,7 +43,7 @@ public final class HeapSort implements IntSorter
         return this.cmp;
     }
 
-    
+
     @Override
     public boolean sort(int[] input, int blkptr, int len)
     {
@@ -52,7 +52,7 @@ public final class HeapSort implements IntSorter
 
         if (len == 1)
            return true;
-        
+
         for (int k=len>>1; k>0; k--)
         {
             doSort(input, blkptr, k, len, this.cmp);
@@ -65,7 +65,7 @@ public final class HeapSort implements IntSorter
             input[blkptr+i] = temp;
             doSort(input, blkptr, 1, i, this.cmp);
         }
-        
+
         return true;
     }
 

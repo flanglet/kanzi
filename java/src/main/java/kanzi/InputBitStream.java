@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -25,7 +25,7 @@ public interface InputBitStream
    // Throws if the stream is closed.
    public long readBits(int length) throws BitStreamException;
 
-   // Read bits and put them in the byte array at index 'start'. 
+   // Read bits and put them in the byte array at index 'start'.
    // Length is the number of bits
    // Return the number of bits read.
    // Throws if the stream is closed.

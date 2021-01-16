@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -32,19 +32,19 @@ public class RLT implements ByteFunction
 {
    private static final int RUN_LEN_ENCODE1 = 224; // used to encode run length
    private static final int RUN_LEN_ENCODE2 = (255-RUN_LEN_ENCODE1) << 8; // used to encode run length
-   private static final int RUN_THRESHOLD = 3; 
-   private static final int MAX_RUN = 0xFFFF + RUN_LEN_ENCODE2 + RUN_THRESHOLD - 1; 
+   private static final int RUN_THRESHOLD = 3;
+   private static final int MAX_RUN = 0xFFFF + RUN_LEN_ENCODE2 + RUN_THRESHOLD - 1;
    private static final int MAX_RUN4 = MAX_RUN - 4;
 
    private final int[] freqs;
 
-   
+
    public RLT()
    {
       this.freqs = new int[256];
    }
 
-   
+
    public RLT(Map<String, Object> ctx)
    {
       this.freqs = new int[256];
@@ -56,20 +56,20 @@ public class RLT implements ByteFunction
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.length < 16)
          return false;
-      
+
       if (input.array == output.array)
          return false;
-      
+
       final int count = input.length;
-      
+
       if (output.length - output.index < getMaxEncodedLength(count))
          return false;
-     
+
       final byte[] src = input.array;
-      final byte[] dst = output.array;     
+      final byte[] dst = output.array;
 
       // Find escape symbol
       int srcIdx = input.index;
@@ -77,13 +77,13 @@ public class RLT implements ByteFunction
       final int srcEnd = srcIdx + count;
       final int srcEnd4 = srcEnd - 4;
       final int dstEnd = dst.length;
-      
+
       for (int i=1; i<256; i++)
          this.freqs[i] = 0;
-      
+
       Global.computeHistogramOrder0(src, srcIdx, srcEnd, this.freqs, false);
       int minIdx = 0;
-      
+
       // Select escape symbol
       if (this.freqs[minIdx] > 0)
       {
@@ -108,13 +108,13 @@ public class RLT implements ByteFunction
 
       if (prev == escape)
          dst[dstIdx++] = 0;
-  
+
       // Main loop
       while (true)
       {
          if (prev == src[srcIdx])
          {
-            srcIdx++; run++;            
+            srcIdx++; run++;
 
             if (prev == src[srcIdx])
             {
@@ -127,7 +127,7 @@ public class RLT implements ByteFunction
                   if (prev == src[srcIdx])
                   {
                      srcIdx++; run++;
-                     
+
                      if ((run < MAX_RUN4) && (srcIdx < srcEnd4))
                         continue;
                   }
@@ -138,13 +138,13 @@ public class RLT implements ByteFunction
          if (run > RUN_THRESHOLD)
          {
             final int dIdx = emitRunLength(dst, dstIdx, dstEnd, run, escape, prev);
-            
+
             if (dIdx < 0)
             {
                res = false;
                break;
             }
-            
+
             dstIdx = dIdx;
          }
          else if (prev != escape)
@@ -154,13 +154,13 @@ public class RLT implements ByteFunction
                res = false;
                break;
             }
-         
+
             if (run-- > 0)
-               dst[dstIdx++] = prev;   
+               dst[dstIdx++] = prev;
 
             while (run-- > 0)
-               dst[dstIdx++] = prev;   
-         }  
+               dst[dstIdx++] = prev;
+         }
          else // escape literal
          {
             if (dstIdx+2*run >= dstEnd)
@@ -168,23 +168,23 @@ public class RLT implements ByteFunction
                res = false;
                break;
             }
-         
+
             while (run-- > 0)
             {
-               dst[dstIdx++] = escape; 
+               dst[dstIdx++] = escape;
                dst[dstIdx++] = 0;
-            }          
+            }
          }
-         
+
          prev = src[srcIdx];
          srcIdx++;
-         run = 1; 
-         
+         run = 1;
+
          if (srcIdx >= srcEnd4)
             break;
       }
-  
-      if (res == true) 
+
+      if (res == true)
       {
          // run == 1
          if (prev != escape)
@@ -192,8 +192,8 @@ public class RLT implements ByteFunction
             if (dstIdx+run < dstEnd)
             {
                while (run-- > 0)
-                  dst[dstIdx++] = prev;   
-            }  
+                  dst[dstIdx++] = prev;
+            }
          }
          else // escape literal
          {
@@ -201,12 +201,12 @@ public class RLT implements ByteFunction
             {
                while (run-- > 0)
                {
-                  dst[dstIdx++] = escape; 
+                  dst[dstIdx++] = escape;
                   dst[dstIdx++] = 0;
-               } 
+               }
             }
-         }        
-         
+         }
+
          // Emit the last few bytes
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
@@ -218,34 +218,34 @@ public class RLT implements ByteFunction
                   break;
                }
 
-               dst[dstIdx++] = escape; 
+               dst[dstIdx++] = escape;
                dst[dstIdx++] = 0;
                srcIdx++;
                continue;
             }
-            
+
             dst[dstIdx++] = src[srcIdx++];
          }
-         
+
          res &= (srcIdx == srcEnd);
       }
-      
+
       res &= ((dstIdx-output.index) < (srcIdx-input.index));
       input.index = srcIdx;
       output.index = dstIdx;
       return res;
    }
 
-   
+
    private static int emitRunLength(byte[] dst, int dstIdx, int dstEnd, int run, byte escape, byte val)
    {
       dst[dstIdx++] = val;
-      
+
       if (val == escape)
          dst[dstIdx++] = (byte) 0;
 
       dst[dstIdx++] = escape;
-      run -= RUN_THRESHOLD;         
+      run -= RUN_THRESHOLD;
 
       // Encode run length
       if (run >= RUN_LEN_ENCODE1)
@@ -254,9 +254,9 @@ public class RLT implements ByteFunction
          {
             if (dstIdx >= dstEnd-2)
                return -1;
-            
+
             run -= RUN_LEN_ENCODE1;
-            dst[dstIdx++] = (byte) (RUN_LEN_ENCODE1 + (run>>8));                  
+            dst[dstIdx++] = (byte) (RUN_LEN_ENCODE1 + (run>>8));
          }
          else
          {
@@ -264,25 +264,25 @@ public class RLT implements ByteFunction
                return -1;
 
             run -= RUN_LEN_ENCODE2;
-            dst[dstIdx++] = (byte) 0xFF;               
-            dst[dstIdx++] = (byte) (run>>8);                              
+            dst[dstIdx++] = (byte) 0xFF;
+            dst[dstIdx++] = (byte) (run>>8);
          }
       }
-      
-      dst[dstIdx] = (byte) run;      
+
+      dst[dstIdx] = (byte) run;
       return dstIdx+1;
    }
 
-   
+
    @Override
    public boolean inverse(SliceByteArray input, SliceByteArray output)
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
          return false;
-   
+
       final int count = input.length;
       int srcIdx = input.index;
       int dstIdx = output.index;
@@ -296,24 +296,24 @@ public class RLT implements ByteFunction
       if (src[srcIdx] == escape)
       {
          srcIdx++;
-         
+
          // The data cannot start with a run but may start with an escape literal
          if ((srcIdx < srcEnd) && (src[srcIdx] != 0))
             return false;
-         
+
          dst[dstIdx++] = escape;
-         srcIdx++;         
+         srcIdx++;
       }
-      
+
       // Main loop
       while (srcIdx < srcEnd)
-      { 
+      {
          if (src[srcIdx] != escape)
-         {            
+         {
             // Literal
             if (dstIdx >= dstEnd)
                break;
-            
+
             dst[dstIdx++] = src[srcIdx++];
             continue;
          }
@@ -325,8 +325,8 @@ public class RLT implements ByteFunction
             res = false;
             break;
          }
-         
-         final byte val = dst[dstIdx-1];         
+
+         final byte val = dst[dstIdx-1];
          int run = src[srcIdx++] & 0xFF;
 
          if (run == 0)
@@ -334,7 +334,7 @@ public class RLT implements ByteFunction
             // Just an escape literal, not a run
             if (dstIdx >= dstEnd)
                break;
-            
+
             dst[dstIdx++] = escape;
             continue;
          }
@@ -352,7 +352,7 @@ public class RLT implements ByteFunction
             srcIdx += 2;
             run += RUN_LEN_ENCODE2;
          }
-         else if (run >= RUN_LEN_ENCODE1) 
+         else if (run >= RUN_LEN_ENCODE1)
          {
             if (srcIdx >= srcEnd)
             {
@@ -366,13 +366,13 @@ public class RLT implements ByteFunction
 
          run += (RUN_THRESHOLD-1);
 
-         if ((dstIdx+run >= dstEnd) || (run > MAX_RUN)) 
+         if ((dstIdx+run >= dstEnd) || (run > MAX_RUN))
          {
             res = false;
             break;
          }
 
-         // Emit 'run' times the previous byte               
+         // Emit 'run' times the previous byte
          while (run >= 4)
          {
             dst[dstIdx]   = val;
@@ -386,14 +386,14 @@ public class RLT implements ByteFunction
          while (run-- > 0)
             dst[dstIdx++] = val;
       }
-         
-      res &= (srcIdx == srcEnd);   
+
+      res &= (srcIdx == srcEnd);
       input.index = srcIdx;
       output.index = dstIdx;
       return res;
    }
-  
-   
+
+
    @Override
    public int getMaxEncodedLength(int srcLen)
    {

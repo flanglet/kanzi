@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -70,7 +70,7 @@ public class HuffmanDecoder implements EntropyDecoder
       }
    }
 
-   
+
    // readLengths decodes the code lengths from the bitstream and generates
    // the Huffman codes for decoding.
    public int readLengths() throws BitStreamException
@@ -166,11 +166,11 @@ public class HuffmanDecoder implements EntropyDecoder
 
          // For each chunk, read code lengths, rebuild codes, rebuild decoding table
          final int alphabetSize = this.readLengths();
-         
+
          if (alphabetSize <= 0)
             return startChunk - blkptr;
 
-         if (alphabetSize == 1) 
+         if (alphabetSize == 1)
          {
             // Shortcut for chunks with only one symbol
             for (int i=startChunk; i<endChunk; i++)
@@ -179,7 +179,7 @@ public class HuffmanDecoder implements EntropyDecoder
             startChunk = endChunk;
             continue;
         }
-         
+
          // Compute minimum number of bits required in bitstream for fast decoding
          final int minCodeLen = this.sizes[this.alphabet[0]]; // not 0
          int padding = 64 / minCodeLen;
@@ -198,13 +198,13 @@ public class HuffmanDecoder implements EntropyDecoder
             block[i+3] = this.decodeByte();
          }
 
-         // Fallback to regular decoding 
+         // Fallback to regular decoding
          for (int i=endChunk4; i<endChunk; i++)
             block[i] = this.slowDecodeByte();
 
          startChunk = endChunk;
       }
-      
+
       return count;
    }
 
@@ -230,7 +230,7 @@ public class HuffmanDecoder implements EntropyDecoder
          }
 
          final int idx = code << (DECODING_BATCH_SIZE-codeLen);
-         
+
          if ((this.table[idx] >>> 8) == codeLen)
             return (byte) this.table[idx];
       }

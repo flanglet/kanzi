@@ -1,5 +1,5 @@
 /*
- Copyright 2011-2017 Frederic Langlet
+ Copyright 2011-2021 Frederic Langlet
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  you may obtain a copy of the License at
@@ -219,7 +219,7 @@ public final class IntBTree
          if (current.counts[i] != 0)
             return current;
       }
-      
+
       if (current == this.root)
       {
          // First, try easy substitutions of root
@@ -273,40 +273,40 @@ public final class IntBTree
    }
 
 
-   public int rank(int value) 
+   public int rank(int value)
    {
       if (this.root == null)
          return -1;
-      
+
       if (this.min() == value)
          return 0;
-      
+
       int rank = findRank(this.root, value, 0);
       return (rank == this.size) ? -1 : -rank;
    }
-   
-   
+
+
    private static int findRank(IntBTNode current, int value, int rank)
-   { 
+   {
       if ((rank >= 0) && (current.left != null))
          rank = findRank(current.left, value, rank);
 
       for (int i=0; i<NODE_BUFFER_SIZE; i++)
       {
          if (value == current.base + i)
-            return -rank; 
+            return -rank;
 
          if (rank >= 0)
             rank += current.counts[i];
       }
-      
+
       if ((rank >= 0) && (current.right != null))
          rank = findRank(current.right, value, rank);
-         
+
       return rank;
    }
-   
-   
+
+
    public int[] scan(Callback cb, boolean reverse)
    {
       if ((cb == null) || (this.root == null))
@@ -429,26 +429,26 @@ public final class IntBTree
    {
       if (this.size() == 0)
          return "[]";
-      
-      final int[] res = new int[this.size()];  
-      final Callback cb = new CallbackImpl(); 
+
+      final int[] res = new int[this.size()];
+      final Callback cb = new CallbackImpl();
       scanAndCall(this.root, res, 0, cb, false);
       StringBuilder sb = new StringBuilder(res.length*5);
       sb.append('[');
-      
+
       if (res.length > 0)
       {
          sb.append(res[0]);
-         
+
          for (int i=1; i<res.length; i++)
             sb.append(',').append(res[i]);
       }
-      
+
       sb.append(']');
       return sb.toString();
    }
-   
-   
+
+
    // Interface to implement visitor pattern. Must return the node value
    public interface Callback
    {
@@ -489,7 +489,7 @@ public final class IntBTree
                   values[idx++] = this.base + i;
             }
          }
-         
+
          return idx;
       }
    }

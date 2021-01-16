@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -35,7 +35,7 @@ public class FlashSort implements IntSorter
     }
 
 
-    // Not thread safe 
+    // Not thread safe
     @Override
     public boolean sort(int[] input, int blkptr, int len)
     {
@@ -44,7 +44,7 @@ public class FlashSort implements IntSorter
 
         if (len == 1)
            return true;
-        
+
        final int m = (len * 215) >> 9; // speed optimum m = 0.42 n
 
        if (this.buffer.length < m)

@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -15,7 +15,7 @@ limitations under the License.
 
 package kanzi;
 
-public class Event 
+public class Event
 {
    public enum Type
    {
@@ -37,20 +37,20 @@ public class Event
    private final boolean hashing;
    private final long time;
    private final String msg;
-      
+
 
    public Event(Type type, int id, long size)
    {
       this(type, id, size, 0, false);
    }
-   
-   
+
+
    public Event(Type type, int id, String msg)
    {
       this(type, id, msg, 0);
    }
-   
-   
+
+
    public Event(Type type, int id, String msg, long time)
    {
       this.id = id;
@@ -61,14 +61,14 @@ public class Event
       this.time = (time > 0) ? time : System.nanoTime();
       this.msg = msg;
    }
-   
-   
+
+
    public Event(Type type, int id, long size, int hash, boolean hashing)
    {
       this(type, id, size, hash, hashing, 0);
    }
-   
-   
+
+
    public Event(Type type, int id, long size, int hash, boolean hashing, long time)
    {
       this.id = id;
@@ -79,53 +79,53 @@ public class Event
       this.time = (time > 0) ? time : System.nanoTime();
       this.msg = null;
    }
-   
-   
-   public int getId() 
+
+
+   public int getId()
    {
       return this.id;
    }
 
-   
-   public long getSize() 
+
+   public long getSize()
    {
       return this.size;
    }
 
-   
-   public long getTime() 
+
+   public long getTime()
    {
       return this.time;
    }
 
-   
-   public Integer getHash() 
+
+   public Integer getHash()
    {
       return (this.hashing == false) ? null : this.hash;
-   }  
-   
-   
+   }
+
+
    public Type getType()
    {
       return this.type;
    }
-  
-   
+
+
    @Override
    public String toString()
    {
       if (this.msg != null)
          return this.msg;
-      
+
       StringBuilder sb = new StringBuilder(200);
       sb.append("{ \"type\":\"").append(this.getType()).append("\"");
-      
+
       if (this.id >= 0)
          sb.append(", \"id\":").append(this.getId());
-      
+
       sb.append(", \"size\":").append(this.getSize());
       sb.append(", \"time\":").append(this.getTime());
-      
+
       if (this.hashing == true)
          sb.append(", \"hash\":").append(Integer.toHexString(this.getHash()));
 

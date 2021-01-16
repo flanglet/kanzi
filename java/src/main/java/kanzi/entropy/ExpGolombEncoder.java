@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -21,10 +21,10 @@ import kanzi.OutputBitStream;
 
 public final class ExpGolombEncoder implements EntropyEncoder
 {
-    private static final int[][] CACHE = new int[][] 
+    private static final int[][] CACHE = new int[][]
     {
        // Unsigned
-       new int[] 
+       new int[]
        {
           513, 1538, 1539, 2564, 2565, 2566, 2567, 3592, 3593, 3594, 3595, 3596, 3597, 3598, 3599, 4624,
          4625, 4626, 4627, 4628, 4629, 4630, 4631, 4632, 4633, 4634, 4635, 4636, 4637, 4638, 4639, 5664,
@@ -44,7 +44,7 @@ public final class ExpGolombEncoder implements EntropyEncoder
          4625, 4624, 3599, 3598, 3597, 3596, 3595, 3594, 3593, 3592, 2567, 2566, 2565, 2564, 1539, 1538
       },
       // Signed
-      new int[] 
+      new int[]
       {
           513, 2052, 2054, 3080, 3082, 3084, 3086, 4112, 4114, 4116, 4118, 4120, 4122, 4124, 4126, 5152,
          5154, 5156, 5158, 5160, 5162, 5164, 5166, 5168, 5170, 5172, 5174, 5176, 5178, 5180, 5182, 6208,
@@ -61,15 +61,15 @@ public final class ExpGolombEncoder implements EntropyEncoder
          7299, 7297, 6271, 6269, 6267, 6265, 6263, 6261, 6259, 6257, 6255, 6253, 6251, 6249, 6247, 6245,
          6243, 6241, 6239, 6237, 6235, 6233, 6231, 6229, 6227, 6225, 6223, 6221, 6219, 6217, 6215, 6213,
          6211, 6209, 5183, 5181, 5179, 5177, 5175, 5173, 5171, 5169, 5167, 5165, 5163, 5161, 5159, 5157,
-         5155, 5153, 4127, 4125, 4123, 4121, 4119, 4117, 4115, 4113, 3087, 3085, 3083, 3081, 2055, 2053      
+         5155, 5153, 4127, 4125, 4123, 4121, 4119, 4117, 4115, 4113, 3087, 3085, 3083, 3081, 2055, 2053
       }
     };
-    
+
     private final int[] cache;
     private final int signed;
     private final OutputBitStream bitstream;
-    
-    
+
+
     public ExpGolombEncoder(OutputBitStream bitstream, boolean signed)
     {
        if (bitstream == null)
@@ -79,14 +79,14 @@ public final class ExpGolombEncoder implements EntropyEncoder
        this.cache = CACHE[this.signed];
        this.bitstream = bitstream;
     }
-    
-    
+
+
     public boolean isSigned()
     {
        return this.signed == 1;
     }
-       
-    
+
+
     @Override
     public int encode(byte[] block, int blkptr, int count)
     {
@@ -100,7 +100,7 @@ public final class ExpGolombEncoder implements EntropyEncoder
 
       return count;
     }
-    
+
 
     public void encodeByte(byte val)
     {
@@ -111,10 +111,10 @@ public final class ExpGolombEncoder implements EntropyEncoder
           return;
        }
 
-       final int emit = this.cache[val&0xFF];     
+       final int emit = this.cache[val&0xFF];
        this.bitstream.writeBits(emit&0x1FF, emit>>>9);
-    }  
-    
+    }
+
 
     @Override
     public OutputBitStream getBitStream()
@@ -122,9 +122,9 @@ public final class ExpGolombEncoder implements EntropyEncoder
        return this.bitstream;
     }
 
-    
+
     @Override
     public void dispose()
     {
-    } 
+    }
 }

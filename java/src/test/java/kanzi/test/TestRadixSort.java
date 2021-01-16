@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -29,6 +29,6 @@ public class TestRadixSort extends TestAbstractSort
         Assert.assertTrue(testCorrectness("RadixSort (radix 8)", new RadixSort(8), 5));
         //testSpeed("RadixSort (radix 4)", new RadixSort(4), 5000);
         testSpeed("RadixSort (radix 8)", new RadixSort(8), 5000);
-    }    
+    }
 }
 

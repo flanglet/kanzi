@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -25,7 +25,7 @@ public final class RiceGolombEncoder implements EntropyEncoder
     private final OutputBitStream bitstream;
     private final int logBase;
     private final int base;
-    
+
 
     public RiceGolombEncoder(OutputBitStream bitstream, boolean signed, int logBase)
     {
@@ -81,9 +81,9 @@ public final class RiceGolombEncoder implements EntropyEncoder
        return this.bitstream;
     }
 
-   
+
     @Override
-    public int encode(byte[] block, int blkptr, int count) 
+    public int encode(byte[] block, int blkptr, int count)
     {
        if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
           return -1;
@@ -96,9 +96,9 @@ public final class RiceGolombEncoder implements EntropyEncoder
        return count;
     }
 
-    
+
     @Override
-    public void dispose() 
+    public void dispose()
     {
     }
 }

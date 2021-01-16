@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -21,26 +21,26 @@ import kanzi.ArrayComparator;
 public final class DefaultArrayComparator implements ArrayComparator
 {
     private final int[] array;
-    
-    
+
+
     public DefaultArrayComparator(int[] array)
     {
         if (array == null)
             throw new NullPointerException("Invalid null array parameter");
-        
+
         this.array = array;
     }
-        
-    
+
+
     @Override
     public int compare(int lidx, int ridx)
     {
         int res = this.array[lidx] - this.array[ridx];
-        
+
         // Make the sort stable
         if (res == 0)
            res = lidx - ridx;
-        
+
         return res;
     }
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -21,17 +21,17 @@ import java.util.List;
 
 
 // Utility class to decompose a String into Lyndon words using the Chen-Fox-Lyndon algorithm
-public class LyndonWords 
+public class LyndonWords
 {
    private final List<Integer> breakpoints;
 
-   
+
    public LyndonWords()
    {
       this.breakpoints = new ArrayList<Integer>();
    }
-   
-   
+
+
    // Not thread safe
    private List<Integer> chenFoxLyndonBreakpoints(byte[] buf, int length)
    {
@@ -42,31 +42,31 @@ public class LyndonWords
       {
          int i = k;
          int j = k + 1;
-        
+
          while ((j < length) && (buf[i] <= buf[j]))
          {
             i = (buf[i] == buf[j]) ? i+1 : k;
             j++;
          }
-            
+
          while (k <= i)
          {
             k += (j-i);
-            this.breakpoints.add(k);            
+            this.breakpoints.add(k);
          }
       }
-      
+
       return this.breakpoints;
    }
-   
-   
+
+
    // Not thread safe
    public String[] split(String s)
    {
       return this.split(s, null);  // relies on default encoding
    }
-	   
-   
+	
+
    // Not thread safe
    public String[] split(String s, Charset cs)
    {
@@ -75,48 +75,48 @@ public class LyndonWords
       String[] res = new String[this.breakpoints.size()];
       int n = 0;
       int prev = 0;
-     
+
       for (int bp : this.breakpoints)
       {
          res[n++] = s.substring(prev, bp);
          prev = bp;
-      }  
-     
-      return res;
-   }   
+      }
 
-   
+      return res;
+   }
+
+
    public int[] getPositions(String s)
-   {      
+   {
       return this.getPositions(s, null);   // relies on default encoding
    }
-    
-   
+
+
    public int[] getPositions(String s, Charset cs)
-   {      
+   {
       byte[] buf = (cs == null) ? s.getBytes() : s.getBytes(cs);
       return this.getPositions(buf, buf.length);   // relies on default encoding
    }
-   
-   
+
+
    public int[] getPositions(byte[] buf, int length)
-   {          
+   {
       this.chenFoxLyndonBreakpoints(buf, length);
-      int[] res = new int[this.breakpoints.size()];     
+      int[] res = new int[this.breakpoints.size()];
       int n = 0;
-      
+
       for (Integer bp : this.breakpoints)
          res[n++] = bp;
-      
+
       return res;
    }
-   
-   
+
+
    public static void main(String[] args)
    {
       String[] ss = new LyndonWords().split("TO_BE_OR_NOT_TO_BE");
-      
+
       for (String s : ss)
-         System.out.println(s);  
+         System.out.println(s);
    }
 }

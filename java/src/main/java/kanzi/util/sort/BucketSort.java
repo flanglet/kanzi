@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -26,27 +26,27 @@ import kanzi.IntSorter;
 public class BucketSort implements IntSorter, ByteSorter
 {
     private final int[] count;
-    
-    
+
+
     public BucketSort()
     {
         this.count = new int[256];
     }
 
-    
+
     // Limit size to handle shorts
     public BucketSort(int logMaxValue)
     {
         if (logMaxValue < 2)
             throw new IllegalArgumentException("The log data size parameter must be at least 2");
-        
+
         if (logMaxValue > 16)
             throw new IllegalArgumentException("The log data size parameter must be at most 16");
 
         this.count = new int[1 << logMaxValue];
     }
-    
-    
+
+
     // Not thread safe
     // all input data must be smaller than 1 << logMaxValue
     @Override
@@ -57,7 +57,7 @@ public class BucketSort implements IntSorter, ByteSorter
 
         if (len == 1)
            return true;
-        
+
         final int len8 = len & -8;
         final int end8 = blkptr + len8;
         final int[] c = this.count;
@@ -106,7 +106,7 @@ public class BucketSort implements IntSorter, ByteSorter
                 val8 -= 8;
             }
         }
-        
+
         return true;
     }
 
@@ -120,7 +120,7 @@ public class BucketSort implements IntSorter, ByteSorter
 
         if (len == 1)
            return true;
-        
+
         final int len8 = len & -8;
         final int end8 = blkptr + len8;
         final int[] c = this.count;
@@ -148,7 +148,7 @@ public class BucketSort implements IntSorter, ByteSorter
 
             if (val == 0)
                 continue;
-            
+
             int val8 = val & -8;
             c[i] = 0;
 
@@ -170,8 +170,8 @@ public class BucketSort implements IntSorter, ByteSorter
                 val8 -= 8;
             }
         }
-        
+
         return true;
     }
-    
+
 }

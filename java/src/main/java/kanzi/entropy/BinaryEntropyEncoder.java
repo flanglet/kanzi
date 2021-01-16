@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -38,7 +38,7 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    private boolean disposed;
    private SliceByteArray sba;
 
-   
+
    public BinaryEntropyEncoder(OutputBitStream bitstream, Predictor predictor)
    {
       if (bitstream == null)
@@ -60,7 +60,7 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    {
       if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
          return -1;
-      
+
       if (count == 0)
          return 0;
 
@@ -73,33 +73,33 @@ public class BinaryEntropyEncoder implements EntropyEncoder
          // If the block is big (>=64MB), split the encoding to avoid allocating
          // too much memory.
          length = (count < (1<<29)) ? count >> 3 : count >> 4;
-      }  
+      }
 
       // Split block into chunks, encode chunk and write bit array to bitstream
       while (startChunk < end)
       {
          final int chunkSize = startChunk+length < end ? length : end-startChunk;
-        
+
          if (this.sba.array.length < (chunkSize+(chunkSize>>3)))
             this.sba.array = new byte[chunkSize+(chunkSize>>3)];
-         
+
          this.sba.index = 0;
 
          for (int i=startChunk; i<startChunk+chunkSize; i++)
             this.encodeByte(block[i]);
-    
+
          EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
-         this.bitstream.writeBits(this.sba.array, 0, 8*this.sba.index); 
+         this.bitstream.writeBits(this.sba.array, 0, 8*this.sba.index);
          startChunk += chunkSize;
 
-         if (startChunk < end)         
-            this.bitstream.writeBits(this.low | MASK_0_24, 56);         
+         if (startChunk < end)
+            this.bitstream.writeBits(this.low | MASK_0_24, 56);
       }
 
       return count;
    }
-   
-   
+
+
    public final void encodeByte(byte val)
    {
       this.encodeBit((val >> 7) & 1, this.predictor.get());
@@ -111,28 +111,28 @@ public class BinaryEntropyEncoder implements EntropyEncoder
       this.encodeBit((val >> 1) & 1, this.predictor.get());
       this.encodeBit(val & 1, this.predictor.get());
    }
-   
+
 
    public void encodeBit(int bit, int pred)
-   {      
+   {
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division
       final long split = (((this.high - this.low) >>> 4) * pred) >>> 8;
-        
+
       // Update fields with new interval bounds
       if (bit == 0)
          this.low += (split + 1);
-      else 
+      else
          this.high = this.low + split;
 	
       // Update predictor
       this.predictor.update(bit);
-            
+
       // Write unchanged first 32 bits to bitstream
       while (((this.low ^ this.high) & MASK_24_56) == 0)
          this.flush();
    }
-      
+
 
    private void flush()
    {

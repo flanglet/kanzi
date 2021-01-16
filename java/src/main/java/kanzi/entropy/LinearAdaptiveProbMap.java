@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -17,7 +17,7 @@ package kanzi.entropy;
 
 // APM maps a probability and a context into a new probability
 // that the next bit will be 1. After each guess, it updates
-// its state to improve future guesses.  
+// its state to improve future guesses.
 
 /*package*/ final class LinearAdaptiveProbMap
 {
@@ -44,7 +44,7 @@ package kanzi.entropy;
    {
       // Update probability based on error and learning rate
       final int g = (-bit & 65528) + (bit<<this.rate);
-      this.data[this.index] += ((g-this.data[this.index]) >> this.rate);      
+      this.data[this.index] += ((g-this.data[this.index]) >> this.rate);
       this.data[this.index+1] += ((g-this.data[this.index+1]) >> this.rate);
 
       // Find index: 65*ctx + quantized prediction in [0..64]
@@ -53,5 +53,5 @@ package kanzi.entropy;
       // Return interpolated probability
       final int w = pr & 127;
       return (this.data[this.index]*(128-w) + this.data[this.index+1]*w) >> 11;
-   }   
+   }
 }

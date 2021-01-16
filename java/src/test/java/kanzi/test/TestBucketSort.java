@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -27,5 +27,5 @@ public class TestBucketSort extends TestAbstractSort
     {
         Assert.assertTrue(testCorrectness("BucketSort", new BucketSort(8), 20));
         testSpeed("BucketSort", new BucketSort(16), 10000, 0xFFFF);
-    }    
+    }
 }

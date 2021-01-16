@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -125,7 +125,7 @@ public class XXHash64
       return h64 ^ (h64 >>> 32);
    }
 
-  
+
    private static long round(long acc, long val)
    {
       acc += (val*PRIME64_2);

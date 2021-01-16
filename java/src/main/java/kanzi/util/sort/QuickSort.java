@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -33,8 +33,8 @@ public class QuickSort implements IntSorter
     private static final int MERGING_SORT_THRESHOLD = 2048;
     private static final int MAX_RECURSION_DEPTH = 100;
     private static final int LEFTMOST_BITS = MAX_RECURSION_DEPTH << 1;
-    
-    
+
+
    private final ArrayComparator cmp;
 
 
@@ -65,31 +65,31 @@ public class QuickSort implements IntSorter
       if (len == 1)
          return true;
 
-      if (this.cmp == null)          
-         recursiveSort(input, LEFTMOST_BITS, blkptr, blkptr+len);       
+      if (this.cmp == null)
+         recursiveSort(input, LEFTMOST_BITS, blkptr, blkptr+len);
       else
-         recursiveSort(input, LEFTMOST_BITS, blkptr, blkptr+len, this.cmp); 
-      
+         recursiveSort(input, LEFTMOST_BITS, blkptr, blkptr+len, this.cmp);
+
       return true;
    }
 
 
-   private static void recursiveSort(int[] block, int bits, int low, int high) 
+   private static void recursiveSort(int[] block, int bits, int low, int high)
    {
       final int end = high - 1;
       final int length = high - low;
 
-      if ((bits & 1) != 0) 
+      if ((bits & 1) != 0)
       {
-         if (length < NANO_INSERTION_SORT_THRESHOLD) 
-         {      
+         if (length < NANO_INSERTION_SORT_THRESHOLD)
+         {
             if (length > 1)
                nanoInsertionSort(block, low, high);
-            
+
             return;
          }
 
-         if (length < PAIR_INSERTION_SORT_THRESHOLD) 
+         if (length < PAIR_INSERTION_SORT_THRESHOLD)
          {
             pairInsertionSort(block, low, end);
             return;
@@ -97,14 +97,14 @@ public class QuickSort implements IntSorter
       }
 
       bits -= 2;
-      
+
       // Switch to heap sort on the leftmost part or
       // if the execution time is becoming quadratic
-      if ((length < HEAP_SORT_THRESHOLD) || (bits < 0)) 
+      if ((length < HEAP_SORT_THRESHOLD) || (bits < 0))
       {
          if (length > 1)
             heapSort(block, low, end);
-         
+
          return;
       }
 
@@ -122,59 +122,59 @@ public class QuickSort implements IntSorter
       final int e2 = (e1 + e3) >>> 1;
       final int e4 = (e3 + e5) >>> 1;
 
-      // Sort these elements in place by the combination of 5-element 
+      // Sort these elements in place by the combination of 5-element
       // sorting network and insertion sort.
-      if (block[e5] < block[e3]) 
+      if (block[e5] < block[e3])
          swap(block, e3, e5);
 
-      if (block[e4] < block[e2]) 
+      if (block[e4] < block[e2])
          swap(block, e2, e4);
 
-      if (block[e5] < block[e4]) 
+      if (block[e5] < block[e4])
          swap(block, e4, e5);
 
-      if (block[e3] < block[e2]) 
+      if (block[e3] < block[e2])
          swap(block, e2, e3);
 
-      if (block[e4] < block[e3]) 
+      if (block[e4] < block[e3])
           swap(block, e3, e4);
 
-      if (block[e1] > block[e2]) 
-      { 
-         final int t = block[e1]; 
-         block[e1] = block[e2]; 
+      if (block[e1] > block[e2])
+      {
+         final int t = block[e1];
+         block[e1] = block[e2];
          block[e2] = t;
 
-         if (t > block[e3]) 
-         { 
-            block[e2] = block[e3]; 
+         if (t > block[e3])
+         {
+            block[e2] = block[e3];
             block[e3] = t;
 
-            if (t > block[e4]) 
-            { 
+            if (t > block[e4])
+            {
                block[e3] = block[e4];
                block[e4] = t;
 
-               if (t > block[e5]) 
-               { 
+               if (t > block[e5])
+               {
                   block[e4] = block[e5];
-                  block[e5] = t; 
+                  block[e5] = t;
                }
             }
          }
       }
 
       // Index of the last element of the left part
-      int lower = low; 
+      int lower = low;
 
       // Index of the first element of the right part
-      int upper = end; 
+      int upper = end;
 
-      if ((block[e1] < block[e2]) && (block[e2] < block[e3]) && 
-         (block[e3] < block[e4]) && (block[e4] < block[e5])) 
+      if ((block[e1] < block[e2]) && (block[e2] < block[e3]) &&
+         (block[e3] < block[e4]) && (block[e4] < block[e5]))
       {
          // Partitioning with two pivots
-         // Use the first and the fifth elements as the pivots.             
+         // Use the first and the fifth elements as the pivots.
          final int pivot1 = block[e1];
          final int pivot2 = block[e5];
 
@@ -197,39 +197,39 @@ public class QuickSort implements IntSorter
 
          lower--;
          upper++;
-         
-         for (int k=upper; --k>lower; ) 
+
+         for (int k=upper; --k>lower; )
          {
             final int ak = block[k];
 
-            if (ak < pivot1) 
-            { 
+            if (ak < pivot1)
+            {
                // Move block[k] to the left side
                while (block[++lower] < pivot1) {}
 
-               if (lower > k) 
+               if (lower > k)
                {
                   lower = k;
                   break;
                }
 
-               if (block[lower] > pivot2) 
-               { 
+               if (block[lower] > pivot2)
+               {
                   // block[lower] >= pivot1
                   upper--;
                   block[k] = block[upper];
                   block[upper] = block[lower];
-               } 
-               else 
-               { 
+               }
+               else
+               {
                   // pivot1 <= block[lower] <= pivot2
                   block[k] = block[lower];
                }
 
                block[lower] = ak;
-            } 
-            else if (ak > pivot2) 
-            { 
+            }
+            else if (ak > pivot2)
+            {
                // Move block[k] to the right side
                upper--;
                block[k] = block[upper];
@@ -238,18 +238,18 @@ public class QuickSort implements IntSorter
          }
 
          // Swap the pivots back into their final positions
-         block[low] = block[lower]; 
+         block[low] = block[lower];
          block[lower] = pivot1;
-         block[end] = block[upper]; 
+         block[end] = block[upper];
          block[upper] = pivot2;
 
          // Recursion
          recursiveSort(block, bits|1, upper+1, high);
          recursiveSort(block, bits, low, lower);
          recursiveSort(block, bits|1, lower+1, upper);
-     } 
-     else 
-     { 
+     }
+     else
+     {
          // Partitioning with one pivot
 
          // Use the third element as the pivotas an approximation of the median.
@@ -262,39 +262,39 @@ public class QuickSort implements IntSorter
          block[e3] = block[lower];
          upper++;
 
-         for (int k=upper-1; k>lower; k--) 
+         for (int k=upper-1; k>lower; k--)
          {
-            if (block[k] == pivot) 
+            if (block[k] == pivot)
                 continue;
 
             final int ak = block[k];
 
-            if (ak < pivot) 
-            { 
+            if (ak < pivot)
+            {
                // Move block[k] to the left side
                lower++;
-               
+
                while (block[lower] < pivot)
                   lower++;
 
-               if (lower > k) 
+               if (lower > k)
                {
                   lower = k;
                   break;
                }
-               
+
                block[k] = pivot;
 
-               if (block[lower] > pivot) 
+               if (block[lower] > pivot)
                {
                   upper--;
                   block[upper] = block[lower];
                }
-               
+
                block[lower] = ak;
-            } 
-            else 
-            { 
+            }
+            else
+            {
                // Move block[k] to the right side
                block[k] = pivot;
                upper--;
@@ -303,23 +303,23 @@ public class QuickSort implements IntSorter
          }
 
          // Swap the pivot into its final position.
-         block[low] = block[lower]; 
+         block[low] = block[lower];
          block[lower] = pivot;
 
          // Recursion
          recursiveSort(block, bits|1, upper, high);
          recursiveSort(block, bits, low, lower);
-      }   
+      }
    }
-   
-   
+
+
    private static void swap(int[] block, int idx0, int idx1)
    {
       final int t = block[idx0];
       block[idx0] = block[idx1];
       block[idx1] = t;
    }
-   
+
 
    private static void nanoInsertionSort(int[] block, int low, final int high)
    {
@@ -341,10 +341,10 @@ public class QuickSort implements IntSorter
          block[k+1] = ak;
          low++;
       }
-   } 
-   
-   
-   private static void pairInsertionSort(int[] block, int left, final int right) 
+   }
+
+
+   private static void pairInsertionSort(int[] block, int left, final int right)
    {
       // Align left boundary
       left -= ((left ^ right) & 1);
@@ -357,27 +357,27 @@ public class QuickSort implements IntSorter
       // play the role of sentinels. Therefore expensive check
       // of the left range on each iteration can be skipped.
       left++;
-      
-      while (left < right) 
+
+      while (left < right)
       {
          left++;
          int k = left;
          int a1 = block[k];
 
-         if (block[k-2] > block[k-1]) 
+         if (block[k-2] > block[k-1])
          {
             k--;
             int a2 = block[k];
 
             if (a1 > a2)
             {
-               a2 = a1; 
+               a2 = a1;
                a1 = block[k];
             }
 
             k--;
-            
-            while (a2 < block[k]) 
+
+            while (a2 < block[k])
             {
                block[k+2] = block[k];
                k--;
@@ -388,28 +388,28 @@ public class QuickSort implements IntSorter
          }
 
          k--;
-         
-         while (a1 < block[k]) 
+
+         while (a1 < block[k])
          {
             block[k+1] = block[k];
             k--;
          }
-         
+
          block[k+1] = a1;
          left++;
       }
    }
- 
-  
-   private static void heapSort(int[] block, int left, int right) 
+
+
+   private static void heapSort(int[] block, int left, int right)
    {
-      for (int k=(left+1+right)>>>1; k>left; ) 
+      for (int k=(left+1+right)>>>1; k>left; )
       {
          k--;
          pushDown(block, k, block[k], left, right);
       }
-      
-      for (int k=right; k>left; k--) 
+
+      for (int k=right; k>left; k--)
       {
          final int max = block[left];
          pushDown(block, left, block[k], left, k);
@@ -417,29 +417,29 @@ public class QuickSort implements IntSorter
       }
    }
 
-  
+
    private static void pushDown(int[] block, int p, int value, int left, int right)
    {
       while (true)
       {
          int k = (p<<1) - left + 2;
 
-         if ((k > right) || (block[k-1] > block[k])) 
+         if ((k > right) || (block[k-1] > block[k]))
             k--;
 
-         if ((k > right) || (block[k] <= value)) 
+         if ((k > right) || (block[k] <= value))
          {
             block[p] = value;
             return;
          }
-         
+
          block[p] = block[k];
          p = k;
       }
-   }   
-   
-    
-   private static boolean mergingSort(int[] block, int low, int high) 
+   }
+
+
+   private static boolean mergingSort(int[] block, int low, int high)
    {
       final int length = high - low;
 
@@ -451,11 +451,11 @@ public class QuickSort implements IntSorter
       int count = 0;
       int last = low;
       run[0] = low;
-      
+
       // Check if the array is highly structured.
-      for (int k=low+1; (k<high) && (count<max); ) 
+      for (int k=low+1; (k<high) && (count<max); )
       {
-         if (block[k-1] < block[k]) 
+         if (block[k-1] < block[k])
          {
             // Identify ascending sequence
             while (++k < high)
@@ -464,7 +464,7 @@ public class QuickSort implements IntSorter
                   break;
             }
          }
-         else if (block[k-1] > block[k]) 
+         else if (block[k-1] > block[k])
          {
             // Identify descending sequence
             while (++k < high)
@@ -474,14 +474,14 @@ public class QuickSort implements IntSorter
             }
 
             // Reverse the run into ascending order
-            for (int i=last-1, j=k; ((++i < --j) && (block[i] > block[j])); ) 
+            for (int i=last-1, j=k; ((++i < --j) && (block[i] > block[j])); )
                swap(block, i, j);
-         } 
-         else 
-         { 
+         }
+         else
+         {
             // Sequence with equal elements
-            final int ak = block[k]; 
-            
+            final int ak = block[k];
+
             while (++k < high)
             {
                if (ak != block[k])
@@ -500,31 +500,31 @@ public class QuickSort implements IntSorter
       }
 
       // The array is highly structured => merge all runs
-      if ((count < max) && (count > 1)) 
+      if ((count < max) && (count > 1))
          merge(block, new int[length], true, low, run, 0, count);
-      
+
       return count < max;
    }
 
-    
+
    private static int[] merge(int[] block1, int[] block2, boolean isSource,
-            int offset, int[] run, int lo, int hi) 
+            int offset, int[] run, int lo, int hi)
    {
       if (hi - lo == 1)
       {
-         if (isSource == true) 
+         if (isSource == true)
             return block1;
-      
+
          for (int i=run[hi], j=i-offset, low=run[lo]; i>low; i--, j--)
             block2[j] = block1[i];
-          
+
          return block2;
       }
-      
+
       final int mi = (lo + hi) >>> 1;
       final int[] a1 = merge(block1, block2, !isSource, offset, run, lo, mi);
       final int[] a2 = merge(block1, block2, true, offset, run, mi, hi);
-      
+
       return merge((a1==block1) ? block2 : block1,
                    (a1==block1) ? run[lo]-offset : run[lo],
                     a1,
@@ -534,24 +534,24 @@ public class QuickSort implements IntSorter
                    (a2==block2) ? run[mi]-offset : run[mi],
                    (a2==block2) ? run[hi]-offset : run[hi]);
    }
-   
-   
+
+
    private static int[] merge(int[] dst, int k,
-            int[] block1, int i, int hi, int[] block2, int j, int hj) 
+            int[] block1, int i, int hi, int[] block2, int j, int hj)
    {
-      while (true) 
+      while (true)
       {
          dst[k++] = (block1[i] < block2[j]) ? block1[i++] : block2[j++];
 
-         if (i == hi) 
+         if (i == hi)
          {
             while (j < hj)
                dst[k++] = block2[j++];
 
             return dst;
          }
-         
-         if (j == hj) 
+
+         if (j == hj)
          {
             while (i < hi)
                dst[k++] = block1[i++];
@@ -559,26 +559,26 @@ public class QuickSort implements IntSorter
             return dst;
          }
       }
-   }   
-   
-   
-   
-   private static void recursiveSort(int[] block, int bits, int low, int high, ArrayComparator cmp) 
+   }
+
+
+
+   private static void recursiveSort(int[] block, int bits, int low, int high, ArrayComparator cmp)
    {
       final int end = high - 1;
       final int length = high - low;
 
-      if ((bits & 1) != 0) 
-      {      
-         if (length < NANO_INSERTION_SORT_THRESHOLD) 
+      if ((bits & 1) != 0)
+      {
+         if (length < NANO_INSERTION_SORT_THRESHOLD)
          {
             if (length > 1)
                nanoInsertionSort(block, low, high, cmp);
-            
+
             return;
          }
 
-         if (length < PAIR_INSERTION_SORT_THRESHOLD) 
+         if (length < PAIR_INSERTION_SORT_THRESHOLD)
          {
             pairInsertionSort(block, low, end, cmp);
             return;
@@ -586,14 +586,14 @@ public class QuickSort implements IntSorter
       }
 
       bits -= 2;
-      
+
       // Switch to heap sort on the leftmost part or
       // if the execution time is becoming quadratic
-      if ((length < HEAP_SORT_THRESHOLD) || (bits < 0)) 
+      if ((length < HEAP_SORT_THRESHOLD) || (bits < 0))
       {
          if (length > 1)
             heapSort(block, low, end, cmp);
-         
+
          return;
       }
 
@@ -611,59 +611,59 @@ public class QuickSort implements IntSorter
       final int e2 = (e1 + e3) >>> 1;
       final int e4 = (e3 + e5) >>> 1;
 
-      // Sort these elements in place by the combination of 5-element 
+      // Sort these elements in place by the combination of 5-element
       // sorting network and insertion sort.
-      if (cmp.compare(block[e5], block[e3]) < 0) 
+      if (cmp.compare(block[e5], block[e3]) < 0)
          swap(block, e3, e5);
 
-      if (cmp.compare(block[e4], block[e2]) < 0) 
+      if (cmp.compare(block[e4], block[e2]) < 0)
          swap(block, e2, e4);
 
-      if (cmp.compare(block[e5], block[e4]) < 0) 
+      if (cmp.compare(block[e5], block[e4]) < 0)
          swap(block, e4, e5);
 
-      if (cmp.compare(block[e3], block[e2]) < 0) 
+      if (cmp.compare(block[e3], block[e2]) < 0)
          swap(block, e2, e3);
 
-      if (cmp.compare(block[e4], block[e3]) < 0) 
+      if (cmp.compare(block[e4], block[e3]) < 0)
           swap(block, e3, e4);
 
-      if (cmp.compare(block[e1], block[e2]) > 0) 
-      { 
-         final int t = block[e1]; 
-         block[e1] = block[e2]; 
+      if (cmp.compare(block[e1], block[e2]) > 0)
+      {
+         final int t = block[e1];
+         block[e1] = block[e2];
          block[e2] = t;
 
-         if (cmp.compare(t, block[e3]) > 0)  
-         { 
-            block[e2] = block[e3]; 
+         if (cmp.compare(t, block[e3]) > 0)
+         {
+            block[e2] = block[e3];
             block[e3] = t;
 
-            if (cmp.compare(t, block[e4]) > 0)  
-            { 
+            if (cmp.compare(t, block[e4]) > 0)
+            {
                block[e3] = block[e4];
                block[e4] = t;
 
-               if (cmp.compare(t, block[e5]) > 0)  
-               { 
+               if (cmp.compare(t, block[e5]) > 0)
+               {
                   block[e4] = block[e5];
-                  block[e5] = t; 
+                  block[e5] = t;
                }
             }
          }
       }
 
       // Index of the last element of the left part
-      int lower = low; 
+      int lower = low;
 
       // Index of the first element of the right part
-      int upper = end; 
+      int upper = end;
 
       if ((cmp.compare(block[e1], block[e2]) < 0) && (cmp.compare(block[e2], block[e3]) < 0) &&
           (cmp.compare(block[e3], block[e4]) < 0)  && (cmp.compare(block[e4], block[e5]) < 0))
       {
          // Partitioning with two pivots
-         // Use the first and the fifth elements as the pivots.             
+         // Use the first and the fifth elements as the pivots.
          final int pivot1 = block[e1];
          final int pivot2 = block[e5];
 
@@ -678,47 +678,47 @@ public class QuickSort implements IntSorter
          lower++;
          upper--;
 
-         while (cmp.compare(block[lower], pivot1) < 0)  
+         while (cmp.compare(block[lower], pivot1) < 0)
             lower++;
 
-         while (cmp.compare(block[upper], pivot2) > 0)  
+         while (cmp.compare(block[upper], pivot2) > 0)
             upper--;
 
          lower--;
          upper++;
-         
-         for (int k=upper; --k>lower; ) 
+
+         for (int k=upper; --k>lower; )
          {
             final int ak = block[k];
 
             if (cmp.compare(ak, pivot1) < 0)
-            { 
+            {
                // Move block[k] to the left side
                while (cmp.compare(block[++lower], pivot1) < 0) {}
 
-               if (lower > k) 
+               if (lower > k)
                {
                   lower = k;
                   break;
                }
 
                if (cmp.compare(block[lower], pivot2) > 0)
-               { 
+               {
                   // block[lower] >= pivot1
                   upper--;
                   block[k] = block[upper];
                   block[upper] = block[lower];
-               } 
-               else 
-               { 
+               }
+               else
+               {
                   // pivot1 <= block[lower] <= pivot2
                   block[k] = block[lower];
                }
 
                block[lower] = ak;
-            } 
+            }
             else if (cmp.compare(ak, pivot2) > 0)
-            { 
+            {
                // Move block[k] to the right side
                upper--;
                block[k] = block[upper];
@@ -727,18 +727,18 @@ public class QuickSort implements IntSorter
          }
 
          // Swap the pivots back into their final positions
-         block[low] = block[lower]; 
+         block[low] = block[lower];
          block[lower] = pivot1;
-         block[end] = block[upper]; 
+         block[end] = block[upper];
          block[upper] = pivot2;
 
          // Recursion
          recursiveSort(block, bits|1, upper+1, high, cmp);
          recursiveSort(block, bits, low, lower, cmp);
          recursiveSort(block, bits|1, lower+1, upper, cmp);
-     } 
-     else 
-     { 
+     }
+     else
+     {
          // Partitioning with one pivot
 
          // Use the third element as the pivotas an approximation of the median.
@@ -751,7 +751,7 @@ public class QuickSort implements IntSorter
          block[e3] = block[lower];
          upper++;
 
-         for (int k=upper-1; k>lower; k--) 
+         for (int k=upper-1; k>lower; k--)
          {
             if (cmp.compare(block[k], pivot) == 0)
                 continue;
@@ -759,19 +759,19 @@ public class QuickSort implements IntSorter
             final int ak = block[k];
 
             if (cmp.compare(ak, pivot) < 0)
-            { 
+            {
                // Move block[k] to the left side
                lower++;
-               
+
                while (cmp.compare(block[lower], pivot) < 0)
                   lower++;
 
-               if (lower > k) 
+               if (lower > k)
                {
                   lower = k;
                   break;
                }
-               
+
                block[k] = pivot;
 
                if (cmp.compare(block[lower], pivot) > 0)
@@ -779,11 +779,11 @@ public class QuickSort implements IntSorter
                   upper--;
                   block[upper] = block[lower];
                }
-               
+
                block[lower] = ak;
-            } 
-            else 
-            { 
+            }
+            else
+            {
                // Move block[k] to the right side
                block[k] = pivot;
                upper--;
@@ -792,15 +792,15 @@ public class QuickSort implements IntSorter
          }
 
          // Swap the pivot into its final position.
-         block[low] = block[lower]; 
+         block[low] = block[lower];
          block[lower] = pivot;
 
          // Recursion
          recursiveSort(block, bits|1, upper, high, cmp);
          recursiveSort(block, bits, low, lower, cmp);
-      }   
+      }
    }
-   
+
    private static void nanoInsertionSort(int[] block, int low, final int high, ArrayComparator cmp)
    {
       // In the context of Quicksort, the elements from the left part
@@ -821,10 +821,10 @@ public class QuickSort implements IntSorter
          block[k+1] = ak;
          low++;
       }
-   } 
-   
-   
-   private static void pairInsertionSort(int[] block, int left, final int right, ArrayComparator cmp) 
+   }
+
+
+   private static void pairInsertionSort(int[] block, int left, final int right, ArrayComparator cmp)
    {
       // Align left boundary
       left -= ((left ^ right) & 1);
@@ -837,8 +837,8 @@ public class QuickSort implements IntSorter
       // play the role of sentinels. Therefore expensive check
       // of the left range on each iteration can be skipped.
       left++;
-      
-      while (left < right) 
+
+      while (left < right)
       {
          left++;
          int k = left;
@@ -851,12 +851,12 @@ public class QuickSort implements IntSorter
 
             if (cmp.compare(a1, a2) > 0)
             {
-               a2 = a1; 
+               a2 = a1;
                a1 = block[k];
             }
 
             k--;
-            
+
             while (cmp.compare(a2, block[k]) < 0)
             {
                block[k+2] = block[k];
@@ -868,28 +868,28 @@ public class QuickSort implements IntSorter
          }
 
          k--;
-         
+
          while (cmp.compare(a1, block[k]) < 0)
          {
             block[k+1] = block[k];
             k--;
          }
-         
+
          block[k+1] = a1;
          left++;
       }
-   } 
-   
-   
-   private static void heapSort(int[] block, int left, int right, ArrayComparator cmp) 
+   }
+
+
+   private static void heapSort(int[] block, int left, int right, ArrayComparator cmp)
    {
-      for (int k=(left+1+right)>>>1; k>left; ) 
+      for (int k=(left+1+right)>>>1; k>left; )
       {
          k--;
          pushDown(block, k, block[k], left, right, cmp);
       }
-      
-      for (int k=right; k>left; k--) 
+
+      for (int k=right; k>left; k--)
       {
          final int max = block[left];
          pushDown(block, left, block[k], left, k, cmp);
@@ -897,7 +897,7 @@ public class QuickSort implements IntSorter
       }
    }
 
-  
+
    private static void pushDown(int[] block, int p, int value, int left, int right,
       ArrayComparator cmp)
    {
@@ -905,7 +905,7 @@ public class QuickSort implements IntSorter
       {
          int k = (p<<1) - left + 2;
 
-         if ((k > right) || (cmp.compare(block[k-1], block[k]) > 0)) 
+         if ((k > right) || (cmp.compare(block[k-1], block[k]) > 0))
             k--;
 
          if ((k > right) || (cmp.compare(block[k], value) <= 0))
@@ -913,14 +913,14 @@ public class QuickSort implements IntSorter
             block[p] = value;
             return;
          }
-         
+
          block[p] = block[k];
          p = k;
       }
-   }   
-   
-    
-   private static boolean mergingSort(int[] block, int low, int high, ArrayComparator cmp) 
+   }
+
+
+   private static boolean mergingSort(int[] block, int low, int high, ArrayComparator cmp)
    {
       final int length = high - low;
 
@@ -932,9 +932,9 @@ public class QuickSort implements IntSorter
       int count = 0;
       int last = low;
       run[0] = low;
-      
+
       // Check if the array is highly structured.
-      for (int k=low+1; (k<high) && (count<max); ) 
+      for (int k=low+1; (k<high) && (count<max); )
       {
          if (cmp.compare(block[k-1], block[k]) < 0)
          {
@@ -955,18 +955,18 @@ public class QuickSort implements IntSorter
             }
 
             // Reverse the run into ascending order
-            for (int i=last-1, j=k; ((++i < --j) && (cmp.compare(block[i], block[j]) > 0)); ) 
+            for (int i=last-1, j=k; ((++i < --j) && (cmp.compare(block[i], block[j]) > 0)); )
                swap(block, i, j);
-         } 
-         else 
-         { 
+         }
+         else
+         {
             // Sequence with equal elements
-            final int ak = block[k]; 
-            
+            final int ak = block[k];
+
             while (++k < high)
             {
                if (cmp.compare(ak, block[k]) != 0)
-                  break;               
+                  break;
             }
 
             if (k < high)
@@ -981,31 +981,31 @@ public class QuickSort implements IntSorter
       }
 
       // The array is highly structured => merge all runs
-      if ((count < max) && (count > 1)) 
+      if ((count < max) && (count > 1))
          merge(block, new int[length], true, low, run, 0, count, cmp);
-      
+
       return count < max;
    }
 
-    
+
    private static int[] merge(int[] block1, int[] block2, boolean isSource,
-            int offset, int[] run, int lo, int hi, ArrayComparator cmp) 
+            int offset, int[] run, int lo, int hi, ArrayComparator cmp)
    {
       if (hi - lo == 1)
       {
-         if (isSource == true) 
+         if (isSource == true)
             return block1;
-      
+
          for (int i=run[hi], j=i-offset, low=run[lo]; i>low; i--, j--)
             block2[j] = block1[i];
-          
+
          return block2;
       }
-      
+
       final int mi = (lo + hi) >>> 1;
       final int[] a1 = merge(block1, block2, !isSource, offset, run, lo, mi, cmp);
       final int[] a2 = merge(block1, block2, true, offset, run, mi, hi, cmp);
-      
+
       return merge((a1==block1) ? block2 : block1,
                    (a1==block1) ? run[lo]-offset : run[lo],
                     a1,
@@ -1016,24 +1016,24 @@ public class QuickSort implements IntSorter
                    (a2==block2) ? run[hi]-offset : run[hi],
                    cmp);
    }
-   
-   
+
+
    private static int[] merge(int[] dst, int k,
-            int[] block1, int i, int hi, int[] block2, int j, int hj, ArrayComparator cmp)  
+            int[] block1, int i, int hi, int[] block2, int j, int hj, ArrayComparator cmp)
    {
-      while (true) 
+      while (true)
       {
          dst[k++] = (cmp.compare(block1[i], block2[j]) < 0) ? block1[i++] : block2[j++];
 
-         if (i == hi) 
+         if (i == hi)
          {
             while (j < hj)
                dst[k++] = block2[j++];
 
             return dst;
          }
-         
-         if (j == hj) 
+
+         if (j == hj)
          {
             while (i < hi)
                dst[k++] = block1[i++];
@@ -1041,6 +1041,6 @@ public class QuickSort implements IntSorter
             return dst;
          }
       }
-   }   
-     
+   }
+
 }

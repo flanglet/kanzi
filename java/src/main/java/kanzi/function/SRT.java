@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -20,7 +20,7 @@ import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
 
 
-// Sorted Rank Transform is typically used after a BWT to reduce the variance 
+// Sorted Rank Transform is typically used after a BWT to reduce the variance
 // of the data prior to entropy coding.
 public class SRT implements ByteFunction
 {
@@ -32,10 +32,10 @@ public class SRT implements ByteFunction
    private final int[] s2r;
    private final int[] buckets;
    private final int[] bucketEnds;
-   
+
 
    public SRT()
-   {  
+   {
       this.freqs = new int[256];
       this.symbols = new byte[256];
       this.r2s = new int[256];
@@ -43,10 +43,10 @@ public class SRT implements ByteFunction
       this.buckets = new int[256];
       this.bucketEnds = new int[256];
    }
-   
-   
+
+
    public SRT(Map<String, Object> ctx)
-   {  
+   {
       this.freqs = new int[256];
       this.symbols = new byte[256];
       this.r2s = new int[256];
@@ -54,29 +54,29 @@ public class SRT implements ByteFunction
       this.buckets = new int[256];
       this.bucketEnds = new int[256];
    }
-   
+
 
    @Override
-   public boolean forward(SliceByteArray input, SliceByteArray output) 
+   public boolean forward(SliceByteArray input, SliceByteArray output)
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
          return false;
-      
+
       final int count = input.length;
-      
+
       if (output.length - output.index < getMaxEncodedLength(count))
          return false;
-     
+
       final byte[] src = input.array;
       final int srcEnd = input.index + count;
       final int[] _freqs = this.freqs;
       final int[] _r2s = this.r2s;
       final int[] _s2r = this.s2r;
-      
-      for (int i=0; i<256; i++) 
+
+      for (int i=0; i<256; i++)
          _freqs[i] = 0;
 
       // find first symbols and count occurrences
@@ -116,7 +116,7 @@ public class SRT implements ByteFunction
       output.index += headerSize;
       final int dstIdx = output.index;
       final byte[] dst = output.array;
-      
+
       // encoding
       for (int i=0; i<count; )
       {
@@ -126,14 +126,14 @@ public class SRT implements ByteFunction
          dst[dstIdx+p] = (byte) r;
          p++;
 
-         if (r != 0) 
+         if (r != 0)
          {
             do
             {
                _r2s[r] = _r2s[r-1];
                _s2r[_r2s[r]] = r;
                r--;
-            } 
+            }
             while (r != 0);
 
             _r2s[0] = c;
@@ -142,7 +142,7 @@ public class SRT implements ByteFunction
 
          int j = i + 1;
 
-         while ((j<count) && (src[j]==c)) 
+         while ((j<count) && (src[j]==c))
          {
             dst[dstIdx+p] = 0;
             p++;
@@ -152,30 +152,30 @@ public class SRT implements ByteFunction
          _buckets[c] = p;
          i = j;
       }
-      
+
       input.index += count;
-      output.index += count;  
+      output.index += count;
       return true;
    }
 
 
    @Override
-   public boolean inverse(SliceByteArray input, SliceByteArray output) 
+   public boolean inverse(SliceByteArray input, SliceByteArray output)
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
          return false;
-   
+
       final int[] _freqs = this.freqs;
       final int headerSize = decodeHeader(input.array, input.index, _freqs);
       input.index += headerSize;
-      final int count = input.length - headerSize;            
+      final int count = input.length - headerSize;
       final byte[] src = input.array;
       final int srcIdx = input.index;
       final byte[] _symbols = this.symbols;
-      
+
       // init arrays
       int nbSymbols = preprocess(_freqs, _symbols);
 
@@ -197,7 +197,7 @@ public class SRT implements ByteFunction
       final int dstIdx = output.index;
 
       // decoding
-      for (int i=0; i<count; i++) 
+      for (int i=0; i<count; i++)
       {
          dst[dstIdx+i] = (byte) c;
 
@@ -211,20 +211,20 @@ public class SRT implements ByteFunction
 
             for (int s=0; s<r; s++)
                _r2s[s] = _r2s[s+1];
-            
+
             _r2s[r] = c;
             c = _r2s[0];
-         } 
-         else 
+         }
+         else
          {
             if (nbSymbols == 1)
                continue;
 
             nbSymbols--;
-          
+
             for (int s=0; s<nbSymbols; s++)
                _r2s[s] = _r2s[s+1];
-             
+
             c = _r2s[0];
          }
       }
@@ -233,13 +233,13 @@ public class SRT implements ByteFunction
       output.index += count;
       return true;
    }
-   
-   
+
+
    private static int preprocess(int[] freqs, byte[] symbols)
    {
       int nbSymbols = 0;
 
-      for (int i=0; i<256; i++) 
+      for (int i=0; i<256; i++)
       {
          if (freqs[i] > 0)
          {
@@ -277,14 +277,14 @@ public class SRT implements ByteFunction
 
       return nbSymbols;
    }
-   
-   
+
+
    private static int encodeHeader(int[] freqs, byte[] dst, int dstIdx)
    {
-      for (int i=0; i<256; i++) 
+      for (int i=0; i<256; i++)
       {
          int f = freqs[i];
-         
+
          while (f >= 128)
          {
             dst[dstIdx++] = (byte) (0x80 | f);
@@ -296,11 +296,11 @@ public class SRT implements ByteFunction
 
       return dstIdx;
    }
-   
-   
+
+
    private static int decodeHeader(byte[] src, int srcIdx, int[] freqs)
    {
-      for (int i=0; i<256; i++) 
+      for (int i=0; i<256; i++)
       {
          int val = src[srcIdx++] & 0xFF;
          int res = val & 0x7F;
@@ -310,20 +310,20 @@ public class SRT implements ByteFunction
          {
             val = src[srcIdx++] & 0xFF;
             res |= ((val&0x7F)<<shift);
-            
+
             if (shift > 21)
                break;
-            
+
             shift += 7;
          }
-         
+
          freqs[i] = res;
       }
 
       return srcIdx;
    }
-   
-   
+
+
    @Override
    public int getMaxEncodedLength(int srcLen)
    {

@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -50,7 +50,7 @@ public class TPAQPredictor implements Predictor
    private static final byte[][] STATE_TRANSITIONS =
    {
       // Bit 0
-      { 
+      {
             1,     3,  -113,     4,     5,     6,     7,     8,     9,    10,
            11,    12,    13,    14,    15,    16,    17,    18,    19,    20,
            21,    22,    23,    24,    25,    26,    27,    28,    29,    30,
@@ -105,7 +105,7 @@ public class TPAQPredictor implements Predictor
            94,   -39,   -33,   -32,   -31,    76,   -29,   -39,   -27,   -37,
            79,    86,   -91,   -39,   -42,   -31,   -40,   -40,   -22,    75,
           -42,   -19,    74,    74,   -93,   -39,     0,     0,     0,     0,
-            0,     0,     0,     0,     0,     0        
+            0,     0,     0,     0,     0,     0
       }
    };
 
@@ -146,8 +146,8 @@ public class TPAQPredictor implements Predictor
         1,     1,     1,     1,     1,     1,     1,     1,
    };
 
-   
-   private static final int[] MATCH_PRED = 
+
+   private static final int[] MATCH_PRED =
    {
         0,    64,   128,   192,   256,   320,   384,   448,
       512,   576,   640,   704,   768,   832,   896,   960,
@@ -161,8 +161,8 @@ public class TPAQPredictor implements Predictor
      1832,  1846,  1861,  1875,  1889,  1904,  1918,  1933,
      1947,  1961,  1976,  1990,  2005,  2019,  2034,  2047,
    };
-  
-   
+
+
    static int hash(int x, int y)
    {
       final int h = x*HASH ^ y*HASH;
@@ -185,7 +185,7 @@ public class TPAQPredictor implements Predictor
    private final int mixersMask;
    private final int hashMask;
    private final int bufferMask;
-   private final LogisticAdaptiveProbMap sse0;   
+   private final LogisticAdaptiveProbMap sse0;
    private final LogisticAdaptiveProbMap sse1;
    private final Mixer[] mixers;
    private Mixer mixer;                  // current mixer
@@ -209,14 +209,14 @@ public class TPAQPredictor implements Predictor
    private int ctx5;
    private int ctx6;
    private boolean extra;
-   
-   
+
+
    public TPAQPredictor()
    {
       this(null); // 256 MB
    }
 
-   
+
    public TPAQPredictor(Map<String, Object> ctx)
    {
       int statesSize = 1 << 28;
@@ -224,7 +224,7 @@ public class TPAQPredictor implements Predictor
       int hashSize = HASH_SIZE;
       int extraMem = 0;
       int bufferSize = BUFFER_SIZE;
-    
+
       if (ctx != null)
       {
          // If extra mode, add more memory for states table, hash table
@@ -232,7 +232,7 @@ public class TPAQPredictor implements Predictor
          String codec = (String) ctx.getOrDefault("codec", "NONE");
          this.extra = "TPAQX".equals(codec);
          extraMem = (this.extra == true) ? 1 : 0;
-         
+
          // Block size requested by the user
          // The user can request a big block size to force more states
          final int rbsz = (Integer) ctx.getOrDefault("blockSize", 32768);
@@ -242,9 +242,9 @@ public class TPAQPredictor implements Predictor
          else if (rbsz >= 16*1024*1024)
             statesSize = 1 << 28;
          else if (rbsz >= 4*1024*1024)
-            statesSize = 1 << 26;   
-         else statesSize = (rbsz >= 1024*1024) ? 1 << 24 : 1 << 22; 
-         
+            statesSize = 1 << 26;
+         else statesSize = (rbsz >= 1024*1024) ? 1 << 24 : 1 << 22;
+
          // Actual size of the current block
          // Too many mixers hurts compression for small blocks.
          // Too few mixers hurts compression for big blocks.
@@ -258,8 +258,8 @@ public class TPAQPredictor implements Predictor
             mixersSize = 1 << 14;
          else if (absz >= 4*1024*1024)
             mixersSize = 1 << 12;
-         else  
-            mixersSize = (absz >= 1024*1024) ? 1 << 10 : 1 << 9; 
+         else
+            mixersSize = (absz >= 1024*1024) ? 1 << 10 : 1 << 9;
 
          bufferSize = Math.min(BUFFER_SIZE, rbsz);
          hashSize = Math.min(hashSize, 16*absz);
@@ -268,7 +268,7 @@ public class TPAQPredictor implements Predictor
       mixersSize <<= extraMem;
       statesSize <<= extraMem;
       hashSize <<= (2*extraMem);
-      
+
       this.pr = 2048;
       this.c0 = 1;
       this.bpos = 8;
@@ -277,7 +277,7 @@ public class TPAQPredictor implements Predictor
       for (int i=0; i<this.mixers.length; i++)
          this.mixers[i] = new Mixer();
 
-      this.mixer = this.mixers[0];      
+      this.mixer = this.mixers[0];
       this.bigStatesMap = new byte[statesSize];
       this.smallStatesMap0 = new byte[1<<16];
       this.smallStatesMap1 = new byte[1<<24];
@@ -287,12 +287,12 @@ public class TPAQPredictor implements Predictor
       this.mixersMask = (this.mixers.length - 1) & ~1;
       this.hashMask = this.hashes.length - 1;
       this.bufferMask = this.buffer.length - 1;
-      this.sse0 = (this.extra == true) ? new LogisticAdaptiveProbMap(256, 6) : 
+      this.sse0 = (this.extra == true) ? new LogisticAdaptiveProbMap(256, 6) :
          new LogisticAdaptiveProbMap(256, 7);
       this.sse1 = (this.extra == true) ? new LogisticAdaptiveProbMap(65536, 7) : null;
    }
 
- 
+
    // Update the probability model
    @Override
    public void update(int bit)
@@ -309,9 +309,9 @@ public class TPAQPredictor implements Predictor
         this.c4 = (this.c4<<8) | (this.c0&0xFF);
         this.hash = (((this.hash*HASH)<<4) + this.c4) & this.hashMask;
         this.c0 = 1;
-        this.bpos = 8;       
+        this.bpos = 8;
         this.binCount += ((this.c4>>7) & 1);
-        
+
         // Select Neural Net
         this.mixer = this.mixers[(this.c4&this.mixersMask) | ((this.matchLen!=0) ? 1 : 0)];
 
@@ -320,18 +320,18 @@ public class TPAQPredictor implements Predictor
         this.ctx1 = (this.c4&0xFFFF) << 8;
         this.ctx2 = createContext(2, this.c4&0x00FFFFFF);
         this.ctx3 = createContext(3, this.c4);
-        
+
         if (this.binCount < (this.pos>>2))
         {
            // Mostly text or mixed
            this.ctx4 = createContext(this.ctx1, this.c4^(this.c8&0xFFFF));
            this.ctx5 = (this.c8&MASK_F0F0F000) | ((this.c4&MASK_F0F0F000)>>4);
-           
+
            if (this.extra == true)
            {
                final int h1 = ((this.c4&MASK_80808080) == 0) ? this.c4&MASK_4F4FFFFF : this.c4&MASK_80808080;
                final int h2 = ((this.c8&MASK_80808080) == 0) ? this.c8&MASK_4F4FFFFF : this.c8&MASK_80808080;
-               this.ctx6 = hash(h1<<2, h2>>2); 
+               this.ctx6 = hash(h1<<2, h2>>2);
            }
         }
         else
@@ -339,7 +339,7 @@ public class TPAQPredictor implements Predictor
            // Mostly binary
            this.ctx4 = createContext(HASH+this.matchLen, this.c4^(this.c4&0x000FFFFF));
            this.ctx5 = this.ctx0 | (this.c8<<16);
-           
+
            if (this.extra == true)
                this.ctx6 = hash(this.c4&MASK_FFFF0000, this.c8>>16);
         }
@@ -349,7 +349,7 @@ public class TPAQPredictor implements Predictor
         // Keep track of current position
         this.hashes[this.hash] = this.pos;
       }
-    
+
       // Get initial predictions
       // It has been observed that accessing memory via [ctx ^ c] is significantly faster
       // on SandyBridge/Windows and slower on SkyLake/Linux except when [ctx & 255 == 0]
@@ -360,7 +360,7 @@ public class TPAQPredictor implements Predictor
       final byte[] bst = this.bigStatesMap;
       final byte[] sst0 = this.smallStatesMap0;
       final byte[] sst1 = this.smallStatesMap1;
-      final byte[] table = STATE_TRANSITIONS[bit];      
+      final byte[] table = STATE_TRANSITIONS[bit];
       sst0[this.cp0] = table[sst0[this.cp0]&0xFF];
       sst1[this.cp1] = table[sst1[this.cp1]&0xFF];
       bst[this.cp2] = table[bst[this.cp2]&0xFF];
@@ -371,7 +371,7 @@ public class TPAQPredictor implements Predictor
       final int p0 = STATE_MAP[sst0[this.cp0]&0xFF];
       this.cp1 = this.ctx1 + c;
       final int p1 = STATE_MAP[sst1[this.cp1]&0xFF];
-      this.cp2 = (this.ctx2 + c) & mask;  
+      this.cp2 = (this.ctx2 + c) & mask;
       final int p2 = STATE_MAP[bst[this.cp2]&0xFF];
       this.cp3 = (this.ctx3 + c) & mask;
       final int p3 = STATE_MAP[bst[this.cp3]&0xFF];
@@ -387,7 +387,7 @@ public class TPAQPredictor implements Predictor
       {
          // Mix predictions using NN
          p = this.mixer.get(p0, p1, p2, p3, p4, p5, p7, p7);
-         
+
          // SSE (Secondary Symbol Estimation)
          if (this.binCount < (this.pos>>3))
             p = (3*this.sse0.get(bit, p, this.c0) + p) >> 2;
@@ -397,7 +397,7 @@ public class TPAQPredictor implements Predictor
          // One more prediction
          bst[this.cp6] = table[bst[this.cp6]&0xFF];
          this.cp6 = (this.ctx6 + c) & mask;
-         final int p6 = STATE_MAP[bst[this.cp6]&0xFF];      
+         final int p6 = STATE_MAP[bst[this.cp6]&0xFF];
 
          // Mix predictions using NN
          p = this.mixer.get(p0, p1, p2, p3, p4, p5, p6, p7);
@@ -407,9 +407,9 @@ public class TPAQPredictor implements Predictor
          {
             p = this.sse1.get(bit, p, this.ctx0+c);
          }
-         else 
+         else
          {
-            if (this.binCount >= (this.pos>>2))            
+            if (this.binCount >= (this.pos>>2))
                p = (3*this.sse0.get(bit, p, this.c0) + p) >> 2;
 
             p = (3*this.sse1.get(bit, p, this.ctx0+c) + p) >> 2;
@@ -440,11 +440,11 @@ public class TPAQPredictor implements Predictor
             int s = this.pos - r;
             int t = this.matchPos - r;
 
-            while (r <= MAX_LENGTH) 
+            while (r <= MAX_LENGTH)
             {
                if (this.buffer[s&this.bufferMask] != this.buffer[t&this.bufferMask])
                   break;
-               
+
                if (this.buffer[(s-1)&this.bufferMask] != this.buffer[(t-1)&this.bufferMask])
                   break;
 
@@ -452,11 +452,11 @@ public class TPAQPredictor implements Predictor
                s -= 2;
                t -= 2;
             }
-            
-            this.matchLen = r - 2;           
-         }    
+
+            this.matchLen = r - 2;
+         }
       }
-   }     
+   }
 
 
    // Get a prediction from the match model in [-2047..2048]
@@ -467,7 +467,7 @@ public class TPAQPredictor implements Predictor
          return (((this.buffer[this.matchPos&this.bufferMask] >> (this.bpos-1)) & 1) != 0) ?
             MATCH_PRED[this.matchLen-1] : -MATCH_PRED[this.matchLen-1];
       }
-                   
+
       this.matchLen = 0;
       return 0;
    }
@@ -496,12 +496,12 @@ public class TPAQPredictor implements Predictor
       static final int END_LEARN_RATE = 11 << 7;  // 8 << 7 for text, else 14 << 7
 
       private int pr;  // squashed prediction
-      private int skew; 
-      private int w0, w1, w2, w3, w4, w5, w6, w7; 
+      private int skew;
+      private int w0, w1, w2, w3, w4, w5, w6, w7;
       private int p0, p1, p2, p3, p4, p5, p6, p7;
       private int learnRate;
-      
-      
+
+
       Mixer()
       {
          this.pr = 2048;
@@ -510,19 +510,19 @@ public class TPAQPredictor implements Predictor
          this.learnRate = BEGIN_LEARN_RATE;
       }
 
-      
+
       // Adjust weights to minimize coding cost of last prediction
       void update(int bit)
       {
          final int err = (((bit<<12) - this.pr) * this.learnRate) >> 10;
-         
+
          if (err == 0)
             return;
 
-         // Quickly decaying learn rate 
-         this.learnRate += ((END_LEARN_RATE-this.learnRate)>>31);            
+         // Quickly decaying learn rate
+         this.learnRate += ((END_LEARN_RATE-this.learnRate)>>31);
          this.skew += err;
-    
+
          // Train Neural Network: update weights
          this.w0 += ((this.p0*err + 0) >> 12);
          this.w1 += ((this.p1*err + 0) >> 12);
@@ -550,7 +550,7 @@ public class TPAQPredictor implements Predictor
          this.pr = Global.squash((this.w0*p0 + this.w1*p1 + this.w2*p2 + this.w3*p3 +
                                   this.w4*p4 + this.w5*p5 + this.w6*p6 + this.w7*p7 +
                                   this.skew  + 65536) >> 17);
-         
+
          return this.pr;
       }
    }

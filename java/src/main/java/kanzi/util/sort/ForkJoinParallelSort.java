@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -26,7 +26,7 @@ public class ForkJoinParallelSort implements IntSorter, ByteSorter
 {
    private final ForkJoinPool pool;
 
-   
+
    public ForkJoinParallelSort(ForkJoinPool pool)
    {
       if (pool == null)
@@ -35,39 +35,39 @@ public class ForkJoinParallelSort implements IntSorter, ByteSorter
       this.pool = pool;
    }
 
-   
+
    @Override
-   public boolean sort(int[] array, int idx, int len) 
+   public boolean sort(int[] array, int idx, int len)
    {
       try
       {
-         this.pool.invoke(new SortTask(array, idx, len));      
+         this.pool.invoke(new SortTask(array, idx, len));
       }
       catch (RejectedExecutionException e)
       {
          return false;
       }
-      
+
       return true;
    }
 
-   
+
    @Override
-   public boolean sort(byte[] array, int idx, int len) 
+   public boolean sort(byte[] array, int idx, int len)
    {
       try
       {
-         this.pool.invoke(new SortTask(array, idx, len));      
+         this.pool.invoke(new SortTask(array, idx, len));
       }
       catch (RejectedExecutionException e)
       {
          return false;
       }
-      
+
       return true;
    }
- 
-   
+
+
    static class SortTask extends RecursiveAction
    {
       private static final int MIN_THRESHOLD = 8192;

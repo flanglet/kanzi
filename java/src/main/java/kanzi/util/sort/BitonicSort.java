@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -36,7 +36,7 @@ public class BitonicSort implements IntSorter
     {
     }
 
-    
+
     // all input data must be smaller than 1 << logDataSize
     @Override
     public boolean sort(int[] input, int blkptr, int len)
@@ -46,8 +46,8 @@ public class BitonicSort implements IntSorter
 
         if (len == 1)
            return true;
-        
-        sort(input, blkptr, len, true);        
+
+        sort(input, blkptr, len, true);
         return true;
     }
 
@@ -72,11 +72,11 @@ public class BitonicSort implements IntSorter
        // Find greatest power of two smaller than n
        int m;
 
-       if (n < POWER_OF_TWO.length) 
+       if (n < POWER_OF_TWO.length)
        {
           m = POWER_OF_TWO[n];
-       } 
-       else 
+       }
+       else
        {
           m = 1;
 

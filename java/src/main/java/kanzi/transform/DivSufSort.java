@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -120,7 +120,7 @@ public final class DivSufSort
 
 
    private void constructSuffixArray(int[] bucketA, int[] bucketB, int n, int m)
-   {   
+   {
       if (m > 0)
       {
          for (int c1=254; c1>=0; c1--)
@@ -377,7 +377,7 @@ public final class DivSufSort
          // Sort the type B* substrings using ssSort.
          final int bufSize = n - m - m;
          c0 = 254;
-  
+
          for (int j=m; j>0; c0--)
          {
             final int idx = c0 << 8;
@@ -388,11 +388,11 @@ public final class DivSufSort
 
                if (j > i+1)
                   this.ssSort(pab, i, j, m, bufSize, 2, n, arr[i] == m-1);
- 
+
                j = i;
             }
          }
-          
+
          // Compute ranks of type B* substrings.
          for (int i=m-1; i>=0; i--)
          {
@@ -425,7 +425,7 @@ public final class DivSufSort
 
             arr[m+arr[i]] = j;
         }
-   
+
         // Construct the inverse suffix array of type B* suffixes using trSort.
         this.trSort(m, 1);
 

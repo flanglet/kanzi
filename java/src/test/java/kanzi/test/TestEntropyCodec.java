@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -58,7 +58,7 @@ public class TestEntropyCodec
 
        String type = args[0].toUpperCase();
 
-       if (type.startsWith("-TYPE=")) 
+       if (type.startsWith("-TYPE="))
        {
            type = type.substring(6);
            System.out.println("Codec: " + type);
@@ -66,59 +66,59 @@ public class TestEntropyCodec
            if (type.equals("ALL"))
            {
               System.out.println("\n\nTest Huffman Codec");
-              
+
               if (testCorrectness("HUFFMAN") == false)
                 System.exit(1);
-             
+
               testSpeed("HUFFMAN", 200);
               System.out.println("\n\nTest ANS0 Codec");
-              
+
               if (testCorrectness("ANS0") == false)
                 System.exit(1);
-             
+
               testSpeed("ANS0", 200);
               System.out.println("\n\nTest ANS1 Codec");
-              
+
               if (testCorrectness("ANS1") == false)
                 System.exit(1);
-             
+
               testSpeed("ANS1", 150);
               System.out.println("\n\nTest Range Codec");
-              
+
               if (testCorrectness("RANGE")== false)
                 System.exit(1);
-             
+
               testSpeed("RANGE", 150);
               System.out.println("\n\nTest FPAQ Codec");
-              
+
               if (testCorrectness("FPAQ") == false)
                 System.exit(1);
-             
+
               testSpeed("FPAQ", 120);
               System.out.println("\n\nTest CM Codec");
-              
+
               if (testCorrectness("CM") == false)
                 System.exit(1);
-             
+
               testSpeed("CM", 100);
               System.out.println("\n\nTestTPAQCodec");
-              
+
               if (testCorrectness("TPAQ") == false)
                 System.exit(1);
-             
+
               testSpeed("TPAQ", 75);
               System.out.println("\n\nTestExpGolombCodec");
-              
+
               if (testCorrectness("EXPGOLOMB") == false)
                 System.exit(1);
-             
+
               testSpeed("EXPGOLOMB", 150);
               System.out.println("\n\nTestRiceGolombCodec");
-              
+
               if (testCorrectness("RICEGOLOMB") == false)
                 System.exit(1);
-             
-              testSpeed("RICEGOLOMB", 150);           
+
+              testSpeed("RICEGOLOMB", 150);
            }
            else
            {
@@ -126,9 +126,9 @@ public class TestEntropyCodec
               testCorrectness(type);
               testSpeed(type, 100);
            }
-       }        
+       }
     }
-    
+
    @Test
    public void testEntropy()
    {
@@ -160,8 +160,8 @@ public class TestEntropyCodec
       Assert.assertTrue(testCorrectness("RICEGOLOMB"));
       //testSpeed("RICEGOLOMB");
    }
-   
-   
+
+
    private static Predictor getPredictor(String type)
    {
       if (type.equals("TPAQ"))
@@ -173,10 +173,10 @@ public class TestEntropyCodec
       return null;
    }
 
-    
+
    private static EntropyEncoder getEncoder(String name, OutputBitStream obs)
    {
-      switch(name) 
+      switch(name)
       {
          case "CM":
          case "TPAQ":
@@ -212,10 +212,10 @@ public class TestEntropyCodec
 
    private static EntropyDecoder getDecoder(String name, InputBitStream ibs)
    {
-      switch(name) 
+      switch(name)
       {
          case "CM":
-         case "TPAQ":             
+         case "TPAQ":
             Predictor pred = getPredictor(name);
 
             if (pred == null)
@@ -250,7 +250,7 @@ public class TestEntropyCodec
          default:
             System.out.println("No such entropy decoder: "+name);
             return null;
-      }       
+      }
    }
 
 
@@ -310,7 +310,7 @@ public class TestEntropyCodec
             if (ec == null)
                return false;
 
-            ec.encode(values, 0, values.length);                
+            ec.encode(values, 0, values.length);
             ec.dispose();
             dbgbs.close();
             byte[] buf = os.toByteArray();
@@ -350,13 +350,13 @@ public class TestEntropyCodec
          {
             e.printStackTrace();
             return false;
-         }        
+         }
       }
-          
-      return true;      
+
+      return true;
    }
 
-    
+
    public static void testSpeed(String name, int iter)
    {
       // Test speed

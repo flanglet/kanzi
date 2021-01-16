@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -40,14 +40,14 @@ public class SBRT implements ByteTransform
    private final int[] symbols;
    private final int[] ranks;
    private final int mode;
-   
-   
+
+
    public SBRT()
    {
-      this(MODE_RANK); 
+      this(MODE_RANK);
    }
-   
-   
+
+
    public SBRT(int mode)
    {
       if ((mode != MODE_MTF) && (mode != MODE_RANK) && (mode != MODE_TIMESTAMP))
@@ -59,12 +59,12 @@ public class SBRT implements ByteTransform
       this.ranks = new int[256];
       this.mode = mode;
    }
-   
-   
+
+
    public SBRT(Map<String, Object> ctx)
    {
       final int m = (Integer) ctx.getOrDefault("sbrt", MODE_MTF);
-      
+
       if ((m != MODE_MTF) && (m != MODE_RANK) && (m != MODE_TIMESTAMP))
          throw new IllegalArgumentException("Invalid mode parameter");
 
@@ -74,17 +74,17 @@ public class SBRT implements ByteTransform
       this.ranks = new int[256];
       this.mode = m;
    }
-   
+
 
    @Override
-   public boolean forward(SliceByteArray input, SliceByteArray output) 
+   public boolean forward(SliceByteArray input, SliceByteArray output)
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
           return false;
-        
+
       final int count = input.length;
 
       if (output.length < count)
@@ -92,7 +92,7 @@ public class SBRT implements ByteTransform
 
       if (output.index + count > output.array.length)
          return false;
-      
+
       // Aliasing
       final byte[] src = input.array;
       final byte[] dst = output.array;
@@ -107,14 +107,14 @@ public class SBRT implements ByteTransform
       final int m2 = (this.mode == MODE_MTF) ? 0 : -1;
       final int s = (this.mode == MODE_RANK) ? 1 : 0;
 
-      for (int i=0; i<256; i++) 
-      { 
+      for (int i=0; i<256; i++)
+      {
          p[i] = 0;
          q[i] = 0;
          s2r[i] = i;
-         r2s[i] = i; 
+         r2s[i] = i;
       }
-  
+
       for (int i=0; i<count; i++)
       {
          final int c = src[srcIdx+i] & 0xFF;
@@ -124,35 +124,35 @@ public class SBRT implements ByteTransform
          p[c] = i;
          q[c] = qc;
 
-         // Move up symbol to correct rank 
+         // Move up symbol to correct rank
          while ((r > 0) && (q[r2s[r-1]] <= qc))
-         { 
+         {
             r2s[r] = r2s[r-1];
-            s2r[r2s[r]] = r; 
+            s2r[r2s[r]] = r;
             r--;
          }
 
          r2s[r] = c;
          s2r[c] = r;
       }
-      
+
       input.index += count;
-      output.index += count;  
+      output.index += count;
       return true;
    }
 
 
    @Override
-   public boolean inverse(SliceByteArray input, SliceByteArray output) 
+   public boolean inverse(SliceByteArray input, SliceByteArray output)
    {
       if (input.length == 0)
          return true;
-      
+
       if (input.array == output.array)
           return false;
-        
+
       final int count = input.length;
-      
+
       if (output.length < count)
          return false;
 
@@ -172,7 +172,7 @@ public class SBRT implements ByteTransform
       final int m2 = (this.mode == MODE_MTF) ? 0 : -1;
       final int s = (this.mode == MODE_RANK) ? 1 : 0;
 
-      for (int i=0; i<256; i++) 
+      for (int i=0; i<256; i++)
       {
          p[i] = 0;
          q[i] = 0;
@@ -188,8 +188,8 @@ public class SBRT implements ByteTransform
          p[c] = i;
          q[c] = qc;
 
-         // Move up symbol to correct rank 
-         while ((r > 0) && (q[r2s[r-1]] <= qc)) 
+         // Move up symbol to correct rank
+         while ((r > 0) && (q[r2s[r-1]] <= qc))
          {
             r2s[r] = r2s[r-1];
             r--;
@@ -197,7 +197,7 @@ public class SBRT implements ByteTransform
 
          r2s[r] = c;
       }
-      
+
       input.index += count;
       output.index += count;
       return true;

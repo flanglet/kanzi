@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -16,7 +16,7 @@ limitations under the License.
 package kanzi;
 
 
-public final class Error 
+public final class Error
 {
    public static final int ERR_MISSING_PARAM       = 1;
    public static final int ERR_BLOCK_SIZE          = 2;
@@ -38,8 +38,8 @@ public final class Error
    public static final int ERR_INVALID_PARAM       = 18;
    public static final int ERR_CRC_CHECK           = 19;
    public static final int ERR_UNKNOWN             = 127;
-   
+
    private Error()
-   {      
+   {
    }
 }

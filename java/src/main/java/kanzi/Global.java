@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2017 Frederic Langlet
+Copyright 2011-2021 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -26,19 +26,19 @@ import java.util.List;
 
 public class Global
 {
-   public enum DataType 
+   public enum DataType
    {
       UNDEFINED, TEXT, MULTIMEDIA, X86
    }
-   
-   private Global() 
-   {      
+
+   private Global()
+   {
    }
-   
+
    public static final int INFINITE_VALUE = 0;
-  
+
    // array with 256 elements: int(Math.log2(x-1))
-   public static final int[] LOG2 = new int[] 
+   public static final int[] LOG2 = new int[]
    {
       0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4,
       4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5,
@@ -55,7 +55,7 @@ public class Global
       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-      7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8  
+      7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8
    };
 
    // array with 256 elements: 4096*Math.log2(x)
@@ -88,7 +88,7 @@ public class Global
       32387, 32411, 32436, 32460, 32484, 32508, 32533, 32557, 32580, 32604,
       32628, 32651, 32675, 32698, 32722, 32745, 32768
    };
-           
+
    // array with 100 elements: 10 * (4096*Math.log10(x))
    private static final int[] TEN_LOG10_100 =
    {
@@ -109,58 +109,58 @@ public class Global
    private static final int PI_1024_MULT2 = PI_1024 << 1;
    private static final int SMALL_RAD_ANGLE_1024 = 256; // arbitrarily set to 0.25 rad
    private static final int CONST1 = 326; // 326 >> 12 === 1/(4*Math.PI)
-   
+
 
    // array with 256 elements: 1024*Math.sin(x) x in [0..Math.PI[
    private static final int[] SIN_1024 =
    {
-         0,   12,   25,   37,   50,   62,   75,   87,  100,  112,  125,  137,  150,  162,  175,  187, 
-       199,  212,  224,  236,  248,  260,  273,  285,  297,  309,  321,  333,  344,  356,  368,  380, 
-       391,  403,  414,  426,  437,  449,  460,  471,  482,  493,  504,  515,  526,  537,  547,  558, 
-       568,  579,  589,  599,  609,  620,  629,  639,  649,  659,  668,  678,  687,  696,  706,  715, 
-       724,  732,  741,  750,  758,  767,  775,  783,  791,  799,  807,  814,  822,  829,  837,  844, 
-       851,  858,  865,  871,  878,  884,  890,  897,  903,  908,  914,  920,  925,  930,  936,  941, 
-       946,  950,  955,  959,  964,  968,  972,  976,  979,  983,  986,  990,  993,  996,  999, 1001, 
-      1004, 1006, 1008, 1010, 1012, 1014, 1016, 1017, 1019, 1020, 1021, 1022, 1022, 1023, 1023, 1023, 
-      1023, 1023, 1023, 1023, 1022, 1022, 1021, 1020, 1019, 1017, 1016, 1014, 1012, 1010, 1008, 1006, 
-      1004, 1001,  999,  996,  993,  990,  986,  983,  979,  976,  972,  968,  964,  959,  955,  950, 
-       946,  941,  936,  930,  925,  920,  914,  908,  903,  897,  890,  884,  878,  871,  865,  858, 
-       851,  844,  837,  829,  822,  814,  807,  799,  791,  783,  775,  767,  758,  750,  741,  732, 
-       724,  715,  706,  696,  687,  678,  668,  659,  649,  639,  629,  620,  609,  599,  589,  579, 
-       568,  558,  547,  537,  526,  515,  504,  493,  482,  471,  460,  449,  437,  426,  414,  403, 
-       391,  380,  368,  356,  344,  333,  321,  309,  297,  285,  273,  260,  248,  236,  224,  212, 
-       199,  187,  175,  162,  150,  137,  125,  112,  100,   87,   75,   62,   50,   37,   25,   12   
+         0,   12,   25,   37,   50,   62,   75,   87,  100,  112,  125,  137,  150,  162,  175,  187,
+       199,  212,  224,  236,  248,  260,  273,  285,  297,  309,  321,  333,  344,  356,  368,  380,
+       391,  403,  414,  426,  437,  449,  460,  471,  482,  493,  504,  515,  526,  537,  547,  558,
+       568,  579,  589,  599,  609,  620,  629,  639,  649,  659,  668,  678,  687,  696,  706,  715,
+       724,  732,  741,  750,  758,  767,  775,  783,  791,  799,  807,  814,  822,  829,  837,  844,
+       851,  858,  865,  871,  878,  884,  890,  897,  903,  908,  914,  920,  925,  930,  936,  941,
+       946,  950,  955,  959,  964,  968,  972,  976,  979,  983,  986,  990,  993,  996,  999, 1001,
+      1004, 1006, 1008, 1010, 1012, 1014, 1016, 1017, 1019, 1020, 1021, 1022, 1022, 1023, 1023, 1023,
+      1023, 1023, 1023, 1023, 1022, 1022, 1021, 1020, 1019, 1017, 1016, 1014, 1012, 1010, 1008, 1006,
+      1004, 1001,  999,  996,  993,  990,  986,  983,  979,  976,  972,  968,  964,  959,  955,  950,
+       946,  941,  936,  930,  925,  920,  914,  908,  903,  897,  890,  884,  878,  871,  865,  858,
+       851,  844,  837,  829,  822,  814,  807,  799,  791,  783,  775,  767,  758,  750,  741,  732,
+       724,  715,  706,  696,  687,  678,  668,  659,  649,  639,  629,  620,  609,  599,  589,  579,
+       568,  558,  547,  537,  526,  515,  504,  493,  482,  471,  460,  449,  437,  426,  414,  403,
+       391,  380,  368,  356,  344,  333,  321,  309,  297,  285,  273,  260,  248,  236,  224,  212,
+       199,  187,  175,  162,  150,  137,  125,  112,  100,   87,   75,   62,   50,   37,   25,   12
    };
 
    // array with 256 elements: 1024*Math.cos(x) x in [0..Math.PI[
    private static final int[] COS_1024 =
    {
-      1024,  1023,  1023,  1023,  1022,  1022,  1021,  1020,  1019,  1017,  1016,  1014,  1012,  1010,  1008,  1006, 
-      1004,  1001,   999,   996,   993,   990,   986,   983,   979,   976,   972,   968,   964,   959,   955,   950, 
-       946,   941,   936,   930,   925,   920,   914,   908,   903,   897,   890,   884,   878,   871,   865,   858, 
-       851,   844,   837,   829,   822,   814,   807,   799,   791,   783,   775,   767,   758,   750,   741,   732, 
-       724,   715,   706,   696,   687,   678,   668,   659,   649,   639,   629,   620,   609,   599,   589,   579, 
-       568,   558,   547,   537,   526,   515,   504,   493,   482,   471,   460,   449,   437,   426,   414,   403, 
-       391,   380,   368,   356,   344,   333,   321,   309,   297,   285,   273,   260,   248,   236,   224,   212, 
-       199,   187,   175,   162,   150,   137,   125,   112,   100,    87,    75,    62,    50,    37,    25,    12, 
-         0,   -12,   -25,   -37,   -50,   -62,   -75,   -87,  -100,  -112,  -125,  -137,  -150,  -162,  -175,  -187, 
-      -199,  -212,  -224,  -236,  -248,  -260,  -273,  -285,  -297,  -309,  -321,  -333,  -344,  -356,  -368,  -380, 
-      -391,  -403,  -414,  -426,  -437,  -449,  -460,  -471,  -482,  -493,  -504,  -515,  -526,  -537,  -547,  -558, 
-      -568,  -579,  -589,  -599,  -609,  -620,  -629,  -639,  -649,  -659,  -668,  -678,  -687,  -696,  -706,  -715, 
-      -724,  -732,  -741,  -750,  -758,  -767,  -775,  -783,  -791,  -799,  -807,  -814,  -822,  -829,  -837,  -844, 
-      -851,  -858,  -865,  -871,  -878,  -884,  -890,  -897,  -903,  -908,  -914,  -920,  -925,  -930,  -936,  -941, 
-      -946,  -950,  -955,  -959,  -964,  -968,  -972,  -976,  -979,  -983,  -986,  -990,  -993,  -996,  -999, -1001, 
+      1024,  1023,  1023,  1023,  1022,  1022,  1021,  1020,  1019,  1017,  1016,  1014,  1012,  1010,  1008,  1006,
+      1004,  1001,   999,   996,   993,   990,   986,   983,   979,   976,   972,   968,   964,   959,   955,   950,
+       946,   941,   936,   930,   925,   920,   914,   908,   903,   897,   890,   884,   878,   871,   865,   858,
+       851,   844,   837,   829,   822,   814,   807,   799,   791,   783,   775,   767,   758,   750,   741,   732,
+       724,   715,   706,   696,   687,   678,   668,   659,   649,   639,   629,   620,   609,   599,   589,   579,
+       568,   558,   547,   537,   526,   515,   504,   493,   482,   471,   460,   449,   437,   426,   414,   403,
+       391,   380,   368,   356,   344,   333,   321,   309,   297,   285,   273,   260,   248,   236,   224,   212,
+       199,   187,   175,   162,   150,   137,   125,   112,   100,    87,    75,    62,    50,    37,    25,    12,
+         0,   -12,   -25,   -37,   -50,   -62,   -75,   -87,  -100,  -112,  -125,  -137,  -150,  -162,  -175,  -187,
+      -199,  -212,  -224,  -236,  -248,  -260,  -273,  -285,  -297,  -309,  -321,  -333,  -344,  -356,  -368,  -380,
+      -391,  -403,  -414,  -426,  -437,  -449,  -460,  -471,  -482,  -493,  -504,  -515,  -526,  -537,  -547,  -558,
+      -568,  -579,  -589,  -599,  -609,  -620,  -629,  -639,  -649,  -659,  -668,  -678,  -687,  -696,  -706,  -715,
+      -724,  -732,  -741,  -750,  -758,  -767,  -775,  -783,  -791,  -799,  -807,  -814,  -822,  -829,  -837,  -844,
+      -851,  -858,  -865,  -871,  -878,  -884,  -890,  -897,  -903,  -908,  -914,  -920,  -925,  -930,  -936,  -941,
+      -946,  -950,  -955,  -959,  -964,  -968,  -972,  -976,  -979,  -983,  -986,  -990,  -993,  -996,  -999, -1001,
      -1004, -1006, -1008, -1010, -1012, -1014, -1016, -1017, -1019, -1020, -1021, -1022, -1022, -1023, -1023, -1023
    };
-   
-   //  65536/(1 + exp(-alpha*x)) 
+
+   //  65536/(1 + exp(-alpha*x))
    private static final int[] INV_EXP =
    {
       // alpha = 0.54
           0,     8,    22,    47,    88,   160,   283,   492,
         848,  1451,  2459,  4117,  6766, 10819, 16608, 24127,
       32768, 41409, 48928, 54717, 58770, 61419, 63077, 64085,
-      64688, 65044, 65253, 65376, 65448, 65489, 65514, 65528, 
+      64688, 65044, 65253, 65376, 65448, 65489, 65514, 65528,
       65536
    };
 
@@ -175,23 +175,23 @@ public class Global
       {
          final int w = x & 127;
          final int y = (x >> 7) + 16;
-         res[x+2047] = (INV_EXP[y]*(128-w) + INV_EXP[y+1]*w) >> 11; 
+         res[x+2047] = (INV_EXP[y]*(128-w) + INV_EXP[y+1]*w) >> 11;
       }
 
       return res;
    }
 
- 
+
    // return p = 1/(1 + exp(-d)), d scaled by 8 bits, p scaled by 12 bits
    public static int squash(int d)
-   {      
+   {
       if (d >= 2048)
          return 4095;
-      
+
       return SQUASH[positiveOrNull(d+2047)];
    }
 
-   
+
    // Inverse of squash. d = ln(p/(1-p)), d scaled by 8 bits, p by 12 bits.
    // d has range -2047 to 2047 representing -8 to 8.  p has range 0 to 4095.
    public static final int[] STRETCH = initStretch();
@@ -212,8 +212,8 @@ public class Global
       res[4095] = 2047;
       return res;
    }
-   
-   
+
+
    // Return 1024 * 10 * log10(x)
    public static int tenLog10(int x) throws ArithmeticException
    {
@@ -222,18 +222,18 @@ public class Global
 
       if (x < 100)
          return (TEN_LOG10_100[x]+2) >> 2;
-      
+
       return (log2_1024(x) * 6165) >> 11; // 10 * 1/log2(10)
    }
 
-    
+
    // Return 1024 * sin(1024*x) [x in radians]
    // Max error is less than 1.5%
-   public static int sin(int rad1024) 
-   {               
+   public static int sin(int rad1024)
+   {
       if ((rad1024 >= PI_1024_MULT2) || (rad1024 <= -PI_1024_MULT2))
-         rad1024 %= PI_1024_MULT2; 
-         
+         rad1024 %= PI_1024_MULT2;
+
       // If x is small enough, return sin(x) === x
       if ((rad1024 < SMALL_RAD_ANGLE_1024) && (-rad1024 < SMALL_RAD_ANGLE_1024))
          return rad1024;
@@ -242,18 +242,18 @@ public class Global
 
       if (x >= PI_1024)
          return -(((rad1024 >> 31) ^ SIN_1024[((x-PI_1024)*CONST1)>>12]) - (rad1024 >> 31));
-      
+
       return ((rad1024 >> 31) ^ SIN_1024[(x*CONST1)>>12]) - (rad1024 >> 31);
    }
-   
-    
+
+
    // Return 1024 * cos(1024*x) [x in radians]
    // Max error is less than 1.5%
-   public static int cos(int rad1024) 
-   {               
+   public static int cos(int rad1024)
+   {
       if ((rad1024 >= PI_1024_MULT2) || (rad1024 <= -PI_1024_MULT2))
-         rad1024 %= PI_1024_MULT2; 
-         
+         rad1024 %= PI_1024_MULT2;
+
       // If x is small enough, return cos(x) === 1 - (x*x)/2
       if ((rad1024 < SMALL_RAD_ANGLE_1024) && (-rad1024 < SMALL_RAD_ANGLE_1024))
          return 1024 - ((rad1024 * rad1024) >> 11);
@@ -265,17 +265,17 @@ public class Global
 
       return COS_1024[(x*CONST1)>>12];
    }
-   
+
 
    public static int log2(int x) throws ArithmeticException
    {
       if (x <= 0)
         throw new ArithmeticException("Cannot calculate log of a negative or null value");
-      
+
       return (x <= 256) ? LOG2[x-1] : 31-Integer.numberOfLeadingZeros(x);
    }
-   
-   
+
+
    // Return 1024 * log2(x)
    // Max error is less than 0.1%
    public static int log2_1024(int x) throws ArithmeticException
@@ -285,7 +285,7 @@ public class Global
 
       if (x < 256)
         return (LOG2_4096[x]+2) >> 2;
-      
+
       final int log = 31 - Integer.numberOfLeadingZeros(x);
 
       if ((x & (x-1)) == 0)
@@ -294,11 +294,11 @@ public class Global
       return ((log-7)*1024) + ((LOG2_4096[x>>(log-7)]+2) >> 2);
    }
 
-   
+
    // Branchless conditional variable set
    // if x = (a<b) ? c : d; is ((((a-b) >> 31) & (c^d)) ^ d)
-   
-    
+
+
    public static boolean isIn(int x, int a, int b)
    {
       return x - a < b - a;
@@ -506,37 +506,37 @@ public class Global
       // return 1024 * sqrt(x)
       return (val - ((x - (val*val)) >>> 31)) << (10 - (shift >> 1));
    }
-   
+
 
    // Szudzik pairing
    public static int encodePair(int x, int y)
    {
       return (x >= y) ? x*x+x+y : y*y+x;
    }
-   
-   
-   // Szudzik pairing 
+
+
+   // Szudzik pairing
    public static int[] decodePair(int n, int[] res)
    {
       final int s = sqrt(n) >> 10;
       int x = n - s*s;
       int y = s;
-      
+
       if (x >= y)
       {
          y = x - s;
          x = s;
       }
-      
+
       res[0] = x;
       res[1] = y;
       return res;
    }
 
-   
+
    // If withTotal is true, the last spot in the frequencies array is for the total
    public static void computeHistogramOrder0(byte[] block, int start, int end, int[] freqs, boolean withTotal)
-   {                  
+   {
       for (int i=0; i<256; i+=8)
       {
          freqs[i]   = 0;
@@ -567,8 +567,8 @@ public class Global
       }
 
       for (int i=end4; i<end; i++)
-         freqs[block[i]&0xFF]++;  
-      
+         freqs[block[i]&0xFF]++;
+
       for (int i=0; i<256; i++)
          freqs[i] += (f0[i] + f1[i] + f2[i] + f3[i]);
    }
@@ -576,11 +576,11 @@ public class Global
 
    // If withTotal is true, the last spot in each frequencies order 0 array is for the total
    public static void computeHistogramOrder1(byte[] block, int start, int end, int[][] freqs, boolean withTotal)
-   {   
+   {
       for (int j=0; j<256; j++)
       {
          final int[] f = freqs[j];
-         
+
          for (int i=0; i<256; i+=8)
          {
             f[i]   = 0;
@@ -594,9 +594,9 @@ public class Global
          }
 
          if (withTotal == true)
-            f[256] = 0;         
+            f[256] = 0;
       }
-      
+
       int prv = 0;
 
       if (withTotal == true)
@@ -607,7 +607,7 @@ public class Global
             freqs[prv][cur]++;
             freqs[prv][256]++;
             prv = cur;
-         }  
+         }
       }
       else
       {
@@ -616,11 +616,11 @@ public class Global
             final int cur = block[i] & 0xFF;
             freqs[prv][cur]++;
             prv = cur;
-         }           
+         }
       }
    }
-   
-   
+
+
    // Return the first order entropy in the [0..1024] range
    // Fills in the histogram with order 0 frequencies. Incoming array size must be 256
    public static int computeFirstOrderEntropy1024(int length, int[] histo)
@@ -635,11 +635,11 @@ public class Global
       {
          if (histo[i] == 0)
             continue;
-         
+
          final long count = histo[i];
          sum += ((count * (logLength1024 - Global.log2_1024(histo[i]))) >> 3);
       }
-      
+
       return (int) (sum / length);
    }
 
@@ -657,7 +657,7 @@ public class Global
       Arrays.fill(jobsPerTask, q);
       int n = 0;
 
-      while (r != 0) 
+      while (r != 0)
       {
          jobsPerTask[n]++;
          r--;
@@ -665,12 +665,12 @@ public class Global
 
          if (n == tasks)
             n = 0;
-      } 
+      }
 
       return jobsPerTask;
    }
-   
-   
+
+
    public static void sortFilesByPathAndSize(List<Path> files, final boolean sortBySize)
    {
       Comparator<Path> c = new Comparator<Path>()
@@ -680,14 +680,14 @@ public class Global
          {
             if (sortBySize == false)
                return p1.compareTo(p2);
-            
+
             // First, compare parent directory paths
             final int res = p1.getParent().compareTo(p2.getParent());
-            
+
             if (res != 0)
                return res;
-            
-            try 
+
+            try
             {
                // Then, compare file sizes (decreasing order)
                return (int) (Files.size(p2) - Files.size(p1));
@@ -696,9 +696,9 @@ public class Global
             {
                return -1;
             }
-         }         
+         }
       };
-      
-      Collections.sort(files, c);     
+
+      Collections.sort(files, c);
    }
 }
