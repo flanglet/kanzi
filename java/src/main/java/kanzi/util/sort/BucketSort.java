@@ -165,7 +165,6 @@ public class BucketSort implements IntSorter, ByteSorter
                 input[j+5]  = (byte) i;
                 input[j+6]  = (byte) i;
                 input[j+7]  = (byte) i;
-                input[j+8]  = (byte) i;
                 j += 8;
                 val8 -= 8;
             }
