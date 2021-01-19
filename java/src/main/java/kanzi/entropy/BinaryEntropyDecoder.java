@@ -36,7 +36,6 @@ public class BinaryEntropyDecoder implements EntropyDecoder
    private long high;
    private long current;
    private final InputBitStream bitstream;
-   private boolean initialized;
    private SliceByteArray sba;
 
 
@@ -87,7 +86,6 @@ public class BinaryEntropyDecoder implements EntropyDecoder
 
          final int szBytes = EntropyUtils.readVarInt(this.bitstream);
          this.current = this.bitstream.readBits(56);
-         this.initialized = true;
 
          if (szBytes != 0)
             this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
@@ -115,24 +113,6 @@ public class BinaryEntropyDecoder implements EntropyDecoder
             | (this.decodeBit(this.predictor.get()) << 2)
             | (this.decodeBit(this.predictor.get()) << 1)
             |  this.decodeBit(this.predictor.get()));
-   }
-
-
-   // Not thread safe
-   public boolean isInitialized()
-   {
-      return this.initialized;
-   }
-
-
-   // Not thread safe
-   public void initialize()
-   {
-      if (this.initialized == true)
-         return;
-
-      this.current = this.bitstream.readBits(56);
-      this.initialized = true;
    }
 
 
