@@ -155,7 +155,7 @@ public class ROLZCodec implements ByteFunction
    static class ROLZCodec1 implements ByteFunction
    {
       private static final int MIN_MATCH = 3;
-      private static final int MAX_MATCH = MIN_MATCH + 255 + 7;
+      private static final int MAX_MATCH = MIN_MATCH + 65535 + 7;
 
       private final int logPosChecks;
       private final int maskChecks;
@@ -303,7 +303,7 @@ public class ROLZCodec implements ByteFunction
                if (mLen >= 7)
                {
                   tkBuf.array[tkBuf.index++] = (byte) (mode | 0x07);
-                  lenBuf.array[lenBuf.index++] = (byte) (mLen - 7);
+                  emitLength(lenBuf, mLen - 7);
                }
                else
                {
@@ -499,9 +499,9 @@ public class ROLZCodec implements ByteFunction
                int matchLen = mode & 0x07;
 
                if (matchLen == 7)
-                  matchLen += (lenBuf.array[lenBuf.index++] & 0xFF);
+                  matchLen = readLength(lenBuf) + 7;
 
-               final int litLen = (mode < 0xF8) ? mode >> 3 : readLength(lenBuf);
+               final int litLen = (mode < 0xF8) ? mode >> 3 : readLength(lenBuf) + 31;
                this.emitLiterals(litBuf, dst, dstIdx, output.index, litLen);
                litBuf.index += litLen;
                dstIdx += litLen;
@@ -573,7 +573,7 @@ public class ROLZCodec implements ByteFunction
             }
          }
 
-         return length + 31;
+         return length;
       }
 
 
