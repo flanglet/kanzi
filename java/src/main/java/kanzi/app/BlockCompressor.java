@@ -47,7 +47,9 @@ import kanzi.Listener;
 public class BlockCompressor implements Runnable, Callable<Integer>
 {
    private static final int DEFAULT_BUFFER_SIZE = 65536;
-   private static final int DEFAULT_BLOCK_SIZE  = 1024*1024;
+   private static final int DEFAULT_BLOCK_SIZE  = 4*1024*1024;
+   private static final int MIN_BLOCK_SIZE  = 1024;
+   private static final int MAX_BLOCK_SIZE  = 1024*1024*1024;
    private static final int DEFAULT_CONCURRENCY = 1;
    private static final int MAX_CONCURRENCY = 64;
    private static final String STDOUT = "STDOUT";
@@ -96,10 +98,17 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
       this.codec = (strCodec == null) ? "ANS0" : strCodec;
       Integer iBlockSize = (Integer) map.remove("block");
-      this.blockSize = (iBlockSize == null) ? DEFAULT_BLOCK_SIZE : ((iBlockSize + 15) & -16);
+      final int bs = (iBlockSize == null) ? DEFAULT_BLOCK_SIZE : iBlockSize;
 
-      if (this.blockSize > 1024*1024*1024)
-         throw new IllegalArgumentException("Maximum block size is 1 GB (1073741824 bytes), got "+this.blockSize+" bytes");
+      if (bs < MIN_BLOCK_SIZE)
+         throw new IllegalArgumentException("Minimum block size is "+(MIN_BLOCK_SIZE/1024)+
+            " KB ("+MIN_BLOCK_SIZE+" bytes), got "+bs+" bytes");
+
+      this.blockSize = (bs + 15) & -16; // may increase value
+      
+      if (this.blockSize > MAX_BLOCK_SIZE)
+         throw new IllegalArgumentException("Maximum block size is "+(MAX_BLOCK_SIZE/(1024*1024*1024))+
+            " GB ("+MAX_BLOCK_SIZE+" bytes), got "+this.blockSize+" bytes");
 
       // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)
       ByteFunctionFactory bff = new ByteFunctionFactory();
