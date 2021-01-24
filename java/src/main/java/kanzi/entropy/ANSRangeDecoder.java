@@ -29,6 +29,7 @@ public class ANSRangeDecoder implements EntropyDecoder
    private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<23
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
    private static final int DEFAULT_LOG_RANGE = 12;
+   private static final int MIN_CHUNK_SIZE = 1024;
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final InputBitStream bitstream;
@@ -64,14 +65,14 @@ public class ANSRangeDecoder implements EntropyDecoder
       if ((order != 0) && (order != 1))
          throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
 
-      if (chunkSize < 1024)
-         throw new IllegalArgumentException("ANS Codec: The chunk size must be at least 1024");
+      if (chunkSize < MIN_CHUNK_SIZE)
+         throw new IllegalArgumentException("ANS Codec: The chunk size must be at least "+MIN_CHUNK_SIZE);
 
       if (chunkSize > MAX_CHUNK_SIZE)
          throw new IllegalArgumentException("ANS Codec: The chunk size must be at most "+MAX_CHUNK_SIZE);
 
       this.bitstream = bs;
-      this.chunkSize = chunkSize << (8*order);
+      this.chunkSize = Math.min(chunkSize << (8*order), MAX_CHUNK_SIZE);
       this.order = order;
       final int dim = 255*order + 1;
       this.alphabet = new int[dim][256];
@@ -217,7 +218,8 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.logRange = (int) (8 + this.bitstream.readBits(3));
 
       if ((this.logRange < 8) || (this.logRange > 16))
-         throw new IllegalArgumentException("ANS Codec: Invalid range: "+this.logRange+" (must be in [8..16])");
+         throw new BitStreamException("Invalid bitstream: range = "+this.logRange+
+            " (must be in [8..16])", BitStreamException.INVALID_STREAM);
 
       int res = 0;
       final int dim = 255*this.order + 1;

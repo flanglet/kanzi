@@ -29,6 +29,7 @@ public class ANSRangeEncoder implements EntropyEncoder
    private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<23
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
    private static final int DEFAULT_LOG_RANGE = 12;
+   private static final int MIN_CHUNK_SIZE = 1024;
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final OutputBitStream bitstream;
@@ -63,8 +64,8 @@ public class ANSRangeEncoder implements EntropyEncoder
       if ((order != 0) && (order != 1))
          throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
 
-      if (chunkSize < 1024)
-         throw new IllegalArgumentException("ANS Codec: The chunk size must be at least 1024");
+      if (chunkSize < MIN_CHUNK_SIZE)
+         throw new IllegalArgumentException("ANS Codec: The chunk size must be at least "+MIN_CHUNK_SIZE);
 
       if (chunkSize > MAX_CHUNK_SIZE)
          throw new IllegalArgumentException("ANS Codec: The chunk size must be at most "+MAX_CHUNK_SIZE);
@@ -80,7 +81,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
       this.logRange = logRange;
-      this.chunkSize = chunkSize << (8*order);
+      this.chunkSize = Math.min(chunkSize << (8*order), MAX_CHUNK_SIZE);
 
       for (int i=0; i<dim; i++)
       {
