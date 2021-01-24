@@ -155,7 +155,7 @@ public class ROLZCodec implements ByteFunction
    static class ROLZCodec1 implements ByteFunction
    {
       private static final int MIN_MATCH = 3;
-      private static final int MAX_MATCH = MIN_MATCH + 65535 + 7;
+      private static final int MAX_MATCH = MIN_MATCH + 65535;
 
       private final int logPosChecks;
       private final int maskChecks;
