@@ -103,12 +103,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       if (bs < MIN_BLOCK_SIZE)
          throw new IllegalArgumentException("Minimum block size is "+(MIN_BLOCK_SIZE/1024)+
             " KB ("+MIN_BLOCK_SIZE+" bytes), got "+bs+" bytes");
-
-      this.blockSize = (bs + 15) & -16; // may increase value
       
-      if (this.blockSize > MAX_BLOCK_SIZE)
+      if (bs > MAX_BLOCK_SIZE)
          throw new IllegalArgumentException("Maximum block size is "+(MAX_BLOCK_SIZE/(1024*1024*1024))+
-            " GB ("+MAX_BLOCK_SIZE+" bytes), got "+this.blockSize+" bytes");
+            " GB ("+MAX_BLOCK_SIZE+" bytes), got "+bs+" bytes");
+
+      this.blockSize = Math.min((bs + 15) & -16, MAX_BLOCK_SIZE);
 
       // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)
       ByteFunctionFactory bff = new ByteFunctionFactory();
@@ -158,7 +158,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    {
       List<Path> files = new ArrayList<>();
       long before = System.nanoTime();
-      boolean printFlag = this.verbosity > 2;
       int nbFiles = 1;
 
       if (STDIN.equalsIgnoreCase(this.inputName) == false)
@@ -184,21 +183,19 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          printOut(nbFiles+strFiles+" to compress\n", this.verbosity > 0);
       }
 
-      printOut("Block size set to " + this.blockSize + " bytes", printFlag);
-      printOut("Verbosity set to " + this.verbosity, printFlag);
-      printOut("Overwrite set to " + this.overwrite, printFlag);
-      printOut("Checksum set to " +  this.checksum, printFlag);
-
-      if (printFlag == true)
+      if (this.verbosity > 2)
       {
+         printOut("Block size set to " + this.blockSize + " bytes", true);
+         printOut("Verbosity set to " + this.verbosity, true);
+         printOut("Overwrite set to " + this.overwrite, true);
+         printOut("Checksum set to " +  this.checksum, true);
          String etransform = (NONE.equals(this.transform)) ? "no" : this.transform;
-         printOut("Using " + etransform + " transform (stage 1)", printFlag);
+         printOut("Using " + etransform + " transform (stage 1)", true);
          String ecodec = (NONE.equals(this.codec)) ? "no" : this.codec;
-         printOut("Using " + ecodec + " entropy codec (stage 2)", printFlag);
+         printOut("Using " + ecodec + " entropy codec (stage 2)", true);
+         printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
       }
-
-      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);
-
+      
       // Limit verbosity level when files are processed concurrently
       if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1)) {
          printOut("Warning: limiting verbosity to 1 due to concurrent processing of input files.\n", true);
@@ -499,11 +496,15 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       public FileCompressResult call() throws Exception
       {
          int verbosity = (Integer) this.ctx.get("verbosity");
-         boolean printFlag = verbosity > 2;
          String inputName = (String) this.ctx.get("inputName");
          String outputName = (String) this.ctx.get("outputName");
-         printOut("Input file name set to '" + inputName + "'", printFlag);
-         printOut("Output file name set to '" + outputName + "'", printFlag);
+         
+         if (verbosity > 2)
+         {
+            printOut("Input file name set to '" + inputName + "'", true);
+            printOut("Output file name set to '" + outputName + "'", true);
+         }
+         
          boolean overwrite = (Boolean) this.ctx.get("overwrite");
 
          OutputStream os;
@@ -599,8 +600,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          }
 
          // Encode
-         printFlag = verbosity > 1;
-         printOut("\nEncoding "+inputName+" ...", printFlag);
+         printOut("\nEncoding "+inputName+" ...", verbosity>1);
          printOut("", verbosity>3);
          long read = 0;
          SliceByteArray sa = new SliceByteArray(new byte[DEFAULT_BUFFER_SIZE], 0);
@@ -674,33 +674,37 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          long after = System.nanoTime();
          long delta = (after - before) / 1000000L; // convert to ms
          String str;
-         printOut("", verbosity>1);
 
-         if (delta >= 100000) {
-            str = String.format("%1$.1f", (float) delta/1000) + " s";
-         } else {
-            str = String.valueOf(delta) + " ms";
+         if (verbosity >= 1)
+         {
+            printOut("", verbosity>1);
+            
+            if (delta >= 100000) 
+               str = String.format("%1$.1f", (float) delta/1000) + " s";
+            else
+               str = String.valueOf(delta) + " ms";
+
+            float f = this.cos.getWritten() / (float) read;
+            
+            if (verbosity > 1)
+            {
+               printOut("Encoding:          "+str, true);
+               printOut("Input size:        "+read, true);
+               printOut("Output size:       "+this.cos.getWritten(), true);
+               printOut("Compression ratio: "+String.format("%1$.6f", f), true);
+            }
+            
+            if (verbosity == 1)
+            {
+               str = String.format("Encoding %s: %d => %d (%.2f%%) in %s", inputName, read, this.cos.getWritten(), 100*f, str);
+               printOut(str, true);
+            }
+
+            if ((verbosity > 1) && (delta > 0))
+               printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), true);
+
+            printOut("", verbosity>1);
          }
-
-         printOut("Encoding:          "+str, printFlag);
-         printOut("Input size:        "+read, printFlag);
-         printOut("Output size:       "+this.cos.getWritten(), printFlag);
-         float f = this.cos.getWritten() / (float) read;
-         printOut("Compression ratio: "+String.format("%1$.6f", f), printFlag);
-
-         if (delta >= 100000) {
-            str = String.format("%1$.1f", (float) delta/1000) + " s";
-         } else {
-            str = String.valueOf(delta) + " ms";
-         }
-
-         str = String.format("Encoding %s: %d => %d bytes in %s", inputName, read, this.cos.getWritten(), str);
-         printOut(str, verbosity==1);
-
-         if (delta > 0)
-            printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), printFlag);
-
-         printOut("", verbosity>1);
 
          if (this.listeners.size() > 0)
          {

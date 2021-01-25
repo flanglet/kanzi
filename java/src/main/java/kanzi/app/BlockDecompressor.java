@@ -133,13 +133,16 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       }
 
       int nbFiles = files.size();
-      boolean printFlag = this.verbosity > 2;
       String strFiles = (nbFiles > 1) ? " files" : " file";
       printOut(nbFiles+strFiles+" to decompress\n", this.verbosity > 0);
-      printOut("Verbosity set to "+this.verbosity, printFlag);
-      printOut("Overwrite set to "+this.overwrite, printFlag);
-      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), printFlag);
-
+      
+      if (this.verbosity > 2)
+      {
+         printOut("Verbosity set to "+this.verbosity, true);
+         printOut("Overwrite set to "+this.overwrite, true);
+         printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
+      }
+      
       // Limit verbosity level when files are processed concurrently
       if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1)) {
          printOut("Warning: limiting verbosity to 1 due to concurrent processing of input files.\n", true);
@@ -384,16 +387,19 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       public FileDecompressResult call() throws Exception
       {
          int verbosity = (Integer) this.ctx.get("verbosity");
-         boolean printFlag = verbosity > 2;
          String inputName = (String) this.ctx.get("inputName");
          String outputName = (String) this.ctx.get("outputName");
-         printOut("Input file name set to '" + inputName + "'", printFlag);
-         printOut("Output file name set to '" + outputName + "'", printFlag);
+         
+         if (verbosity > 2) 
+         {
+            printOut("Input file name set to '" + inputName + "'", true);
+            printOut("Output file name set to '" + outputName + "'", true);
+         }
+         
          boolean overwrite = (Boolean) this.ctx.get("overwrite");
 
          long read = 0;
-         printFlag = verbosity > 1;
-         printOut("\nDecoding "+inputName+" ...", printFlag);
+         printOut("\nDecoding "+inputName+" ...", verbosity>1);
          printOut("", verbosity>3);
 
          if (this.listeners.size() > 0)
@@ -568,31 +574,35 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          long after = System.nanoTime();
          long delta = (after - before) / 1000000L; // convert to ms
          String str;
-         printOut("", verbosity>1);
+         
+         if (verbosity >= 1)
+         {
+            printOut("", verbosity>1);
 
-         if (delta >= 100000) {
-            str = String.format("%1$.1f", (float) delta/1000) + " s";
-         } else {
-            str = String.valueOf(delta) + " ms";
+            if (delta >= 100000)
+               str = String.format("%1$.1f", (float) delta/1000) + " s";
+            else
+               str = String.valueOf(delta) + " ms";
+
+            if (verbosity > 1)
+            {
+               printOut("Decoding:          "+str, true);
+               printOut("Input size:        "+this.cis.getRead(), true);
+               printOut("Output size:       "+read, true);
+            }
+
+            if (verbosity == 1)
+            {
+               str = String.format("Decoding %s: %d => %d bytes in %s", inputName, this.cis.getRead(), read, str);
+               printOut(str, true);
+            }
+
+            if ((verbosity > 1) && (delta > 0))
+               printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), true);
+
+            printOut("", verbosity>1);
          }
-
-         printOut("Decoding:          "+str, printFlag);
-         printOut("Input size:        "+this.cis.getRead(), printFlag);
-         printOut("Output size:       "+read, printFlag);
-
-         if (delta >= 100000) {
-            str = String.format("%1$.1f", (float) delta/1000) + " s";
-         } else {
-            str = String.valueOf(delta) + " ms";
-         }
-
-         str = String.format("Decoding %s: %d => %d bytes in %s", inputName, this.cis.getRead(), read, str);
-         printOut(str, verbosity==1);
-
-         if (delta > 0)
-            printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), printFlag);
-
-         printOut("", verbosity>1);
+          
          return new FileDecompressResult(0, read);
       }
 
