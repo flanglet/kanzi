@@ -94,10 +94,10 @@ public final class LZCodec implements ByteFunction
       private static final int HASH_SHIFT1        = 40 - HASH_LOG1;
       private static final int HASH_MASK1         = (1<<HASH_LOG1) - 1;
       private static final int HASH_LOG2          = 21;
-      private static final int HASH_SHIFT2        = 40 - HASH_LOG2;
+      private static final int HASH_SHIFT2        = 48 - HASH_LOG2;
       private static final int HASH_MASK2         = (1<<HASH_LOG2) - 1;
-      private static final int MAX_DISTANCE1      = (1<<17) - 1;
-      private static final int MAX_DISTANCE2      = (1<<24) - 1;
+      private static final int MAX_DISTANCE1      = (1<<17) - 2;
+      private static final int MAX_DISTANCE2      = (1<<24) - 2;
       private static final int MIN_MATCH          = 5;
       private static final int MAX_MATCH          = 32767 + MIN_MATCH;
       private static final int MIN_BLOCK_LENGTH   = 24;
@@ -200,9 +200,6 @@ public final class LZCodec implements ByteFunction
          if (input.length == 0)
             return true;
 
-         if (input.array == output.array)
-            return false;
-
          final int count = input.length;
 
          if (output.length - output.index < this.getMaxEncodedLength(count))
@@ -277,9 +274,8 @@ public final class LZCodec implements ByteFunction
             }
 
             // Select best match
-            if (bestLen2 > bestLen+1)
+            if ((bestLen2 > bestLen) || ((bestLen2 == bestLen) && ((srcIdx-ref2) < (srcIdx-ref)))) 
             {
-               h = h2;
                ref = ref2;
                bestLen = bestLen2;
                srcIdx++;
@@ -287,7 +283,7 @@ public final class LZCodec implements ByteFunction
 
             // Emit token
             // Token: 3 bits litLen + 1 bit flag + 4 bits mLen (LLLFMMMM)
-            // flag = if maxDist = (1<<17)-1, then highest bit of distance
+            // flag = if maxDist = MAX_DISTANCE1, then highest bit of distance
             //        else 1 if dist needs 3 bytes (> 0xFFFF) and 0 otherwise
             final int mLen = bestLen - MIN_MATCH;
             final int d = srcIdx - ref;
@@ -390,9 +386,6 @@ public final class LZCodec implements ByteFunction
       {
          if (input.length == 0)
             return true;
-
-         if (input.array == output.array)
-            return false;
 
          final int count = input.length;
          final int srcIdx0 = input.index;
@@ -584,9 +577,6 @@ public final class LZCodec implements ByteFunction
          if (input.length == 0)
             return true;
 
-         if (input.array == output.array)
-            return false;
-
          final int count = input.length;
 
          if (output.length - output.index < this.getMaxEncodedLength(count))
@@ -704,9 +694,6 @@ public final class LZCodec implements ByteFunction
       {
          if (input.length == 0)
             return true;
-
-         if (input.array == output.array)
-            return false;
 
          final int count = input.length;
          final byte[] src = input.array;
