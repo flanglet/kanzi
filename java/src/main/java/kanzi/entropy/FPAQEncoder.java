@@ -25,7 +25,7 @@ import kanzi.SliceByteArray;
 
 // Derived from fpaq0r by Matt Mahoney & Alexander Ratushnyak.
 // See http://mattmahoney.net/dc/#fpaq0.
-// Simple (and fast) adaptive order 0 entropy coder
+// Simple (and fast) adaptive entropy bit coder
 public class FPAQEncoder implements EntropyEncoder
 {
    private static final long TOP        = 0x00FFFFFFFFFFFFFFL;

@@ -602,7 +602,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
             printOut("", verbosity>1);
          }
-          
+
          return new FileDecompressResult(0, read);
       }
 

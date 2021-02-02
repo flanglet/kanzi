@@ -25,7 +25,7 @@ import kanzi.SliceByteArray;
 
 // Derived from fpaq0r by Matt Mahoney & Alexander Ratushnyak.
 // See http://mattmahoney.net/dc/#fpaq0.
-// Simple (and fast) adaptive order 0 entropy coder
+// Simple (and fast) adaptive entropy bit coder
 public class FPAQDecoder implements EntropyDecoder
 {
    private static final long TOP        = 0x00FFFFFFFFFFFFFFL;
@@ -38,7 +38,6 @@ public class FPAQDecoder implements EntropyDecoder
    private long high;
    private long current;
    private final InputBitStream bitstream;
-   private boolean initialized;
    private SliceByteArray sba;
    private final int[][] probs; // probability of bit=1
    private int[] p; // pointer to current prob
@@ -94,7 +93,6 @@ public class FPAQDecoder implements EntropyDecoder
 
          final int szBytes = EntropyUtils.readVarInt(this.bitstream);
          this.current = this.bitstream.readBits(56);
-         this.initialized = true;
 
          if (szBytes != 0)
             this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
@@ -122,24 +120,6 @@ public class FPAQDecoder implements EntropyDecoder
       }
 
       return count;
-   }
-
-
-   // Not thread safe
-   public boolean isInitialized()
-   {
-      return this.initialized;
-   }
-
-
-   // Not thread safe
-   public void initialize()
-   {
-      if (this.initialized == true)
-         return;
-
-      this.current = this.bitstream.readBits(56);
-      this.initialized = true;
    }
 
 
