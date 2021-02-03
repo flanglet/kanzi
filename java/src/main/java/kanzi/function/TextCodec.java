@@ -40,7 +40,10 @@ public final class TextCodec implements ByteFunction
    private static final int HASH1 = 0x7FEB352D;
    private static final int HASH2 = 0x846CA68B;
    private static final int MASK_NOT_TEXT = 0x80;
-   private static final int MASK_ALMOST_FULL_ASCII = 0x08;
+   private static final int MASK_DNA = MASK_NOT_TEXT | 0x40;
+   private static final int MASK_FASTA = MASK_NOT_TEXT | 0x20;
+   private static final int MASK_BASE64 = MASK_NOT_TEXT | 0x10;
+   private static final int MASK_NUMERIC = MASK_NOT_TEXT | 0x08;
    private static final int MASK_FULL_ASCII = 0x04;
    private static final int MASK_XML_HTML = 0x02;
    private static final int MASK_CRLF = 0x01;
@@ -172,6 +175,13 @@ public final class TextCodec implements ByteFunction
       "geLinkHoweverConfirmCommentCityAnywhereSomewhereDebateDriveHighe" +
       "rBeautifulOnlineFanPriorityTraditionalSixUnited").getBytes();
 
+   private static final byte[] BASE64_SYMBOLS =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
+
+   private static final byte[] NUMERIC_SYMBOLS = "0123456789+-*/=,.:; ".getBytes();
+
+   private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(); // either T or U and N for unknown
+
 
    private static final DictEntry[] STATIC_DICTIONARY = new DictEntry[1024];
    private static final int STATIC_DICT_WORDS = createDictionary(DICT_EN_1024, STATIC_DICTIONARY, 1024, 0);
@@ -265,8 +275,8 @@ public final class TextCodec implements ByteFunction
          freqs[i] = new int[256];
 
       int prv = 0;
-      final int length = srcEnd - srcIdx;
-      final int srcEnd4 = srcIdx + (length & -4);
+      final int count = srcEnd - srcIdx;
+      final int srcEnd4 = srcIdx + (count & -4);
 
       // Unroll loop
       for (int i=srcIdx; i<srcEnd4; i+=4)
@@ -306,29 +316,51 @@ public final class TextCodec implements ByteFunction
       }
 
       // Not text (crude thresholds)
-      if ((nbTextChars < (length>>1)) || (freqs0[32] < (length>>5)))
-        return MASK_NOT_TEXT;
+      boolean notText;
 
       if (strict == true)
+         notText = ((nbTextChars < (count>>2)) || (freqs0[0] >= (count/100)) || ((nbASCII/95) < (count/100)));
+      else
+         notText = ((nbTextChars < (count>>1)) || (freqs0[32] < (count>>5))); 
+
+      if (notText == true)
       {
-         if ((nbTextChars < (length>>2)) || (freqs0[0] >= (length/100)) || ((nbASCII/95) < (length/100)))
-            return MASK_NOT_TEXT;
+         int sum = 0;
+
+         for (int i=0; i<12; i++)
+             sum += freqs0[DNA_SYMBOLS[i]];
+
+         if (sum >= (count/100)*90)
+             return (sum == count) ? MASK_DNA : MASK_FASTA;
+
+         sum = 0;
+
+         for (int i=0; i<20; i++)
+            sum += freqs0[NUMERIC_SYMBOLS[i]];
+
+         if (sum >= (count/100)*98)
+             return MASK_NUMERIC;
+
+         sum = 0;
+
+         for (int i=0; i<64; i++)
+            sum += freqs0[BASE64_SYMBOLS[i]];
+
+         return (sum == count) ? MASK_BASE64 : MASK_NOT_TEXT;
       }
 
-      final int nbBinChars = length - nbASCII;
+      final int nbBinChars = count - nbASCII;
 
       // Not text (crude threshold)
-      if (nbBinChars > (length>>2))
+      if (nbBinChars > (count>>2))
          return MASK_NOT_TEXT;
 
       int res = 0;
 
       if (nbBinChars == 0)
          res |= MASK_FULL_ASCII;
-      else if (nbBinChars <= length/100)
-         res |= MASK_ALMOST_FULL_ASCII;
 
-      if (nbBinChars <= length-length/10)
+      if (nbBinChars <= count-count/10)
       {
          // Check if likely XML/HTML
          // Another crude test: check that the frequencies of < and > are similar
@@ -337,7 +369,7 @@ public final class TextCodec implements ByteFunction
          final int f1 = freqs0['<'];
          final int f2 = freqs0['>'];
          final int f3 = freqs['&']['a'] + freqs['&']['g'] + freqs['&']['l'] +freqs['&']['q'];
-         final int minFreq = Math.max((length-nbBinChars)>>9, 2);
+         final int minFreq = Math.max((count-nbBinChars)>>9, 2);
 
          if ((f1 >= minFreq) && (f2 >= minFreq) && (f3 > 0))
          {
@@ -551,7 +583,30 @@ public final class TextCodec implements ByteFunction
 
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
+         {
+            if (this.ctx != null)
+            {
+               switch (mode)
+               {
+                  case MASK_NUMERIC:
+                    this.ctx.put("dataType", Global.DataType.NUMERIC);
+                    break;
+                  case MASK_BASE64:
+                    this.ctx.put("dataType", Global.DataType.BASE64);
+                    break;
+                  case MASK_FASTA:
+                    this.ctx.put("dataType", Global.DataType.FASTA);
+                    break;
+                  case MASK_DNA:
+                    this.ctx.put("dataType", Global.DataType.DNA);
+                    break;
+                  default :
+                    break;
+               }
+            }
+
             return false;
+         }
 
          if (this.ctx != null)
             this.ctx.put("dataType", Global.DataType.TEXT);
@@ -1080,7 +1135,30 @@ public final class TextCodec implements ByteFunction
 
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
+         {
+            if (this.ctx != null)
+            {
+               switch (mode)
+               {
+                  case MASK_NUMERIC:
+                    this.ctx.put("dataType", Global.DataType.NUMERIC);
+                    break;
+                  case MASK_BASE64:
+                    this.ctx.put("dataType", Global.DataType.BASE64);
+                    break;
+                  case MASK_FASTA:
+                    this.ctx.put("dataType", Global.DataType.FASTA);
+                    break;
+                  case MASK_DNA:
+                    this.ctx.put("dataType", Global.DataType.DNA);
+                    break;
+                  default :
+                    break;
+               }
+            }
+
             return false;
+         }
 
          if (this.ctx != null)
             this.ctx.put("dataType", Global.DataType.TEXT);

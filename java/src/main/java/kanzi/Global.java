@@ -28,7 +28,7 @@ public class Global
 {
    public enum DataType
    {
-      UNDEFINED, TEXT, MULTIMEDIA, X86
+      UNDEFINED, TEXT, MULTIMEDIA, X86, NUMERIC, BASE64, DNA, FASTA
    }
 
    private Global()
@@ -153,10 +153,9 @@ public class Global
      -1004, -1006, -1008, -1010, -1012, -1014, -1016, -1017, -1019, -1020, -1021, -1022, -1022, -1023, -1023, -1023
    };
 
-   //  65536/(1 + exp(-alpha*x))
+   //  65536/(1 + exp(-alpha*x)) with alpha ~= 0.54
    private static final int[] INV_EXP =
    {
-      // alpha = 0.54
           0,     8,    22,    47,    88,   160,   283,   492,
         848,  1451,  2459,  4117,  6766, 10819, 16608, 24127,
       32768, 41409, 48928, 54717, 58770, 61419, 63077, 64085,
