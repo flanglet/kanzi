@@ -69,15 +69,15 @@ public class CMPredictor implements Predictor
 
       if (bit == 0)
       {
-         counter1_[256]        -= (counter1_[256]        >> FAST_RATE);
-         counter1_[this.c1]    -= (counter1_[this.c1]    >> MEDIUM_RATE);
-         counter2_[this.idx]   -= (counter2_[this.idx]   >> SLOW_RATE);
+         counter1_[256]      -= (counter1_[256]      >> FAST_RATE);
+         counter1_[this.c1]  -= (counter1_[this.c1]  >> MEDIUM_RATE);
+         counter2_[this.idx] -= (counter2_[this.idx] >> SLOW_RATE);
       }
       else
       {
-         counter1_[256]        += ((counter1_[256]^0xFFFF)        >> FAST_RATE);
-         counter1_[this.c1]    += ((counter1_[this.c1]^0xFFFF)    >> MEDIUM_RATE);
-         counter2_[this.idx]   += ((counter2_[this.idx]^0xFFFF)   >> SLOW_RATE);
+         counter1_[256]      += ((counter1_[256]^0xFFFF)      >> FAST_RATE);
+         counter1_[this.c1]  += ((counter1_[this.c1]^0xFFFF)  >> MEDIUM_RATE);
+         counter2_[this.idx] += ((counter2_[this.idx]^0xFFFF) >> SLOW_RATE);
          this.ctx++;
       }
 
