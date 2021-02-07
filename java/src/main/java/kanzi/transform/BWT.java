@@ -276,7 +276,7 @@ public class BWT implements ByteTransform
    {
       // Lazy dynamic memory allocation
       if (this.buffer1.length < count)
-         this.buffer1 = new int[count];
+         this.buffer1 = new int[Math.max(count, 64)];
 
       // Aliasing
       final byte[] input = src.array;
@@ -334,7 +334,7 @@ public class BWT implements ByteTransform
    {
       // Lazy dynamic memory allocations
       if (this.buffer1.length < count+1)
-         this.buffer1 = new int[count+1];
+         this.buffer1 = new int[Math.max(count+1, 64)];
 
       if (this.buckets.length < 65536)
          this.buckets = new int[65536];
