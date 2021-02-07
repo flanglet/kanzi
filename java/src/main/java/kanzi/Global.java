@@ -28,7 +28,7 @@ public class Global
 {
    public enum DataType
    {
-      UNDEFINED, TEXT, MULTIMEDIA, X86, NUMERIC, BASE64, DNA, FASTA
+      UNDEFINED, TEXT, MULTIMEDIA, X86, NUMERIC, BASE64, DNA, BIN
    }
 
    private Global()

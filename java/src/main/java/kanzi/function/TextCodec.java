@@ -41,7 +41,7 @@ public final class TextCodec implements ByteFunction
    private static final int HASH2 = 0x846CA68B;
    private static final int MASK_NOT_TEXT = 0x80;
    private static final int MASK_DNA = MASK_NOT_TEXT | 0x40;
-   private static final int MASK_FASTA = MASK_NOT_TEXT | 0x20;
+   private static final int MASK_BIN = MASK_NOT_TEXT | 0x20;
    private static final int MASK_BASE64 = MASK_NOT_TEXT | 0x10;
    private static final int MASK_NUMERIC = MASK_NOT_TEXT | 0x08;
    private static final int MASK_FULL_ASCII = 0x04;
@@ -328,10 +328,10 @@ public final class TextCodec implements ByteFunction
          int sum = 0;
 
          for (int i=0; i<12; i++)
-             sum += freqs0[DNA_SYMBOLS[i]];
+            sum += freqs0[DNA_SYMBOLS[i]];
 
-         if (sum >= (count/100)*90)
-             return (sum == count) ? MASK_DNA : MASK_FASTA;
+         if (sum == count)
+            return MASK_DNA;
 
          sum = 0;
 
@@ -339,14 +339,25 @@ public final class TextCodec implements ByteFunction
             sum += freqs0[NUMERIC_SYMBOLS[i]];
 
          if (sum >= (count/100)*98)
-             return MASK_NUMERIC;
+            return MASK_NUMERIC;
 
          sum = 0;
 
          for (int i=0; i<64; i++)
             sum += freqs0[BASE64_SYMBOLS[i]];
 
-         return (sum == count) ? MASK_BASE64 : MASK_NOT_TEXT;
+         if (sum == count)
+            return MASK_BASE64;
+
+         sum = 0;
+
+         for (int i=0; i<256; i++)
+         {
+            if (freqs0[i] > 0)
+               sum++;
+         }
+
+         return (sum == 255) ? MASK_BIN : MASK_NOT_TEXT;
       }
 
       final int nbBinChars = count - nbASCII;
@@ -594,8 +605,8 @@ public final class TextCodec implements ByteFunction
                   case MASK_BASE64:
                     this.ctx.put("dataType", Global.DataType.BASE64);
                     break;
-                  case MASK_FASTA:
-                    this.ctx.put("dataType", Global.DataType.FASTA);
+                  case MASK_BIN:
+                    this.ctx.put("dataType", Global.DataType.BIN);
                     break;
                   case MASK_DNA:
                     this.ctx.put("dataType", Global.DataType.DNA);
@@ -1146,8 +1157,8 @@ public final class TextCodec implements ByteFunction
                   case MASK_BASE64:
                     this.ctx.put("dataType", Global.DataType.BASE64);
                     break;
-                  case MASK_FASTA:
-                    this.ctx.put("dataType", Global.DataType.FASTA);
+                  case MASK_BIN:
+                    this.ctx.put("dataType", Global.DataType.BIN);
                     break;
                   case MASK_DNA:
                     this.ctx.put("dataType", Global.DataType.DNA);
