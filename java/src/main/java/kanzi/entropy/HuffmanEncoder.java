@@ -285,19 +285,19 @@ public class HuffmanEncoder implements EntropyEncoder
          for (int i=startChunk; i<endChunk4; i+=4)
          {
             // Pack 4 codes into 1 long
-            final int code1 = c[block[i]&0xFF];
-            final int codeLen1 = code1 >>> 24;
-            final int code2 = c[block[i+1]&0xFF];
-            final int codeLen2 = code2 >>> 24;
-            final int code3 = c[block[i+2]&0xFF];
-            final int codeLen3 = code3 >>> 24;
-            final int code4 = c[block[i+3]&0xFF];
-            final int codeLen4 = code4 >>> 24;
-            final long st = ((((long) code1)&0xFFFF)<<(codeLen2+codeLen3+codeLen4) |
-                ((((long) code2)&((1<<codeLen2)-1))<<(codeLen3+codeLen4))|
-                ((((long) code3)&((1<<codeLen3)-1))<<codeLen4)|
-                  ((long) code4)&((1<<codeLen4)-1));
-            bitstream.writeBits(st, codeLen1+codeLen2+codeLen3+codeLen4);
+            int code = c[block[i]&0xFF];
+            final int codeLen0 = code >>> 24;
+            long st = code & 0xFFFFFF;
+            code = c[block[i+1]&0xFF];
+            final int codeLen1 = code >>> 24;
+            st = (st<<codeLen1) | (code&0xFFFFFF);
+            code = c[block[i+2]&0xFF];
+            final int codeLen2 = code >>> 24;
+            st = (st<<codeLen2) | (code&0xFFFFFF);
+            code = c[block[i+3]&0xFF];
+            final int codeLen3 = code >>> 24;
+            st = (st<<codeLen3) | (code&0xFFFFFF);
+            bitstream.writeBits(st, codeLen0+codeLen1+codeLen2+codeLen3);
          }
 
          for (int i=endChunk4; i<endChunk; i++)
