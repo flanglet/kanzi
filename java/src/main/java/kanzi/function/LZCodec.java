@@ -99,7 +99,7 @@ public final class LZCodec implements ByteFunction
       private static final int MAX_DISTANCE1      = (1<<17) - 2;
       private static final int MAX_DISTANCE2      = (1<<24) - 2;
       private static final int MIN_MATCH          = 5;
-      private static final int MAX_MATCH          = 32767 + MIN_MATCH;
+      private static final int MAX_MATCH          = 65535 + 254 + 15 + MIN_MATCH;
       private static final int MIN_BLOCK_LENGTH   = 24;
       private static final int MIN_MATCH_MIN_DIST = 1 << 16;
 
@@ -424,17 +424,20 @@ public final class LZCodec implements ByteFunction
                }
 
                // Emit literals
-               if ((dstIdx+litLen > dstEnd) || (srcIdx+litLen >= srcEnd))
+               if (dstIdx+litLen >= dstEnd)
                {
                   System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
-                  srcIdx += litLen;
-                  dstIdx += litLen;
-                  break;
+               }
+               else
+               {
+                  emitLiterals(src, srcIdx, dst, dstIdx, litLen);
                }
 
-               emitLiterals(src, srcIdx, dst, dstIdx, litLen);
                srcIdx += litLen;
                dstIdx += litLen;
+
+               if (srcIdx >= srcEnd)
+                  break;
             }
 
             // Get match length
@@ -450,14 +453,6 @@ public final class LZCodec implements ByteFunction
             mLen += MIN_MATCH;
             final int mEnd = dstIdx + mLen;
 
-            // Sanity check
-            if (mEnd > dstEnd+16)
-            {
-               input.index = srcIdx;
-               output.index = dstIdx;
-               return false;
-            }
-
             // Get distance
             int d = ((src[mIdx]&0xFF) << 8) | (src[mIdx+1]&0xFF);
             mIdx += 2;
@@ -471,7 +466,7 @@ public final class LZCodec implements ByteFunction
             repd = dist;
 
             // Sanity check
-            if ((dstIdx-dist < dstIdx0) || (dist > maxDist))
+            if ((dstIdx-dist < dstIdx0) || (dist > maxDist) || (mEnd > dstEnd+16))
             {
                input.index = srcIdx;
                output.index = dstIdx;
