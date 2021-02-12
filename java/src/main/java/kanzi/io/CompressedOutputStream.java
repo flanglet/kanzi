@@ -501,8 +501,7 @@ public class CompressedOutputStream extends OutputStream
 
 
    // A task used to encode a block
-   // Several tasks may run in parallel. The transforms can be computed concurrently
-   // but the entropy encoding is sequential since all tasks share the same bitstream.
+   // Several tasks (transform+entropy) may run in parallel
    static class EncodingTask implements Callable<Status>
    {
       private final SliceByteArray data;

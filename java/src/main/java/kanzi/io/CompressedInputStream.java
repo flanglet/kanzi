@@ -553,8 +553,7 @@ public class CompressedInputStream extends InputStream
 
 
    // A task used to decode a block
-   // Several tasks may run in parallel. The transforms can be computed concurrently
-   // but the entropy decoding is sequential since all tasks share the same bitstream.
+   // Several tasks (transform+entropy) may run in parallel
    static class DecodingTask implements Callable<Status>
    {
       private final SliceByteArray data;
