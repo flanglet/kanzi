@@ -13,12 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.InputBitStream;
 import kanzi.Memory;
 import kanzi.OutputBitStream;
@@ -32,7 +32,7 @@ import kanzi.entropy.ANSRangeEncoder;
 // Implementation of a Reduced Offset Lempel Ziv transform
 // More information about ROLZ at http://ezcodesample.com/rolz/rolz_article.html
 
-public class ROLZCodec implements ByteFunction
+public class ROLZCodec implements ByteTransform
 {
    private static final int HASH_SIZE = 1 << 16;
    private static final int LOG_POS_CHECKS1 = 4;
@@ -46,7 +46,7 @@ public class ROLZCodec implements ByteFunction
    private static final int MIN_BLOCK_SIZE = 64;
 
 
-   private final ByteFunction delegate;
+   private final ByteTransform delegate;
 
 
    public ROLZCodec()
@@ -152,7 +152,7 @@ public class ROLZCodec implements ByteFunction
 
 
    // Use ANS to encode/decode literals and matches
-   static class ROLZCodec1 implements ByteFunction
+   static class ROLZCodec1 implements ByteTransform
    {
       private static final int MIN_MATCH = 3;
       private static final int MAX_MATCH = MIN_MATCH + 65535;
@@ -604,7 +604,7 @@ public class ROLZCodec implements ByteFunction
 
    // Use CM (ROLZEncoder/ROLZDecoder) to encode/decode literals and matches
    // Code loosely based on 'balz' by Ilya Muravyov
-   static class ROLZCodec2 implements ByteFunction
+   static class ROLZCodec2 implements ByteTransform
    {
       private static final int MIN_MATCH = 3;
       private static final int MAX_MATCH = MIN_MATCH + 255;

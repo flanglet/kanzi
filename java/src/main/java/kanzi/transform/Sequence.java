@@ -13,15 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
-import kanzi.ByteFunction;
 import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
 
 
 // Encapsulates a sequence of transforms or functions in a function
-public class ByteTransformSequence implements ByteFunction
+public class Sequence implements ByteTransform
 {
    private static final int SKIP_MASK = 0xFF;
 
@@ -29,7 +28,7 @@ public class ByteTransformSequence implements ByteFunction
    private byte skipFlags; // skip transforms
 
 
-   public ByteTransformSequence(ByteTransform[] transforms)
+   public Sequence(ByteTransform[] transforms)
    {
       if (transforms == null)
          throw new NullPointerException("Invalid null transforms parameter");
@@ -189,13 +188,10 @@ public class ByteTransformSequence implements ByteFunction
 
       for (ByteTransform transform : this.transforms)
       {
-         if (transform instanceof ByteFunction)
-         {
-            final int reqSize = ((ByteFunction) transform).getMaxEncodedLength(requiredSize);
+         final int reqSize = transform.getMaxEncodedLength(requiredSize);
 
-            if (reqSize > requiredSize)
-               requiredSize = reqSize;
-         }
+         if (reqSize > requiredSize)
+            requiredSize = reqSize;
       }
 
       return requiredSize;

@@ -13,12 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
-import kanzi.transform.BWT;
 
 
 // Utility class to en/de-code a BWT data block and its associated primary index(es)
@@ -34,7 +33,7 @@ import kanzi.transform.BWT;
 //         bits 5-0 contain 6 most significant bits of primary index
 //   primary index: remaining bits (up to 3 bytes)
 
-public class BWTBlockCodec implements ByteFunction
+public class BWTBlockCodec implements ByteTransform
 {
    private static final int BWT_MAX_HEADER_SIZE = 8 * 4;
 

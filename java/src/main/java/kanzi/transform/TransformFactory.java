@@ -13,15 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
 import kanzi.ByteTransform;
-import kanzi.transform.BWTS;
-import kanzi.transform.SBRT;
 
 
-public class ByteFunctionFactory
+public class TransformFactory
 {
    private static final int ONE_SHIFT = 6; // bits per transform
    private static final int MAX_SHIFT = (8-1) * ONE_SHIFT; // 8 transforms
@@ -141,7 +139,7 @@ public class ByteFunctionFactory
    }
 
 
-   public ByteTransformSequence newFunction(Map<String, Object> ctx, long functionType)
+   public Sequence newFunction(Map<String, Object> ctx, long functionType)
    {
       int nbtr = 0;
 
@@ -167,7 +165,7 @@ public class ByteFunctionFactory
             transforms[nbtr++] = newFunctionToken(ctx, t);
       }
 
-      return new ByteTransformSequence(transforms);
+      return new Sequence(transforms);
    }
 
 
@@ -236,7 +234,7 @@ public class ByteFunctionFactory
             return new FSDCodec(ctx);
 
          case NONE_TYPE:
-            return new NullFunction(ctx);
+            return new NullTransform(ctx);
 
          default:
             throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");

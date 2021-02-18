@@ -20,7 +20,13 @@ import java.util.Random;
 import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
 import kanzi.transform.BWTS;
+import kanzi.transform.FSDCodec;
+import kanzi.transform.LZCodec;
+import kanzi.transform.RLT;
+import kanzi.transform.ROLZCodec;
 import kanzi.transform.SBRT;
+import kanzi.transform.SRT;
+import kanzi.transform.ZRLT;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -61,6 +67,49 @@ public class TestTransforms
                System.exit(1);
 
             testSpeed("BWTS");
+
+            System.out.println("\n\nTestLZ");
+
+            if (testCorrectness("LZ") == false)
+               System.exit(1);
+
+            testSpeed("LZ");
+            System.out.println("\n\nTestROLZ");
+
+            if (testCorrectness("ROLZ") == false)
+               System.exit(1);
+
+            testSpeed("ROLZ");
+            System.out.println("\n\nTestROLZX");
+
+            if (testCorrectness("ROLZX") == false)
+               System.exit(1);
+
+            testSpeed("ROLZX");
+            System.out.println("\n\nTestZRLT");
+
+            if (testCorrectness("ZRLT") == false)
+               System.exit(1);
+
+            testSpeed("ZRLT");
+            System.out.println("\n\nTestRLT");
+
+            if (testCorrectness("RLT") == false)
+               System.exit(1);
+
+            testSpeed("RLT");
+            System.out.println("\n\nTestSRT");
+
+            if (testCorrectness("SRT") == false)
+               System.exit(1);
+
+            testSpeed("FSD");
+            System.out.println("\n\nTestFSD");
+
+            if (testCorrectness("FSD") == false)
+               System.exit(1);
+
+            //testSpeed("FSD"); no good data
          }
          else
          {
@@ -76,7 +125,7 @@ public class TestTransforms
 
 
    @Test
-   public void testFunctions()
+   public void testTransforms()
    {
       System.out.println("\n\nTestRANK");
       Assert.assertTrue(testCorrectness("RANK"));
@@ -87,13 +136,55 @@ public class TestTransforms
       System.out.println("\n\nTestBWTS");
       Assert.assertTrue(testCorrectness("BWTS"));
       //testSpeed("BWTS");
+      System.out.println("\n\nTestSRT");
+      Assert.assertTrue(testCorrectness("SRT"));
+      //testSpeed("SRT");
+      System.out.println("\n\nTestLZ");
+      Assert.assertTrue(testCorrectness("LZ"));
+      //testSpeed("LZ");
+      System.out.println("\n\nTestROLZ");
+      Assert.assertTrue(testCorrectness("ROLZ"));
+      //testSpeed("ROLZ");
+      System.out.println("\n\nTestROLZX");
+      Assert.assertTrue(testCorrectness("ROLZX"));
+      //testSpeed("ROLZX");
+      System.out.println("\n\nTestZRLT");
+      Assert.assertTrue(testCorrectness("ZRLT"));
+      //testSpeed("ZRLT");
+      System.out.println("\n\nTestFSD");
+      Assert.assertTrue(testCorrectness("FSD"));
+      //testSpeed("FSD");
+      System.out.println("\n\nTestRLT");
+      Assert.assertTrue(testCorrectness("RLT"));
+      //testSpeed("RLT");
    }
 
 
-   private static ByteTransform getByteTransform(String name)
+   private static ByteTransform getTransform(String name)
    {
       switch(name)
       {
+         case "LZ":
+            return new LZCodec();
+
+         case "ZRLT":
+            return new ZRLT();
+
+         case "RLT":
+            return new RLT();
+
+         case "SRT":
+            return new SRT();
+
+         case "FSD":
+            return new FSDCodec();
+
+         case "ROLZ":
+            return new ROLZCodec(false);
+
+         case "ROLZX":
+            return new ROLZCodec(true);
+
          case "RANK":
             return new SBRT(SBRT.MODE_RANK);
 
@@ -203,7 +294,7 @@ public class TestTransforms
          }
 
          int size = arr.length;
-         ByteTransform f = getByteTransform(name);
+         ByteTransform f = getTransform(name);
          input = new byte[size];
          output = new byte[size];
          reverse = new byte[size];
@@ -257,7 +348,7 @@ public class TestTransforms
             System.out.print((output[i] & 255) + " "); //+"("+Integer.toBinaryString(output[i] & 255)+") ");
          }
 
-         f = getByteTransform(name);
+         f = getTransform(name);
          sa2.length = sa2.index;
          sa1.index = 0;
          sa2.index = 0;
@@ -333,7 +424,7 @@ public class TestTransforms
 
       for (int jj=0; jj<3; jj++)
       {
-         ByteTransform f = getByteTransform(name);
+         ByteTransform f = getTransform(name);
          input = new byte[size];
          output = new byte[size];
          reverse = new byte[size];
@@ -362,7 +453,7 @@ public class TestTransforms
 
          for (int ii = 0; ii < iter; ii++)
          {
-            f = getByteTransform(name);
+            f = getTransform(name);
             sa1.index = 0;
             sa2.index = 0;
             before = System.nanoTime();
@@ -379,7 +470,7 @@ public class TestTransforms
 
          for (int ii = 0; ii < iter; ii++)
          {
-            f = getByteTransform(name);
+            f = getTransform(name);
             sa2.length = sa2.index;
             sa3.index = 0;
             sa2.index = 0;

@@ -13,10 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.Global;
 import kanzi.SliceByteArray;
 
@@ -28,7 +28,7 @@ import kanzi.SliceByteArray;
 // 228  <= runLen < 6944+228   -> 2 bytes
 // 7172 <= runLen < 65535+7172 -> 3 bytes
 
-public class RLT implements ByteFunction
+public class RLT implements ByteTransform
 {
    private static final int RUN_LEN_ENCODE1 = 224; // used to encode run length
    private static final int RUN_LEN_ENCODE2 = (255-RUN_LEN_ENCODE1) << 8; // used to encode run length

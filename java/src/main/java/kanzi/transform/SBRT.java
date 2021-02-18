@@ -202,4 +202,12 @@ public class SBRT implements ByteTransform
       output.index += count;
       return true;
    }
+
+
+   // Return the max size required for the encoding output buffer
+   @Override
+   public int getMaxEncodedLength(int srcLength)
+   {
+      return srcLength;
+   }
 }

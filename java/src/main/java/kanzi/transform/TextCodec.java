@@ -13,17 +13,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.Global;
 import kanzi.SliceByteArray;
 
 
 // Simple one-pass text codec. Uses a default (small) static dictionary
 // or potentially larger custom one. Generates a dynamic dictionary.
-public final class TextCodec implements ByteFunction
+public final class TextCodec implements ByteTransform
 {
    private static final int THRESHOLD1 = 128;
    private static final int THRESHOLD2 = THRESHOLD1 * THRESHOLD1;
@@ -186,7 +186,7 @@ public final class TextCodec implements ByteFunction
    private static final DictEntry[] STATIC_DICTIONARY = new DictEntry[1024];
    private static final int STATIC_DICT_WORDS = createDictionary(DICT_EN_1024, STATIC_DICTIONARY, 1024, 0);
 
-   private final ByteFunction delegate;
+   private final ByteTransform delegate;
 
 
    public TextCodec()
@@ -479,7 +479,7 @@ public final class TextCodec implements ByteFunction
 
 
    // Encode word indexes using a token
-   static class TextCodec1 implements ByteFunction
+   static class TextCodec1 implements ByteTransform
    {
       private DictEntry[] dictMap;
       private DictEntry[] dictList;
@@ -1034,7 +1034,7 @@ public final class TextCodec implements ByteFunction
 
 
    // Encode word indexes using a mask (0x80)
-   static class TextCodec2 implements ByteFunction
+   static class TextCodec2 implements ByteTransform
    {
       private DictEntry[] dictMap;
       private DictEntry[] dictList;

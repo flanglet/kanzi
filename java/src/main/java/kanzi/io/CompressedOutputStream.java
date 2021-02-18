@@ -16,7 +16,7 @@ limitations under the License.
 package kanzi.io;
 
 import java.io.ByteArrayOutputStream;
-import kanzi.function.ByteFunctionFactory;
+import kanzi.transform.TransformFactory;
 import kanzi.Error;
 import kanzi.Event;
 import java.io.IOException;
@@ -37,7 +37,7 @@ import kanzi.SliceByteArray;
 import kanzi.OutputBitStream;
 import kanzi.bitstream.DefaultOutputBitStream;
 import kanzi.entropy.EntropyCodecFactory;
-import kanzi.function.ByteTransformSequence;
+import kanzi.transform.Sequence;
 import kanzi.util.hash.XXHash32;
 import kanzi.Listener;
 import kanzi.entropy.EntropyUtils;
@@ -130,7 +130,7 @@ public class CompressedOutputStream extends OutputStream
 
       this.obs = obs;
       this.entropyType = EntropyCodecFactory.getType(entropyCodec);
-      this.transformType = new ByteFunctionFactory().getType(transform);
+      this.transformType = new TransformFactory().getType(transform);
       this.blockSize = bSize;
 
       // If input size has been provided, calculate the number of blocks
@@ -587,7 +587,7 @@ public class CompressedOutputStream extends OutputStream
 
             if (blockLength <= SMALL_BLOCK_SIZE)
             {
-               blockTransformType = ByteFunctionFactory.NONE_TYPE;
+               blockTransformType = TransformFactory.NONE_TYPE;
                blockEntropyType = EntropyCodecFactory.NONE_TYPE;
                mode |= COPY_BLOCK_MASK;
             }
@@ -604,7 +604,7 @@ public class CompressedOutputStream extends OutputStream
 
                   if (entropy >= EntropyUtils.INCOMPRESSIBLE_THRESHOLD)
                   {
-                     blockTransformType = ByteFunctionFactory.NONE_TYPE;
+                     blockTransformType = TransformFactory.NONE_TYPE;
                      blockEntropyType = EntropyCodecFactory.NONE_TYPE;
                      mode |= COPY_BLOCK_MASK;
                   }
@@ -612,7 +612,7 @@ public class CompressedOutputStream extends OutputStream
             }
 
             this.ctx.put("size", blockLength);
-            ByteTransformSequence transform = new ByteFunctionFactory().newFunction(this.ctx, blockTransformType);
+            Sequence transform = new TransformFactory().newFunction(this.ctx, blockTransformType);
             int requiredSize = transform.getMaxEncodedLength(blockLength);
 
             if (buffer.length < requiredSize)

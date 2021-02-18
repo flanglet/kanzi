@@ -13,16 +13,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
 
 
 // Sorted Rank Transform is typically used after a BWT to reduce the variance
 // of the data prior to entropy coding.
-public class SRT implements ByteFunction
+public class SRT implements ByteTransform
 {
    private static final int MAX_HEADER_SIZE = 4*256;
 

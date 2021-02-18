@@ -13,16 +13,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.Global;
 import kanzi.SliceByteArray;
 
 // Fixed Step Delta codec
 // Decorrelate values separated by a constant distance (step) and encode residuals
-public class FSDCodec implements ByteFunction
+public class FSDCodec implements ByteTransform
 {
    private static final int MIN_LENGTH = 4096;
    private static final byte ESCAPE_TOKEN = (byte) 255;

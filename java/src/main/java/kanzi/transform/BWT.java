@@ -598,4 +598,11 @@ public class BWT implements ByteTransform
       }
    }
 
+
+   // Return the max size required for the encoding output buffer
+   @Override
+   public int getMaxEncodedLength(int srcLength)
+   {
+      return srcLength;
+   }
 }

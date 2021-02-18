@@ -16,7 +16,7 @@ limitations under the License.
 package kanzi.io;
 
 import java.io.ByteArrayInputStream;
-import kanzi.function.ByteFunctionFactory;
+import kanzi.transform.TransformFactory;
 import kanzi.Error;
 import kanzi.Event;
 import java.io.IOException;
@@ -37,7 +37,7 @@ import kanzi.SliceByteArray;
 import kanzi.InputBitStream;
 import kanzi.bitstream.DefaultInputBitStream;
 import kanzi.entropy.EntropyCodecFactory;
-import kanzi.function.ByteTransformSequence;
+import kanzi.transform.Sequence;
 import kanzi.util.hash.XXHash32;
 import kanzi.Listener;
 
@@ -118,7 +118,7 @@ public class CompressedInputStream extends InputStream
       this.ctx = ctx;
       this.blockSize = 0;
       this.entropyType = EntropyCodecFactory.NONE_TYPE;
-      this.transformType = ByteFunctionFactory.NONE_TYPE;
+      this.transformType = TransformFactory.NONE_TYPE;
    }
 
 
@@ -150,7 +150,7 @@ public class CompressedInputStream extends InputStream
 
       // Read transforms: 8*6 bits
       this.transformType = this.ibs.readBits(48);
-      this.ctx.put("transform", new ByteFunctionFactory().getName(this.transformType));
+      this.ctx.put("transform", new TransformFactory().getName(this.transformType));
 
       // Read block size
       this.blockSize = (int) this.ibs.readBits(28) << 4;
@@ -192,7 +192,7 @@ public class CompressedInputStream extends InputStream
 
          try
          {
-            String w2 = new ByteFunctionFactory().getName(this.transformType);
+            String w2 = new TransformFactory().getName(this.transformType);
 
             if ("NONE".equals(w2))
                w2 = "no";
@@ -680,7 +680,7 @@ public class CompressedInputStream extends InputStream
 
             if ((mode & COPY_BLOCK_MASK) != 0)
             {
-               blockTransformType = ByteFunctionFactory.NONE_TYPE;
+               blockTransformType = TransformFactory.NONE_TYPE;
                blockEntropyType = EntropyCodecFactory.NONE_TYPE;
             }
             else
@@ -773,7 +773,7 @@ public class CompressedInputStream extends InputStream
                notifyListeners(this.listeners, evt);
             }
 
-            ByteTransformSequence transform = new ByteFunctionFactory().newFunction(this.ctx,
+            Sequence transform = new TransformFactory().newFunction(this.ctx,
                      blockTransformType);
             transform.setSkipFlags(skipFlags);
             buffer.index = 0;

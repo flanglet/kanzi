@@ -36,12 +36,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import kanzi.Event;
 import kanzi.SliceByteArray;
-import kanzi.function.ByteFunctionFactory;
 import kanzi.io.CompressedOutputStream;
 import kanzi.Error;
 import kanzi.Global;
 import kanzi.io.NullOutputStream;
 import kanzi.Listener;
+import kanzi.transform.TransformFactory;
 
 
 public class BlockCompressor implements Runnable, Callable<Integer>
@@ -111,7 +111,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.blockSize = Math.min((bs + 15) & -16, MAX_BLOCK_SIZE);
 
       // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)
-      ByteFunctionFactory bff = new ByteFunctionFactory();
+      TransformFactory bff = new TransformFactory();
       this.transform = (strTransf == null) ? "BWT+RANK+ZRLT" : bff.getName(bff.getType(strTransf));
       Boolean bChecksum = (Boolean) map.remove("checksum");
       this.checksum = (bChecksum == null) ? false : bChecksum;

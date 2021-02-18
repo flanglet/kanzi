@@ -13,10 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.Memory;
 import kanzi.SliceByteArray;
 
@@ -25,9 +25,9 @@ import kanzi.SliceByteArray;
 // It is a based on a heavily modified LZ4 with a bigger window, a bigger
 // hash map, 3+n*8 bit literal lengths, repetition distance and 17 or 24 bit
 // match lengths.
-public final class LZCodec implements ByteFunction
+public final class LZCodec implements ByteTransform
 {
-   private final ByteFunction delegate;
+   private final ByteTransform delegate;
 
 
    public LZCodec()
@@ -39,8 +39,8 @@ public final class LZCodec implements ByteFunction
    public LZCodec(Map<String, Object> ctx)
    {
       // Encode the word indexes as varints with a token or with a mask
-      final short lzType = (short) ctx.getOrDefault("lz", ByteFunctionFactory.LZ_TYPE);
-      this.delegate = (lzType == ByteFunctionFactory.LZP_TYPE) ? new LZPCodec(ctx) : new LZXCodec(ctx);
+      final short lzType = (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE);
+      this.delegate = (lzType == TransformFactory.LZP_TYPE) ? new LZPCodec(ctx) : new LZXCodec(ctx);
    }
 
 
@@ -87,7 +87,7 @@ public final class LZCodec implements ByteFunction
 
 
 
-   static final class LZXCodec implements ByteFunction
+   static final class LZXCodec implements ByteTransform
    {
       private static final int HASH_SEED          = 0x1E35A7BD;
       private static final int HASH_LOG1          = 16;
@@ -123,8 +123,8 @@ public final class LZCodec implements ByteFunction
          this.hashes = new int[0];
          this.mBuf = new byte[0];
          this.tkBuf = new byte[0];
-         short lzType = (short) ctx.getOrDefault("lz", ByteFunctionFactory.LZ_TYPE);
-         this.extra = lzType == ByteFunctionFactory.LZX_TYPE;
+         short lzType = (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE);
+         this.extra = lzType == TransformFactory.LZX_TYPE;
       }
 
 
@@ -542,7 +542,7 @@ public final class LZCodec implements ByteFunction
 
 
 
-   static final class LZPCodec implements ByteFunction
+   static final class LZPCodec implements ByteTransform
    {
       private static final int HASH_SEED        = 0x7FEB352D;
       private static final int HASH_LOG         = 16;

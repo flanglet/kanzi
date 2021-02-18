@@ -17,20 +17,20 @@ package kanzi.test;
 
 import java.util.Arrays;
 import java.util.Random;
-import kanzi.ByteFunction;
 import kanzi.SliceByteArray;
-import kanzi.function.FSDCodec;
-import kanzi.function.LZCodec;
-import kanzi.function.RLT;
-import kanzi.function.ROLZCodec;
-import kanzi.function.SRT;
-import kanzi.function.ZRLT;
+import kanzi.transform.FSDCodec;
+import kanzi.transform.LZCodec;
+import kanzi.transform.RLT;
+import kanzi.transform.ROLZCodec;
+import kanzi.transform.SRT;
+import kanzi.transform.ZRLT;
 import org.junit.Assert;
 import org.junit.Test;
 
 
 public class TestFunctions
 {
+   /*
    public static void main(String[] args)
    {
       if (args.length == 0)
@@ -503,4 +503,5 @@ public class TestFunctions
          System.out.println("Throughput [MB/s]: " + prod * 1000000L / delta2 * 1000L / (1024*1024));
       }
    }
+*/
 }

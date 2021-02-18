@@ -13,21 +13,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
 
 
-public class NullFunction implements ByteFunction
+public class NullTransform implements ByteTransform
 {
-   public NullFunction()
+   public NullTransform()
    {
    }
 
 
-   public NullFunction(Map<String, Object> ctx)
+   public NullTransform(Map<String, Object> ctx)
    {
    }
 

@@ -13,10 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.Global;
 import kanzi.SliceByteArray;
 
@@ -26,7 +26,7 @@ import kanzi.SliceByteArray;
 // encoded in a different way (each digit in a different byte)
 // This algorithm is well adapted to process post BWT/MTFT data
 
-public final class ZRLT implements ByteFunction
+public final class ZRLT implements ByteTransform
 {
    public ZRLT()
    {

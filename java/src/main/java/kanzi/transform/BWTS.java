@@ -295,4 +295,12 @@ public class BWTS implements ByteTransform
    {
       return MAX_BLOCK_SIZE;
    }
+
+
+   // Return the max size required for the encoding output buffer
+   @Override
+   public int getMaxEncodedLength(int srcLength)
+   {
+      return srcLength;
+   }
 }

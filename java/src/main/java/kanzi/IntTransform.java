@@ -28,4 +28,8 @@ public interface IntTransform
    // write them to dst.array[dst.index]. The index of each slice is updated
    // with the number of ints respectively read from and written to.
    public boolean inverse(SliceIntArray src, SliceIntArray dst);
+
+
+   // Return the max size required for the output buffer
+   public int getMaxEncodedLength(int srcLength);
 }

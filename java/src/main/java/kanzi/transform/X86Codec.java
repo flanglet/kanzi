@@ -13,16 +13,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kanzi.function;
+package kanzi.transform;
 
 import java.util.Map;
-import kanzi.ByteFunction;
+import kanzi.ByteTransform;
 import kanzi.Global;
 import kanzi.SliceByteArray;
 
 
 // Adapted from MCM: https://github.com/mathieuchartier/mcm/blob/master/X86Binary.hpp
-public class X86Codec implements ByteFunction
+public class X86Codec implements ByteTransform
 {
    private static final int MASK_JUMP = 0xFE;
    private static final int INSTRUCTION_JUMP = 0xE8;
