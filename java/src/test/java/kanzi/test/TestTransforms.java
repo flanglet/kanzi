@@ -16,6 +16,8 @@ limitations under the License.
 package kanzi.test;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
@@ -26,6 +28,7 @@ import kanzi.transform.RLT;
 import kanzi.transform.ROLZCodec;
 import kanzi.transform.SBRT;
 import kanzi.transform.SRT;
+import kanzi.transform.TransformFactory;
 import kanzi.transform.ZRLT;
 import org.junit.Assert;
 import org.junit.Test;
@@ -49,31 +52,24 @@ public class TestTransforms
 
          if (type.equals("ALL"))
          {
-            System.out.println("\n\nTestRANK");
-
-            if (testCorrectness("RANK") == false)
-               System.exit(1);
-
-            testSpeed("RANK");
-            System.out.println("\n\nTestMTFT");
-
-            if (testCorrectness("MTFT") == false)
-               System.exit(1);
-
-            testSpeed("MTFT");
-            System.out.println("\n\nTestBWTS");
-
-            if (testCorrectness("BWTS") == false)
-               System.exit(1);
-
-            testSpeed("BWTS");
-
             System.out.println("\n\nTestLZ");
 
             if (testCorrectness("LZ") == false)
                System.exit(1);
 
             testSpeed("LZ");
+            System.out.println("\n\nTestLZX");
+
+            if (testCorrectness("LZX") == false)
+               System.exit(1);
+
+            testSpeed("LZX");
+            System.out.println("\n\nTestLZP");
+
+            if (testCorrectness("LZP") == false)
+               System.exit(1);
+
+            // testSpeed("LZP"); skip (returns false if not good enough compression)
             System.out.println("\n\nTestROLZ");
 
             if (testCorrectness("ROLZ") == false)
@@ -103,7 +99,25 @@ public class TestTransforms
             if (testCorrectness("SRT") == false)
                System.exit(1);
 
-            testSpeed("FSD");
+            testSpeed("SRT");
+            System.out.println("\n\nTestRANK");
+
+            if (testCorrectness("RANK") == false)
+               System.exit(1);
+
+            testSpeed("RANK");
+            System.out.println("\n\nTestMTFT");
+
+            if (testCorrectness("MTFT") == false)
+               System.exit(1);
+
+            testSpeed("MTFT");
+            System.out.println("\n\nTestBWTS");
+
+            if (testCorrectness("BWTS") == false)
+               System.exit(1);
+
+            testSpeed("BWTS");            
             System.out.println("\n\nTestFSD");
 
             if (testCorrectness("FSD") == false)
@@ -142,6 +156,12 @@ public class TestTransforms
       System.out.println("\n\nTestLZ");
       Assert.assertTrue(testCorrectness("LZ"));
       //testSpeed("LZ");
+      System.out.println("\n\nTestLZX");
+      Assert.assertTrue(testCorrectness("LZX"));
+      //testSpeed("LZX");
+      System.out.println("\n\nTestLZP");
+      Assert.assertTrue(testCorrectness("LZP"));
+      //testSpeed("LZP");
       System.out.println("\n\nTestROLZ");
       Assert.assertTrue(testCorrectness("ROLZ"));
       //testSpeed("ROLZ");
@@ -166,6 +186,16 @@ public class TestTransforms
       {
          case "LZ":
             return new LZCodec();
+
+         case "LZX":
+            Map<String, Object> ctx1 = new HashMap<>();
+            ctx1.put("lz", TransformFactory.LZX_TYPE);
+            return new LZCodec(ctx1);
+
+         case "LZP":
+            Map<String, Object> ctx2 = new HashMap<>();
+            ctx2.put("lz", TransformFactory.LZP_TYPE);
+            return new LZCodec(ctx2);
 
          case "ZRLT":
             return new ZRLT();
@@ -426,7 +456,7 @@ public class TestTransforms
       {
          ByteTransform f = getTransform(name);
          input = new byte[size];
-         output = new byte[size];
+         output = new byte[f.getMaxEncodedLength(size)];
          reverse = new byte[size];
          SliceByteArray sa1 = new SliceByteArray(input, 0);
          SliceByteArray sa2 = new SliceByteArray(output, 0);
