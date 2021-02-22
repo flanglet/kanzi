@@ -326,7 +326,7 @@ public class TestTransforms
          int size = arr.length;
          ByteTransform f = getTransform(name);
          input = new byte[size];
-         output = new byte[size];
+         output = new byte[f.getMaxEncodedLength(size)];
          reverse = new byte[size];
          SliceByteArray sa1 = new SliceByteArray(input, 0);
          SliceByteArray sa2 = new SliceByteArray(output, 0);

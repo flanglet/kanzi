@@ -338,7 +338,7 @@ public final class LZCodec implements ByteTransform
                this.mBuf = buf;
             }
 
-            // Fill _hashes and update positions
+            // Fill this.hashes and update positions
             anchor = srcIdx + bestLen;
             srcIdx++;
 
@@ -349,11 +349,11 @@ public final class LZCodec implements ByteTransform
             }
          }
 
-         if ((dstIdx+tkIdx+mIdx) > (output.length - output.index))
-            return false;
-
          // Emit last literals
          final int litLen = count - anchor;
+
+         if (dstIdx+litLen+tkIdx+mIdx >= output.index+count)
+            return false;
 
          if (litLen >= 7)
          {
@@ -377,7 +377,7 @@ public final class LZCodec implements ByteTransform
          dstIdx += mIdx;
          input.index = count;
          output.index = dstIdx;
-         return dstIdx < count;
+         return true;
       }
 
 
