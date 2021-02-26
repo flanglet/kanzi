@@ -145,7 +145,7 @@ public class FPAQEncoder implements EntropyEncoder
 
    private void flush()
    {
-      Memory.BigEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high>>>24));
+      Memory.LittleEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high>>>24));
       this.sba.index += 4;
       this.low <<= 32;
       this.high = (this.high<<32) | MASK_0_32;

@@ -148,7 +148,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
 
             while (remaining >= 64)
             {
-               final long value = Memory.BigEndian.readLong64(bits, start);
+               final long value = Memory.LittleEndian.readLong64(bits, start);
                this.current |= (value >>> r);
                this.pushCurrent();
                this.current = (value << -r);
@@ -178,7 +178,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
    // Push 64 bits of current value into buffer.
    private void pushCurrent()
    {
-      Memory.BigEndian.writeLong64(this.buffer, this.position, this.current);
+      Memory.LittleEndian.writeLong64(this.buffer, this.position, this.current);
       this.availBits = 64;
       this.current = 0;
       this.position += 8;

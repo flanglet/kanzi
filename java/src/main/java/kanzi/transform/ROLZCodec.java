@@ -246,7 +246,7 @@ public class ROLZCodec implements ByteTransform
          final byte[] src = input.array;
          final byte[] dst = output.array;
          final int srcEnd = srcIdx + count - 4;
-         Memory.BigEndian.writeInt32(dst, dstIdx, count);
+         Memory.LittleEndian.writeInt32(dst, dstIdx, count);
          dstIdx += 4;
          int sizeChunk = (count <= CHUNK_SIZE) ? count : CHUNK_SIZE;
          int startChunk = srcIdx;
@@ -427,7 +427,7 @@ public class ROLZCodec implements ByteTransform
          final byte[] dst = output.array;
          int srcIdx = input.index;
          final int srcEnd = srcIdx + count;
-         final int dstEnd = output.index + Memory.BigEndian.readInt32(src, srcIdx) - 4;
+         final int dstEnd = output.index + Memory.LittleEndian.readInt32(src, srcIdx) - 4;
          srcIdx += 4;
          int sizeChunk = (dstEnd <= CHUNK_SIZE) ? dstEnd : CHUNK_SIZE;
          int startChunk = output.index;
@@ -698,7 +698,7 @@ public class ROLZCodec implements ByteTransform
          final byte[] src = input.array;
          final byte[] dst = output.array;
          final int srcEnd = srcIdx + count - 4;
-         Memory.BigEndian.writeInt32(dst, dstIdx, count);
+         Memory.LittleEndian.writeInt32(dst, dstIdx, count);
          dstIdx += 4;
          int sizeChunk = (count <= CHUNK_SIZE) ? count : CHUNK_SIZE;
          int startChunk = srcIdx;
@@ -782,7 +782,7 @@ public class ROLZCodec implements ByteTransform
          final byte[] dst = output.array;
          int srcIdx = input.index;
          final int srcEnd = srcIdx + count;
-         final int dstEnd = output.index + Memory.BigEndian.readInt32(src, srcIdx);
+         final int dstEnd = output.index + Memory.LittleEndian.readInt32(src, srcIdx);
          srcIdx += 4;
          int sizeChunk = (dstEnd < CHUNK_SIZE) ? dstEnd : CHUNK_SIZE;
          int startChunk = output.index;
@@ -981,7 +981,7 @@ public class ROLZCodec implements ByteTransform
          // Write unchanged first 32 bits to bitstream
          while (((this.low ^ this.high) >>> 24) == 0)
          {
-            Memory.BigEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high>>>32));
+            Memory.LittleEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high>>>32));
             this.sba.index += 4;
             this.low <<= 32;
             this.high = (this.high << 32) | MASK_0_32;
@@ -1108,7 +1108,7 @@ public class ROLZCodec implements ByteTransform
          {
             this.low = (this.low << 32) & MASK_0_56;
             this.high = ((this.high << 32) | MASK_0_32) & MASK_0_56;
-            final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & MASK_0_32;
+            final long val = Memory.LittleEndian.readInt32(this.sba.array, this.sba.index) & MASK_0_32;
             this.current = ((this.current << 32) | val) & MASK_0_56;
             this.sba.index += 4;
          }
