@@ -202,7 +202,7 @@ public class TestDefaultBitStream
             for (int i=0; i<values.length; i++)
             {
                values[i] = (test<5) ? rnd.nextInt(test*1000+100) : rnd.nextInt();
-               final int mask = (1 << (1 + (i & 63))) - 1;
+               final int mask = (1 << (1 + (i % 30))) - 1;
                values[i] &= mask;
                System.out.print(values[i]+" ");
 
@@ -215,7 +215,7 @@ public class TestDefaultBitStream
 
             for (int i=0; i<values.length; i++)
             {
-               dbs.writeBits(values[i], (1 + (i & 63)));
+               dbs.writeBits(values[i], (1 + (i % 30)));
             }
 
             // Close first to force flush()
@@ -245,7 +245,7 @@ public class TestDefaultBitStream
 
             for (int i=0; i<values.length; i++)
             {
-               int x = (int) ibs.readBits((1 + (i & 63)));
+               int x = (int) ibs.readBits((1 + (i % 30)));
                System.out.print(x);
                System.out.print((x == values[i]) ? " ": "* ");
                ok &= (x == values[i]);

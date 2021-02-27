@@ -183,7 +183,7 @@ public final class DefaultInputBitStream implements InputBitStream
             final long v = this.current & ((1L<<this.availBits)-1);
             this.pullCurrent();
             this.availBits -= r;
-            Memory.LittleEndian.writeLong64(bits, start, (v<<r) | (this.current>>>this.availBits));
+            Memory.BigEndian.writeLong64(bits, start, (v<<r) | (this.current>>>this.availBits));
             start += 8;
             remaining -= 64;
          }
@@ -228,7 +228,7 @@ public final class DefaultInputBitStream implements InputBitStream
       else
       {
          // Regular processing, buffer length is multiple of 8
-         this.current = Memory.LittleEndian.readLong64(this.buffer, this.position);
+         this.current = Memory.BigEndian.readLong64(this.buffer, this.position);
          this.availBits = 64;
          this.position += 8;
       }
