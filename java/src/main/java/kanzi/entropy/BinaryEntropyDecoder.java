@@ -149,7 +149,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder
    {
       this.low = (this.low<<32) & MASK_0_56;
       this.high = ((this.high<<32) | MASK_0_32) & MASK_0_56;
-      final long val = Memory.LittleEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
+      final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
       this.current = ((this.current<<32) | val) & MASK_0_56;
       this.sba.index += 4;
    }

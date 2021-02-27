@@ -354,14 +354,8 @@ public class TestTransforms
 
          if (f.forward(sa1, sa2) == false)
          {
-            if (sa1.index != input.length)
-            {
-               System.out.println("\nNo compression (ratio > 1.0), skip reverse");
-               continue;
-            }
-
-            System.out.println("\nEncoding error");
-            return false;
+            System.out.println("\nNo compression (ratio > 1.0), skip reverse");
+            continue;
          }
 
          if (sa1.index != input.length)
