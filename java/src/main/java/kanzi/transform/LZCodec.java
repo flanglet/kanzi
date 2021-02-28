@@ -547,7 +547,7 @@ public final class LZCodec implements ByteTransform
       private static final int HASH_SEED        = 0x7FEB352D;
       private static final int HASH_LOG         = 16;
       private static final int HASH_SHIFT       = 32 - HASH_LOG;
-      private static final int MIN_MATCH        = 64;
+      private static final int MIN_MATCH        = 96;
       private static final int MIN_BLOCK_LENGTH = 128;
       private static final int MATCH_FLAG       = 0xFC;
 

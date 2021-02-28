@@ -280,7 +280,7 @@ public class Kanzi
                   printOut("        Providing this option forces entropy and transform.", true);
                   printOut("        0=None&None (store), 1=TEXT+LZ&HUFFMAN, 2=TEXT+FSD+LZX&HUFFMAN", true);
                   printOut("        3=TEXT+FSD+ROLZ, 4=TEXT+FSD+ROLZX, 5=TEXT+BWT+RANK+ZRLT&ANS0", true);
-                  printOut("        6=TEXT+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+BWT&CM, 8=X86+RLT+TEXT&TPAQ", true);
+                  printOut("        6=TEXT+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+BWT+LZP&CM, 8=X86+RLT+TEXT&TPAQ", true);
                   printOut("        9=X86+RLT+TEXT&TPAQX\n", true);
                   printOut("   -e, --entropy=<codec>", true);
                   printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);

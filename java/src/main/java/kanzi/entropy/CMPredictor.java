@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.entropy;
 
+import java.util.Arrays;
 import kanzi.Predictor;
 
 
@@ -25,6 +26,7 @@ public class CMPredictor implements Predictor
    private static final int FAST_RATE   = 2;
    private static final int MEDIUM_RATE = 4;
    private static final int SLOW_RATE   = 6;
+   private static final int PSCALE      = 65536;
 
    private int c1;
    private int c2;
@@ -38,24 +40,23 @@ public class CMPredictor implements Predictor
    public CMPredictor()
    {
       this.ctx = 1;
-      this.idx = 8;
+      this.idx = 0;
       this.counter1 = new int[256][257];
       this.counter2 = new int[512][17];
 
       for (int i=0; i<256; i++)
       {
-         for (int j=0; j<=256; j++)
-            this.counter1[i][j] = 32768;
+         Arrays.fill(this.counter1[i], PSCALE>>1);
 
-         for (int j=0; j<=16; j++)
+         for (int j=0; j<16; j++)
          {
             this.counter2[i+i][j]   = j << 12;
             this.counter2[i+i+1][j] = j << 12;
          }
 
-         this.counter2[i+i][16]   -= 16;
-         this.counter2[i+i+1][16] -= 16;
-      }			
+         this.counter2[i+i][16]   = 15 << 12;
+         this.counter2[i+i+1][16] = 15 << 12;
+      }
    }
 
 
@@ -72,12 +73,14 @@ public class CMPredictor implements Predictor
          counter1_[256]      -= (counter1_[256]      >> FAST_RATE);
          counter1_[this.c1]  -= (counter1_[this.c1]  >> MEDIUM_RATE);
          counter2_[this.idx] -= (counter2_[this.idx] >> SLOW_RATE);
+         counter2_[this.idx+1] -= (counter2_[this.idx+1] >> SLOW_RATE);
       }
       else
       {
-         counter1_[256]      += ((counter1_[256]^0xFFFF)      >> FAST_RATE);
-         counter1_[this.c1]  += ((counter1_[this.c1]^0xFFFF)  >> MEDIUM_RATE);
-         counter2_[this.idx] += ((counter2_[this.idx]^0xFFFF) >> SLOW_RATE);
+         counter1_[256]      -= ((counter1_[256]-PSCALE+16)      >> FAST_RATE);
+         counter1_[this.c1]  -= ((counter1_[this.c1]-PSCALE+16)  >> MEDIUM_RATE);
+         counter2_[this.idx] -= ((counter2_[this.idx]-PSCALE+16) >> SLOW_RATE);
+         counter2_[this.idx+1] -= ((counter2_[this.idx+1]-PSCALE+16) >> SLOW_RATE);
          this.ctx++;
       }
 
@@ -99,6 +102,9 @@ public class CMPredictor implements Predictor
       final int p = (13*(pc1[256]+pc1[this.c1])+6*pc1[this.c2]) >> 5;
       this.idx = p >>> 12;
       final int[] pc2 = this.counter2[this.ctx|this.runMask];
-      return (p + 3*pc2[this.idx] + 32) >>> 6; // rescale to [0..4095]
+      final int x1 = pc2[this.idx];
+      final int x2 = pc2[this.idx+1];
+      final int ssep = x1 + (((x2-x1)*(p&4095)) >> 12);
+      return (p + 3*ssep + 32) >>> 6; // rescale to [0..4095]
    }
 }

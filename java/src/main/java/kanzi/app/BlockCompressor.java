@@ -446,7 +446,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
            return "TEXT+BWT+SRT+ZRLT&FPAQ";
 
         case 7 :
-           return "LZP+TEXT+BWT&CM";
+           return "LZP+TEXT+BWT+LZP&CM";
 
         case 8 :
            return "X86+RLT+TEXT&TPAQ";
