@@ -29,7 +29,8 @@ import kanzi.Global;
 
    LogisticAdaptiveProbMap(int n, int rate)
    {
-      this.data = new int[n*33];
+      final int size = (n == 0) ? 33 : n*33;
+      this.data = new int[size];
       this.rate = rate;
 
       for (int j=0; j<=32; j++)

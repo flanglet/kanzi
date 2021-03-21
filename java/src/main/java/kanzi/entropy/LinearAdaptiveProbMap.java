@@ -28,7 +28,8 @@ package kanzi.entropy;
 
    LinearAdaptiveProbMap(int n, int rate)
    {
-      this.data = new int[n*65];
+      final int size = (n == 0) ? 65 : n*65;
+      this.data = new int[size];
       this.rate = rate;
 
       for (int j=0; j<=64; j++)

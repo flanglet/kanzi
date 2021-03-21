@@ -20,9 +20,9 @@ import kanzi.Global;
 
 
 // TPAQ predictor
-// Derived from a heavily modified version of Tangelo 2.4 (by Jan Ondrus).
+// Initially based on Tangelo 2.4 (by Jan Ondrus).
 // PAQ8 is written by Matt Mahoney.
-// See http://encode.ru/threads/1738-TANGELO-new-compressor-(derived-from-PAQ8-FP8)
+// See http://encode.su/threads/1738-TANGELO-new-compressor-(derived-from-PAQ8-FP8)
 
 public class TPAQPredictor implements Predictor
 {
@@ -238,9 +238,9 @@ public class TPAQPredictor implements Predictor
          final int rbsz = (Integer) ctx.getOrDefault("blockSize", 32768);
 
          if (rbsz >= 64*1024*1024)
-            statesSize = 1 << 29;
-         else if (rbsz >= 16*1024*1024)
             statesSize = 1 << 28;
+         else if (rbsz >= 16*1024*1024)
+            statesSize = 1 << 27;
          else if (rbsz >= 4*1024*1024)
             statesSize = 1 << 26;
          else statesSize = (rbsz >= 1024*1024) ? 1 << 24 : 1 << 22;
@@ -251,22 +251,22 @@ public class TPAQPredictor implements Predictor
          final int absz = (Integer) ctx.getOrDefault("size", rbsz);
 
          if (absz >= 32*1024*1024)
-            mixersSize = 1 << 17;
-         else if (absz >= 16*1024*1024)
             mixersSize = 1 << 16;
+         else if (absz >= 16*1024*1024)
+            mixersSize = 1 << 15;
          else if (absz >= 8*1024*1024)
             mixersSize = 1 << 14;
          else if (absz >= 4*1024*1024)
-            mixersSize = 1 << 12;
+            mixersSize = 1 << 13;
          else
-            mixersSize = (absz >= 1024*1024) ? 1 << 10 : 1 << 9;
+            mixersSize = (absz >= 1024*1024) ? 1 << 11 : 1 << 8;
 
          bufferSize = Math.min(BUFFER_SIZE, rbsz);
          hashSize = Math.min(hashSize, 16*absz);
       }
 
-      mixersSize <<= extraMem;
-      statesSize <<= extraMem;
+      mixersSize <<= (2*extraMem);
+      statesSize <<= (2*extraMem);
       hashSize <<= (2*extraMem);
 
       this.pr = 2048;
@@ -442,10 +442,10 @@ public class TPAQPredictor implements Predictor
 
             while (r <= MAX_LENGTH)
             {
-               if (this.buffer[s&this.bufferMask] != this.buffer[t&this.bufferMask])
+               if (this.buffer[(s-1)&this.bufferMask] != this.buffer[(t-1)&this.bufferMask])
                   break;
 
-               if (this.buffer[(s-1)&this.bufferMask] != this.buffer[(t-1)&this.bufferMask])
+               if (this.buffer[s&this.bufferMask] != this.buffer[t&this.bufferMask])
                   break;
 
                r += 2;
