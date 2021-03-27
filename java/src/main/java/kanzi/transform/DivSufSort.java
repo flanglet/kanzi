@@ -193,19 +193,29 @@ public final class DivSufSort
 
 
    // Not thread safe
-   public int computeBWT(byte[] input, int[] sa, int start, int length)
+   public int computeBWT(byte[] input, byte[] output, int[] bwt, int srcIdx, int dstIdx, int length)
    {
       // Lazy dynamic memory allocation
       if (this.buffer.length < length)
          this.buffer = new short[length];
 
       for (int i=0; i<length; i++)
-         this.buffer[i] = (short) (input[start+i] & 0xFF);
+         this.buffer[i] = (short) (input[srcIdx+i] & 0xFF);
 
-      this.sa = sa;
+      this.sa = bwt;
       this.reset();
       final int m = this.sortTypeBstar(this.bucketA, this.bucketB, length);
-      return this.constructBWT(this.bucketA, this.bucketB, length, m);
+      final int pIdx = this.constructBWT(this.bucketA, this.bucketB, length, m);
+      final int dstIdx2 = dstIdx + 1;
+      output[dstIdx] = input[srcIdx+length-1];
+
+      for (int i=0; i<pIdx; i++)
+         output[dstIdx2+i] = (byte) bwt[srcIdx+i];
+
+      for (int i=pIdx+1; i<length; i++)
+         output[dstIdx+i] = (byte) bwt[srcIdx+i];
+
+      return pIdx+1;
    }
 
 

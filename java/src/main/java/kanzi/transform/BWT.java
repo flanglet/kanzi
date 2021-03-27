@@ -175,36 +175,21 @@ public class BWT implements ByteTransform
          this.buffer1 = new int[count];
 
       final int[] sa = this.buffer1;
-      this.saAlgo.computeSuffixArray(input, sa, srcIdx, count);
-
-      final int srcIdx2 = srcIdx - 1;
-      final int dstIdx2 = dstIdx + 1;
-      int chunks = getBWTChunks(count);
       boolean res = true;
+      int chunks = getBWTChunks(count);
 
       if (chunks == 1)
       {
-         output[dstIdx] = input[srcIdx2+count];
-         int n = 0;
-
-         for (; n<count; n++)
-         {
-            if (sa[n] == 0)
-               break;
-
-            output[dstIdx2+n] = input[srcIdx2+sa[n]];
-         }
-
-         n++;
-         res &= this.setPrimaryIndex(0, n);
-
-         for (; n<count; n++)
-            output[dstIdx+n] = input[srcIdx2+sa[n]];
+         final int pIdx = this.saAlgo.computeBWT(input, output, sa, srcIdx, dstIdx, count);
+         res = this.setPrimaryIndex(0, pIdx);
       }
       else
       {
+         this.saAlgo.computeSuffixArray(input, sa, srcIdx, count);
          final int st = count / chunks;
          final int step = (chunks*st == count) ? st : st+1;
+         final int srcIdx2 = srcIdx - 1;
+         final int dstIdx2 = dstIdx + 1;
          output[dstIdx] = input[srcIdx2+count];
          int idx = 0;
 
