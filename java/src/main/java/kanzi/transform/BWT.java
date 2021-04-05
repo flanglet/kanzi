@@ -66,9 +66,10 @@ import kanzi.SliceByteArray;
 public class BWT implements ByteTransform
 {
    private static final int MAX_BLOCK_SIZE = 1024*1024*1024; // 1 GB
-   private static final int MAX_CHUNKS = 8;
    private static final int NB_FASTBITS = 17;
    private static final int MASK_FASTBITS = 1 << NB_FASTBITS;
+   private static final int BLOCK_SIZE_THRESHOLD1 = 256;
+   private static final int BLOCK_SIZE_THRESHOLD2 = 4 * 1024 * 1024;     
 
 
    private int[] buffer1;
@@ -249,14 +250,14 @@ public class BWT implements ByteTransform
       }
 
       // Find the fastest way to implement inverse based on block size
-      if (count < 4*1024*1024)
+      if (count <= BLOCK_SIZE_THRESHOLD2)
          return inverseSmallBlock(src, dst, count);
 
       return inverseBigBlock(src, dst, count);
    }
 
 
-   // When count < 4M, mergeTPSI algo. Always in one chunk
+   // When count <= 4M, mergeTPSI algo
    private boolean inverseSmallBlock(SliceByteArray src, SliceByteArray dst, int count)
    {
       // Lazy dynamic memory allocation
@@ -271,7 +272,7 @@ public class BWT implements ByteTransform
       final int[] buckets_ = this.buckets;
       final int[] data = this.buffer1;
 
-      // Build array of packed index + value (assumes block size < 2^24)
+      // Build array of packed index + value (assumes block size < 1<<24)
       int pIdx = this.getPrimaryIndex(0);
 
       if ((pIdx < 0) || (pIdx > count))
@@ -300,20 +301,62 @@ public class BWT implements ByteTransform
          buckets_[val]++;
       }
 
-      for (int i=0, t=pIdx-1; i<count; i++)
+      if (count < BLOCK_SIZE_THRESHOLD1)
       {
-         final int ptr = data[t];
-         output[dstIdx+i] = (byte) ptr;
-         t = ptr >>> 8;
+         for (int i=0, t=pIdx-1; i<count; i++)
+         {
+            final int ptr = data[t];
+            output[dstIdx+i] = (byte) ptr;
+            t = ptr >>> 8;
+         }
       }
+      else
+      {
+         final int ckSize = count >> 3;
+         int t0 = this.getPrimaryIndex(0) - 1;
+         int t1 = this.getPrimaryIndex(1) - 1;
+         int t2 = this.getPrimaryIndex(2) - 1;
+         int t3 = this.getPrimaryIndex(3) - 1;
+         int t4 = this.getPrimaryIndex(4) - 1;
+         int t5 = this.getPrimaryIndex(5) - 1;
+         int t6 = this.getPrimaryIndex(6) - 1;
+         int t7 = this.getPrimaryIndex(7) - 1;
 
+         for (int i=0; i<ckSize; i++)
+         {
+            final int ptr0 = data[t0];
+            output[dstIdx+i] = (byte) ptr0;
+            t0 = ptr0 >>> 8;
+            final int ptr1 = data[t1];
+            output[dstIdx+i+ckSize] = (byte) ptr1;
+            t1 = ptr1 >>> 8;
+            final int ptr2 = data[t2];
+            output[dstIdx+i+ckSize*2] = (byte) ptr2;
+            t2 = ptr2 >>> 8;
+            final int ptr3 = data[t3];
+            output[dstIdx+i+ckSize*3] = (byte) ptr3;
+            t3 = ptr3 >>> 8;
+            final int ptr4 = data[t4];
+            output[dstIdx+i+ckSize*4] = (byte) ptr4;
+            t4 = ptr4 >>> 8;
+            final int ptr5 = data[t5];
+            output[dstIdx+i+ckSize*5] = (byte) ptr5;
+            t5 = ptr5 >>> 8;
+            final int ptr6 = data[t6];
+            output[dstIdx+i+ckSize*6] = (byte) ptr6;
+            t6 = ptr6 >>> 8;
+            final int ptr7 = data[t7];
+            output[dstIdx+i+ckSize*7] = (byte) ptr7;
+            t7 = ptr7 >>> 8;
+         }
+      }
       src.index += count;
       dst.index += count;
       return true;
    }
 
 
-   // When count >= 1<<24, biPSIv2 algo
+   // When count > 4M, biPSIv2 algo
    // Possibly multiple chunks
    private boolean inverseBigBlock(SliceByteArray src, SliceByteArray dst, int count)
    {
@@ -448,57 +491,39 @@ public class BWT implements ByteTransform
       final int chunks = getBWTChunks(count);
 
       // Build inverse
-      if (chunks == 1)
+      // Several chunks may be decoded concurrently (depending on the availability
+      // of jobs in the pool).
+      final int st = count / chunks;
+      final int ckSize = (chunks*st == count) ? st : st+1;
+      final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
+      List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
+      final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
+
+      // Create one task per job
+      for (int j=0, c=0; j<nbTasks; j++)
       {
-         // Shortcut for 1 chunk scenario
-         for (int i=1, p=pIdx; i<count; i+=2)
+         // Each task decodes jobsPerTask[j] chunks
+         final int start = dstIdx + c*ckSize;
+         tasks.add(new InverseBigChunkTask(output, start, count, ckSize, c, c+jobsPerTask[j]));
+         c += jobsPerTask[j];
+      }
+
+      try
+      {
+         if (this.jobs == 1)
          {
-            int c = fastBits[p>>>shift] & 0xFFFF;
-
-            while (buckets_[c] <= p)
-               c++;
-
-            output[dstIdx+i-1] = (byte) (c>>>8);
-            output[dstIdx+i] = (byte) c;
-            p = data[p];
+            tasks.get(0).call();
+         }
+         else
+         {
+            // Wait for completion of all concurrent tasks
+            for (Future<Integer> result : this.pool.invokeAll(tasks))
+               result.get();
          }
       }
-      else
+      catch (Exception e)
       {
-         // Several chunks may be decoded concurrently (depending on the availability
-         // of jobs in the pool).
-         final int st = count / chunks;
-         final int ckSize = (chunks*st == count) ? st : st+1;
-         final int nbTasks = (this.jobs <= chunks) ? this.jobs : chunks;
-         List<Callable<Integer>> tasks = new ArrayList<>(nbTasks);
-         final int[] jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], chunks, nbTasks);
-
-         // Create one task per job
-         for (int j=0, c=0; j<nbTasks; j++)
-         {
-            // Each task decodes jobsPerTask[j] chunks
-            final int start = dstIdx + c*ckSize;
-            tasks.add(new InverseBigChunkTask(output, start, count, ckSize, c, c+jobsPerTask[j]));
-            c += jobsPerTask[j];
-         }
-
-         try
-         {
-            if (this.jobs == 1)
-            {
-               tasks.get(0).call();
-            }
-            else
-            {
-               // Wait for completion of all concurrent tasks
-               for (Future<Integer> result : this.pool.invokeAll(tasks))
-                  result.get();
-            }
-         }
-         catch (Exception e)
-         {
-            return false;
-         }
+         return false;
       }
 
       output[dstIdx+count-1] = (byte) lastc;
@@ -516,10 +541,7 @@ public class BWT implements ByteTransform
 
    public static int getBWTChunks(int size)
    {
-      if (size < 4*1024*1024)
-         return 1;
-
-      return Math.min((size+(1<<21))>>22, MAX_CHUNKS);
+      return (size < BLOCK_SIZE_THRESHOLD1) ? 1 : 8;
    }
 
 
