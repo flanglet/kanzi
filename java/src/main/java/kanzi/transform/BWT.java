@@ -69,7 +69,7 @@ public class BWT implements ByteTransform
    private static final int NB_FASTBITS = 17;
    private static final int MASK_FASTBITS = 1 << NB_FASTBITS;
    private static final int BLOCK_SIZE_THRESHOLD1 = 256;
-   private static final int BLOCK_SIZE_THRESHOLD2 = 4 * 1024 * 1024;     
+   private static final int BLOCK_SIZE_THRESHOLD2 = 8 * 1024 * 1024;     
 
 
    private int[] buffer1;
@@ -187,8 +187,7 @@ public class BWT implements ByteTransform
       else
       {
          this.saAlgo.computeSuffixArray(input, sa, srcIdx, count);
-         final int st = count / chunks;
-         final int step = (chunks*st == count) ? st : st+1;
+         final int step = count / chunks;
          final int srcIdx2 = srcIdx - 1;
          final int dstIdx2 = dstIdx + 1;
          output[dstIdx] = input[srcIdx2+count];
@@ -251,14 +250,17 @@ public class BWT implements ByteTransform
 
       // Find the fastest way to implement inverse based on block size
       if (count <= BLOCK_SIZE_THRESHOLD2)
-         return inverseSmallBlock(src, dst, count);
+         return inverseMergeTPSI(src, dst, count);
 
-      return inverseBigBlock(src, dst, count);
+      if ((count < (1 << 24)) && (this.jobs == 1))
+         return inverseMergeTPSI(src, dst, count);
+
+      return inverseBiPSIv2(src, dst, count);
    }
 
 
-   // When count <= 4M, mergeTPSI algo
-   private boolean inverseSmallBlock(SliceByteArray src, SliceByteArray dst, int count)
+   // When count <= BLOCK_SIZE_THRESHOLD2, mergeTPSI algo
+   private boolean inverseMergeTPSI(SliceByteArray src, SliceByteArray dst, int count)
    {
       // Lazy dynamic memory allocation
       if (this.buffer1.length < count)
@@ -321,44 +323,50 @@ public class BWT implements ByteTransform
          int t5 = this.getPrimaryIndex(5) - 1;
          int t6 = this.getPrimaryIndex(6) - 1;
          int t7 = this.getPrimaryIndex(7) - 1;
+         int n = 0;
 
-         for (int i=0; i<ckSize; i++)
+         while (true)
          {
             final int ptr0 = data[t0];
-            output[dstIdx+i] = (byte) ptr0;
+            output[dstIdx+n] = (byte) ptr0;
             t0 = ptr0 >>> 8;
             final int ptr1 = data[t1];
-            output[dstIdx+i+ckSize] = (byte) ptr1;
+            output[dstIdx+n+ckSize] = (byte) ptr1;
             t1 = ptr1 >>> 8;
             final int ptr2 = data[t2];
-            output[dstIdx+i+ckSize*2] = (byte) ptr2;
+            output[dstIdx+n+ckSize*2] = (byte) ptr2;
             t2 = ptr2 >>> 8;
             final int ptr3 = data[t3];
-            output[dstIdx+i+ckSize*3] = (byte) ptr3;
+            output[dstIdx+n+ckSize*3] = (byte) ptr3;
             t3 = ptr3 >>> 8;
             final int ptr4 = data[t4];
-            output[dstIdx+i+ckSize*4] = (byte) ptr4;
+            output[dstIdx+n+ckSize*4] = (byte) ptr4;
             t4 = ptr4 >>> 8;
             final int ptr5 = data[t5];
-            output[dstIdx+i+ckSize*5] = (byte) ptr5;
+            output[dstIdx+n+ckSize*5] = (byte) ptr5;
             t5 = ptr5 >>> 8;
             final int ptr6 = data[t6];
-            output[dstIdx+i+ckSize*6] = (byte) ptr6;
+            output[dstIdx+n+ckSize*6] = (byte) ptr6;
             t6 = ptr6 >>> 8;
             final int ptr7 = data[t7];
-            output[dstIdx+i+ckSize*7] = (byte) ptr7;
+            output[dstIdx+n+ckSize*7] = (byte) ptr7;
             t7 = ptr7 >>> 8;
+            n++;
+
+            if (ptr7 < 0)
+               break;
          }
       }
+
       src.index += count;
       dst.index += count;
       return true;
    }
 
 
-   // When count > 4M, biPSIv2 algo
+   // When count > BLOCK_SIZE_THRESHOLD2, biPSIv2 algo
    // Possibly multiple chunks
-   private boolean inverseBigBlock(SliceByteArray src, SliceByteArray dst, int count)
+   private boolean inverseBiPSIv2(SliceByteArray src, SliceByteArray dst, int count)
    {
       // Lazy dynamic memory allocations
       if (this.buffer1.length < count+1)
