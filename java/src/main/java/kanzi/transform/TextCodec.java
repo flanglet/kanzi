@@ -867,7 +867,7 @@ public final class TextCodec implements ByteTransform
 
          this.reset(output.length);
          final int srcEnd = input.index + count;
-         final int dstEnd = dst.length;
+         final int dstEnd = dst.length - 1;
 
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
@@ -1460,7 +1460,7 @@ public final class TextCodec implements ByteTransform
 
          this.reset(output.length);
          final int srcEnd = input.index + count;
-         final int dstEnd = dst.length;
+         final int dstEnd = dst.length - 1;
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
