@@ -187,24 +187,26 @@ public class BWT implements ByteTransform
       else
       {
          this.saAlgo.computeSuffixArray(input, sa, srcIdx, count);
-         final int step = count / chunks;
+         final int st = count / chunks;
+         final int step = (chunks * st == count) ? st : st + 1;
          final int srcIdx2 = srcIdx - 1;
-         final int dstIdx2 = dstIdx + 1;
          output[dstIdx] = input[srcIdx2+count];
-         int idx = 0;
 
-         for (int i=0; i<count; i++)
+         for (int i=0, idx=0; i<count; i++)
          {
             if ((sa[i]%step) != 0)
                continue;
 
-            res &= this.setPrimaryIndex(sa[i]/step, i+1);
-            idx++;
+            if (this.setPrimaryIndex(sa[i]/step, i+1) == true)
+            {
+               idx++;
 
-            if (idx == chunks)
-               break;
+               if (idx == chunks)
+                  break;
+            }
          }
 
+         final int dstIdx2 = dstIdx + 1;
          final int pIdx0 = this.getPrimaryIndex(0);
 
          for (int i=0; i<pIdx0-1; i++)
@@ -252,7 +254,7 @@ public class BWT implements ByteTransform
       if (count <= BLOCK_SIZE_THRESHOLD2)
          return inverseMergeTPSI(src, dst, count);
 
-      if ((count < (1 << 24)) && (this.jobs == 1))
+      if ((count < (1<<24)) && (this.jobs == 1))
          return inverseMergeTPSI(src, dst, count);
 
       return inverseBiPSIv2(src, dst, count);
@@ -314,7 +316,7 @@ public class BWT implements ByteTransform
       }
       else
       {
-         final int ckSize = count >> 3;
+         final int ckSize = ((count & 7) == 0) ? count>>3 : (count>>3) + 1;
          int t0 = this.getPrimaryIndex(0) - 1;
          int t1 = this.getPrimaryIndex(1) - 1;
          int t2 = this.getPrimaryIndex(2) - 1;
@@ -356,6 +358,32 @@ public class BWT implements ByteTransform
             if (ptr7 < 0)
                break;
          }
+
+         while (n < ckSize)
+         {
+            final int ptr0 = data[t0];
+            output[dstIdx+n] = (byte) ptr0;
+            t0 = ptr0 >>> 8;
+            final int ptr1 = data[t1];
+            output[dstIdx+n+ckSize] = (byte) ptr1;
+            t1 = ptr1 >>> 8;
+            final int ptr2 = data[t2];
+            output[dstIdx+n+ckSize*2] = (byte) ptr2;
+            t2 = ptr2 >>> 8;
+            final int ptr3 = data[t3];
+            output[dstIdx+n+ckSize*3] = (byte) ptr3;
+            t3 = ptr3 >>> 8;
+            final int ptr4 = data[t4];
+            output[dstIdx+n+ckSize*4] = (byte) ptr4;
+            t4 = ptr4 >>> 8;
+            final int ptr5 = data[t5];
+            output[dstIdx+n+ckSize*5] = (byte) ptr5;
+            t5 = ptr5 >>> 8;
+            final int ptr6 = data[t6];
+            output[dstIdx+n+ckSize*6] = (byte) ptr6;
+            t6 = ptr6 >>> 8;
+            n++;
+         }
       }
 
       src.index += count;
@@ -365,7 +393,6 @@ public class BWT implements ByteTransform
 
 
    // When count > BLOCK_SIZE_THRESHOLD2, biPSIv2 algo
-   // Possibly multiple chunks
    private boolean inverseBiPSIv2(SliceByteArray src, SliceByteArray dst, int count)
    {
       // Lazy dynamic memory allocations
@@ -417,7 +444,6 @@ public class BWT implements ByteTransform
 
       final int lastc = input[srcIdx] & 0xFF;
       final short[] fastBits = this.buffer2;
-
       int shift = 0;
 
       while ((count>>>shift) > MASK_FASTBITS)
@@ -512,7 +538,7 @@ public class BWT implements ByteTransform
       {
          // Each task decodes jobsPerTask[j] chunks
          final int start = dstIdx + c*ckSize;
-         tasks.add(new InverseBigChunkTask(output, start, count, ckSize, c, c+jobsPerTask[j]));
+         tasks.add(new InverseBiPSIv2Task(output, start, count, ckSize, c, c+jobsPerTask[j]));
          c += jobsPerTask[j];
       }
 
@@ -554,7 +580,7 @@ public class BWT implements ByteTransform
 
 
    // Process one or several chunk(s)
-   class InverseBigChunkTask implements Callable<Integer>
+   class InverseBiPSIv2Task implements Callable<Integer>
    {
       private final byte[] output;
       private final int dstIdx;     // initial offset
@@ -564,7 +590,7 @@ public class BWT implements ByteTransform
       private final int lastChunk;  // index last chunk
 
 
-      public InverseBigChunkTask(byte[] output, int dstIdx, int total,
+      public InverseBiPSIv2Task(byte[] output, int dstIdx, int total,
          int ckSize, int firstChunk, int lastChunk)
       {
          this.output = output;
