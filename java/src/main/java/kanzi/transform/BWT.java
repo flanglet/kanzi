@@ -251,10 +251,7 @@ public class BWT implements ByteTransform
       }
 
       // Find the fastest way to implement inverse based on block size
-      if (count <= BLOCK_SIZE_THRESHOLD2)
-         return inverseMergeTPSI(src, dst, count);
-
-      if ((count < (1<<24)) && (this.jobs == 1))
+      if ((count <= BLOCK_SIZE_THRESHOLD2) && (this.jobs == 1))
          return inverseMergeTPSI(src, dst, count);
 
       return inverseBiPSIv2(src, dst, count);
