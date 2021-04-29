@@ -152,7 +152,8 @@ public class ANSRangeDecoder implements EntropyDecoder
       final int sz = EntropyUtils.readVarInt(this.bitstream) & (MAX_CHUNK_SIZE-1);
 
       // Read initial ANS state
-      int st = (int) this.bitstream.readBits(32);
+      int st0 = (int) this.bitstream.readBits(32);
+      int st1 = (this.order == 0) ? (int) this.bitstream.readBits(32) : 0;
 
       if (sz != 0)
          this.bitstream.readBits(this.buffer, 0, 8*sz);
@@ -164,25 +165,40 @@ public class ANSRangeDecoder implements EntropyDecoder
       {
          final byte[] freq2sym = this.f2s[0];
          final Symbol[] symb = this.symbols[0];
+         final int end2 = (end & -2) - 1;
 
-         for (int i=start; i<end; i++)
+         for (int i=start; i<end2; i+=2)
          {
-            final byte cur = freq2sym[st&mask];
-            block[i] = cur;
-            final Symbol sym = symb[cur&0xFF];
+            final byte cur1 = freq2sym[st1&mask];
+            block[i] = cur1;
+            final byte cur0 = freq2sym[st0&mask];
+            block[i+1] = cur0;
+            final Symbol sym1 = symb[cur1&0xFF];
+            final Symbol sym0 = symb[cur0&0xFF];
 
             // Compute next ANS state
             // D(x) = (s, q_s (x/M) + mod(x,M) - b_s) where s is such b_s <= x mod M < b_{s+1}
-            st = sym.freq * (st>>>this.logRange) + (st&mask) - sym.cumFreq;
+            st1 = sym1.freq * (st1>>>this.logRange) + (st1&mask) - sym1.cumFreq;
+            st0 = sym0.freq * (st0>>>this.logRange) + (st0&mask) - sym0.cumFreq;
 
             // Normalize
-            while (st < ANS_TOP)
+            while (st1 < ANS_TOP)
             {
-               st = (st<<8) | (this.buffer[n] & 0xFF);
-               st = (st<<8) | (this.buffer[n+1] & 0xFF);
+               st1 = (st1<<8) | (this.buffer[n] & 0xFF);
+               st1 = (st1<<8) | (this.buffer[n+1] & 0xFF);
+               n += 2;
+            }
+
+            while (st0 < ANS_TOP)
+            {
+               st0 = (st0<<8) | (this.buffer[n] & 0xFF);
+               st0 = (st0<<8) | (this.buffer[n+1] & 0xFF);
                n += 2;
             }
          }
+
+         if ((end & 1) != 0)
+            block[end - 1] = this.buffer[sz-1];
       }
       else
       {
@@ -190,19 +206,19 @@ public class ANSRangeDecoder implements EntropyDecoder
 
          for (int i=start; i<end; i++)
          {
-            final int cur = this.f2s[prv][st&mask] & 0xFF;
+            final int cur = this.f2s[prv][st0&mask] & 0xFF;
             block[i] = (byte) cur;
             final Symbol sym = this.symbols[prv][cur];
 
             // Compute next ANS state
             // D(x) = (s, q_s (x/M) + mod(x,M) - b_s) where s is such b_s <= x mod M < b_{s+1}
-            st = sym.freq * (st>>>this.logRange) + (st&mask) - sym.cumFreq;
+            st0 = sym.freq * (st0>>>this.logRange) + (st0&mask) - sym.cumFreq;
 
             // Normalize
-            while (st < ANS_TOP)
+            while (st0 < ANS_TOP)
             {
-               st = (st<<8) | (this.buffer[n] & 0xFF);
-               st = (st<<8) | (this.buffer[n+1] & 0xFF);
+               st0 = (st0<<8) | (this.buffer[n] & 0xFF);
+               st0 = (st0<<8) | (this.buffer[n+1] & 0xFF);
                n += 2;
             }
 

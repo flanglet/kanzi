@@ -26,7 +26,7 @@ import kanzi.OutputBitStream;
 
 public class ANSRangeEncoder implements EntropyEncoder
 {
-   private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<23
+   private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<<23
    private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
    private static final int DEFAULT_LOG_RANGE = 12;
    private static final int MIN_CHUNK_SIZE = 1024;
@@ -233,32 +233,50 @@ public class ANSRangeEncoder implements EntropyEncoder
 
    private void encodeChunk(byte[] block, int start, int end)
    {
-      int st = ANS_TOP;
+      int st0 = ANS_TOP;
+      int st1 = ANS_TOP;
       int n = this.buffer.length - 1;
 
       if (this.order == 0)
       {
          final Symbol[] symb = this.symbols[0];
+         int end1 = end - 1;
 
-         for (int i=end-1; i>=start; i--)
+         if ((end & 1) != 0)
+            this.buffer[n--] = block[end1--];
+
+         for (int i=end1; i>start; i-=2)
          {
-            final int cur = block[i] & 0xFF;
-            final Symbol sym = symb[cur];
+            final int cur0 = block[i] & 0xFF;
+            final Symbol sym0 = symb[cur0];
+            final int cur1 = block[i - 1] & 0xFF;
+            final Symbol sym1 = symb[cur1];
 
-            while (st >= sym.xMax)
+            while (st0 >= sym0.xMax)
             {
-               this.buffer[n] = (byte) st;
-               st >>>= 8;
-               this.buffer[n-1] = (byte) st;
-               st >>>= 8;
+               this.buffer[n] = (byte) st0;
+               st0 >>>= 8;
+               this.buffer[n-1] = (byte) st0;
+               st0 >>>= 8;
+               n -= 2;
+            }
+
+            while (st1 >= sym1.xMax)
+            {
+               this.buffer[n] = (byte) st1;
+               st1 >>>= 8;
+               this.buffer[n-1] = (byte) st1;
+               st1 >>>= 8;
                n -= 2;
             }
 
             // Compute next ANS state
             // C(s,x) = M floor(x/q_s) + mod(x,q_s) + b_s where b_s = q_0 + ... + q_{s-1}
             // st = ((st / freq) << lr) + (st % freq) + cumFreq[prv];
-            final long q = (st*sym.invFreq) >>> sym.invShift;
-            st = (int) (st + sym.bias + q*sym.cmplFreq);
+            final long q0 = (st0*sym0.invFreq) >>> sym0.invShift;
+            st0 = (int) (st0 + sym0.bias + q0*sym0.cmplFreq);
+            final long q1 = (st1*sym1.invFreq) >>> sym1.invShift;
+            st1 = (int) (st1 + sym1.bias + q1*sym1.cmplFreq);
          }
       }
       else // order 1
@@ -270,37 +288,37 @@ public class ANSRangeEncoder implements EntropyEncoder
             final int cur = block[i] & 0xFF;
             final Symbol sym = this.symbols[cur][prv];
 
-            while (st >= sym.xMax)
+            while (st0 >= sym.xMax)
             {
-               this.buffer[n] = (byte) st;
-               st >>>= 8;
-               this.buffer[n-1] = (byte) st;
-               st >>>= 8;
+               this.buffer[n] = (byte) st0;
+               st0 >>>= 8;
+               this.buffer[n-1] = (byte) st0;
+               st0 >>>= 8;
                n -= 2;
             }
 
             // Compute next ANS state
             // C(s,x) = M floor(x/q_s) + mod(x,q_s) + b_s where b_s = q_0 + ... + q_{s-1}
             // st = ((st / freq) << lr) + (st % freq) + cumFreq[cur][prv];
-            final long q = (st*sym.invFreq) >>> sym.invShift;
-            st = (int) (st + sym.bias + q*sym.cmplFreq);
+            final long q = (st0*sym.invFreq) >>> sym.invShift;
+            st0 = (int) (st0 + sym.bias + q*sym.cmplFreq);
             prv = cur;
          }
 
          // Last symbol
          final Symbol sym = this.symbols[0][prv];
 
-         while (st >= sym.xMax)
+         while (st0 >= sym.xMax)
          {
-            this.buffer[n] = (byte) st;
-            st >>>= 8;
-            this.buffer[n-1] = (byte) st;
-            st >>>= 8;
+            this.buffer[n] = (byte) st0;
+            st0 >>>= 8;
+            this.buffer[n-1] = (byte) st0;
+            st0 >>>= 8;
             n -= 2;
          }
 
-         final long q = (st*sym.invFreq) >>> sym.invShift;
-         st = (int) (st + sym.bias + q*sym.cmplFreq);
+         final long q = (st0*sym.invFreq) >>> sym.invShift;
+         st0 = (int) (st0 + sym.bias + q*sym.cmplFreq);
       }
 
       n++;
@@ -309,7 +327,10 @@ public class ANSRangeEncoder implements EntropyEncoder
       EntropyUtils.writeVarInt(this.bitstream, this.buffer.length-n);
 
       // Write final ANS state
-      this.bitstream.writeBits(st, 32);
+      this.bitstream.writeBits(st0, 32);
+      
+      if (this.order == 0)
+         this.bitstream.writeBits(st1, 32);
 
       // Write encoded data to bitstream
       if (this.buffer.length != n)

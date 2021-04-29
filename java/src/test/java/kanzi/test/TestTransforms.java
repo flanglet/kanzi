@@ -256,7 +256,7 @@ public class TestTransforms
          }
          else if (ii == 1)
          {
-            arr = new int[800];
+            arr = new int[80000];
             arr[0] = 1;
 
             for (int i=1; i<arr.length; i++)
@@ -342,7 +342,7 @@ public class TestTransforms
 
          if (ii == 1)
          {
-            System.out.print("1 8 ("+(arr.length-2)+" times)");
+            System.out.print("1 8 ("+(arr.length-1)+" times)");
          }
          else
          {
@@ -401,7 +401,7 @@ public class TestTransforms
          {
             if (ii == 1)
             {
-               System.out.println("1 8 ("+(arr.length-2)+" times)");
+               System.out.println("1 8 ("+(arr.length-1)+" times)");
             }
             else
             {
