@@ -51,7 +51,7 @@ import kanzi.entropy.EntropyUtils;
 public class CompressedOutputStream extends OutputStream
 {
    private static final int BITSTREAM_TYPE           = 0x4B414E5A; // "KANZ"
-   private static final int BITSTREAM_FORMAT_VERSION = 10;
+   private static final int BITSTREAM_FORMAT_VERSION = 1;
    private static final int COPY_BLOCK_MASK          = 0x80;
    private static final int TRANSFORMS_MASK          = 0x10;
    private static final int MIN_BITSTREAM_BLOCK_SIZE = 1024;
@@ -164,7 +164,7 @@ public class CompressedOutputStream extends OutputStream
       if (this.obs.writeBits(BITSTREAM_TYPE, 32) != 32)
          throw new kanzi.io.IOException("Cannot write bitstream type to header", Error.ERR_WRITE_FILE);
 
-      if (this.obs.writeBits(BITSTREAM_FORMAT_VERSION, 5) != 5)
+      if (this.obs.writeBits(BITSTREAM_FORMAT_VERSION, 4) != 4)
          throw new kanzi.io.IOException("Cannot write bitstream version to header", Error.ERR_WRITE_FILE);
 
       if (this.obs.writeBits((this.hasher != null) ? 1 : 0, 1) != 1)
@@ -182,7 +182,7 @@ public class CompressedOutputStream extends OutputStream
       if (this.obs.writeBits(this.nbInputBlocks, 6) != 6)
          throw new kanzi.io.IOException("Cannot write number of blocks to header", Error.ERR_WRITE_FILE);
 
-      if (this.obs.writeBits(0L, 3) != 3)
+      if (this.obs.writeBits(0L, 4) != 4)
          throw new kanzi.io.IOException("Cannot write reserved bits to header", Error.ERR_WRITE_FILE);
    }
 

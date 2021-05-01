@@ -47,7 +47,7 @@ import kanzi.Listener;
 public class CompressedInputStream extends InputStream
 {
    private static final int BITSTREAM_TYPE           = 0x4B414E5A; // "KANZ"
-   private static final int BITSTREAM_FORMAT_VERSION = 10;
+   private static final int BITSTREAM_FORMAT_VERSION = 1;
    private static final int DEFAULT_BUFFER_SIZE      = 256*1024;
    private static final int EXTRA_BUFFER_SIZE        = 256;
    private static final int COPY_BLOCK_MASK          = 0x80;
@@ -132,7 +132,7 @@ public class CompressedInputStream extends InputStream
          throw new kanzi.io.IOException("Invalid stream type", Error.ERR_INVALID_FILE);
 
       // Read stream version
-      final int version = (int) this.ibs.readBits(5);
+      final int version = (int) this.ibs.readBits(4);
 
       // Sanity check
       if (version != BITSTREAM_FORMAT_VERSION)
@@ -167,7 +167,7 @@ public class CompressedInputStream extends InputStream
       this.nbInputBlocks = (int) this.ibs.readBits(6);
 
       // Read reserved bits
-      this.ibs.readBits(3);
+      this.ibs.readBits(4);
 
       if (this.listeners.size() > 0)
       {

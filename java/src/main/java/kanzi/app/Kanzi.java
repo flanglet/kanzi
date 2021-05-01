@@ -48,7 +48,7 @@ public class Kanzi
    // private static final int ARG_IDX_FROM = 10;
    //private static final int ARG_IDX_TO = 11;
 
-   private static final String APP_HEADER = "Kanzi 1.8 (C) 2020,  Frederic Langlet";
+   private static final String APP_HEADER = "Kanzi 1.9 (C) 2021,  Frederic Langlet";
 
 
    public static void main(String[] args)
@@ -271,7 +271,7 @@ public class Kanzi
                   printOut("        optional name of the output file or 'none' or 'stdout'.\n", true);
                }
 
-               if (mode != 'd')
+               if (mode == 'c')
                {
                   printOut("   -b, --block=<size>", true);
                   printOut("        size of blocks (default 4 MB, max 1 GB, min 1 KB).\n", true);
@@ -298,10 +298,10 @@ public class Kanzi
                printOut("   -j, --jobs=<jobs>", true);
                printOut("        maximum number of jobs the program may start concurrently", true);
                printOut("        (default is 1, maximum is 64).\n", true);
-               printOut("", true);
 
-               if (mode != 'd')
+               if (mode == 'c')
                {
+                  printOut("", true);
                   printOut("EG. java -cp kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
                   printOut("EG. java -cp kanzi.jar -c -i foo.txt -f ", true);
                   printOut("    -t BWT+MTFT+ZRLT -b 4m -e FPAQ -v 3 -j 4\n", true);
@@ -310,8 +310,14 @@ public class Kanzi
                   printOut("    --verbose=3 --jobs=4\n", true);
                }
 
-               if (mode != 'c')
+               if (mode == 'd')
                {
+                  printOut("   --from=blockID", true);
+                  printOut("        Decompress starting from the provided block (included).", true);
+                  printOut("        The first block ID is 1.\n", true);
+                  printOut("   --to=blockID", true);
+                  printOut("        Decompress ending at the provided block (excluded).\n", true);
+                  printOut("", true);
                   printOut("EG. java -cp kanzi.jar -d -i foo.knz -f -v 2 -j 2\n", true);
                   printOut("EG. java -cp kanzi.jar --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
                }
@@ -560,14 +566,18 @@ public class Kanzi
                {
                   from = Integer.parseInt(name);
 
-                  if (from < 0)
-                     throw new NumberFormatException();
+                  if (from <= 0)
+                     throw new NumberFormatException(String.valueOf(from));
 
                   continue;
               }
               catch (NumberFormatException e)
               {
                   System.err.println("Invalid start block provided on command line: "+arg);
+
+                  if ("0".equals(e.getMessage()))
+                     System.err.println("The first block ID is 1.");
+
                   return kanzi.Error.ERR_INVALID_PARAM;
               }
            }
