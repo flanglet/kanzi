@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Random;
 import kanzi.ByteTransform;
 import kanzi.SliceByteArray;
-import kanzi.transform.BWTS;
 import kanzi.transform.FSDCodec;
 import kanzi.transform.LZCodec;
 import kanzi.transform.RLT;
@@ -220,9 +219,6 @@ public class TestTransforms
 
          case "MTFT":
             return new SBRT(SBRT.MODE_MTF);
-
-         case "BWTS":
-            return new BWTS();
 
          default:
             System.out.println("No such byte transform: "+name);
