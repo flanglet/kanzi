@@ -111,12 +111,6 @@ public class TestTransforms
                System.exit(1);
 
             testSpeed("MTFT");
-            System.out.println("\n\nTestBWTS");
-
-            if (testCorrectness("BWTS") == false)
-               System.exit(1);
-
-            testSpeed("BWTS");            
             System.out.println("\n\nTestFSD");
 
             if (testCorrectness("FSD") == false)
@@ -146,9 +140,6 @@ public class TestTransforms
       System.out.println("\n\nTestMTFT");
       Assert.assertTrue(testCorrectness("MTFT"));
       //testSpeed("MTFT");
-      System.out.println("\n\nTestBWTS");
-      Assert.assertTrue(testCorrectness("BWTS"));
-      //testSpeed("BWTS");
       System.out.println("\n\nTestSRT");
       Assert.assertTrue(testCorrectness("SRT"));
       //testSpeed("SRT");
