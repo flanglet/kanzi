@@ -70,13 +70,13 @@ public class ROLZCodec implements ByteTransform
 
    private static short getKey(final byte[] buf, final int idx)
    {
-      return (short) (Memory.BigEndian.readInt16(buf, idx) & 0x7FFFFFFF);
+      return (short) (Memory.LittleEndian.readInt16(buf, idx) & 0x7FFFFFFF);
    }
 
 
    private static int hash(final byte[] buf, final int idx)
    {
-      return ((Memory.BigEndian.readInt32(buf, idx)<<8) * HASH) & HASH_MASK;
+      return ((Memory.LittleEndian.readInt32(buf, idx)<<8) * HASH) & HASH_MASK;
    }
 
 
