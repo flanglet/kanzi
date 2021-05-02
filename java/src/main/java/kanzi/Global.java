@@ -177,6 +177,7 @@ public class Global
          res[x+2047] = (INV_EXP[y]*(128-w) + INV_EXP[y+1]*w) >> 11;
       }
 
+      res[4095] = 4095;
       return res;
    }
 
