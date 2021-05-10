@@ -146,6 +146,7 @@ public class CompressedOutputStream extends OutputStream
       this.hasher = (checksum == true) ? new XXHash32(BITSTREAM_TYPE) : null;
       this.jobs = tasks;
       this.pool = threadPool;
+      ctx.put("bsVersion", BITSTREAM_FORMAT_VERSION);
       this.sa = new SliceByteArray(new byte[0], 0);
       this.buffers = new SliceByteArray[2*this.jobs];
       this.closed = new AtomicBoolean(false);

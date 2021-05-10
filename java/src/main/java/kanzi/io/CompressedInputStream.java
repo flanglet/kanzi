@@ -132,12 +132,14 @@ public class CompressedInputStream extends InputStream
          throw new kanzi.io.IOException("Invalid stream type", Error.ERR_INVALID_FILE);
 
       // Read stream version
-      final int version = (int) this.ibs.readBits(4);
+      final int bsVersion = (int) this.ibs.readBits(4);
 
       // Sanity check
-      if (version != BITSTREAM_FORMAT_VERSION)
-         throw new kanzi.io.IOException("Invalid bitstream, cannot read this version of the stream: " + version,
+      if (bsVersion != BITSTREAM_FORMAT_VERSION)
+         throw new kanzi.io.IOException("Invalid bitstream, cannot read this version of the stream: " + bsVersion,
                  Error.ERR_STREAM_VERSION);
+
+      this.ctx.put("bsVersion", bsVersion);
 
       // Read block checksum
       if (this.ibs.readBit() == 1)
