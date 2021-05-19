@@ -226,6 +226,12 @@ public class Kanzi
 
         outputName = null;
         ctx = -1;
+        
+        if (args.length == 0)
+        {
+           printHelp(mode);
+           return 0;
+        }
 
         for (String arg : args)
         {
@@ -233,95 +239,7 @@ public class Kanzi
 
            if (arg.equals("--help") || arg.equals("-h"))
            {
-               printOut("", true);
-               printOut("Credits: Matt Mahoney, Yann Collet, Jan Ondrus, Yuta Mori, Ilya Muravyov,", true);
-               printOut("         Neal Burns, Fabian Giesen, Jarek Duda, Ilya Grebnov", true);
-               printOut("", true);
-               printOut("   -h, --help", true);
-               printOut("        display this message\n", true);
-               printOut("   -v, --verbose=<level>", true);
-               printOut("        0=silent, 1=default, 2=display details, 3=display configuration,", true);
-               printOut("        4=display block size and timings, 5=display extra information", true);
-               printOut("        Verbosity is reduced to 1 when files are processed concurrently", true);
-               printOut("        Verbosity is silently reduced to 0 when the output is 'stdout'", true);
-               printOut("        (EG: The source is a directory and the number of jobs > 1).\n", true);
-               printOut("   -f, --force", true);
-               printOut("        overwrite the output file if it already exists\n", true);
-               printOut("   -i, --input=<inputName>", true);
-               printOut("        mandatory name of the input file or directory or 'stdin'", true);
-               printOut("        When the source is a directory, all files in it will be processed.", true);
-               printOut("        Provide " + File.separator + ". at the end of the directory name to avoid recursion", true);
-               printOut("        (EG: myDir" + File.separator + ". => no recursion)\n", true);
-               printOut("   -o, --output=<outputName>", true);
-
-               if (mode == 'c')
-               {
-                  printOut("        optional name of the output file or directory (defaults to", true);
-                  printOut("        <inputName.knz>) or 'none' or 'stdout'. 'stdout' is not valid", true);
-                  printOut("        when the number of jobs is greater than 1.\n", true);
-               }
-               else if (mode == 'd')
-               {
-                  printOut("        optional name of the output file or directory (defaults to", true);
-                  printOut("        <inputName.bak>) or 'none' or 'stdout'. 'stdout' is not valid", true);
-                  printOut("        when the number of jobs is greater than 1.\n", true);
-               }
-               else
-               {
-                  printOut("        optional name of the output file or 'none' or 'stdout'.\n", true);
-               }
-
-               if (mode == 'c')
-               {
-                  printOut("   -b, --block=<size>", true);
-                  printOut("        size of blocks (default 4 MB, max 1 GB, min 1 KB).\n", true);
-                  printOut("   -l, --level=<compression>", true);
-                  printOut("        set the compression level [0..9]", true);
-                  printOut("        Providing this option forces entropy and transform.", true);
-                  printOut("        0=None&None (store), 1=TEXT+LZ&HUFFMAN, 2=TEXT+FSD+LZX&HUFFMAN", true);
-                  printOut("        3=TEXT+FSD+ROLZ, 4=TEXT+FSD+ROLZX, 5=TEXT+BWT+RANK+ZRLT&ANS0", true);
-                  printOut("        6=TEXT+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+BWT+LZP&CM, 8=X86+RLT+TEXT&TPAQ", true);
-                  printOut("        9=X86+RLT+TEXT&TPAQX\n", true);
-                  printOut("   -e, --entropy=<codec>", true);
-                  printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
-                  printOut("        (default is ANS0)\n", true);
-                  printOut("   -t, --transform=<codec>", true);
-                  printOut("        transform [None|BWT|BWTS|LZ|LZX|LZP|ROLZ|ROLZX|RLT|ZRLT]", true);
-                  printOut("                  [MTFT|RANK|SRT|TEXT|X86]", true);
-                  printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
-                  printOut("   -x, --checksum", true);
-                  printOut("        enable block checksum\n", true);
-                  printOut("   -s, --skip", true);
-                  printOut("        copy blocks with high entropy instead of compressing them.\n", true);
-               }
-
-               printOut("   -j, --jobs=<jobs>", true);
-               printOut("        maximum number of jobs the program may start concurrently", true);
-               printOut("        (default is 1, maximum is 64).\n", true);
-
-               if (mode == 'c')
-               {
-                  printOut("", true);
-                  printOut("EG. java -cp kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
-                  printOut("EG. java -cp kanzi.jar -c -i foo.txt -f ", true);
-                  printOut("    -t BWT+MTFT+ZRLT -b 4m -e FPAQ -v 3 -j 4\n", true);
-                  printOut("EG. java -cp kanzi.jar --compress --input=foo.txt --force ", true);
-                  printOut("    --output=foo.knz --transform=BWT+MTFT+ZRLT --block=4m --entropy=FPAQ ", true);
-                  printOut("    --verbose=3 --jobs=4\n", true);
-               }
-
-               if (mode == 'd')
-               {
-                  printOut("   --from=blockID", true);
-                  printOut("        Decompress starting from the provided block (included).", true);
-                  printOut("        The first block ID is 1.\n", true);
-                  printOut("   --to=blockID", true);
-                  printOut("        Decompress ending at the provided block (excluded).\n", true);
-                  printOut("", true);
-                  printOut("EG. java -cp kanzi.jar -d -i foo.knz -f -v 2 -j 2\n", true);
-                  printOut("EG. java -cp kanzi.jar --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
-               }
-
+               printHelp(mode);
                return 0;
            }
 
@@ -682,6 +600,109 @@ public class Kanzi
 
         map.put("jobs", tasks);
         return 0;
+    }
+
+
+    private static void printHelp(char mode)
+    {
+      printOut("", true);
+      printOut("Credits: Matt Mahoney, Yann Collet, Jan Ondrus, Yuta Mori, Ilya Muravyov,", true);
+      printOut("         Neal Burns, Fabian Giesen, Jarek Duda, Ilya Grebnov", true);
+      printOut("", true);
+      printOut("   -h, --help", true);
+      printOut("        display this message\n", true);
+
+      if ((mode != 'c') && (mode != 'd'))
+      {
+         printOut("   -c, --compress", true);
+         printOut("        compress mode\n", true);
+         printOut("   -d, --decompress", true);
+         printOut("        decompress mode\n", true);
+      }
+
+      printOut("   -i, --input=<inputName>", true);
+      printOut("        mandatory name of the input file or directory or 'stdin'", true);
+      printOut("        When the source is a directory, all files in it will be processed.", true);
+      printOut("        Provide " + File.separator + ". at the end of the directory name to avoid recursion", true);
+      printOut("        (EG: myDir" + File.separator + ". => no recursion)\n", true);
+      printOut("   -o, --output=<outputName>", true);
+
+      if (mode == 'c')
+      {
+         printOut("        optional name of the output file or directory (defaults to", true);
+         printOut("        <inputName.knz>) or 'none' or 'stdout'. 'stdout' is not valid", true);
+         printOut("        when the number of jobs is greater than 1.\n", true);
+      }
+      else if (mode == 'd')
+      {
+         printOut("        optional name of the output file or directory (defaults to", true);
+         printOut("        <inputName.bak>) or 'none' or 'stdout'. 'stdout' is not valid", true);
+         printOut("        when the number of jobs is greater than 1.\n", true);
+      }
+      else
+      {
+         printOut("        optional name of the output file or 'none' or 'stdout'.\n", true);
+      }
+
+      if (mode == 'c')
+      {
+         printOut("   -b, --block=<size>", true);
+         printOut("        size of blocks (default 4 MB, max 1 GB, min 1 KB).\n", true);
+         printOut("   -l, --level=<compression>", true);
+         printOut("        set the compression level [0..9]", true);
+         printOut("        Providing this option forces entropy and transform.", true);
+         printOut("        0=None&None (store), 1=TEXT+LZ&HUFFMAN, 2=TEXT+FSD+LZX&HUFFMAN", true);
+         printOut("        3=TEXT+FSD+ROLZ, 4=TEXT+FSD+ROLZX, 5=TEXT+BWT+RANK+ZRLT&ANS0", true);
+         printOut("        6=TEXT+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+BWT+LZP&CM, 8=X86+RLT+TEXT&TPAQ", true);
+         printOut("        9=X86+RLT+TEXT&TPAQX\n", true);
+         printOut("   -e, --entropy=<codec>", true);
+         printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
+         printOut("        (default is ANS0)\n", true);
+         printOut("   -t, --transform=<codec>", true);
+         printOut("        transform [None|BWT|BWTS|LZ|LZX|LZP|ROLZ|ROLZX|RLT|ZRLT]", true);
+         printOut("                  [MTFT|RANK|SRT|TEXT|X86]", true);
+         printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
+         printOut("   -x, --checksum", true);
+         printOut("        enable block checksum\n", true);
+         printOut("   -s, --skip", true);
+         printOut("        copy blocks with high entropy instead of compressing them.\n", true);
+      }
+
+      printOut("   -j, --jobs=<jobs>", true);
+      printOut("        maximum number of jobs the program may start concurrently", true);
+      printOut("        (default is 1, maximum is 64).\n", true);
+      printOut("   -v, --verbose=<level>", true);
+      printOut("        0=silent, 1=default, 2=display details, 3=display configuration,", true);
+      printOut("        4=display block size and timings, 5=display extra information", true);
+      printOut("        Verbosity is reduced to 1 when files are processed concurrently", true);
+      printOut("        Verbosity is reduced to 0 when the output is 'stdout'", true);
+      printOut("   -f, --force", true);
+      printOut("        overwrite the output file if it already exists\n", true);
+
+      if (mode == 'd')
+      {
+         printOut("   --from=blockID", true);
+         printOut("        Decompress starting from the provided block (included).", true);
+         printOut("        The first block ID is 1.\n", true);
+         printOut("   --to=blockID", true);
+         printOut("        Decompress ending at the provided block (excluded).\n", true);
+      }
+
+      if (mode != 'd')
+      {
+         printOut("", true);
+         printOut("EG. java -cp kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
+         printOut("EG. java -cp kanzi.jar -c -i foo.txt -f -t BWT+MTFT+ZRLT -b 4m -e FPAQ -j 4\n", true);
+         printOut("EG. java -cp kanzi.jar --compress --input=foo.txt --force --jobs=4", true);
+         printOut("    --output=foo.knz --transform=BWT+MTFT+ZRLT --block=4m --entropy=FPAQ\n", true);
+      }
+
+      if (mode != 'c')
+      {
+         printOut("", true);
+         printOut("EG. java -cp kanzi.jar -d -i foo.knz -f -v 2 -j 2\n", true);
+         printOut("EG. java -cp kanzi.jar --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
+      }
     }
 
 
