@@ -120,8 +120,9 @@ public class CompressedOutputStream extends OutputStream
       if ((bSize & -16) != bSize)
          throw new IllegalArgumentException("The block size must be a multiple of 16");
 
-      if (((long) bSize) * ((long) tasks) >= (long) Integer.MAX_VALUE)
-         tasks = Integer.MAX_VALUE / bSize;
+      // Limit concurrency with big blocks to avoid too much memory usage
+      if (((long) bSize) * ((long) tasks) > (1L<<30))
+         tasks = (1<<30) / bSize;
 
       ExecutorService threadPool = (ExecutorService) ctx.get("pool");
 
@@ -139,7 +140,7 @@ public class CompressedOutputStream extends OutputStream
       // better decisions about memory usage and job allocation in concurrent
       // decompression scenario.
       long fileSize = (ctx.containsKey("fileSize")) ? (long) ctx.get("fileSize") : 0;
-      int nbBlocks = (int) (fileSize+(bSize-1)) / bSize;
+      int nbBlocks = (int) ((fileSize+(bSize-1)) / bSize);
       this.nbInputBlocks = (nbBlocks > 63) ? 63 : nbBlocks;
 
       boolean checksum = (Boolean) ctx.get("checksum");
@@ -381,12 +382,12 @@ public class CompressedOutputStream extends OutputStream
    {
       if (force == false)
       {
-         final int bufSize = Math.min(this.jobs, Math.max(this.nbInputBlocks, 1));
+         final int bufSize = Math.min(this.jobs, Math.max(this.nbInputBlocks, 1)) * this.blockSize;
 
          if (this.sa.length < bufSize)
          {
             // Grow byte array until max allowed
-            final byte[] buf = new byte[this.jobs*this.blockSize];
+            final byte[] buf = new byte[bufSize];
             System.arraycopy(this.sa.array, 0, buf, 0, this.sa.length);
             this.sa.array = buf;
             this.sa.length = buf.length;
@@ -736,7 +737,7 @@ public class CompressedOutputStream extends OutputStream
             }
 
             // Emit block size in bits (max size pre-entropy is 1 GB = 1 << 30 bytes)
-            final int lw = (written < 8) ? 3 : Global.log2((int) written >> 3) + 4;
+            final int lw = (written < 8) ? 3 : Global.log2((int) (written >> 3)) + 4;
             this.obs.writeBits(lw-3, 5); // write length-3 (5 bits max)
             this.obs.writeBits(written, lw);
             int chkSize = (int) Math.min(written, 1<<30);

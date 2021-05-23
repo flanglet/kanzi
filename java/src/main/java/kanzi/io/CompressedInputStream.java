@@ -162,8 +162,9 @@ public class CompressedInputStream extends InputStream
          throw new kanzi.io.IOException("Invalid bitstream, incorrect block size: " + this.blockSize,
                  Error.ERR_BLOCK_SIZE);
 
-      if (((long) this.blockSize) * ((long) this.jobs) >= (long) Integer.MAX_VALUE)
-         this.jobs = Integer.MAX_VALUE / this.blockSize;
+      // Limit concurrency with big blocks to avoid too much memory usage
+      if (((long) this.blockSize) * ((long) this.jobs) >= (1L<<30))
+         this.jobs = (1<<30) / this.blockSize;
 
       // Read number of blocks in input. 0 means 'unknown' and 63 means 63 or more.
       this.nbInputBlocks = (int) this.ibs.readBits(6);
