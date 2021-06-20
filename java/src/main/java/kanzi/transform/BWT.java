@@ -251,7 +251,7 @@ public class BWT implements ByteTransform
       }
 
       // Find the fastest way to implement inverse based on block size
-      if ((count <= BLOCK_SIZE_THRESHOLD2) && (this.jobs == 1))
+      if (count <= BLOCK_SIZE_THRESHOLD2)
          return inverseMergeTPSI(src, dst, count);
 
       return inverseBiPSIv2(src, dst, count);
@@ -611,10 +611,59 @@ public class BWT implements ByteTransform
          while ((this.total>>>shift) > MASK_FASTBITS)
             shift++;
 
+         int c = this.firstChunk;
+
          // Process each chunk sequentially
-         for (int c=this.firstChunk; c<this.lastChunk; c++)
+         if (start+4*this.ckSize < this.total)
          {
-            final int end = (start+this.ckSize) > this.total-1 ? this.total-1 : start+this.ckSize;
+            for (; c+3<this.lastChunk; c+=4)
+            {
+               final int end = start + this.ckSize;
+               int p0 = BWT.this.getPrimaryIndex(c);
+               int p1 = BWT.this.getPrimaryIndex(c+1);
+               int p2 = BWT.this.getPrimaryIndex(c+2);
+               int p3 = BWT.this.getPrimaryIndex(c+3);
+
+               for (int i=start+1; i<=end; i+=2)
+               {
+                  int s0 = fastBits[p0>>shift] & 0xFFFF;
+                  int s1 = fastBits[p1>>shift] & 0xFFFF;
+                  int s2 = fastBits[p2>>shift] & 0xFFFF;
+                  int s3 = fastBits[p3>>shift] & 0xFFFF;
+
+                  while (buckets[s0] <= p0)
+                     s0++;
+
+                  while (buckets[s1] <= p1)
+                     s1++;
+
+                  while (buckets[s2] <= p2)
+                     s2++;
+
+                  while (buckets[s3] <= p3)
+                     s3++;
+
+                  this.output[i-1] = (byte) (s0>>>8);
+                  this.output[i] = (byte) s0;
+                  this.output[1*this.ckSize + i-1] = (byte) (s1>>>8);
+                  this.output[1*this.ckSize + i] = (byte) s1;
+                  this.output[2*this.ckSize + i-1] = (byte) (s2>>>8);
+                  this.output[2*this.ckSize + i] = (byte) s2;
+                  this.output[3*this.ckSize + i-1] = (byte) (s3>>>8);
+                  this.output[3*this.ckSize + i] = (byte) s3;
+                  p0 = data[p0];
+                  p1 = data[p1];
+                  p2 = data[p2];
+                  p3 = data[p3];
+               }
+
+               start = end + 3*this.ckSize;
+            }
+         }
+
+         for (; c<this.lastChunk; c++)
+         {
+            final int end = Math.min(start+this.ckSize, this.total-1);
             int p = BWT.this.getPrimaryIndex(c);
 
             for (int i=start+1; i<=end; i+=2)
