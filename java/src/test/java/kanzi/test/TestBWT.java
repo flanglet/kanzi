@@ -62,8 +62,9 @@ public class TestBWT
       if (testCorrectness(false, 20) == false)
          System.exit(1);
 
-      testSpeed(true);
-      testSpeed(false);
+      testSpeed(true, 200, 256*1024); // test MergeTPSI inverse
+      testSpeed(true, 5, 10*1024*1024); // test BiPSIv2 inverse
+      testSpeed(false, 200, 256*1024);
    }
 
 
@@ -186,11 +187,9 @@ public class TestBWT
    }
 
 
-   public static void testSpeed(boolean isBWT)
+   public static void testSpeed(boolean isBWT, int iter, int size)
    {
       System.out.println("\nBWT"+(!isBWT?"S":"")+" Speed test");
-      int iter = 2000;
-      int size = 256*1024;
       byte[] buf1 = new byte[size];
       byte[] buf2 = new byte[size];
       byte[] buf3 = new byte[size];
@@ -204,12 +203,13 @@ public class TestBWT
       {
          long delta1 = 0;
          long delta2 = 0;
-         ByteTransform bwt = (isBWT) ? new BWT() : new BWTS();
          java.util.Random random = new java.util.Random();
          long before, after;
 
          for (int ii = 0; ii < iter; ii++)
          {
+            ByteTransform bwt = (isBWT) ? new BWT() : new BWTS();
+
             for (int i = 0; i < size; i++)
                buf1[i] = (byte) (random.nextInt(255) + 1);
 
