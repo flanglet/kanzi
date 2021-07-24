@@ -114,7 +114,7 @@ public class FSDCodec implements ByteTransform
       }
 
       // If not better, quick exit
-      if ((minIdx == 0) || (ent[minIdx] >= ent[0]))
+      if (ent[minIdx] >= ent[0])
          return false;
 
       if (this.ctx != null)
@@ -179,7 +179,7 @@ public class FSDCodec implements ByteTransform
          }
       }
 
-      if (srcIdx != srcEnd)
+      if ((srcIdx != srcEnd) || (srcIdx <= dstIdx))
          return false;
 
       // Extra check that the transform makes sense
