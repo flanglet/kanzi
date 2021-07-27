@@ -658,8 +658,17 @@ public class CompressedOutputStream extends OutputStream
                notifyListeners(this.listeners, evt);
             }
 
+            if (data.length < postTransformLength)
+            {
+               // Rare case where the transform expanded the input
+               data.length = postTransformLength + (postTransformLength>>5);
+
+               if (data.array.length < data.length)
+                  data.array = new byte[data.length];
+            }
+
             this.data.index = 0;
-            CustomByteArrayOutputStream baos = new CustomByteArrayOutputStream(this.data.array, this.data.array.length);
+            CustomByteArrayOutputStream baos = new CustomByteArrayOutputStream(this.data.array, this.data.length);
             DefaultOutputBitStream os = new DefaultOutputBitStream(baos, 16384);
 
             if (((mode & COPY_BLOCK_MASK) != 0) || (transform.getNbFunctions() <= 4))
