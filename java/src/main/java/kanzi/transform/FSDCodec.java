@@ -179,7 +179,7 @@ public class FSDCodec implements ByteTransform
          }
       }
 
-      if ((srcIdx != srcEnd) || (srcIdx <= dstIdx))
+      if (srcIdx != srcEnd)
          return false;
 
       // Extra check that the transform makes sense
@@ -193,7 +193,7 @@ public class FSDCodec implements ByteTransform
 
       input.index = srcIdx;
       output.index = dstIdx;
-      return true;
+      return true; // Allowed to expand
    }
 
 
