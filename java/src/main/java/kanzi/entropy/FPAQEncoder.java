@@ -32,6 +32,7 @@ public class FPAQEncoder implements EntropyEncoder
    private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
    private static final long MASK_0_24  = 0x0000000000FFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
+   private static final int DEFAULT_CHUNK_SIZE = 4*1024*1024;
    private static final int PSCALE = 65536;
 
    private long low;
@@ -71,19 +72,11 @@ public class FPAQEncoder implements EntropyEncoder
 
       int startChunk = blkptr;
       final int end = blkptr + count;
-      int length = (count < 64) ? 64 : count;
-
-      if (count >= 1<<26)
-      {
-         // If the block is big (>=64MB), split the encoding to avoid allocating
-         // too much memory.
-         length = (count < (1<<29)) ? count >> 3 : count >> 4;
-      }
 
       // Split block into chunks, encode chunk and write bit array to bitstream
       while (startChunk < end)
       {
-         final int chunkSize = startChunk+length < end ? length : end-startChunk;
+         final int chunkSize = Math.min(DEFAULT_CHUNK_SIZE, end-startChunk);
 
          if (this.sba.array.length < (chunkSize+(chunkSize>>3)))
             this.sba.array = new byte[chunkSize+(chunkSize>>3)];

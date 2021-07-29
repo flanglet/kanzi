@@ -32,6 +32,7 @@ public class FPAQDecoder implements EntropyDecoder
    private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
    private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
+   private static final int DEFAULT_CHUNK_SIZE = 4*1024*1024;
    private static final int PSCALE = 65536;
 
    private long low;
@@ -74,29 +75,21 @@ public class FPAQDecoder implements EntropyDecoder
 
       int startChunk = blkptr;
       final int end = blkptr + count;
-      int length = (count < 64) ? 64 : count;
-
-      if (count >= 1<<26)
-      {
-         // If the block is big (>=64MB), split the decoding to avoid allocating
-         // too much memory.
-         length = (count < (1<<29)) ? count >> 3 : count >> 4;
-      }
 
       // Split block into chunks, read bit array from bitstream and decode chunk
       while (startChunk < end)
       {
-         final int chunkSize = startChunk+length < end ? length : end-startChunk;
-
-         if (this.sba.array.length < (chunkSize*9)>>3)
-            this.sba.array = new byte[(chunkSize*9)>>3];
-
+         final int chunkSize = Math.min(DEFAULT_CHUNK_SIZE, end-startChunk);
          final int szBytes = EntropyUtils.readVarInt(this.bitstream);
          this.current = this.bitstream.readBits(56);
 
-         if (szBytes != 0)
-            this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
+         if (szBytes == 0)
+            break;
 
+         if (this.sba.array.length < szBytes)
+            this.sba.array = new byte[szBytes+(szBytes>>3)];
+
+         this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
          this.sba.index = 0;
          final int endChunk = startChunk + chunkSize;
          this.p = this.probs[0];
