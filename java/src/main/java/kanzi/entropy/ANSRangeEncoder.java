@@ -33,7 +33,6 @@ public class ANSRangeEncoder implements EntropyEncoder
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final OutputBitStream bitstream;
-   private final int[][] alphabet;
    private final int[][] freqs;
    private final Symbol[][] symbols;
    private byte[] buffer;
@@ -76,7 +75,6 @@ public class ANSRangeEncoder implements EntropyEncoder
       this.bitstream = bs;
       this.order = order;
       final int dim = 255*order + 1;
-      this.alphabet = new int[dim][256];
       this.freqs = new int[dim][257]; // freqs[x][256] = total(freqs[x][0..255])
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
@@ -85,7 +83,6 @@ public class ANSRangeEncoder implements EntropyEncoder
 
       for (int i=0; i<dim; i++)
       {
-         this.alphabet[i] = new int[256];
          this.freqs[i] = new int[257];
          this.symbols[i] = new Symbol[256];
       }
@@ -98,13 +95,13 @@ public class ANSRangeEncoder implements EntropyEncoder
       int res = 0;
       final int endk = 255*this.order + 1;
       this.bitstream.writeBits(lr-8, 3); // logRange
+      final int[] alphabet = new int[256];
 
       for (int k=0; k<endk; k++)
       {
          final int[] f = frequencies[k];
          final Symbol[] symb = this.symbols[k];
-         final int[] alphabet_ = this.alphabet[k];
-         final int alphabetSize = EntropyUtils.normalizeFrequencies(f, alphabet_, f[256], 1<<lr);
+         final int alphabetSize = EntropyUtils.normalizeFrequencies(f, alphabet, f[256], 1<<lr);
 
          if (alphabetSize > 0)
          {
@@ -120,7 +117,7 @@ public class ANSRangeEncoder implements EntropyEncoder
             }
          }
 
-         this.encodeHeader(alphabetSize, alphabet_, f, lr);
+         this.encodeHeader(alphabetSize, alphabet, f, lr);
          res += alphabetSize;
       }
 

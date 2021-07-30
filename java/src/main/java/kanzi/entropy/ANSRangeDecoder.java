@@ -33,7 +33,6 @@ public class ANSRangeDecoder implements EntropyDecoder
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
 
    private final InputBitStream bitstream;
-   private final int[][] alphabet;
    private final int[][] freqs;
    private final byte[][] f2s; // mapping frequency -> symbol
    private final Symbol[][] symbols;
@@ -75,7 +74,6 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.chunkSize = Math.min(chunkSize << (8*order), MAX_CHUNK_SIZE);
       this.order = order;
       final int dim = 255*order + 1;
-      this.alphabet = new int[dim][256];
       this.freqs = new int[dim][256];
       this.f2s = new byte[dim][256];
       this.symbols = new Symbol[dim][256];
@@ -84,7 +82,6 @@ public class ANSRangeDecoder implements EntropyDecoder
 
       for (int i=0; i<dim; i++)
       {
-         this.alphabet[i] = new int[256];
          this.freqs[i] = new int[256];
          this.f2s[i] = new byte[0];
          this.symbols[i] = new Symbol[256];
@@ -114,16 +111,12 @@ public class ANSRangeDecoder implements EntropyDecoder
             syms[i] = new Symbol();
       }
 
-      final int size = Math.max(Math.min(sizeChunk+(sizeChunk>>3), 2*count), 65536);
-
-      // Add some padding
-      if (this.buffer.length < size)
-         this.buffer = new byte[size];
+      final int[] alphabet = new int[256];
 
       while (startChunk < end)
       {
          final int endChunk = Math.min(startChunk+sizeChunk, end);
-         final int alphabetSize = this.decodeHeader(this.freqs);
+         final int alphabetSize = this.decodeHeader(this.freqs, alphabet);
 
          if (alphabetSize == 0)
             return startChunk - blkptr;
@@ -132,7 +125,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          {
             // Shortcut for chunks with only one symbol
             for (int i=startChunk; i<endChunk; i++)
-               block[i] = (byte) this.alphabet[0][0];
+               block[i] = (byte) alphabet[0];
          }
          else
          {
@@ -156,7 +149,13 @@ public class ANSRangeDecoder implements EntropyDecoder
       int st1 = (this.order == 0) ? (int) this.bitstream.readBits(32) : 0;
 
       if (sz != 0)
+      {
+         // Add some padding
+         if (this.buffer.length < sz)
+            this.buffer = new byte[sz+(sz>>3)];
+
          this.bitstream.readBits(this.buffer, 0, 8*sz);
+      }
 
       int n = 0;
       final int mask = (1<<this.logRange) - 1;
@@ -229,7 +228,7 @@ public class ANSRangeDecoder implements EntropyDecoder
 
 
    // Decode alphabet and frequencies
-   protected int decodeHeader(int[][] frequencies)
+   protected int decodeHeader(int[][] frequencies, int[] alphabet)
    {
       this.logRange = (int) (8 + this.bitstream.readBits(3));
 
@@ -244,8 +243,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       for (int k=0; k<dim; k++)
       {
          final int[] f = frequencies[k];
-         final int[] alphabet_ = this.alphabet[k];
-         int alphabetSize = EntropyUtils.decodeAlphabet(this.bitstream, alphabet_);
+         int alphabetSize = EntropyUtils.decodeAlphabet(this.bitstream, alphabet);
 
          if (alphabetSize == 0)
             continue;
@@ -288,11 +286,11 @@ public class ANSRangeDecoder implements EntropyDecoder
                if ((freq <= 0) || (freq >= scale))
                {
                   throw new BitStreamException("Invalid bitstream: incorrect frequency " +
-                          freq + " for symbol '" + alphabet_[j] + "' in ANS range decoder",
+                          freq + " for symbol '" + alphabet[j] + "' in ANS range decoder",
                           BitStreamException.INVALID_STREAM);
                }
 
-               f[alphabet_[j]] = freq;
+               f[alphabet[j]] = freq;
                sum += freq;
             }
          }
@@ -301,11 +299,11 @@ public class ANSRangeDecoder implements EntropyDecoder
          if (scale <= sum)
          {
             throw new BitStreamException("Invalid bitstream: incorrect frequency " +
-                    f[alphabet_[0]] + " for symbol '" + alphabet_[0] +
+                    f[alphabet[0]] + " for symbol '" + alphabet[0] +
                     "' in ANS range decoder", BitStreamException.INVALID_STREAM);
          }
 
-         f[alphabet_[0]] = scale - sum;
+         f[alphabet[0]] = scale - sum;
          sum = 0;
          final Symbol[] symb = this.symbols[k];
          final byte[] freq2sym = this.f2s[k];
