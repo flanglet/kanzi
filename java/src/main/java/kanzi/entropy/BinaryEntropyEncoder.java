@@ -30,6 +30,8 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
    private static final long MASK_0_24  = 0x0000000000FFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
+   private static final int MAX_BLOCK_SIZE = 1 << 30;
+   private static final int MAX_CHUNK_SIZE = 1 << 26;
 
    private final Predictor predictor;
    private long low;
@@ -58,7 +60,7 @@ public class BinaryEntropyEncoder implements EntropyEncoder
    @Override
    public int encode(byte[] block, int blkptr, int count)
    {
-      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > MAX_BLOCK_SIZE))
          return -1;
 
       if (count == 0)
@@ -68,29 +70,30 @@ public class BinaryEntropyEncoder implements EntropyEncoder
       final int end = blkptr + count;
       int length = (count < 64) ? 64 : count;
 
-      if (count >= 1<<26)
+      if (count >= MAX_CHUNK_SIZE)
       {
          // If the block is big (>=64MB), split the encoding to avoid allocating
          // too much memory.
-         length = (count < (1<<29)) ? count >> 3 : count >> 4;
+         length = (count < 8*MAX_CHUNK_SIZE) ? count>>3 : count>>4;
       }
 
       // Split block into chunks, encode chunk and write bit array to bitstream
       while (startChunk < end)
       {
-         final int chunkSize = startChunk+length < end ? length : end-startChunk;
+         final int chunkSize = Math.min(length, end-startChunk);
 
          if (this.sba.array.length < (chunkSize+(chunkSize>>3)))
             this.sba.array = new byte[chunkSize+(chunkSize>>3)];
 
          this.sba.index = 0;
+         final int endChunk = startChunk + chunkSize;
 
-         for (int i=startChunk; i<startChunk+chunkSize; i++)
+         for (int i=startChunk; i<endChunk; i++)
             this.encodeByte(block[i]);
 
          EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
          this.bitstream.writeBits(this.sba.array, 0, 8*this.sba.index);
-         startChunk += chunkSize;
+         startChunk = endChunk;
 
          if (startChunk < end)
             this.bitstream.writeBits(this.low | MASK_0_24, 56);

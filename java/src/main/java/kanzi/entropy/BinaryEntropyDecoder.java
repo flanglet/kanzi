@@ -30,6 +30,8 @@ public class BinaryEntropyDecoder implements EntropyDecoder
    private static final long MASK_24_56 = 0x00FFFFFFFF000000L;
    private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
+   private static final int MAX_BLOCK_SIZE = 1 << 30;
+   private static final int MAX_CHUNK_SIZE = 1 << 26;
 
    private final Predictor predictor;
    private long low;
@@ -59,7 +61,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder
    @Override
    public int decode(byte[] block, int blkptr, int count)
    {
-      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > MAX_BLOCK_SIZE))
          return -1;
 
       if (count == 0)
@@ -69,20 +71,20 @@ public class BinaryEntropyDecoder implements EntropyDecoder
       final int end = blkptr + count;
       int length = (count < 64) ? 64 : count;
 
-      if (count >= 1<<26)
+      if (count >= MAX_CHUNK_SIZE)
       {
          // If the block is big (>=64MB), split the decoding to avoid allocating
          // too much memory.
-         length = (count < (1<<29)) ? count >> 3 : count >> 4;
+         length = (count < 8*MAX_CHUNK_SIZE) ? count>>3 : count>>4;
       }
 
       // Split block into chunks, read bit array from bitstream and decode chunk
       while (startChunk < end)
       {
-         final int chunkSize = startChunk+length < end ? length : end-startChunk;
+         final int chunkSize = Math.min(length, end-startChunk);
 
-         if (this.sba.array.length < (chunkSize*9)>>3)
-            this.sba.array = new byte[(chunkSize*9)>>3];
+         if (this.sba.array.length < (chunkSize+(chunkSize>>3)))
+            this.sba.array = new byte[chunkSize+(chunkSize>>3)];
 
          final int szBytes = EntropyUtils.readVarInt(this.bitstream);
          this.current = this.bitstream.readBits(56);
