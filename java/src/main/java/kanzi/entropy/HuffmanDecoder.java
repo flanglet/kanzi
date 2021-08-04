@@ -81,7 +81,7 @@ public class HuffmanDecoder implements EntropyDecoder
          return 0;
 
       ExpGolombDecoder egdec = new ExpGolombDecoder(this.bs, true);
-      int currSize = 2;
+      int curSize = 2;
 
       // Decode lengths
       for (int i=0; i<count; i++)
@@ -95,15 +95,15 @@ public class HuffmanDecoder implements EntropyDecoder
          }
 
          this.codes[s] = 0;
-         currSize += egdec.decodeByte();
+         curSize += egdec.decodeByte();
 
-         if ((currSize <= 0) || (currSize > HuffmanCommon.MAX_SYMBOL_SIZE))
+         if ((curSize <= 0) || (curSize > HuffmanCommon.MAX_SYMBOL_SIZE))
          {
-            throw new BitStreamException("Invalid bitstream: incorrect size " + currSize +
+            throw new BitStreamException("Invalid bitstream: incorrect size " + curSize +
                     " for Huffman symbol " + s, BitStreamException.INVALID_STREAM);
          }
 
-         this.sizes[s] = (short) currSize;
+         this.sizes[s] = (short) curSize;
       }
 
       // Create canonical codes
@@ -162,7 +162,7 @@ public class HuffmanDecoder implements EntropyDecoder
 
       while (startChunk < end)
       {
-         final int endChunk = (startChunk+this.chunkSize < end) ? startChunk+this.chunkSize : end;
+         final int endChunk = Math.min(startChunk+this.chunkSize, end);
 
          // For each chunk, read code lengths, rebuild codes, rebuild decoding table
          final int alphabetSize = this.readLengths();
