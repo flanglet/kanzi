@@ -675,7 +675,7 @@ public class Kanzi
       printOut("        0=silent, 1=default, 2=display details, 3=display configuration,", true);
       printOut("        4=display block size and timings, 5=display extra information", true);
       printOut("        Verbosity is reduced to 1 when files are processed concurrently", true);
-      printOut("        Verbosity is reduced to 0 when the output is 'stdout'", true);
+      printOut("        Verbosity is reduced to 0 when the output is 'stdout'\n", true);
       printOut("   -f, --force", true);
       printOut("        overwrite the output file if it already exists\n", true);
 
