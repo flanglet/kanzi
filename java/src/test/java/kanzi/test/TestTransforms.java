@@ -295,7 +295,7 @@ public class TestTransforms
 
             while (idx < arr.length)
             {
-               int len = rnd.nextInt(40);
+               int len = rnd.nextInt(120); // above LZP min match threshold
 
                if (len % 3 == 0)
                  len = 1;
