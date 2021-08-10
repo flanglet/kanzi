@@ -252,7 +252,7 @@ public class QuickSort implements IntSorter
      {
          // Partitioning with one pivot
 
-         // Use the third element as the pivotas an approximation of the median.
+         // Use the third element as the pivot as an approximation of the median.
          final int pivot = block[e3];
 
          // The first element to be sorted is moved to the location
