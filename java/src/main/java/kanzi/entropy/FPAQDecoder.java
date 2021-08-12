@@ -33,6 +33,7 @@ public class FPAQDecoder implements EntropyDecoder
    private static final long MASK_0_56  = 0x00FFFFFFFFFFFFFFL;
    private static final long MASK_0_32  = 0x00000000FFFFFFFFL;
    private static final int DEFAULT_CHUNK_SIZE = 4*1024*1024;
+   private static final int MAX_BLOCK_SIZE = 1 << 30;
    private static final int PSCALE = 65536;
 
    private long low;
@@ -67,7 +68,7 @@ public class FPAQDecoder implements EntropyDecoder
    @Override
    public int decode(byte[] block, int blkptr, int count)
    {
-      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > 1<<30))
+      if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0) || (count > MAX_BLOCK_SIZE))
          return -1;
 
       if (count == 0)
