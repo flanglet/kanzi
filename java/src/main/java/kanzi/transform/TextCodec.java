@@ -423,14 +423,11 @@ public final class TextCodec implements ByteTransform
    }
 
 
-   public static boolean sameWords(DictEntry e, byte[] src, int anchor, int length)
+   private static boolean sameWords(byte[] buf1, final int idx1, byte[] buf2, final int idx2, final int length)
    {
-      final byte[] buf = e.buf;
-
-      // Skip first position (same result)
-      for (int i=e.pos+1, j=anchor, l=e.pos+length; i<=l; i++, j++)
+      for (int i=idx1, j=idx2; i<idx1+length; i++, j++)
       {
-         if (buf[i] != src[j])
+         if (buf1[i] != buf2[j])
             return false;
       }
 
@@ -690,7 +687,7 @@ public final class TextCodec implements ByteTransform
 
                   if (e != null)
                   {
-                     if (sameWords(e, src, delimAnchor+2, length-1) == false)
+                     if (sameWords(src, delimAnchor+2, e.buf, e.pos+1, length-1) == false)
                         e = null;
                   }
 
@@ -905,7 +902,7 @@ public final class TextCodec implements ByteTransform
                   // Check for hash collisions
                   if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
                   {
-                     if (sameWords(e1, src, delimAnchor+2, length-1) == true)
+                     if (sameWords(src, delimAnchor+2, e1.buf, e1.pos+1, length-1) == true)
                         e = e1;
                   }
 
@@ -1242,7 +1239,7 @@ public final class TextCodec implements ByteTransform
 
                   if (e != null)
                   {
-                     if (sameWords(e, src, delimAnchor+2, length-1) == false)
+                     if (sameWords(src, delimAnchor+2, e.buf, e.pos+1, length-1) == false)
                         e = null;
                   }
 
@@ -1497,7 +1494,7 @@ public final class TextCodec implements ByteTransform
                   // Check for hash collisions
                   if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
                   {
-                     if (sameWords(e1, src, delimAnchor+2, length-1) == true)
+                     if (sameWords(src, delimAnchor+2, e.buf, e.pos+1, length-1) == true)
                         e = e1;
                   }
 

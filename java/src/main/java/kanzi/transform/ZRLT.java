@@ -58,7 +58,7 @@ public final class ZRLT implements ByteTransform
       int dstIdx = output.index;
       final int srcEnd = srcIdx + count;
       final int dstEnd = output.length;
-      int runLength = 0;
+      boolean res = true;
 
       if (dstIdx < dstEnd)
       {
@@ -66,7 +66,7 @@ public final class ZRLT implements ByteTransform
          {
             if (src[srcIdx] == 0)
             {
-               runLength = 1;
+               int runLength = 1;
 
                while ((srcIdx+runLength < srcEnd) && (src[srcIdx+runLength] == src[srcIdx]))
                   runLength++;
@@ -78,8 +78,11 @@ public final class ZRLT implements ByteTransform
                int log2 = (runLength<=256) ? Global.LOG2[runLength-1] : 31-Integer.numberOfLeadingZeros(runLength);
 
                if (dstIdx >= dstEnd-log2)
+               {
+                  res = false;
                   break;
-
+               }
+               
                // Write every bit as a byte except the most significant one
                while (log2 > 0)
                {
@@ -87,7 +90,6 @@ public final class ZRLT implements ByteTransform
                   dst[dstIdx++] = (byte) ((runLength >> log2) & 1);
                }
 
-               runLength = 0;
                continue;
             }
 
@@ -96,7 +98,10 @@ public final class ZRLT implements ByteTransform
             if (val >= 0xFE)
             {
                if (dstIdx >= dstEnd - 1)
+               {
+                  res = false;
                   break;
+               }
 
                dst[dstIdx] = (byte) 0xFF;
                dst[dstIdx+1] = (byte) (val-0xFE);
@@ -105,7 +110,10 @@ public final class ZRLT implements ByteTransform
             else
             {
                if (dstIdx >= dstEnd)
+               {
+                  res = false;
                   break;
+               }
 
                dst[dstIdx] = (byte) (val+1);
                dstIdx++;
@@ -117,7 +125,7 @@ public final class ZRLT implements ByteTransform
 
       input.index = srcIdx;
       output.index = dstIdx;
-      return (srcIdx == srcEnd) && (runLength == 0);
+      return (srcIdx == srcEnd) && (res == true);
    }
 
 
@@ -160,7 +168,7 @@ mainLoop:
 
                do
                {
-                  runLength = (runLength << 1) | val;
+                  runLength += (runLength + val);
                   srcIdx++;
 
                   if (srcIdx >= srcEnd)
@@ -196,8 +204,6 @@ mainLoop:
 
       // If runLength is not 1, add trailing 0s
       final int end = dstIdx + runLength - 1;
-      input.index = srcIdx;
-      output.index = dstIdx;
 
       if (end > dstEnd)
          return false;
@@ -205,6 +211,7 @@ mainLoop:
       while (dstIdx < end)
          dst[dstIdx++] = 0;
 
+      input.index = srcIdx;
       output.index = dstIdx;
       return srcIdx == srcEnd;
    }

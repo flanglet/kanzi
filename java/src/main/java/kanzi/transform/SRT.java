@@ -84,10 +84,6 @@ public class SRT implements ByteTransform
       {
          final byte val = src[i];
          final int c = val & 0xFF;
-         int j = i + 1;
-
-         while ((j<count) && (src[j]==val))
-            j++;
 
          if (_freqs[c] == 0)
          {
@@ -95,6 +91,11 @@ public class SRT implements ByteTransform
             _s2r[c] = (byte) b;
             b++;
          }
+
+         int j = i + 1;
+
+         while ((j<count) && (src[j]==val))
+            j++;
 
          _freqs[c] += (j-i);
          i = j;
@@ -140,17 +141,16 @@ public class SRT implements ByteTransform
             _s2r[c] = 0;
          }
 
-         int j = i + 1;
+         i++;
 
-         while ((j<count) && (src[j]==c))
+         while ((i<count) && (src[i]==c))
          {
             dst[dstIdx+p] = 0;
             p++;
-            j++;
+            i++;
          }
 
          _buckets[c] = p;
-         i = j;
       }
 
       input.index += count;
