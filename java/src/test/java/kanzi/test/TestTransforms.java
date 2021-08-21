@@ -41,7 +41,7 @@ public class TestTransforms
       {
          args = new String[] { "-TYPE=ALL" };
       }
-args = new String[] { "-TYPE=srt" };
+
       String type = args[0].toUpperCase();
 
       if (type.startsWith("-TYPE="))
