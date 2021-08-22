@@ -1494,7 +1494,7 @@ public final class TextCodec implements ByteTransform
                   // Check for hash collisions
                   if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
                   {
-                     if (sameWords(src, delimAnchor+2, e.buf, e.pos+1, length-1) == true)
+                     if (sameWords(src, delimAnchor+2, e1.buf, e1.pos+1, length-1) == true)
                         e = e1;
                   }
 
