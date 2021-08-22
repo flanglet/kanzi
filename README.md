@@ -31,7 +31,7 @@ Disclaimer
 
 Use at your own risk. Always keep a backup of your files.
 
-[![Build Status](https://travis-ci.org/flanglet/kanzi.svg?branch=master)](https://travis-ci.org/flanglet/kanzi)
+![Build Status](https://github.com/flanglet/kanzi/actions/workflows/ant.yml/badge.svg)
 
 [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/flanglet/kanzi.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/flanglet/kanzi/context:java)
 
