@@ -661,7 +661,7 @@ public class CompressedOutputStream extends OutputStream
             if (data.length < postTransformLength)
             {
                // Rare case where the transform expanded the input
-               data.length = postTransformLength + (postTransformLength>>5);
+               data.length = Math.max(1024, postTransformLength + (postTransformLength>>5));
 
                if (data.array.length < data.length)
                   data.array = new byte[data.length];
