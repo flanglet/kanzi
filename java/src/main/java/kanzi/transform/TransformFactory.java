@@ -43,6 +43,12 @@ public class TransformFactory
    public static final short LZP_TYPE     = 14; // Lempel Ziv Predict
    public static final short FSD_TYPE     = 15; // Fix Shift Delta codec
    public static final short LZX_TYPE     = 16; // Lempel Ziv Extra
+   public static final short RESERVED1    = 17; // Reserved
+   public static final short RESERVED2    = 18; // Reserved
+   public static final short RESERVED3    = 19; // Reserved
+   public static final short RESERVED4    = 20; // Reserved
+   public static final short RESERVED5    = 21; // Reserved
+   public static final short RESERVED6    = 22; // Reserved
 
 
    // The returned type contains 8 transform values

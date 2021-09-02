@@ -34,6 +34,12 @@ public class EntropyCodecFactory
    public static final byte TPAQ_TYPE    = 7; // Tangelo PAQ
    public static final byte ANS1_TYPE    = 8; // Asymmetric Numerical System order 1
    public static final byte TPAQX_TYPE   = 9; // Tangelo PAQ Extra
+   public static final byte RESERVED1    = 10; // Reserved
+   public static final byte RESERVED2    = 11; // Reserved
+   public static final byte RESERVED3    = 12; // Reserved
+   public static final byte RESERVED4    = 13; // Reserved
+   public static final byte RESERVED5    = 14; // Reserved
+   public static final byte RESERVED6    = 15; // Reserved
 
 
    public EntropyDecoder newDecoder(InputBitStream ibs, Map<String, Object> ctx, int entropyType)
