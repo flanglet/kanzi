@@ -125,8 +125,8 @@ public class EntropyUtils
    // The alphabet and freqs parameters are updated
    public static int normalizeFrequencies(int[] freqs, int[] alphabet, int totalFreq, int scale)
    {
-      if (alphabet.length > 1<<8)
-         throw new IllegalArgumentException("Invalid alphabet size parameter: "+ alphabet.length +
+      if (alphabet.length > 256)
+         throw new IllegalArgumentException("Invalid alphabet size parameter: " + alphabet.length +
                  " (must be less than or equal to 256)");
 
       if ((scale < 1<<8) || (scale > 1<<16))
@@ -208,36 +208,37 @@ public class EntropyUtils
 
          if (Math.abs(delta) * 100 < freqs[idxMax] * 5)
          {
-            // Fast path: just adjust the max frequency (or do nothing)
+            // Fast path: just adjust the max frequency (or fallback to the slow path)
             if (freqs[idxMax] > delta)
-               freqs[idxMax] -= delta;
-         }
-         else
-         {
-            // Slow path: spread error across frequencies
-            final int inc = (sumScaledFreq > scale) ? -1 : 1;
-            ArrayList<FreqSortData> list = new ArrayList<>(alphabetSize);
-
-            for (int i=0; i<alphabetSize; i++)
-               list.add(new FreqSortData(freqs, alphabet[i]));
-            
-            Collections.sort(list);
-            Deque<FreqSortData> queue = new ArrayDeque<>(list);
-
-            while ((sumScaledFreq != scale) && (queue.size() > 0))
             {
-               // Remove symbol with highest frequency
-               FreqSortData fsd = queue.removeFirst();
-
-               // Do not zero out any frequency
-               if (freqs[fsd.symbol] == -inc)
-                  continue;
-
-               // Distort frequency
-               freqs[fsd.symbol] += inc;
-               sumScaledFreq += inc;
-               queue.addLast(fsd);
+               freqs[idxMax] -= delta;
+               return alphabetSize;
             }
+         }
+
+         // Slow path: spread error across frequencies
+         final int inc = (sumScaledFreq > scale) ? -1 : 1;
+         ArrayList<FreqSortData> list = new ArrayList<>(alphabetSize);
+
+         for (int i=0; i<alphabetSize; i++)
+            list.add(new FreqSortData(freqs, alphabet[i]));
+
+         Collections.sort(list);
+         Deque<FreqSortData> queue = new ArrayDeque<>(list);
+
+         while ((sumScaledFreq != scale) && (queue.size() > 0))
+         {
+            // Remove symbol with highest frequency
+            FreqSortData fsd = queue.removeFirst();
+
+            // Do not zero out any frequency
+            if (freqs[fsd.symbol] == -inc)
+               continue;
+
+            // Distort frequency
+            freqs[fsd.symbol] += inc;
+            sumScaledFreq += inc;
+            queue.addLast(fsd);
          }
       }
 
