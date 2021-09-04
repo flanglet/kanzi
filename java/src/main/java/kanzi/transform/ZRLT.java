@@ -57,7 +57,7 @@ public final class ZRLT implements ByteTransform
       int srcIdx = input.index;
       int dstIdx = output.index;
       final int srcEnd = srcIdx + count;
-      final int dstEnd = output.length;
+      final int dstEnd = dstIdx + count; // do not expand
       boolean res = true;
 
       if (dstIdx < dstEnd)
@@ -125,7 +125,7 @@ public final class ZRLT implements ByteTransform
 
       input.index = srcIdx;
       output.index = dstIdx;
-      return (srcIdx == srcEnd) && (res == true);
+      return res & (srcIdx == srcEnd);
    }
 
 
