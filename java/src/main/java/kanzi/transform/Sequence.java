@@ -22,7 +22,7 @@ import kanzi.SliceByteArray;
 // Encapsulates a sequence of transforms or functions in a function
 public class Sequence implements ByteTransform
 {
-   private static final int SKIP_MASK = 0xFF;
+   private static final byte SKIP_MASK = -1;
 
    private final ByteTransform[] transforms; // transforms or functions
    private byte skipFlags; // skip transforms
@@ -48,7 +48,7 @@ public class Sequence implements ByteTransform
       if ((count < 0) || (count+src.index > src.array.length))
          return false;
 
-      this.skipFlags = (byte) SKIP_MASK;
+      this.skipFlags = SKIP_MASK;
 
       if (src.length == 0)
          return true;
@@ -102,7 +102,12 @@ public class Sequence implements ByteTransform
       }
 
       if (saIdx != 1)
-         System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
+      {
+         if ((sa[0].index+count > sa[0].length) || (sa[1].index+count > sa[1].length))
+            this.skipFlags = SKIP_MASK;
+         else
+            System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
+      }
 
       src.index += blockSize;
       dst.index += count;
@@ -169,9 +174,14 @@ public class Sequence implements ByteTransform
             break;
       }
 
-      if (saIdx != 1)
-         System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
-
+      if ((res == true) && (saIdx != 1))
+      {
+         if ((sa[0].index+count > sa[0].length) || (sa[1].index+count > sa[1].length))
+            res = false;
+         else
+            System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
+      }
+      
       if (count > dst.length)
          return false;
 
