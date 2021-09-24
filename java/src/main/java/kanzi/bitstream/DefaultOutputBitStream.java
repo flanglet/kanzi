@@ -120,12 +120,14 @@ public final class DefaultOutputBitStream implements OutputBitStream
          }
 
          // Copy bits array to internal buffer
-         while ((remaining>>3) >= this.buffer.length-this.position)
+         final int maxPos = this.buffer.length - 8;
+         
+         while ((remaining>>3) >= maxPos-this.position)
          {
-            System.arraycopy(bits, start, this.buffer, this.position, this.buffer.length-this.position);
-            start += (this.buffer.length-this.position);
-            remaining -= ((this.buffer.length-this.position)<<3);
-            this.position = this.buffer.length;
+            System.arraycopy(bits, start, this.buffer, this.position, maxPos-this.position);
+            start += (maxPos-this.position);
+            remaining -= ((maxPos-this.position)<<3);
+            this.position = maxPos;
             this.flush();
          }
 
@@ -183,7 +185,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
       this.current = 0;
       this.position += 8;
 
-      if (this.position >= this.buffer.length)
+      if (this.position >= this.buffer.length - 8)
          this.flush();
    }
 
