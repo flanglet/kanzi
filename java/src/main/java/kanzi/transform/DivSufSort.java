@@ -24,12 +24,12 @@ package kanzi.transform;
 
 public final class DivSufSort
 {
-   private static final int SS_INSERTIONSORT_THRESHOLD = 8;
-   private static final int SS_BLOCKSIZE = 1024;
+   private static final int SS_INSERTIONSORT_THRESHOLD = 16;
+   private static final int SS_BLOCKSIZE = 4096;
    private static final int SS_MISORT_STACKSIZE = 16;
    private static final int SS_SMERGE_STACKSIZE = 32;
    private static final int TR_STACKSIZE = 64;
-   private static final int TR_INSERTIONSORT_THRESHOLD = 8;
+   private static final int TR_INSERTIONSORT_THRESHOLD = 16;
 
 
    private static final int[] SQQ_TABLE =
@@ -193,7 +193,8 @@ public final class DivSufSort
 
 
    // Not thread safe
-   public int computeBWT(byte[] input, byte[] output, int[] bwt, int srcIdx, int dstIdx, int length)
+   public int computeBWT(byte[] input, byte[] output, int[] bwt, int srcIdx, int dstIdx, 
+      int length, int[] indexes, int idxCount)
    {
       // Lazy dynamic memory allocation
       if (this.buffer.length < length)
@@ -205,7 +206,7 @@ public final class DivSufSort
       this.sa = bwt;
       this.reset();
       final int m = this.sortTypeBstar(this.bucketA, this.bucketB, length);
-      final int pIdx = this.constructBWT(this.bucketA, this.bucketB, length, m);
+      final int pIdx = this.constructBWT(this.bucketA, this.bucketB, length, m, indexes, idxCount);
       final int dstIdx2 = dstIdx + 1;
       output[dstIdx] = input[srcIdx+length-1];
 
@@ -219,9 +220,11 @@ public final class DivSufSort
    }
 
 
-   private int constructBWT(int[] bucketA, int[] bucketB, int n, int m)
+   private int constructBWT(int[] bucketA, int[] bucketB, int n, int m, int[] indexes, int idxCount)
    {
       int pIdx = -1;
+      final int st = n / idxCount;
+      final int step = (st*idxCount != n) ? st+1 : st;
 
       if (m > 0)
       {
@@ -244,6 +247,9 @@ public final class DivSufSort
 
                   continue;
                }
+
+               if (s%step == 0)
+                  indexes[s/step] = j+1;
 
                s--;
                final int c0 = this.buffer[s];
@@ -268,7 +274,18 @@ public final class DivSufSort
 
       int c2 = this.buffer[n-1];
       int k = bucketA[c2];
-      this.sa[k++] = (this.buffer[n-2] < c2) ? ~this.buffer[n-2] : n-1;
+      
+      if (this.buffer[n-2] < c2) 
+      {
+         if ((n-1)%step == 0)
+            indexes[(n-1)/step] = n;
+
+         this.sa[k++] = ~this.buffer[n-2];
+      } 
+      else 
+      {
+         this.sa[k++] = n-1;
+      }
 
       // Scan the suffix array from left to right.
       for (int i=0; i<n; i++)
@@ -285,13 +302,21 @@ public final class DivSufSort
             continue;
          }
 
+         if (s % step == 0) 
+            indexes[s/step] = i+1;
+
          s--;
          final int c0 = this.buffer[s];
          this.sa[i] = c0;
 
          if ((s > 0) && (this.buffer[s-1] < c0))
+         {
+            if (s % step == 0)
+               indexes[s/step] = k+1;
+			
             s = ~this.buffer[s-1];
-
+         }
+         
          if (c0 != c2)
          {
             bucketA[c2] = k;
@@ -302,6 +327,7 @@ public final class DivSufSort
          this.sa[k++] = s;
       }
 
+      indexes[0] = pIdx+1;
       return pIdx;
    }
 

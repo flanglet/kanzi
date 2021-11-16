@@ -175,50 +175,11 @@ public class BWT implements ByteTransform
       if (this.buffer1.length < count)
          this.buffer1 = new int[count];
 
-      final int[] sa = this.buffer1;
-      boolean res = true;
-      int chunks = getBWTChunks(count);
-
-      if (chunks == 1)
-      {
-         final int pIdx = this.saAlgo.computeBWT(input, output, sa, srcIdx, dstIdx, count);
-         res = this.setPrimaryIndex(0, pIdx);
-      }
-      else
-      {
-         this.saAlgo.computeSuffixArray(input, sa, srcIdx, count);
-         final int st = count / chunks;
-         final int step = (chunks * st == count) ? st : st + 1;
-         final int srcIdx2 = srcIdx - 1;
-         output[dstIdx] = input[srcIdx2+count];
-
-         for (int i=0, idx=0; i<count; i++)
-         {
-            if ((sa[i]%step) != 0)
-               continue;
-
-            if (this.setPrimaryIndex(sa[i]/step, i+1) == true)
-            {
-               idx++;
-
-               if (idx == chunks)
-                  break;
-            }
-         }
-
-         final int dstIdx2 = dstIdx + 1;
-         final int pIdx0 = this.getPrimaryIndex(0);
-
-         for (int i=0; i<pIdx0-1; i++)
-            output[dstIdx2+i] = input[srcIdx2+sa[i]];
-
-         for (int i=pIdx0; i<count; i++)
-            output[dstIdx+i] = input[srcIdx2+sa[i]];
-      }
-
+      this.saAlgo.computeBWT(input, output, this.buffer1, srcIdx, dstIdx, count, 
+         this.primaryIndexes, getBWTChunks(count));
       src.index += count;
       dst.index += count;
-      return res;
+      return true;
    }
 
 
