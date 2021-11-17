@@ -24,7 +24,7 @@ import kanzi.SliceByteArray;
 // Decorrelate values separated by a constant distance (step) and encode residuals
 public class FSDCodec implements ByteTransform
 {
-   private static final int MIN_LENGTH = 4096;
+   private static final int MIN_LENGTH = 128;
    private static final byte ESCAPE_TOKEN = (byte) 255;
    private static final byte DELTA_CODING = (byte) 0;
    private static final byte XOR_CODING = (byte) 1;
