@@ -227,97 +227,86 @@ public class ANSRangeEncoder implements EntropyEncoder
       return count;
    }
 
+   private int encodeSymbol(int[] idx, int st, Symbol sym)
+   {
+      if (st >= sym.xMax) 
+      {
+         this.buffer[idx[0]--] = (byte) st;
+         st >>= 8;
+         this.buffer[idx[0]--] = (byte) (st);
+         st >>= 8;
+      }
+
+      // Compute next ANS state
+      // C(s,x) = M floor(x/q_s) + mod(x,q_s) + b_s where b_s = q_0 + ... + q_{s-1}
+      // st = ((st / freq) << lr) + (st % freq) + cumFreq[prv];
+      final int q = (int)((st*sym.invFreq) >> sym.invShift);
+      return st + sym.bias + q*sym.cmplFreq;
+   }
+   
 
    private void encodeChunk(byte[] block, int start, int end)
    {
       int st0 = ANS_TOP;
       int st1 = ANS_TOP;
+      int st2 = ANS_TOP;
+      int st3 = ANS_TOP;
       int n = this.buffer.length - 1;
+      final int end4 = start + ((end-start) & -4);
 
-      if (this.order == 0)
+      for (int i=end-1; i>=end4; i--)
+         this.buffer[n--] = block[i];
+      
+      final int[] idx = new int[] { n };
+
+      if (this.order == 0) 
       {
          final Symbol[] symb = this.symbols[0];
-         int end1 = end - 1;
 
-         if ((end & 1) != 0)
-            this.buffer[n--] = block[end1--];
-
-         for (int i=end1; i>start; i-=2)
+         for (int i=end4-1; i>start; i-=4) 
          {
-            final int cur0 = block[i] & 0xFF;
-            final Symbol sym0 = symb[cur0];
-            final int cur1 = block[i - 1] & 0xFF;
-            final Symbol sym1 = symb[cur1];
-
-            while (st0 >= sym0.xMax)
-            {
-               this.buffer[n] = (byte) st0;
-               st0 >>>= 8;
-               this.buffer[n-1] = (byte) st0;
-               st0 >>>= 8;
-               n -= 2;
-            }
-
-            while (st1 >= sym1.xMax)
-            {
-               this.buffer[n] = (byte) st1;
-               st1 >>>= 8;
-               this.buffer[n-1] = (byte) st1;
-               st1 >>>= 8;
-               n -= 2;
-            }
-
-            // Compute next ANS state
-            // C(s,x) = M floor(x/q_s) + mod(x,q_s) + b_s where b_s = q_0 + ... + q_{s-1}
-            // st = ((st / freq) << lr) + (st % freq) + cumFreq[prv];
-            final long q0 = (st0*sym0.invFreq) >>> sym0.invShift;
-            st0 = (int) (st0 + sym0.bias + q0*sym0.cmplFreq);
-            final long q1 = (st1*sym1.invFreq) >>> sym1.invShift;
-            st1 = (int) (st1 + sym1.bias + q1*sym1.cmplFreq);
+            st0 = encodeSymbol(idx, st0, symb[block[i] & 0xFF]);
+            st1 = encodeSymbol(idx, st1, symb[block[i-1] & 0xFF]);
+            st2 = encodeSymbol(idx, st2, symb[block[i-2] & 0xFF]);
+            st3 = encodeSymbol(idx, st3, symb[block[i-3] & 0xFF]);
          }
       }
-      else // order 1
-      {
-         int prv = block[end-1] & 0xFF;
+      else 
+      {  // order 1
+         final int quarter = (end4-start) >> 2;
+         int i0 = start + 1*quarter - 2;
+         int i1 = start + 2*quarter - 2;
+         int i2 = start + 3*quarter - 2;
+         int i3 = end4 - 2;
+         int prv0 = block[i0+1] & 0xFF;
+         int prv1 = block[i1+1] & 0xFF;
+         int prv2 = block[i2+1] & 0xFF;
+         int prv3 = block[i3+1] & 0xFF;
 
-         for (int i=end-2; i>=start; i--)
+         for ( ; i0>=start; i0--, i1--, i2--, i3--) 
          {
-            final int cur = block[i] & 0xFF;
-            final Symbol sym = this.symbols[cur][prv];
-
-            while (st0 >= sym.xMax)
-            {
-               this.buffer[n] = (byte) st0;
-               st0 >>>= 8;
-               this.buffer[n-1] = (byte) st0;
-               st0 >>>= 8;
-               n -= 2;
-            }
-
-            // Compute next ANS state
-            // C(s,x) = M floor(x/q_s) + mod(x,q_s) + b_s where b_s = q_0 + ... + q_{s-1}
-            // st = ((st / freq) << lr) + (st % freq) + cumFreq[cur][prv];
-            final long q = (st0*sym.invFreq) >>> sym.invShift;
-            st0 = (int) (st0 + sym.bias + q*sym.cmplFreq);
-            prv = cur;
+            final int cur0 = block[i0] & 0xFF;
+            st0 = encodeSymbol(idx, st0, this.symbols[cur0][prv0]);
+            final int cur1 = block[i1] & 0xFF;
+            st1 = encodeSymbol(idx, st1, this.symbols[cur1][prv1]);
+            final int cur2 = block[i2] & 0xFF;
+            st2 = encodeSymbol(idx, st2, this.symbols[cur2][prv2]);
+            final int cur3 = block[i3] & 0xFF;
+            st3 = encodeSymbol(idx, st3, this.symbols[cur3][prv3]);
+            prv0 = cur0;
+            prv1 = cur1;
+            prv2 = cur2;
+            prv3 = cur3;
          }
 
-         // Last symbol
-         final Symbol sym = this.symbols[0][prv];
-
-         while (st0 >= sym.xMax)
-         {
-            this.buffer[n] = (byte) st0;
-            st0 >>>= 8;
-            this.buffer[n-1] = (byte) st0;
-            st0 >>>= 8;
-            n -= 2;
-         }
-
-         final long q = (st0*sym.invFreq) >>> sym.invShift;
-         st0 = (int) (st0 + sym.bias + q*sym.cmplFreq);
+         // Last symbols
+         st0 = encodeSymbol(idx, st0, this.symbols[0][prv0]);
+         st1 = encodeSymbol(idx, st1, this.symbols[0][prv1]);
+         st2 = encodeSymbol(idx, st2, this.symbols[0][prv2]);
+         st3 = encodeSymbol(idx, st3, this.symbols[0][prv3]);
       }
 
+      n = idx[0];
       n++;
 
       // Write chunk size
@@ -325,9 +314,9 @@ public class ANSRangeEncoder implements EntropyEncoder
 
       // Write final ANS state
       this.bitstream.writeBits(st0, 32);
-      
-      if (this.order == 0)
-         this.bitstream.writeBits(st1, 32);
+      this.bitstream.writeBits(st1, 32);
+      this.bitstream.writeBits(st2, 32);
+      this.bitstream.writeBits(st3, 32);
 
       // Write encoded data to bitstream
       if (this.buffer.length != n)
@@ -338,11 +327,29 @@ public class ANSRangeEncoder implements EntropyEncoder
    // Compute chunk frequencies, cumulated frequencies and encode chunk header
    private int rebuildStatistics(byte[] block, int start, int end, int lr)
    {
+      final int dim = 255*this.order + 1;
+      
+      for (int i=0; i<dim; i++)
+      {
+         final int[] f = this.freqs[i];
+         
+         for (int j=0; j<f.length; j++)
+            f[j] = 0;
+      }
+      
       if (this.order == 0)
-         Global.computeHistogramOrder0(block, start, end, this.freqs[0], true);
-      else
-         Global.computeHistogramOrder1(block, start, end, this.freqs, true);
-
+      {
+         Global.computeHistogramOrder0(block, start, end&-4, this.freqs[0], true);
+      }
+      else 
+      {
+         final int quarter = (end-start) >> 2;
+         Global.computeHistogramOrder1(block, start+0*quarter, start+1*quarter, this.freqs, true);
+         Global.computeHistogramOrder1(block, start+1*quarter, start+2*quarter, this.freqs, true);
+         Global.computeHistogramOrder1(block, start+2*quarter, start+3*quarter, this.freqs, true);
+         Global.computeHistogramOrder1(block, start+3*quarter, start+4*quarter, this.freqs, true);
+      }
+    
       return this.updateFrequencies(this.freqs, lr);
    }
 

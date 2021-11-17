@@ -40,6 +40,7 @@ public class ANSRangeDecoder implements EntropyDecoder
    private final int chunkSize;
    private final int order;
    private int logRange;
+   private boolean isBsVersion1;
 
 
    public ANSRangeDecoder(InputBitStream bs)
@@ -57,6 +58,12 @@ public class ANSRangeDecoder implements EntropyDecoder
    // The chunk size indicates how many bytes are encoded (per block) before
    // resetting the frequency stats.
    public ANSRangeDecoder(InputBitStream bs, int order, int chunkSize)
+   {
+      this(bs, order, DEFAULT_ANS0_CHUNK_SIZE, false);
+   }
+   
+   
+   public ANSRangeDecoder(InputBitStream bs, int order, int chunkSize, boolean bsVersion1)
    {
       if (bs == null)
          throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");
@@ -79,6 +86,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
       this.logRange = DEFAULT_LOG_RANGE;
+      this.isBsVersion1 = bsVersion1; // old encoding
 
       for (int i=0; i<dim; i++)
       {
@@ -129,7 +137,10 @@ public class ANSRangeDecoder implements EntropyDecoder
          }
          else
          {
-            this.decodeChunk(block, startChunk, endChunk);
+            if (this.isBsVersion1)
+               this.decodeChunkV1(block, startChunk, endChunk);
+            else
+               this.decodeChunkV2(block, startChunk, endChunk);
          }
 
          startChunk = endChunk;
@@ -139,7 +150,7 @@ public class ANSRangeDecoder implements EntropyDecoder
    }
 
 
-   protected void decodeChunk(byte[] block, int start, final int end)
+   protected void decodeChunkV1(byte[] block, final int start, final int end)
    {
       // Read chunk size
       final int sz = EntropyUtils.readVarInt(this.bitstream) & (MAX_CHUNK_SIZE-1);
@@ -225,8 +236,110 @@ public class ANSRangeDecoder implements EntropyDecoder
          }
       }
    }
+   
+   
+   private int decodeSymbol(int[] idx, int st, Symbol sym, final int mask)
+   {
+      // Compute next ANS state
+      // D(x) = (s, q_s (x/M) + mod(x,M) - b_s) where s is such b_s <= x mod M < b_{s+1}
+      st = sym.freq * (st>>>this.logRange) + (st&mask) - sym.cumFreq;
 
+      // Normalize
+      if (st < ANS_TOP)
+      {
+         st = (st<<8) | (this.buffer[idx[0]] & 0xFF);
+         st = (st<<8) | (this.buffer[idx[0]+1] & 0xFF);
+         idx[0] += 2;
+      }   
+      
+      return st;
+   }
 
+   
+   protected void decodeChunkV2(byte[] block, final int start, final int end)
+   {
+      // Read chunk size
+      final int sz = EntropyUtils.readVarInt(this.bitstream) & (MAX_CHUNK_SIZE-1);
+
+      // Read initial ANS states
+      int st0 = (int) this.bitstream.readBits(32);
+      int st1 = (int) this.bitstream.readBits(32);
+      int st2 = (int) this.bitstream.readBits(32);
+      int st3 = (int) this.bitstream.readBits(32);
+
+      // Read encoded data from bitstream
+      if (sz != 0)
+      {
+         // Add some padding
+         if (this.buffer.length < sz)
+            this.buffer = new byte[sz+(sz>>3)];
+
+         this.bitstream.readBits(this.buffer, 0, 8*sz);
+      }
+
+      int n = 0;      
+      final int mask = (1<<this.logRange) - 1;
+      final int end4 = start + ((end-start) & -4);
+      final int[] idx = new int[] { n } ;
+
+      if (this.order == 0) 
+      {
+         final byte[] freq2sym = this.f2s[0];
+         final Symbol[] symb = this.symbols[0];
+
+         for (int i=start; i<end4; i+=4) 
+         {
+            final int cur3 = freq2sym[st3 & mask] & 0xFF;
+            block[i] = (byte) cur3;
+            st3 = decodeSymbol(idx, st3, symb[cur3], mask);
+            final int cur2 = freq2sym[st2 & mask] & 0xFF;
+            block[i+1] = (byte) cur2;
+            st2 = decodeSymbol(idx, st2, symb[cur2], mask);
+            final int cur1 = freq2sym[st1 & mask] & 0xFF;
+            block[i+2] = (byte) cur1;
+            st1 = decodeSymbol(idx, st1, symb[cur1], mask);
+            final int cur0 = freq2sym[st0 & mask] & 0xFF;
+            block[i+3] = (byte) cur0;
+            st0 = decodeSymbol(idx, st0, symb[cur0], mask);
+         }
+      }
+      else 
+      {
+         final int quarter = (end4-start) >> 2;
+         int i0 = start;
+         int i1 = start + 1*quarter;
+         int i2 = start + 2*quarter;
+         int i3 = start + 3*quarter;
+         int prv0 = 0, prv1 = 0, prv2 = 0, prv3 = 0;
+
+         for ( ; i0 < start+quarter; i0++, i1++, i2++, i3++) 
+         {
+            final int cur3 = this.f2s[prv3][st3&mask] & 0xFF;
+            block[i3] = (byte) cur3;
+            st3 = decodeSymbol(idx, st3, this.symbols[prv3][cur3], mask);
+            final int cur2 = this.f2s[prv2][st2&mask] & 0xFF;
+            block[i2] = (byte) cur2;
+            st2 = decodeSymbol(idx, st2, this.symbols[prv2][cur2], mask);
+            final int cur1 = this.f2s[prv1][st1&mask] & 0xFF;
+            block[i1] = (byte) cur1;
+            st1 = decodeSymbol(idx, st1, this.symbols[prv1][cur1], mask);
+            final int cur0 = this.f2s[prv0][st0&mask] & 0xFF;
+            block[i0] = (byte) cur0;
+            st0 = decodeSymbol(idx, st0, this.symbols[prv0][cur0], mask);
+            prv3 = cur3;
+            prv2 = cur2;
+            prv1 = cur1;
+            prv0 = cur0;
+         }
+      }
+
+      n = idx[0];
+      
+      for (int i=end4; i<end; i++)
+        block[i] = this.buffer[n++];
+   }
+
+   
    // Decode alphabet and frequencies
    protected int decodeHeader(int[][] frequencies, int[] alphabet)
    {

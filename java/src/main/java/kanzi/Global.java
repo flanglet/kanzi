@@ -556,17 +556,33 @@ public class Global
       int[] f1 = new int[256];
       int[] f2 = new int[256];
       int[] f3 = new int[256];
-      final int end4 = start + ((end-start) & -4);
+      final int end16 = start + ((end-start) & -16);
 
-      for (int i=start; i<end4; i+=4)
+      for (int i=start; i<end16; )
       {
          f0[block[i]&0xFF]++;
          f1[block[i+1]&0xFF]++;
          f2[block[i+2]&0xFF]++;
          f3[block[i+3]&0xFF]++;
+         i += 4;
+         f0[block[i]&0xFF]++;
+         f1[block[i+1]&0xFF]++;
+         f2[block[i+2]&0xFF]++;
+         f3[block[i+3]&0xFF]++;
+         i += 4;
+         f0[block[i]&0xFF]++;
+         f1[block[i+1]&0xFF]++;
+         f2[block[i+2]&0xFF]++;
+         f3[block[i+3]&0xFF]++;
+         i += 4;
+         f0[block[i]&0xFF]++;
+         f1[block[i+1]&0xFF]++;
+         f2[block[i+2]&0xFF]++;
+         f3[block[i+3]&0xFF]++;
+         i += 4;
       }
 
-      for (int i=end4; i<end; i++)
+      for (int i=end16; i<end; i++)
          freqs[block[i]&0xFF]++;
 
       for (int i=0; i<256; i++)
@@ -577,45 +593,100 @@ public class Global
    // If withTotal is true, the last spot in each frequencies order 0 array is for the total
    public static void computeHistogramOrder1(byte[] block, int start, int end, int[][] freqs, boolean withTotal)
    {
-      for (int j=0; j<256; j++)
-      {
-         final int[] f = freqs[j];
+      final int quarter = (end-start) >> 2;
+      int n0 = start + 0*quarter;
+      int n1 = start + 1*quarter;
+      int n2 = start + 2*quarter;
+      int n3 = start + 3*quarter;
 
-         for (int i=0; i<256; i+=8)
+      if (withTotal == true) 
+      {
+         if (end-start < 32)
          {
-            f[i]   = 0;
-            f[i+1] = 0;
-            f[i+2] = 0;
-            f[i+3] = 0;
-            f[i+4] = 0;
-            f[i+5] = 0;
-            f[i+6] = 0;
-            f[i+7] = 0;
+            int prv = 0;
+
+            for (int i=start; i<end; i++) 
+            {
+               freqs[prv][block[i]&0xFF]++;
+               freqs[prv][256]++;
+               prv = block[i] & 0xFF;
+            }
          }
-
-         if (withTotal == true)
-            f[256] = 0;
-      }
-
-      int prv = 0;
-
-      if (withTotal == true)
-      {
-         for (int i=start; i<end; i++)
+         else 
          {
-            final int cur = block[i] & 0xFF;
-            freqs[prv][cur]++;
-            freqs[prv][256]++;
-            prv = cur;
+            int prv0 = 0;
+            int prv1 = block[n1-1] & 0xFF;
+            int prv2 = block[n2-1] & 0xFF;
+            int prv3 = block[n3-1] & 0xFF;
+
+            for (; n0<start+quarter; n0++, n1++, n2++, n3++) 
+            {
+               final int cur0 = block[n0] & 0xFF;
+               final int cur1 = block[n1] & 0xFF;
+               final int cur2 = block[n2] & 0xFF;
+               final int cur3 = block[n3] & 0xFF;
+               freqs[prv0][cur0]++;
+               freqs[prv0][256]++;
+               freqs[prv1][cur1]++;
+               freqs[prv1][256]++;
+               freqs[prv2][cur2]++;
+               freqs[prv2][256]++;
+               freqs[prv3][cur3]++;
+               freqs[prv3][256]++;
+               prv0 = cur0;
+               prv1 = cur1;
+               prv2 = cur2;
+               prv3 = cur3;
+            }
+
+            for (; n3 < end; n3++) 
+            {
+               freqs[prv3][block[n3]&0xFF]++;
+               freqs[prv3][256]++;
+               prv3 = block[n3] & 0xFF;
+            }
          }
-      }
-      else
-      {
-         for (int i=start; i<end; i++)
+     }
+     else // no total
+     { 
+         if (end-start < 32) 
          {
-            final int cur = block[i] & 0xFF;
-            freqs[prv][cur]++;
-            prv = cur;
+            int prv = 0;
+
+            for (int i=start; i<end; i++) 
+            {
+               freqs[prv][block[i]&0xFF]++;
+               prv = block[i] & 0xFF;
+            }
+         }
+         else 
+         {
+            int prv0 = 0;
+            int prv1 = 256 * block[n1-1];
+            int prv2 = 256 * block[n2-1];
+            int prv3 = 256 * block[n3-1];
+
+            for (; n0<start+quarter; n0++, n1++, n2++, n3++)
+            {
+               final int cur0 = block[n0] & 0xFF;
+               final int cur1 = block[n1] & 0xFF;
+               final int cur2 = block[n2] & 0xFF;
+               final int cur3 = block[n3] & 0xFF;
+               freqs[prv0][cur0]++;
+               freqs[prv1][cur1]++;
+               freqs[prv2][cur2]++;
+               freqs[prv3][cur3]++;
+               prv0 = cur0;
+               prv1 = cur1;
+               prv2 = cur2;
+               prv3 = cur3;
+            }
+
+            for (; n3<end; n3++) 
+            {
+               freqs[prv3][block[n3]&0xFF]++;
+               prv3 = block[n3] & 0xFF;
+            }
          }
       }
    }
