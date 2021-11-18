@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.entropy;
 
+import java.util.Map;
 import kanzi.EntropyEncoder;
 import kanzi.Global;
 import kanzi.OutputBitStream;
@@ -89,6 +90,31 @@ public class ANSRangeEncoder implements EntropyEncoder
    }
 
 
+   public ANSRangeEncoder(OutputBitStream bs, int order, Map<String, Object> ctx)
+   {
+      if (bs == null)
+         throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");
+
+      if ((order != 0) && (order != 1))
+         throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
+
+      this.bitstream = bs;
+      this.order = order;
+      final int dim = 255*order + 1;
+      this.freqs = new int[dim][257]; // freqs[x][256] = total(freqs[x][0..255])
+      this.symbols = new Symbol[dim][256];
+      this.buffer = new byte[0];
+      this.logRange = DEFAULT_LOG_RANGE;
+      this.chunkSize = Math.min(DEFAULT_ANS0_CHUNK_SIZE << (8*order), MAX_CHUNK_SIZE);
+
+      for (int i=0; i<dim; i++)
+      {
+         this.freqs[i] = new int[257];
+         this.symbols[i] = new Symbol[256];
+      }
+   }
+
+      
    // Compute cumulated frequencies and encode header
    private int updateFrequencies(int[][] frequencies, int lr)
    {

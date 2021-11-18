@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.entropy;
 
+import java.util.Map;
 import kanzi.BitStreamException;
 import kanzi.EntropyDecoder;
 import kanzi.InputBitStream;
@@ -59,12 +60,6 @@ public class ANSRangeDecoder implements EntropyDecoder
    // resetting the frequency stats.
    public ANSRangeDecoder(InputBitStream bs, int order, int chunkSize)
    {
-      this(bs, order, DEFAULT_ANS0_CHUNK_SIZE, false);
-   }
-   
-   
-   public ANSRangeDecoder(InputBitStream bs, int order, int chunkSize, boolean bsVersion1)
-   {
       if (bs == null)
          throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");
 
@@ -86,7 +81,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
       this.logRange = DEFAULT_LOG_RANGE;
-      this.isBsVersion1 = bsVersion1; // old encoding
+      this.isBsVersion1 = false; // old encoding
 
       for (int i=0; i<dim; i++)
       {
@@ -96,7 +91,35 @@ public class ANSRangeDecoder implements EntropyDecoder
       }
    }
 
+   public ANSRangeDecoder(InputBitStream bs, int order, Map<String, Object> ctx)
+   {
+      if (bs == null)
+         throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");
 
+      if ((order != 0) && (order != 1))
+         throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
+
+      final int bsVersion = (Integer) ctx.getOrDefault("bsVersion", 1);
+      this.bitstream = bs;
+      this.chunkSize = Math.min(DEFAULT_ANS0_CHUNK_SIZE << (8*order), MAX_CHUNK_SIZE);
+      this.order = order;
+      final int dim = 255*order + 1;
+      this.freqs = new int[dim][256];
+      this.f2s = new byte[dim][256];
+      this.symbols = new Symbol[dim][256];
+      this.buffer = new byte[0];
+      this.logRange = DEFAULT_LOG_RANGE;
+      this.isBsVersion1 = bsVersion == 1; // old encoding
+
+      for (int i=0; i<dim; i++)
+      {
+         this.freqs[i] = new int[256];
+         this.f2s[i] = new byte[0];
+         this.symbols[i] = new Symbol[256];
+      }
+   }
+
+   
    @Override
    public int decode(byte[] block, int blkptr, int count)
    {
@@ -336,7 +359,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       n = idx[0];
       
       for (int i=end4; i<end; i++)
-        block[i] = this.buffer[n++];
+         block[i] = this.buffer[n++];
    }
 
    

@@ -564,22 +564,20 @@ public class Global
          f1[block[i+1]&0xFF]++;
          f2[block[i+2]&0xFF]++;
          f3[block[i+3]&0xFF]++;
-         i += 4;
+         f0[block[i+4]&0xFF]++;
+         f1[block[i+5]&0xFF]++;
+         f2[block[i+6]&0xFF]++;
+         f3[block[i+7]&0xFF]++;
+         i += 8;
          f0[block[i]&0xFF]++;
          f1[block[i+1]&0xFF]++;
          f2[block[i+2]&0xFF]++;
          f3[block[i+3]&0xFF]++;
-         i += 4;
-         f0[block[i]&0xFF]++;
-         f1[block[i+1]&0xFF]++;
-         f2[block[i+2]&0xFF]++;
-         f3[block[i+3]&0xFF]++;
-         i += 4;
-         f0[block[i]&0xFF]++;
-         f1[block[i+1]&0xFF]++;
-         f2[block[i+2]&0xFF]++;
-         f3[block[i+3]&0xFF]++;
-         i += 4;
+         f0[block[i+4]&0xFF]++;
+         f1[block[i+5]&0xFF]++;
+         f2[block[i+6]&0xFF]++;
+         f3[block[i+7]&0xFF]++;
+         i += 8;
       }
 
       for (int i=end16; i<end; i++)
