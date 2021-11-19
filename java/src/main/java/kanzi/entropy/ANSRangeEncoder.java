@@ -365,7 +365,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       
       if (this.order == 0)
       {
-         Global.computeHistogramOrder0(block, start, end&-4, this.freqs[0], true);
+         Global.computeHistogramOrder0(block, start, end, this.freqs[0], true);
       }
       else 
       {
