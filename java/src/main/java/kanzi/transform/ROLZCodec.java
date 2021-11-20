@@ -212,9 +212,19 @@ public class ROLZCodec implements ByteTransform
 
             int n = 0;
 
-            while ((n < maxMatch) && (buf[ref+n] == buf[pos+n]))
-               n++;
-
+            while (n+4 < maxMatch) 
+            {
+               final int diff = Memory.LittleEndian.readInt32(buf, ref+n) ^ Memory.LittleEndian.readInt32(buf, pos+n);
+               
+               if (diff != 0)
+               {
+                  n += (Integer.numberOfTrailingZeros(diff) >> 3); 
+                  break;
+               }
+               
+               n += 4;
+            }
+               
             if (n > bestLen)
             {
                bestIdx = counter - i;
@@ -225,8 +235,7 @@ public class ROLZCodec implements ByteTransform
             }
          }
 
-         // Register current position
-         
+         // Register current position        
          this.counters[key] = (this.counters[key]+1) & this.maskChecks;
          this.matches[base+this.counters[key]] = hash32 | (pos-sba.index);
          return (bestLen < MIN_MATCH) ? -1 : (bestIdx<<16) | (bestLen-MIN_MATCH);
@@ -664,8 +673,18 @@ public class ROLZCodec implements ByteTransform
 
             int n = 0;
 
-            while ((n < maxMatch) && (buf[ref+n] == buf[pos+n]))
-               n++;
+            while (n+4 < maxMatch) 
+            {
+               final int diff = Memory.LittleEndian.readInt32(buf, ref+n) ^ Memory.LittleEndian.readInt32(buf, pos+n);
+               
+               if (diff != 0)
+               {
+                  n += (Integer.numberOfTrailingZeros(diff) >> 3); 
+                  break;
+               }
+               
+               n += 4;
+            }
 
             if (n > bestLen)
             {
