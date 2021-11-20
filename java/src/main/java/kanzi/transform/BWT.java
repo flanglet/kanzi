@@ -155,15 +155,10 @@ public class BWT implements ByteTransform
       if (dst.index+count > dst.array.length)
          return false;
 
-      final byte[] input = src.array;
-      final byte[] output = dst.array;
-      final int srcIdx = src.index;
-      final int dstIdx = dst.index;
-
       if (count < 2)
       {
          if (count == 1)
-            output[dst.index++] = input[src.index++];
+            dst.array[dst.index++] = src.array[src.index++];
 
          return true;
       }
@@ -175,7 +170,7 @@ public class BWT implements ByteTransform
       if (this.buffer1.length < count)
          this.buffer1 = new int[count];
 
-      this.saAlgo.computeBWT(input, output, this.buffer1, srcIdx, dstIdx, count, 
+      this.saAlgo.computeBWT(src.array, dst.array, this.buffer1, src.index, dst.index, count, 
          this.primaryIndexes, getBWTChunks(count));
       src.index += count;
       dst.index += count;

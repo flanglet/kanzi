@@ -308,20 +308,20 @@ public final class DivSufSort
          s--;
          final int c0 = this.buffer[s];
          this.sa[i] = c0;
-
-         if ((s > 0) && (this.buffer[s-1] < c0))
-         {
-            if (s % step == 0)
-               indexes[s/step] = k+1;
-			
-            s = ~this.buffer[s-1];
-         }
          
          if (c0 != c2)
          {
             bucketA[c2] = k;
             c2 = c0;
             k = bucketA[c2];
+         }
+         
+         if ((s > 0) && (this.buffer[s-1] < c0))
+         {
+            if (s % step == 0)
+               indexes[s/step] = k+1;
+			
+            s = ~this.buffer[s-1];
          }
 
          this.sa[k++] = s;
