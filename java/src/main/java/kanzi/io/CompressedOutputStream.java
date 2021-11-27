@@ -60,12 +60,14 @@ public class CompressedOutputStream extends OutputStream
    private static final int SMALL_BLOCK_SIZE         = 15;
    private static final byte[] EMPTY_BYTE_ARRAY      = new byte[0];
    private static final int MAX_CONCURRENCY          = 64;
+   private static final int UNKNOWN_NB_BLOCKS        = 65536;
    private static final int CANCEL_TASKS_ID          = -1;
 
    private final int blockSize;
+   private int bufferId; // index of current write buffer
    private final int nbInputBlocks;
+   private final int jobs;   
    private final XXHash32 hasher;
-   private final SliceByteArray sa; // for all blocks
    private final SliceByteArray[] buffers; // input & output per block
    private final int entropyType;
    private final long transformType;
@@ -73,7 +75,6 @@ public class CompressedOutputStream extends OutputStream
    private final AtomicBoolean initialized;
    private final AtomicBoolean closed;
    private final AtomicInteger blockId;
-   private final int jobs;
    private final ExecutorService pool;
    private final List<Listener> listeners;
    private final Map<String, Object> ctx;
@@ -120,10 +121,6 @@ public class CompressedOutputStream extends OutputStream
       if ((bSize & -16) != bSize)
          throw new IllegalArgumentException("The block size must be a multiple of 16");
 
-      // Limit concurrency with big blocks to avoid too much memory usage
-      if (((long) bSize) * ((long) tasks) > (1L<<30))
-         tasks = (1<<30) / bSize;
-
       ExecutorService threadPool = (ExecutorService) ctx.get("pool");
 
       if ((tasks > 1) && (threadPool == null))
@@ -139,23 +136,29 @@ public class CompressedOutputStream extends OutputStream
       // This value is written to the bitstream header to let the decoder make
       // better decisions about memory usage and job allocation in concurrent
       // decompression scenario.
-      long fileSize = (ctx.containsKey("fileSize")) ? (long) ctx.get("fileSize") : 0;
+      long fileSize = (long) ctx.getOrDefault("fileSize", (long) UNKNOWN_NB_BLOCKS);
       int nbBlocks = (int) ((fileSize+(bSize-1)) / bSize);
-      this.nbInputBlocks = (nbBlocks > 63) ? 63 : nbBlocks;
+      this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
 
       boolean checksum = (Boolean) ctx.get("checksum");
       this.hasher = (checksum == true) ? new XXHash32(BITSTREAM_TYPE) : null;
       this.jobs = tasks;
       this.pool = threadPool;
-      ctx.put("bsVersion", BITSTREAM_FORMAT_VERSION);
-      this.sa = new SliceByteArray(new byte[0], 0);
-      this.buffers = new SliceByteArray[2*this.jobs];
       this.closed = new AtomicBoolean(false);
       this.initialized = new AtomicBoolean(false);
+      this.buffers = new SliceByteArray[2*this.jobs];
+      
+      // Allocate first buffer and add padding for incompressible blocks 
+      final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
+      this.buffers[0] = new SliceByteArray(new byte[bufSize], bufSize, 0);
+      this.buffers[this.jobs] = new SliceByteArray(new byte[0], 0, 0);
 
-      for (int i=0; i<this.buffers.length; i++)
+      for (int i=1; i<this.jobs; i++)
+      {
          this.buffers[i] = new SliceByteArray(EMPTY_BYTE_ARRAY, 0);
-
+         this.buffers[this.jobs+i] = new SliceByteArray(EMPTY_BYTE_ARRAY, 0);
+      }
+      
       this.blockId = new AtomicInteger(0);
       this.listeners = new ArrayList<>(10);
       this.ctx = ctx;
@@ -181,7 +184,7 @@ public class CompressedOutputStream extends OutputStream
       if (this.obs.writeBits(this.blockSize >>> 4, 28) != 28)
          throw new kanzi.io.IOException("Cannot write block size to header", Error.ERR_WRITE_FILE);
 
-      if (this.obs.writeBits(this.nbInputBlocks, 6) != 6)
+      if (this.obs.writeBits(this.nbInputBlocks & (MAX_CONCURRENCY-1), 6) != 6)
          throw new kanzi.io.IOException("Cannot write number of blocks to header", Error.ERR_WRITE_FILE);
 
       if (this.obs.writeBits(0L, 4) != 4)
@@ -242,17 +245,39 @@ public class CompressedOutputStream extends OutputStream
 
       while (remaining > 0)
       {
-         // Limit to number of available bytes in buffer
-         final int lenChunk = (this.sa.index + remaining < this.sa.length) ? remaining :
-                 this.sa.length - this.sa.index;
-
+         // Limit to number of available bytes in current buffer
+         final int lenChunk = Math.min(remaining, this.blockSize-this.buffers[this.bufferId].index);
+         
          if (lenChunk > 0)
          {
             // Process a chunk of in-buffer data. No access to bitstream required
-            System.arraycopy(data, off, this.sa.array, this.sa.index, lenChunk);
-            this.sa.index += lenChunk;
+            System.arraycopy(data, off, this.buffers[this.bufferId].array, this.buffers[this.bufferId].index, lenChunk);
+            this.buffers[this.bufferId].index += lenChunk;
             off += lenChunk;
             remaining -= lenChunk;
+            
+            if (this.buffers[this.bufferId].index >= this.blockSize)
+            {
+               // Current write buffer is full
+               if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs)) 
+               {
+                  this.bufferId++;
+                  final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
+
+                  if (this.buffers[this.bufferId].length == 0)
+                  {
+                     this.buffers[this.bufferId].array = new byte[bufSize];
+                     this.buffers[this.bufferId].length = bufSize;
+                  }
+
+                  this.buffers[this.bufferId].index = 0;
+               }
+               else 
+               {
+                  // If all buffers are full, time to encode
+                  this.processBlock();
+               }
+            }            
 
             if (remaining == 0)
                break;
@@ -285,11 +310,31 @@ public class CompressedOutputStream extends OutputStream
    {
       try
       {
-         // If the buffer is full, time to encode
-         if (this.sa.index >= this.sa.length)
-            this.processBlock(false);
+         if (this.buffers[this.bufferId].index >= this.blockSize)
+         {
+            // Current write buffer is full
+            if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs)) 
+            {
+               this.bufferId++;
 
-         this.sa.array[this.sa.index++] = (byte) b;
+               final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
+
+               if (this.buffers[this.bufferId].length == 0) 
+               {
+                  this.buffers[this.bufferId].array = new byte[bufSize];
+                  this.buffers[this.bufferId].length = bufSize;
+               }
+
+               this.buffers[this.bufferId].index = 0;
+            }
+            else 
+            {
+               // If all buffers are full, time to encode
+               this.processBlock();
+            }
+         }
+
+         this.buffers[this.bufferId].array[this.buffers[this.bufferId].index++] = (byte) b;
       }
       catch (BitStreamException e)
       {
@@ -350,8 +395,7 @@ public class CompressedOutputStream extends OutputStream
       if (this.closed.getAndSet(true) == true)
          return;
 
-      if (this.sa.index > 0)
-         this.processBlock(true);
+      this.processBlock();
 
       try
       {
@@ -367,35 +411,15 @@ public class CompressedOutputStream extends OutputStream
 
       this.listeners.clear();
 
-      // Release resources
-      // Force error on any subsequent write attempt
-      this.sa.array = EMPTY_BYTE_ARRAY;
-      this.sa.length = 0;
-      this.sa.index = -1;
-
-      for (int i=0; i<this.buffers.length; i++)
+      // Release resources, force error on any subsequent write attempt
+      for (int i=0; i<this.buffers.length; i++)         
          this.buffers[i] = new SliceByteArray(EMPTY_BYTE_ARRAY, 0);
    }
 
 
-   private void processBlock(boolean force) throws IOException
+   private void processBlock() throws IOException
    {
-      if (force == false)
-      {
-         final int bufSize = Math.min(this.jobs, Math.max(this.nbInputBlocks, 1)) * this.blockSize;
-
-         if (this.sa.length < bufSize)
-         {
-            // Grow byte array until max allowed
-            final byte[] buf = new byte[bufSize];
-            System.arraycopy(this.sa.array, 0, buf, 0, this.sa.length);
-            this.sa.array = buf;
-            this.sa.length = buf.length;
-            return;
-         }
-      }
-
-      if (this.sa.index == 0)
+      if (this.buffers[0].index == 0)
          return;
 
       if (this.initialized.getAndSet(true) == false)
@@ -405,42 +429,43 @@ public class CompressedOutputStream extends OutputStream
       {
          // Protect against future concurrent modification of the list of block listeners
          Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
-         final int dataLength = this.sa.index;
-         this.sa.index = 0;
+         int nbTasks = this.jobs;
+         int[] jobsPerTask;
+
+         // Assign optimal number of tasks and jobs per task
+         if (nbTasks > 1)
+         {
+            // Limit the number of jobs if there are fewer blocks that this.nbInputBlocks
+            // It allows more jobs per task and reduces memory usage.
+            nbTasks = Math.min(this.nbInputBlocks, this.jobs);
+            jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], this.jobs, nbTasks);
+         }
+         else
+         {
+            jobsPerTask = new int[] { this.jobs };
+         }
+
          List<Callable<Status>> tasks = new ArrayList<>(this.jobs);
          int firstBlockId = this.blockId.get();
 
-         // Create as many tasks as required
-         for (int jobId=0; jobId<this.jobs; jobId++)
+         // Create as many tasks as non-empty buffers to encode
+         for (int taskId=0; taskId<nbTasks; taskId++)
          {
-            final int sz = (this.sa.index + this.blockSize > dataLength) ?
-                    dataLength - this.sa.index : this.blockSize;
+            final int dataLength = this.buffers[taskId].index;
 
-            if (sz == 0)
+            if (dataLength == 0)
                break;
 
-            this.buffers[2*jobId].index = 0;
-            this.buffers[2*jobId+1].index = 0;
+            Map<String, Object> map = new HashMap<>(this.ctx);
+            map.put("jobs", jobsPerTask[taskId]);
+            this.buffers[taskId].index = 0;
 
-            // Add padding for incompressible data
-            final int length = Math.max(sz+(sz>>6), 65536);
-
-            // Grow encoding buffer if required
-            if (this.buffers[2*jobId].array.length < length)
-            {
-               this.buffers[2*jobId].array = new byte[length];
-               this.buffers[2*jobId].length = length;
-            }
-
-            System.arraycopy(this.sa.array, this.sa.index, this.buffers[2*jobId].array, 0, sz);
-
-            Callable<Status> task = new EncodingTask(this.buffers[2*jobId],
-                    this.buffers[2*jobId+1], sz, this.transformType,
-                    this.entropyType, firstBlockId+jobId+1,
+            Callable<Status> task = new EncodingTask(this.buffers[taskId],
+                    this.buffers[this.jobs+taskId], dataLength, this.transformType,
+                    this.entropyType, firstBlockId+taskId+1,
                     this.obs, this.hasher, this.blockId,
-                    blockListeners, new HashMap<>(this.ctx));
+                    blockListeners, map);
             tasks.add(task);
-            this.sa.index += sz;
          }
 
          if (tasks.size() == 1)
@@ -464,7 +489,7 @@ public class CompressedOutputStream extends OutputStream
             }
          }
 
-         this.sa.index = 0;
+         this.bufferId = 0;
       }
       catch (kanzi.io.IOException e)
       {
