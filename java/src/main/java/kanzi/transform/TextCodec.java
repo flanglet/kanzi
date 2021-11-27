@@ -968,35 +968,35 @@ public final class TextCodec implements ByteTransform
                final byte[] buf = e.buf;
 
                // Sanity check
-               if (dstIdx+length >= dstEnd)
+               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
                   break;
 
+               // Add space if only delimiter between 2 words (not an escaped delimiter)
+               if ((wordRun == true) && (length > 1))
+                  dst[dstIdx++] = ' ';
+
                // Emit word
+               if (cur != ESCAPE_TOKEN2)
+               {
+                  dst[dstIdx++] = (byte) buf[e.pos];
+               }
+               else
+               {
+                  // Flip case of first character
+                  dst[dstIdx++] = (byte) (buf[e.pos]^0x20);
+               }
+
                if (length > 1)
                {
-                  if (e.pos < 0)
-                     break;          
-                  
-                  // Add space if only delimiter between 2 words (not an escaped delimiter)
-                  if (wordRun == true)
-                     dst[dstIdx++] = ' ';
-
-                  // Flip case of first character ?
-                  if (cur == ESCAPE_TOKEN2)
-                     dst[dstIdx++] = (byte) (buf[e.pos]^0x20);
-
                   for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
                      dst[dstIdx] = buf[n];
-                  
+
                   // Regular word entry
                   wordRun = true;
                   delimAnchor = srcIdx;
                }
                else
                {
-                  if (length == 0)
-                     break;
-                  
                   // Escape entry
                   wordRun = false;
                   delimAnchor = srcIdx-1;
@@ -1559,38 +1559,32 @@ public final class TextCodec implements ByteTransform
                final byte[] buf = e.buf;
 
                // Sanity check
-               if (dstIdx+length >= dstEnd)
+               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
                   break;
 
-               // Emit word
+               // Add space if only delimiter between 2 words (not an escaped delimiter)
+               if ((wordRun == true) && (length > 1))
+                  dst[dstIdx++] = ' ';
+
+               // Flip case of first character
+               dst[dstIdx++] = (byte) (buf[e.pos]^(cur & 0x20));
+
                if (length > 1)
                {
-                  if (e.pos < 0)
-                     break;
-                  
-                  // Add space if only delimiter between 2 words (not an escaped delimiter)
-                  if (wordRun == true)
-                     dst[dstIdx++] = ' ';
-                                 
+                  // Emit word
+                  for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
+                     dst[dstIdx] = buf[n];
+
                   // Regular word entry
                   wordRun = true;
                   delimAnchor = srcIdx;
                }
                else
                {
-                  if (length == 0)
-                     break;
-                  
                   // Escape entry
                   wordRun = false;
                   delimAnchor = srcIdx-1;
                }
-
-               // Flip case of first character ?
-               dst[dstIdx++] = (byte) (buf[e.pos]^(cur & 0x20));
-               
-               for (int n=e.pos+1, l=e.pos+length; n<l; n++, dstIdx++)
-                  dst[dstIdx] = buf[n];
             }
             else
             {
