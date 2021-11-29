@@ -632,13 +632,13 @@ public class CompressedInputStream extends InputStream
             // entropy encoding. Entropy encoding must happen sequentially (and
             // in the correct block order) in the bitstream.
             // Backoff improves performance in heavy contention scenarios
-            Thread.yield(); // Should be Thread.onSpinWait() on JDK 9 and above
+            Thread.onSpinWait(); // Use Thread.yield() with JDK 8 and below
          }
 
          // Read shared bitstream sequentially (each task is gated by _processedBlockId)
          final int lr = (int) this.ibs.readBits(5) + 3;
          long read = this.ibs.readBits(lr);
-
+         
          if (read == 0)
          {
             this.processedBlockId.set(CANCEL_TASKS_ID);
@@ -699,7 +699,7 @@ public class CompressedInputStream extends InputStream
                   skipFlags = (byte) ((mode<<4) | 0x0F);
             }
 
-            final int dataSize = 1 + ((mode>>5)&0x03);
+            final int dataSize = 1 + ((mode>>5) & 0x03);
             final int length = dataSize << 3;
             final long mask = (1L<<length) - 1;
             int preTransformLength = (int) (is.readBits(length) & mask);

@@ -91,7 +91,7 @@ public final class DefaultInputBitStream implements InputBitStream
       }
       catch (IOException e)
       {
-         throw new BitStreamException(e.getMessage(), BitStreamException.INPUT_OUTPUT);
+         throw new BitStreamException(e.getMessage(), BitStreamException.END_OF_STREAM);
       }
       finally
       {

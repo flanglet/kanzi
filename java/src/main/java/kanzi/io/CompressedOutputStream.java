@@ -139,7 +139,7 @@ public class CompressedOutputStream extends OutputStream
       // better decisions about memory usage and job allocation in concurrent
       // decompression scenario.
       long fileSize = (long) ctx.getOrDefault("fileSize", (long) UNKNOWN_NB_BLOCKS);
-      int nbBlocks = (int) ((fileSize+(bSize-1)) / bSize);
+      int nbBlocks = (fileSize == UNKNOWN_NB_BLOCKS) ? UNKNOWN_NB_BLOCKS : (int) ((fileSize+(bSize-1)) / bSize);
       this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
 
       boolean checksum = (Boolean) ctx.get("checksum");
@@ -756,7 +756,7 @@ public class CompressedOutputStream extends OutputStream
                // entropy encoding. Entropy encoding must happen sequentially (and
                // in the correct block order) in the bitstream.
                // Backoff improves performance in heavy contention scenarios
-               Thread.yield(); // Should be Thread.onSpinWait() on JDK 9 and above
+               Thread.onSpinWait(); // Use Thread.yield() with JDK 8 and below
             }
 
             if (this.listeners.length > 0)
