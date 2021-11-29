@@ -67,6 +67,7 @@ public class CompressedOutputStream extends OutputStream
    private int bufferId; // index of current write buffer
    private final int nbInputBlocks;
    private final int jobs;   
+   private int bufferThreshold;   
    private final XXHash32 hasher;
    private final SliceByteArray[] buffers; // input & output per block
    private final int entropyType;
@@ -130,6 +131,7 @@ public class CompressedOutputStream extends OutputStream
       this.entropyType = EntropyCodecFactory.getType(entropyCodec);
       this.transformType = new TransformFactory().getType(transform);
       this.blockSize = bSize;
+      this.bufferThreshold = bSize;
 
       // If input size has been provided, calculate the number of blocks
       // in the input data else use 0. A value of 63 means '63 or more blocks'.
@@ -238,15 +240,12 @@ public class CompressedOutputStream extends OutputStream
       if ((off < 0) || (len < 0) || (len + off > data.length))
          throw new IndexOutOfBoundsException();
 
-      if (this.closed.get() == true)
-         throw new kanzi.io.IOException("Stream closed", Error.ERR_WRITE_FILE);
-
       int remaining = len;
 
       while (remaining > 0)
       {
          // Limit to number of available bytes in current buffer
-         final int lenChunk = Math.min(remaining, this.blockSize-this.buffers[this.bufferId].index);
+         final int lenChunk = Math.min(remaining, this.bufferThreshold-this.buffers[this.bufferId].index);
          
          if (lenChunk > 0)
          {
@@ -256,7 +255,7 @@ public class CompressedOutputStream extends OutputStream
             off += lenChunk;
             remaining -= lenChunk;
             
-            if (this.buffers[this.bufferId].index >= this.blockSize)
+            if (this.buffers[this.bufferId].index >= this.bufferThreshold)
             {
                // Current write buffer is full
                if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs)) 
@@ -310,7 +309,7 @@ public class CompressedOutputStream extends OutputStream
    {
       try
       {
-         if (this.buffers[this.bufferId].index >= this.blockSize)
+         if (this.buffers[this.bufferId].index >= this.bufferThreshold)
          {
             // Current write buffer is full
             if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs)) 
@@ -330,6 +329,9 @@ public class CompressedOutputStream extends OutputStream
             else 
             {
                // If all buffers are full, time to encode
+               if (this.closed.get() == true)
+                  throw new kanzi.io.IOException("Stream closed", Error.ERR_WRITE_FILE);
+               
                this.processBlock();
             }
          }
@@ -343,11 +345,6 @@ public class CompressedOutputStream extends OutputStream
       catch (kanzi.io.IOException e)
       {
          throw e;
-      }
-      catch (ArrayIndexOutOfBoundsException e)
-      {
-         // Happens only if the stream is closed
-         throw new kanzi.io.IOException("Stream closed", Error.ERR_READ_FILE);
       }
       catch (Exception e)
       {
@@ -410,6 +407,7 @@ public class CompressedOutputStream extends OutputStream
       }
 
       this.listeners.clear();
+      this.bufferThreshold = 0;
 
       // Release resources, force error on any subsequent write attempt
       for (int i=0; i<this.buffers.length; i++)         

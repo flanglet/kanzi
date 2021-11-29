@@ -65,6 +65,7 @@ public class CompressedInputStream extends InputStream
    private int maxBufferId; // max index of read buffer
    private int nbInputBlocks;
    private int jobs;
+   private int bufferThreshold;   
    private int available; // decoded not consumed bytes   private XXHash32 hasher;   
    private XXHash32 hasher;
    private final SliceByteArray[] buffers; // input & output per block
@@ -118,6 +119,7 @@ public class CompressedInputStream extends InputStream
       this.listeners = new ArrayList<>(10);
       this.ctx = ctx;
       this.blockSize = 0;
+      this.bufferThreshold = 0;
       this.entropyType = EntropyCodecFactory.NONE_TYPE;
       this.transformType = TransformFactory.NONE_TYPE;
    }
@@ -157,11 +159,13 @@ public class CompressedInputStream extends InputStream
 
       // Read block size
       this.blockSize = (int) this.ibs.readBits(28) << 4;
-      this.ctx.put("blockSize", this.blockSize);
 
       if ((this.blockSize < MIN_BITSTREAM_BLOCK_SIZE) || (this.blockSize > MAX_BITSTREAM_BLOCK_SIZE))
          throw new kanzi.io.IOException("Invalid bitstream, incorrect block size: " + this.blockSize,
                  Error.ERR_BLOCK_SIZE);
+
+      this.ctx.put("blockSize", this.blockSize);
+      this.bufferThreshold = this.blockSize;
 
       // Read number of blocks in input.
       this.nbInputBlocks = (int) this.ibs.readBits(6);
@@ -248,6 +252,9 @@ public class CompressedInputStream extends InputStream
       {
          if (this.available == 0)
          {
+            if (this.closed.get() == true)
+               throw new kanzi.io.IOException("Stream closed", Error.ERR_WRITE_FILE);
+            
             this.available = this.processBlock();
 
             if (this.available == 0) // Reached end of stream
@@ -258,7 +265,7 @@ public class CompressedInputStream extends InputStream
          this.available--;
          
          // Is current read buffer empty ?
-         if ((this.bufferId < this.maxBufferId) && (this.buffers[this.bufferId].index >= this.blockSize))
+         if ((this.bufferId < this.maxBufferId) && (this.buffers[this.bufferId].index >= this.bufferThreshold))
             this.bufferId++; 
            
          return res;
@@ -270,11 +277,6 @@ public class CompressedInputStream extends InputStream
       catch (BitStreamException e)
       {
          throw new kanzi.io.IOException(e.getMessage(), Error.ERR_READ_FILE);
-      }
-      catch (ArrayIndexOutOfBoundsException e)
-      {
-         // Happens only if the stream is closed
-         throw new kanzi.io.IOException("Stream closed", Error.ERR_READ_FILE);
       }
       catch (Exception e)
       {
@@ -322,15 +324,12 @@ public class CompressedInputStream extends InputStream
       if ((off < 0) || (len < 0) || (len + off > data.length))
          throw new IndexOutOfBoundsException();
 
-      if (this.closed.get() == true)
-         throw new kanzi.io.IOException("Stream closed", Error.ERR_READ_FILE);
-
       int remaining = len;
 
       while (remaining > 0)
       {
          // Limit to number of available bytes in buffer
-         final int lenChunk = Math.min(remaining, Math.min(this.available, this.blockSize-this.buffers[this.bufferId].index));         
+         final int lenChunk = Math.min(remaining, Math.min(this.available, this.bufferThreshold-this.buffers[this.bufferId].index));         
  
          if (lenChunk > 0)
          {
@@ -342,10 +341,10 @@ public class CompressedInputStream extends InputStream
             this.available -= lenChunk;
             remaining -= lenChunk;
 
-            if ((this.bufferId < this.maxBufferId) && (this.buffers[this.bufferId].index >= this.blockSize))
+            if ((this.bufferId < this.maxBufferId) && (this.buffers[this.bufferId].index >= this.bufferThreshold))
             {
                if (this.bufferId+1 >= this.jobs)
-                   break;
+                  break;
                
                this.bufferId++;
             }
@@ -517,7 +516,7 @@ public class CompressedInputStream extends InputStream
    @Override
    public void close() throws IOException
    {
-      if (this.closed.getAndSet(true)== true)
+      if (this.closed.getAndSet(true) == true)
          return;
 
       try
@@ -531,6 +530,7 @@ public class CompressedInputStream extends InputStream
 
       // Release resources, force error on any subsequent write attempt
       this.available = 0;
+      this.bufferThreshold = 0;
 
       for (int i=0; i<this.buffers.length; i++)
          this.buffers[i] = new SliceByteArray(EMPTY_BYTE_ARRAY, 0);
