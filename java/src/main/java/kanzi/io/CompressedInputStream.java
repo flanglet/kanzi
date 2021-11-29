@@ -95,7 +95,7 @@ public class CompressedInputStream extends InputStream
       if (ctx == null)
          throw new NullPointerException("Invalid null context parameter");
 
-      final int tasks = (Integer) ctx.get("jobs");
+      final int tasks = (Integer) ctx.getOrDefault("jobs", 1);
 
       if ((tasks <= 0) || (tasks > MAX_CONCURRENCY))
          throw new IllegalArgumentException("The number of jobs must be in [1.." + MAX_CONCURRENCY+ "]");

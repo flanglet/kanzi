@@ -106,7 +106,7 @@ public class CompressedOutputStream extends OutputStream
       if (transform == null)
          throw new NullPointerException("Invalid null transform type parameter");
 
-      int tasks = (Integer) ctx.get("jobs");
+      int tasks = (Integer) ctx.getOrDefault("jobs", 1);
 
       if ((tasks <= 0) || (tasks > MAX_CONCURRENCY))
          throw new IllegalArgumentException("The number of jobs must be in [1.." + MAX_CONCURRENCY+ "]");
