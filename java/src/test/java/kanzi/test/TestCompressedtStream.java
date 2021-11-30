@@ -115,7 +115,8 @@ public class TestCompressedtStream
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2*block.length);
          OutputStream os = new BufferedOutputStream(baos);
          HashMap<String, Object> ctx1 = new HashMap<>();
-         ctx1.put("transform", "NONE"); 
+         ctx1.put("transform", "NONE");
+         ctx1.put("codec", "HUFFMAN"); 
          ctx1.put("blockSize", blockSize);
          ctx1.put("checksum", false);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
