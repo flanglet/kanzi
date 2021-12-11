@@ -98,18 +98,29 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
       this.codec = (strCodec == null) ? "ANS0" : strCodec;
       Integer iBlockSize = (Integer) map.remove("block");
-      final int bs = (iBlockSize == null) ? DEFAULT_BLOCK_SIZE : iBlockSize;
-
-      if (bs < MIN_BLOCK_SIZE)
-         throw new IllegalArgumentException("Minimum block size is "+(MIN_BLOCK_SIZE/1024)+
-            " KB ("+MIN_BLOCK_SIZE+" bytes), got "+bs+" bytes");
       
-      if (bs > MAX_BLOCK_SIZE)
-         throw new IllegalArgumentException("Maximum block size is "+(MAX_BLOCK_SIZE/(1024*1024*1024))+
-            " GB ("+MAX_BLOCK_SIZE+" bytes), got "+bs+" bytes");
+      if (iBlockSize == null)
+      {
+         if (this.level < 7)
+            this.blockSize = DEFAULT_BLOCK_SIZE;
+         else // level 7 or 8
+            this.blockSize = (this.level >= 9) ? 4*DEFAULT_BLOCK_SIZE : 2*DEFAULT_BLOCK_SIZE;
+      }
+      else
+      {
+         final int bs = iBlockSize;
+         
+         if (bs < MIN_BLOCK_SIZE)
+            throw new IllegalArgumentException("Minimum block size is "+(MIN_BLOCK_SIZE/1024)+
+               " KB ("+MIN_BLOCK_SIZE+" bytes), got "+bs+" bytes");
 
-      this.blockSize = Math.min((bs + 15) & -16, MAX_BLOCK_SIZE);
+         if (bs > MAX_BLOCK_SIZE)
+            throw new IllegalArgumentException("Maximum block size is "+(MAX_BLOCK_SIZE/(1024*1024*1024))+
+               " GB ("+MAX_BLOCK_SIZE+" bytes), got "+bs+" bytes");
 
+         this.blockSize = Math.min((bs+15) & -16, MAX_BLOCK_SIZE);
+      }
+      
       // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)
       TransformFactory bff = new TransformFactory();
       this.transform = (strTransf == null) ? "BWT+RANK+ZRLT" : bff.getName(bff.getType(strTransf));

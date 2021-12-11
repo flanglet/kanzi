@@ -48,7 +48,7 @@ public class Kanzi
    // private static final int ARG_IDX_FROM = 10;
    //private static final int ARG_IDX_TO = 11;
 
-   private static final String APP_HEADER = "Kanzi 1.9 (C) 2021,  Frederic Langlet";
+   private static final String APP_HEADER = "Kanzi 2.0 (c) Frederic Langlet";
 
 
    public static void main(String[] args)
@@ -647,7 +647,7 @@ public class Kanzi
       if (mode == 'c')
       {
          printOut("   -b, --block=<size>", true);
-         printOut("        size of blocks (default 4 MB, max 1 GB, min 1 KB).\n", true);
+         printOut("        size of blocks (default 4|8|16 MB based on level, max 1 GB, min 1 KB).\n", true);
          printOut("   -l, --level=<compression>", true);
          printOut("        set the compression level [0..9]", true);
          printOut("        Providing this option forces entropy and transform.", true);
