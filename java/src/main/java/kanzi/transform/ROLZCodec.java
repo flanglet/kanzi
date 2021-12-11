@@ -17,6 +17,7 @@ package kanzi.transform;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 import java.util.Map;
 import kanzi.ByteTransform;
 import kanzi.InputBitStream;
@@ -64,7 +65,8 @@ public class ROLZCodec implements ByteTransform
    public ROLZCodec(Map<String, Object> ctx)
    {
       String transform = (String) ctx.getOrDefault("transform", "NONE");
-      this.delegate = (transform.contains("ROLZX")) ? new ROLZCodec2() : new ROLZCodec1();
+      this.delegate = (transform.contains("ROLZX")) ? new ROLZCodec2(LOG_POS_CHECKS2, ctx) 
+         : new ROLZCodec1(LOG_POS_CHECKS1, ctx);
    }
 
 
@@ -162,15 +164,22 @@ public class ROLZCodec implements ByteTransform
       private final int posChecks;
       private final int[] matches;
       private final int[] counters;
+      private final int bsVersion;
 
 
       public ROLZCodec1()
       {
-         this(LOG_POS_CHECKS1);
+         this(LOG_POS_CHECKS1, null);
       }
 
 
       public ROLZCodec1(int logPosChecks)
+      {
+         this(logPosChecks, null);
+      }
+
+      
+      public ROLZCodec1(int logPosChecks, Map<String, Object> ctx)
       {
          if ((logPosChecks < 2) || (logPosChecks > 8))
             throw new IllegalArgumentException("ROLZ codec: Invalid logPosChecks parameter " +
@@ -181,6 +190,7 @@ public class ROLZCodec implements ByteTransform
          this.maskChecks = this.posChecks - 1;
          this.counters = new int[1<<16];
          this.matches = new int[HASH_SIZE<<this.logPosChecks];
+         this.bsVersion = (ctx != null) ? (Integer) ctx.getOrDefault("bsVersion", -1) : -1;
       }
 
 
@@ -482,10 +492,12 @@ public class ROLZCodec implements ByteTransform
                   return false;
                }
 
-               ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, litOrder);
+               Map<String, Object> ctx = new HashMap<>();
+               ctx.put("bsVersion", this.bsVersion);
+               ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, litOrder, ctx);
                litDec.decode(litBuf.array, 0, litLen);
                litDec.dispose();
-               ANSRangeDecoder mDec = new ANSRangeDecoder(ibs, 0);
+               ANSRangeDecoder mDec = new ANSRangeDecoder(ibs, 0, ctx);
                mDec.decode(tkBuf.array, 0, tkLen);
                mDec.decode(lenBuf.array, 0, mLenLen);
                mDec.decode(mIdxBuf.array, 0, mIdxLen);
@@ -627,12 +639,18 @@ public class ROLZCodec implements ByteTransform
 
       public ROLZCodec2()
       {
-         this(LOG_POS_CHECKS2);
+         this(LOG_POS_CHECKS2, null);
       }
 
 
       public ROLZCodec2(int logPosChecks)
       {
+         this(logPosChecks, null);
+      }
+         
+      
+      public ROLZCodec2(int logPosChecks, Map<String, Object> ctx)
+      {         
          if ((logPosChecks < 2) || (logPosChecks > 8))
             throw new IllegalArgumentException("ROLZX codec: Invalid logPosChecks parameter " +
                "(must be in [2..8])");

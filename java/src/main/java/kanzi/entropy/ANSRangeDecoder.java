@@ -99,7 +99,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       if ((order != 0) && (order != 1))
          throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
 
-      final int bsVersion = (Integer) ctx.getOrDefault("bsVersion", 1);
+      final int bsVersion = (Integer) ctx.getOrDefault("bsVersion", -1);
       this.bitstream = bs;
       this.chunkSize = Math.min(DEFAULT_ANS0_CHUNK_SIZE << (8*order), MAX_CHUNK_SIZE);
       this.order = order;
