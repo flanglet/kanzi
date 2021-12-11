@@ -176,19 +176,15 @@ public final class LZCodec implements ByteTransform
       }
 
 
-      private static int findMatch(byte[] src, int srcIdx, int ref, int maxMatch)
+      private static int findMatch(byte[] src, final int srcIdx, final int ref, final int maxMatch)
       {
          int bestLen = 0;
 
-         if (differentInts(src, ref, srcIdx) == false) {
-            bestLen = 4;
+         while ((bestLen+4 < maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
+            bestLen += 4;
 
-            while ((bestLen+4 < maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
-               bestLen += 4;
-
-            while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
-               bestLen++;
-          }
+         while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
+            bestLen++;
 
          return bestLen;
       }
@@ -247,11 +243,16 @@ public final class LZCodec implements ByteTransform
             this.hashes[h] = srcIdx;
             int bestLen = 0;
 
-            // Find a match
-            if (ref > minRef)
+            if (ref <= minRef)
             {
-               final int maxMatch = Math.min(srcEnd-srcIdx, MAX_MATCH);
-               bestLen = findMatch(src, srcIdx, ref, maxMatch);
+               srcIdx++;
+               continue;
+            }
+            
+            // Find a match
+            if (differentInts(src, ref, srcIdx) == false)
+            {
+               bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
             }
 
             // No good match ?
@@ -595,7 +596,7 @@ public final class LZCodec implements ByteTransform
          final int dstIdx0 = output.index;
          final byte[] src = input.array;
          final byte[] dst = output.array;
-         final int srcEnd = srcIdx0 + count - 8;
+         final int srcEnd = srcIdx0 + count;
          final int dstEnd = dstIdx0 + count - 4;
          int srcIdx = srcIdx0;
          int dstIdx = dstIdx0;
@@ -609,23 +610,16 @@ public final class LZCodec implements ByteTransform
          dstIdx += 4;
          int minRef = 4;
 
-         while ((srcIdx < srcEnd) && (dstIdx < dstEnd)) {
+         while ((srcIdx < srcEnd-MIN_MATCH) && (dstIdx < dstEnd)) {
             final int h = (HASH_SEED*ctx) >>> HASH_SHIFT;
             final int ref = this.hashes[h];
             this.hashes[h] = srcIdx;
             int bestLen = 0;
 
             // Find a match
-            if ((ref > minRef) && (LZCodec.differentInts(src, ref, srcIdx) == false))
+            if ((ref > minRef) && (LZCodec.differentInts(src, ref+MIN_MATCH-4, srcIdx+MIN_MATCH-4) == false))
             {
-               final int maxMatch = srcEnd - srcIdx;
-               bestLen = 4;
-
-               while ((bestLen < maxMatch) && (LZCodec.differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
-                  bestLen += 4;
-
-               while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
-                  bestLen++;
+               bestLen = findMatch(src, srcIdx, ref, srcEnd-srcIdx);
             }
 
             // No good match ?
@@ -665,7 +659,7 @@ public final class LZCodec implements ByteTransform
             dst[dstIdx++] = (byte) bestLen;
          }
 
-         while ((srcIdx < srcEnd+8) && (dstIdx < dstEnd))
+         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
             final int h = (HASH_SEED*ctx) >>> HASH_SHIFT;
             final int ref = this.hashes[h];
@@ -750,7 +744,7 @@ public final class LZCodec implements ByteTransform
             }
 
             if (srcIdx >= srcEnd)
-               break;
+               return false;
 
             mLen += (src[srcIdx++]&0xFF);
 
@@ -767,6 +761,23 @@ public final class LZCodec implements ByteTransform
       }
 
 
+      private static int findMatch(byte[] src, final int srcIdx, final int ref, final int maxMatch)
+      {
+         int bestLen = 0;
+
+         while ((bestLen+4 < maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
+            bestLen += 4;
+
+         if (bestLen >= MIN_MATCH - 4) 
+         {
+            while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
+               bestLen++;
+         }
+
+         return bestLen;
+      }
+
+      
       @Override
       public int getMaxEncodedLength(int srcLen)
       {
