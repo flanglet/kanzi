@@ -105,6 +105,7 @@ public final class LZCodec implements ByteTransform
 
       private int[] hashes;
       private byte[] mBuf;
+      private byte[] mLenBuf;
       private byte[] tkBuf;
       private final boolean extra;
 
@@ -113,6 +114,7 @@ public final class LZCodec implements ByteTransform
       {
          this.hashes = new int[0];
          this.mBuf = new byte[0];
+         this.mLenBuf = new byte[0];
          this.tkBuf = new byte[0];
          this.extra = false;
       }
@@ -122,6 +124,7 @@ public final class LZCodec implements ByteTransform
       {
          this.hashes = new int[0];
          this.mBuf = new byte[0];
+         this.mLenBuf = new byte[0];
          this.tkBuf = new byte[0];
          short lzType = (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE);
          this.extra = lzType == TransformFactory.LZX_TYPE;
@@ -180,9 +183,9 @@ public final class LZCodec implements ByteTransform
       {
          int bestLen = 0;
 
-         while ((bestLen+4 < maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
+         while ((bestLen+4 <= maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
             bestLen += 4;
-
+         
          while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
             bestLen++;
 
@@ -215,11 +218,16 @@ public final class LZCodec implements ByteTransform
                this.hashes[i] = 0;
          }
 
-         if (this.mBuf.length < Math.max(count/5, 256))
-            this.mBuf = new byte[Math.max(count/5, 256)];
+         final int minBufSize = Math.max(count/5, 256);
+         
+         if (this.mBuf.length < minBufSize)
+            this.mBuf = new byte[minBufSize];
 
-         if (this.tkBuf.length < Math.max(count/5, 256))
-            this.tkBuf = new byte[Math.max(count/5, 256)];
+         if (this.mLenBuf.length < minBufSize)
+            this.mLenBuf = new byte[minBufSize];
+
+         if (this.tkBuf.length < minBufSize)
+            this.tkBuf = new byte[minBufSize];
 
          final int srcIdx0 = input.index;
          final int dstIdx0 = output.index;
@@ -227,34 +235,38 @@ public final class LZCodec implements ByteTransform
          final byte[] dst = output.array;
          final int srcEnd = srcIdx0 + count - 16 - 1;
          final int maxDist = (srcEnd < 4*MAX_DISTANCE1) ? MAX_DISTANCE1 : MAX_DISTANCE2;
-         dst[dstIdx0+8] = (maxDist == MAX_DISTANCE1) ? (byte) 0 : (byte) 1;
+         dst[dstIdx0+12] = (maxDist == MAX_DISTANCE1) ? (byte) 0 : (byte) 1;
+         final int dThreshold = (maxDist == MAX_DISTANCE1) ? MAX_DISTANCE1 + 1 : 1<<16;
          int srcIdx = srcIdx0;
          int anchor = srcIdx0;
-         int dstIdx = dstIdx0 + 9;
+         int dstIdx = dstIdx0 + 13;
          int mIdx = 0;
+         int mLenIdx = 0;
          int tkIdx = 0;
-         int repd = 0;
+         int repd0 = 0;
+         int repd1 = 0;
 
          while (srcIdx < srcEnd)
          {
             final int minRef = Math.max(srcIdx-maxDist, srcIdx0);
-            int h = hash(src, srcIdx);
-            int ref = this.hashes[h];
-            this.hashes[h] = srcIdx;
-            int bestLen = 0;
-
+            int h0 = hash(src, srcIdx);
+            int ref = this.hashes[h0];
+            this.hashes[h0] = srcIdx;
+            
             if (ref <= minRef)
             {
                srcIdx++;
                continue;
             }
-            
+                      
+            int bestLen = 0;
+
             // Find a match
             if (differentInts(src, ref, srcIdx) == false)
             {
                bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
             }
-
+          
             // No good match ?
             if ((bestLen < MIN_MATCH) || ((bestLen == MIN_MATCH) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)))
             {
@@ -262,35 +274,48 @@ public final class LZCodec implements ByteTransform
                continue;
             }
 
-            // Check if better match at next position
-            final int h2 = hash(src, srcIdx+1);
-            final int ref2 = this.hashes[h2];
-            this.hashes[h2] = srcIdx + 1;
-            int bestLen2 = 0;
-
-            if (ref2 > minRef + 1)
+            if (ref != srcIdx - repd0)
             {
-               final int maxMatch = Math.min(srcEnd-srcIdx-1, MAX_MATCH);
-               bestLen2 = findMatch(src, srcIdx+1, ref2, maxMatch);
+               // Check if better match at next position
+               final int h1 = hash(src, srcIdx+1);
+               final int ref1 = this.hashes[h1];
+               this.hashes[h1] = srcIdx + 1;
+
+               if (ref1 > minRef + 1)
+               {
+                  final int maxMatch = Math.min(srcEnd-srcIdx-1, MAX_MATCH);
+                  final int bestLen1 = findMatch(src, srcIdx+1, ref1, maxMatch);
+
+                  // Select best match
+                  if ((bestLen1 > bestLen) || ((bestLen1 == bestLen) && ((srcIdx-ref1) < (srcIdx-ref)))) 
+                  {
+                     ref = ref1;
+                     bestLen = bestLen1;
+                     srcIdx++;
+                  }
+               }
             }
 
-            // Select best match
-            if ((bestLen2 > bestLen) || ((bestLen2 == bestLen) && ((srcIdx-ref2) < (srcIdx-ref)))) 
+            final int mLen = bestLen - MIN_MATCH;
+            final int d = srcIdx - ref;
+            int dist;
+            
+            if (d == repd0) 
             {
-               ref = ref2;
-               bestLen = bestLen2;
-               srcIdx++;
+               dist = 0;
+            } 
+            else
+            {
+               dist = (d==repd1) ? 1 : d+1;
+               repd1 = repd0;
+               repd0 = d;
             }
 
             // Emit token
             // Token: 3 bits litLen + 1 bit flag + 4 bits mLen (LLLFMMMM)
             // flag = if maxDist = MAX_DISTANCE1, then highest bit of distance
             //        else 1 if dist needs 3 bytes (> 0xFFFF) and 0 otherwise
-            final int mLen = bestLen - MIN_MATCH;
-            final int d = srcIdx - ref;
-            final int dist = (d == repd) ? 0 : d + 1;
-            repd = d;
-            final int token = ((dist>0xFFFF) ? 0x10 : 0) | Math.min(mLen, 0x0F);
+            final int token = ((dist>0xFFFF) ? 0x10 : 0) | Math.min(mLen, 15);
 
             // Literals to process ?
             if (anchor == srcIdx)
@@ -319,24 +344,31 @@ public final class LZCodec implements ByteTransform
                emitLiterals(src, anchor, dst, dstIdx, litLen);
                dstIdx += litLen;
             }
-
+            
             // Emit match length
             if (mLen >= 15)
-               mIdx = emitLength(this.mBuf, mIdx, mLen-15);
+               mLenIdx = emitLength(this.mLenBuf, mLenIdx, mLen-15);
 
             // Emit distance
-            if ((maxDist == MAX_DISTANCE2) && (dist > 0xFFFF))
+            if (dist >= dThreshold)
                this.mBuf[mIdx++] = (byte) (dist>>16);
 
             this.mBuf[mIdx++] = (byte) (dist>>8);
             this.mBuf[mIdx++] = (byte) (dist);
 
-            if (mIdx >= this.mBuf.length-4)
+            if (mIdx >= this.mBuf.length-8)
             {
                // Expand match buffer
-               byte[] buf = new byte[this.mBuf.length<<1];
-               System.arraycopy(this.mBuf, 0, buf, 0, this.mBuf.length);
-               this.mBuf = buf;
+               byte[] buf1 = new byte[this.mBuf.length<<1];
+               System.arraycopy(this.mBuf, 0, buf1, 0, this.mBuf.length);
+               this.mBuf = buf1;
+               
+               if (mLenIdx >= this.mLenBuf.length-4)
+               {
+                  byte[] buf2 = new byte[this.mLenBuf.length<<1];
+                  System.arraycopy(this.mLenBuf, 0, buf2, 0, this.mLenBuf.length);
+                  this.mLenBuf = buf2;
+               }
             }
 
             // Fill this.hashes and update positions
@@ -372,10 +404,13 @@ public final class LZCodec implements ByteTransform
          // Emit buffers: literals + tokens + matches
          Memory.LittleEndian.writeInt32(dst, dstIdx0, dstIdx);
          Memory.LittleEndian.writeInt32(dst, dstIdx0+4, tkIdx);
+         Memory.LittleEndian.writeInt32(dst, dstIdx0+8, mIdx);
          System.arraycopy(this.tkBuf, 0, dst, dstIdx, tkIdx);
          dstIdx += tkIdx;
          System.arraycopy(this.mBuf, 0, dst, dstIdx, mIdx);
          dstIdx += mIdx;
+         System.arraycopy(this.mLenBuf, 0, dst, dstIdx, mLenIdx);
+         dstIdx += mLenIdx;
          input.index = count;
          output.index = dstIdx;
          return true;
@@ -388,6 +423,9 @@ public final class LZCodec implements ByteTransform
          if (input.length == 0)
             return true;
 
+         if (input.length < 13)
+            return false;
+
          final int count = input.length;
          final int srcIdx0 = input.index;
          final int dstIdx0 = output.index;
@@ -396,17 +434,19 @@ public final class LZCodec implements ByteTransform
          final int dstEnd = dst.length - 16;
          int tkIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
          int mIdx = tkIdx + Memory.LittleEndian.readInt32(src, srcIdx0+4);
+         int mLenIdx = mIdx + Memory.LittleEndian.readInt32(src, srcIdx0+8);
 
-         if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (tkIdx > srcIdx0+count) || (mIdx > srcIdx0+count))
+         if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (mLenIdx < srcIdx0) || (mLenIdx > srcIdx0+count))
             return false;
 
-         final int srcEnd = srcIdx0 + tkIdx - 9;
-         final int maxDist = (src[srcIdx0+8] == 1) ? MAX_DISTANCE2 : MAX_DISTANCE1;
-         int srcIdx = srcIdx0 + 9;
+         final int srcEnd = srcIdx0 + tkIdx - 13;
+         final int maxDist = (src[srcIdx0+12] == 1) ? MAX_DISTANCE2 : MAX_DISTANCE1;
+         int srcIdx = srcIdx0 + 13;
          int dstIdx = dstIdx0;
-         int repd = 0;
+         int repd0 = 0;
+         int repd1 = 0;
          SliceByteArray sba1 = new SliceByteArray(src, srcIdx);
-         SliceByteArray sba2 = new SliceByteArray(src, mIdx);
+         SliceByteArray sba2 = new SliceByteArray(src, mLenIdx);
 
          while (true)
          {
@@ -446,9 +486,9 @@ public final class LZCodec implements ByteTransform
 
             if (mLen == 15)
             {
-               sba2.index = mIdx;
+               sba2.index = mLenIdx;
                mLen += readLength(sba2);
-               mIdx = sba2.index;
+               mLenIdx = sba2.index;
             }
 
             mLen += MIN_MATCH;
@@ -463,8 +503,18 @@ public final class LZCodec implements ByteTransform
                d = (maxDist==MAX_DISTANCE1) ? d+65536 : (d<<8) | (src[mIdx++]&0xFF);
             }
 
-            final int dist = (d == 0) ? repd : d - 1;
-            repd = dist;
+            int dist;
+            
+            if (d == 0)
+            {
+               dist = repd0;
+            }
+            else
+            {
+               dist = (d==1) ? repd1 : d-1;
+               repd1 = repd0;
+               repd0 = dist;
+            }
 
             // Sanity check
             if ((dstIdx-dist < dstIdx0) || (dist > maxDist) || (mEnd > dstEnd+16))
@@ -501,7 +551,7 @@ public final class LZCodec implements ByteTransform
 
          output.index = dstIdx;
          input.index = mIdx;
-         return srcIdx == srcEnd + 9;
+         return srcIdx == srcEnd + 13;
       }
 
 
