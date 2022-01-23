@@ -31,6 +31,7 @@ public final class TextCodec implements ByteTransform
    private static final int THRESHOLD4 = THRESHOLD3 * 128;
    private static final int MAX_DICT_SIZE = 1 << 19;
    private static final int MAX_WORD_LENGTH = 31;
+   private static final int MIN_BLOCK_SIZE = 1024;
    private static final int MAX_BLOCK_SIZE = 1 << 30; //1 GB
    private static final int LOG_HASHES_SIZE = 24; // 16 MB
    public static final byte LF = 0x0A;
@@ -41,7 +42,7 @@ public final class TextCodec implements ByteTransform
    private static final int HASH2 = 0x846CA68B;
    private static final int MASK_NOT_TEXT = 0x80;
    private static final int MASK_DNA = MASK_NOT_TEXT | 0x40;
-   private static final int MASK_BIN = MASK_NOT_TEXT | 0x20;
+   private static final int MASK_UTF8 = MASK_NOT_TEXT | 0x20;
    private static final int MASK_BASE64 = MASK_NOT_TEXT | 0x10;
    private static final int MASK_NUMERIC = MASK_NOT_TEXT | 0x08;
    private static final int MASK_FULL_ASCII = 0x04;
@@ -316,60 +317,20 @@ public final class TextCodec implements ByteTransform
       }
 
       // Not text (crude thresholds)
-      boolean notText;
-
-      if (strict == true)
-         notText = ((nbTextChars < (count>>2)) || (freqs0[0] >= (count/100)) || ((nbASCII/95) < (count/100)));
-      else
-         notText = ((nbTextChars < (count>>1)) || (freqs0[32] < (count>>5))); 
-
-      if (notText == true)
-      {
-         int sum = 0;
-
-         for (int i=0; i<12; i++)
-            sum += freqs0[DNA_SYMBOLS[i]];
-
-         if (sum == count)
-            return MASK_DNA;
-
-         sum = 0;
-
-         for (int i=0; i<20; i++)
-            sum += freqs0[NUMERIC_SYMBOLS[i]];
-
-         if (sum >= (count/100)*98)
-            return MASK_NUMERIC;
-
-         sum = 0;
-
-         for (int i=0; i<64; i++)
-            sum += freqs0[BASE64_SYMBOLS[i]];
-
-         if (sum == count)
-            return MASK_BASE64;
-
-         sum = 0;
-
-         for (int i=0; i<256; i++)
-         {
-            if (freqs0[i] > 0)
-               sum++;
-         }
-
-         return (sum == 255) ? MASK_BIN : MASK_NOT_TEXT;
-      }
-
       final int nbBinChars = count - nbASCII;
+      boolean notText = nbBinChars > (count>>2);
 
-      // Not text (crude threshold)
-      if (nbBinChars > (count>>2))
-         return MASK_NOT_TEXT;
+      if (notText == false) {
+         if (strict == true)
+            notText = ((nbTextChars < (count>>2)) || (freqs0[0] >= (count/100)) || ((nbASCII/95) < (count/100)));
+         else
+            notText = ((nbTextChars < (count>>1)) || (freqs0[32] < (count/50))); 
+      }
+      
+      if (notText == true)
+         return detectType(freqs0, freqs, count);
 
-      int res = 0;
-
-      if (nbBinChars == 0)
-         res |= MASK_FULL_ASCII;
+      int res = (nbBinChars == 0) ? MASK_FULL_ASCII : 0;
 
       if (nbBinChars <= count-count/10)
       {
@@ -423,6 +384,84 @@ public final class TextCodec implements ByteTransform
    }
 
 
+   private static int detectType(int[] freqs0, int[][]freqs, int count)
+   {
+      int sum = 0;
+
+      for (int i=0; i<12; i++)
+         sum += freqs0[DNA_SYMBOLS[i]];
+
+      if (sum >= count-count/12)
+         return MASK_DNA;
+
+      sum = 0;
+
+      for (int i=0; i<20; i++)
+         sum += freqs0[NUMERIC_SYMBOLS[i]];
+
+      if (sum >= (count/100)*98)
+         return MASK_NUMERIC;
+
+      // Last symbol with padding '='
+      sum = (freqs0[0x3D] == 1) ? 1 : 0;
+
+      for (int i=0; i<64; i++)
+         sum += freqs0[BASE64_SYMBOLS[i]];
+
+      if (sum == count)
+         return MASK_BASE64;
+
+      // Check UTF-8
+      // See Unicode 14 Standard - UTF-8 Table 3.7
+      // U+0000..U+007F          00..7F
+      // U+0080..U+07FF          C2..DF 80..BF
+      // U+0800..U+0FFF          E0 A0..BF 80..BF
+      // U+1000..U+CFFF          E1..EC 80..BF 80..BF
+      // U+D000..U+D7FF          ED 80..9F 80..BF
+      // U+E000..U+FFFF          EE..EF 80..BF 80..BF
+      // U+10000..U+3FFFF        F0 90..BF 80..BF 80..BF
+      // U+40000..U+FFFFF        F1..F3 80..BF 80..BF 80..BF
+      // U+100000..U+10FFFF      F4 80..8F 80..BF 80..BF
+      
+      if ((freqs0[0xC0] > 0) || (freqs0[0xC1] > 0))
+         return MASK_NOT_TEXT;
+
+      for (int i=0xF5; i<=0xFF; i++) 
+      {
+         if (freqs0[i] > 0)
+            return MASK_NOT_TEXT;
+      }
+
+      sum = 0;
+      
+      for (int i=0; i<256; i++) 
+      {
+         // Exclude < 0xE0A0 || > 0xE0BF
+         if (((i < 0xA0) || (i > 0xBF)) && (freqs[0xE0][i] > 0))
+             return MASK_NOT_TEXT;
+         
+         // Exclude < 0xED80 || > 0xEDE9F
+         if (((i < 0x80) || (i > 0x9F)) && (freqs[0xED][i] > 0))
+             return MASK_NOT_TEXT;
+         
+         // Exclude < 0xF090 || > 0xF0BF
+         if (((i < 0x90) || (i > 0xBF)) && (freqs[0xF0][i] > 0))
+             return MASK_NOT_TEXT;
+         
+         // Exclude < 0xF480 || > 0xF4BF
+         if (((i < 0x80) || (i > 0xBF)) && (freqs[0xF4][i] > 0))
+             return MASK_NOT_TEXT;
+         
+         // Count non-primary bytes
+         if ((i >= 0x80) && (i <= 0xBF))
+            sum += freqs0[i];
+      } 
+
+      // Another ad-hoc threshold
+      return (sum < count/4) ? MASK_NOT_TEXT : MASK_UTF8;  
+   }
+   
+            
    private static boolean sameWords(byte[] buf1, final int idx1, byte[] buf2, final int idx2, final int length)
    {
       for (int i=idx1, j=idx2; i<idx1+length; i++, j++)
@@ -448,12 +487,12 @@ public final class TextCodec implements ByteTransform
       if (src.length == 0)
          return true;
 
-      if (src.array == dst.array)
+      if ((src.length < MIN_BLOCK_SIZE) || (src.length > MAX_BLOCK_SIZE))
          return false;
 
-      if (src.length > MAX_BLOCK_SIZE)
-         throw new IllegalArgumentException("The max text transform block size is "+MAX_BLOCK_SIZE+", got "+src.length);
-
+      if (src.array == dst.array)
+         return false;
+      
       return this.delegate.forward(src, dst);
    }
 
@@ -464,11 +503,11 @@ public final class TextCodec implements ByteTransform
       if (src.length == 0)
          return true;
 
+      if (src.length > MAX_BLOCK_SIZE) // ! no min check
+          return false;
+
       if (src.array == dst.array)
          return false;
-
-      if (src.length > MAX_BLOCK_SIZE)
-         throw new IllegalArgumentException("The max text transform block size is "+MAX_BLOCK_SIZE+", got "+src.length);
 
       return this.delegate.inverse(src, dst);
    }
@@ -602,8 +641,8 @@ public final class TextCodec implements ByteTransform
                   case MASK_BASE64:
                     this.ctx.put("dataType", Global.DataType.BASE64);
                     break;
-                  case MASK_BIN:
-                    this.ctx.put("dataType", Global.DataType.BIN);
+                  case MASK_UTF8:
+                    this.ctx.put("dataType", Global.DataType.UTF8);
                     break;
                   case MASK_DNA:
                     this.ctx.put("dataType", Global.DataType.DNA);
@@ -1154,8 +1193,8 @@ public final class TextCodec implements ByteTransform
                   case MASK_BASE64:
                     this.ctx.put("dataType", Global.DataType.BASE64);
                     break;
-                  case MASK_BIN:
-                    this.ctx.put("dataType", Global.DataType.BIN);
+                  case MASK_UTF8:
+                    this.ctx.put("dataType", Global.DataType.UTF8);
                     break;
                   case MASK_DNA:
                     this.ctx.put("dataType", Global.DataType.DNA);
