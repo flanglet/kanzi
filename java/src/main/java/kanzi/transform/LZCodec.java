@@ -185,7 +185,7 @@ public final class LZCodec implements ByteTransform
 
          while ((bestLen+4 <= maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
             bestLen += 4;
-
+         
          while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
             bestLen++;
 
@@ -266,7 +266,7 @@ public final class LZCodec implements ByteTransform
             {
                bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
             }
-
+          
             // No good match ?
             if ((bestLen < MIN_MATCH) || ((bestLen == MIN_MATCH) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)))
             {
@@ -344,7 +344,7 @@ public final class LZCodec implements ByteTransform
                emitLiterals(src, anchor, dst, dstIdx, litLen);
                dstIdx += litLen;
             }
-
+            
             // Emit match length
             if (mLen >= 15)
                mLenIdx = emitLength(this.mLenBuf, mLenIdx, mLen-15);
