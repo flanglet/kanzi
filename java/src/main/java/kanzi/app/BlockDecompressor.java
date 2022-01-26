@@ -310,8 +310,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             str = String.valueOf(delta) + " ms";
          }
 
-         printOut("Total decoding time: "+str, this.verbosity > 0);
-         printOut("Total output size: "+read+" byte"+((read>1)?"s":""), this.verbosity > 0);
+         printOut("Total decompression time: "+str, this.verbosity > 0);
+         printOut("Total output size: "+read+((read>1)?" bytes":" byte"), this.verbosity > 0);
 	   }
 
       return res;
@@ -399,7 +399,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          boolean overwrite = (Boolean) this.ctx.get("overwrite");
 
          long read = 0;
-         printOut("\nDecoding "+inputName+" ...", verbosity>1);
+         printOut("\nDecompressing "+inputName+" ...", verbosity>1);
          printOut("", verbosity>3);
 
          if (this.listeners.size() > 0)
@@ -586,14 +586,14 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
             if (verbosity > 1)
             {
-               printOut("Decoding:          "+str, true);
-               printOut("Input size:        "+this.cis.getRead(), true);
-               printOut("Output size:       "+read, true);
+               printOut("Decompressing:          "+str, true);
+               printOut("Input size:             "+this.cis.getRead(), true);
+               printOut("Output size:            "+read, true);
             }
 
             if (verbosity == 1)
             {
-               str = String.format("Decoding %s: %d => %d bytes in %s", inputName, this.cis.getRead(), read, str);
+               str = String.format("Decompressing %s: %d => %d in %s", inputName, this.cis.getRead(), read, str);
                printOut(str, true);
             }
 

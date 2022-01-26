@@ -382,7 +382,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             str = String.valueOf(delta) + " ms";
          }
 
-         printOut("Total encoding time: "+str, this.verbosity > 0);
+         printOut("Total compression time: "+str, this.verbosity > 0);
          printOut("Total output size: "+written+" byte"+((written>1)?"s":""), this.verbosity > 0);
 
          if (read > 0)
@@ -611,7 +611,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          }
 
          // Encode
-         printOut("\nEncoding "+inputName+" ...", verbosity>1);
+         printOut("\nCompressing "+inputName+" ...", verbosity>1);
          printOut("", verbosity>3);
          long read = 0;
          SliceByteArray sa = new SliceByteArray(new byte[DEFAULT_BUFFER_SIZE], 0);
@@ -699,7 +699,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             
             if (verbosity > 1)
             {
-               printOut("Encoding:          "+str, true);
+               printOut("Compressing:       "+str, true);
                printOut("Input size:        "+read, true);
                printOut("Output size:       "+this.cos.getWritten(), true);
                printOut("Compression ratio: "+String.format("%1$.6f", f), true);
@@ -707,7 +707,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             
             if (verbosity == 1)
             {
-               str = String.format("Encoding %s: %d => %d (%.2f%%) in %s", inputName, read, this.cos.getWritten(), 100*f, str);
+               str = String.format("Compressing %s: %d => %d (%.2f%%) in %s", inputName, read, this.cos.getWritten(), 100*f, str);
                printOut(str, true);
             }
 
