@@ -18,6 +18,7 @@ package kanzi.transform;
 import java.util.Map;
 import kanzi.ByteTransform;
 import kanzi.Global;
+import kanzi.Magic;
 import kanzi.SliceByteArray;
 
 
@@ -270,6 +271,14 @@ public final class TextCodec implements ByteTransform
    // The goal is to detect test data amenable to pre-processing.
    public static int computeStats(byte[] block, final int srcIdx, final int srcEnd, int[] freqs0, boolean strict)
    {
+      if (strict == false) 
+      {
+        // This is going to fail if the block is not the first of the file.
+        // But this is a cheap test, good enough for fast mode.
+        if (Magic.getType(block) != Magic.NO_MAGIC)
+            return TextCodec.MASK_NOT_TEXT;
+      }
+
       final int[][] freqs = new int[256][256];
 
       for (int i=0; i<256; i++)
