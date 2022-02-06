@@ -18,6 +18,7 @@ package kanzi.transform;
 import java.util.Map;
 import kanzi.ByteTransform;
 import kanzi.Global;
+import kanzi.Magic;
 import kanzi.SliceByteArray;
 
 // Fixed Step Delta codec
@@ -75,7 +76,22 @@ public class FSDCodec implements ByteTransform
       final int count5 = count / 5;
       final int count10 = count / 10;
       final int[][] histo = new int[6][256];
-
+      final int magic = Magic.getType(src);
+      
+      // Skip detection except for a few candidate types
+      switch (magic) 
+      {
+         case Magic.BMP_MAGIC:
+         case Magic.RIFF_MAGIC:
+         case Magic.PBM_MAGIC:
+         case Magic.PGM_MAGIC:
+         case Magic.PPM_MAGIC:
+         case Magic.NO_MAGIC:
+            break;
+         default:
+            return false;
+      };
+      
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
       for (int i=3*count5; i<(3*count5)+count10; i++)
