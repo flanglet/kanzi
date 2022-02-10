@@ -460,10 +460,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
            return "LZP+TEXT+BWT+LZP&CM";
 
         case 8 :
-           return "X86+RLT+TEXT&TPAQ";
+           return "EXE+RLT+TEXT&TPAQ";
 
         case 9 :
-           return "X86+RLT+TEXT&TPAQX";
+           return "EXE+RLT+TEXT&TPAQX";
 
         default :
            return "Unknown&Unknown";

@@ -653,14 +653,14 @@ public class Kanzi
          printOut("        Providing this option forces entropy and transform.", true);
          printOut("        0=None&None (store), 1=TEXT+LZ&HUFFMAN, 2=TEXT+FSD+LZX&HUFFMAN", true);
          printOut("        3=TEXT+FSD+ROLZ, 4=TEXT+FSD+ROLZX, 5=TEXT+BWT+RANK+ZRLT&ANS0", true);
-         printOut("        6=TEXT+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+BWT+LZP&CM, 8=X86+RLT+TEXT&TPAQ", true);
-         printOut("        9=X86+RLT+TEXT&TPAQX\n", true);
+         printOut("        6=TEXT+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+BWT+LZP&CM, 8=EXE+RLT+TEXT&TPAQ", true);
+         printOut("        9=EXE+RLT+TEXT&TPAQX\n", true);
          printOut("   -e, --entropy=<codec>", true);
          printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
          printOut("        (default is ANS0)\n", true);
          printOut("   -t, --transform=<codec>", true);
          printOut("        transform [None|BWT|BWTS|LZ|LZX|LZP|ROLZ|ROLZX|RLT|ZRLT]", true);
-         printOut("                  [MTFT|RANK|SRT|TEXT|X86]", true);
+         printOut("                  [MTFT|RANK|SRT|TEXT|EXE]", true);
          printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
          printOut("   -x, --checksum", true);
          printOut("        enable block checksum\n", true);

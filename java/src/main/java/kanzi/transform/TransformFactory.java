@@ -35,7 +35,7 @@ public class TransformFactory
    public static final short ZRLT_TYPE    = 6;  // Zero Run Length
    public static final short MTFT_TYPE    = 7;  // Move To Front
    public static final short RANK_TYPE    = 8;  // Rank
-   public static final short X86_TYPE     = 9;  // X86 codec
+   public static final short EXE_TYPE     = 9;  // EXE codec
    public static final short DICT_TYPE    = 10; // Text codec
    public static final short ROLZ_TYPE    = 11; // ROLZ codec
    public static final short ROLZX_TYPE   = 12; // ROLZ Extra codec
@@ -130,8 +130,8 @@ public class TransformFactory
          case "RLT":
             return RLT_TYPE;
 
-         case "X86":
-            return X86_TYPE;
+         case "EXE":
+            return EXE_TYPE;
 
          case "FSD":
             return FSD_TYPE;
@@ -233,7 +233,7 @@ public class TransformFactory
             ctx.put("lz", LZP_TYPE);
             return new LZCodec(ctx);
 
-         case X86_TYPE:
+         case EXE_TYPE:
             return new X86Codec(ctx);
 
          case FSD_TYPE:
@@ -308,8 +308,8 @@ public class TransformFactory
          case RLT_TYPE:
             return "RLT";
 
-         case X86_TYPE:
-            return "X86";
+         case EXE_TYPE:
+            return "EXE";
 
          case LZ_TYPE:
             return "LZ";
