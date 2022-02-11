@@ -24,7 +24,6 @@ import kanzi.Memory.LittleEndian;
 import kanzi.SliceByteArray;
 
 
-// Adapted from MCM: https://github.com/mathieuchartier/mcm/blob/master/X86Binary.hpp
 public class X86Codec implements ByteTransform
 {
    private static final byte X86_MASK_JUMP = (byte) 0xFE;

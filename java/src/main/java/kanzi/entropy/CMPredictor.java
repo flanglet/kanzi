@@ -19,8 +19,6 @@ import java.util.Arrays;
 import kanzi.Predictor;
 
 
-// Context model predictor based on BCM by Ilya Muravyov.
-// See https://github.com/encode84/bcm
 public class CMPredictor implements Predictor
 {
    private static final int FAST_RATE   = 2;
