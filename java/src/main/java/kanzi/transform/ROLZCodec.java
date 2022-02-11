@@ -17,7 +17,6 @@ package kanzi.transform;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.HashMap;
 import java.util.Map;
 import kanzi.ByteTransform;
 import kanzi.InputBitStream;
@@ -36,8 +35,6 @@ import kanzi.entropy.ANSRangeEncoder;
 public class ROLZCodec implements ByteTransform
 {
    private static final int HASH_SIZE = 1 << 16;
-   private static final int LOG_POS_CHECKS1 = 4;
-   private static final int LOG_POS_CHECKS2 = 5;
    private static final int CHUNK_SIZE = 1 << 26;
    private static final int MATCH_FLAG = 0;
    private static final int LITERAL_FLAG = 1;
@@ -65,8 +62,8 @@ public class ROLZCodec implements ByteTransform
    public ROLZCodec(Map<String, Object> ctx)
    {
       String transform = (String) ctx.getOrDefault("transform", "NONE");
-      this.delegate = (transform.contains("ROLZX")) ? new ROLZCodec2(LOG_POS_CHECKS2, ctx) 
-         : new ROLZCodec1(LOG_POS_CHECKS1, ctx);
+      this.delegate = (transform.contains("ROLZX")) ? new ROLZCodec2(ctx) 
+         : new ROLZCodec1(ctx);
    }
 
 
@@ -158,18 +155,19 @@ public class ROLZCodec implements ByteTransform
    {
       private static final int MIN_MATCH = 3;
       private static final int MAX_MATCH = MIN_MATCH + 65535;
+      private static final int LOG_POS_CHECKS = 4;
 
       private final int logPosChecks;
       private final int maskChecks;
       private final int posChecks;
       private final int[] matches;
       private final int[] counters;
-      private final int bsVersion;
+      private final Map<String, Object> ctx;
 
 
       public ROLZCodec1()
       {
-         this(LOG_POS_CHECKS1, null);
+         this(LOG_POS_CHECKS, null);
       }
 
 
@@ -178,8 +176,14 @@ public class ROLZCodec implements ByteTransform
          this(logPosChecks, null);
       }
 
-      
-      public ROLZCodec1(int logPosChecks, Map<String, Object> ctx)
+
+      public ROLZCodec1(Map<String, Object> ctx)
+      {
+         this(LOG_POS_CHECKS, ctx);
+      }
+
+            
+      protected ROLZCodec1(int logPosChecks, Map<String, Object> ctx)
       {
          if ((logPosChecks < 2) || (logPosChecks > 8))
             throw new IllegalArgumentException("ROLZ codec: Invalid logPosChecks parameter " +
@@ -190,7 +194,7 @@ public class ROLZCodec implements ByteTransform
          this.maskChecks = this.posChecks - 1;
          this.counters = new int[1<<16];
          this.matches = new int[HASH_SIZE<<this.logPosChecks];
-         this.bsVersion = (ctx != null) ? (Integer) ctx.getOrDefault("bsVersion", -1) : -1;
+         this.ctx = ctx;
       }
 
 
@@ -492,12 +496,10 @@ public class ROLZCodec implements ByteTransform
                   return false;
                }
 
-               Map<String, Object> ctx = new HashMap<>();
-               ctx.put("bsVersion", this.bsVersion);
-               ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, litOrder, ctx);
+               ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, litOrder, this.ctx);
                litDec.decode(litBuf.array, 0, litLen);
                litDec.dispose();
-               ANSRangeDecoder mDec = new ANSRangeDecoder(ibs, 0, ctx);
+               ANSRangeDecoder mDec = new ANSRangeDecoder(ibs, 0, this.ctx);
                mDec.decode(tkBuf.array, 0, tkLen);
                mDec.decode(lenBuf.array, 0, mLenLen);
                mDec.decode(mIdxBuf.array, 0, mIdxLen);
@@ -629,17 +631,19 @@ public class ROLZCodec implements ByteTransform
    {
       private static final int MIN_MATCH = 3;
       private static final int MAX_MATCH = MIN_MATCH + 255;
+      private static final int LOG_POS_CHECKS = 5;
 
       private final int logPosChecks;
       private final int maskChecks;
       private final int posChecks;
       private final int[] matches;
       private final int[] counters;
+      private final Map<String, Object> ctx;
 
 
       public ROLZCodec2()
       {
-         this(LOG_POS_CHECKS2, null);
+         this(LOG_POS_CHECKS, null);
       }
 
 
@@ -649,7 +653,13 @@ public class ROLZCodec implements ByteTransform
       }
          
       
-      public ROLZCodec2(int logPosChecks, Map<String, Object> ctx)
+      public ROLZCodec2(Map<String, Object> ctx)
+      {
+         this(LOG_POS_CHECKS, ctx);
+      }
+      
+      
+      protected ROLZCodec2(int logPosChecks, Map<String, Object> ctx)
       {         
          if ((logPosChecks < 2) || (logPosChecks > 8))
             throw new IllegalArgumentException("ROLZX codec: Invalid logPosChecks parameter " +
@@ -660,6 +670,7 @@ public class ROLZCodec implements ByteTransform
          this.maskChecks = this.posChecks - 1;
          this.counters = new int[1<<16];
          this.matches = new int[HASH_SIZE<<this.logPosChecks];
+         this.ctx = ctx;
       }
 
 
