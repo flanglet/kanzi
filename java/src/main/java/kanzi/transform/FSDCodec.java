@@ -129,12 +129,12 @@ public class FSDCodec implements ByteTransform
             minIdx = i;
       }
 
+      if (this.ctx != null)
+         this.ctx.put("dataType", Global.DataType.MULTIMEDIA);
+
       // If not better, quick exit
       if (ent[minIdx] >= ent[0])
          return false;
-
-      if (this.ctx != null)
-         this.ctx.put("dataType", Global.DataType.MULTIMEDIA);
 
       final int dist = (minIdx <= 4) ? minIdx : 8;
       int largeDeltas = 0;

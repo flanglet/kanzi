@@ -336,10 +336,10 @@ public final class TextCodec implements ByteTransform
             notText = ((nbTextChars < (count>>1)) || (freqs0[32] < (count/50))); 
       }
       
-      if (notText == true)
-         return detectType(freqs0, freqs, count);
-
       int res = (nbBinChars == 0) ? MASK_FULL_ASCII : 0;
+
+      if (notText == true)
+         return res | detectType(freqs0, freqs, count);
 
       if (nbBinChars <= count-count/10)
       {
@@ -642,7 +642,7 @@ public final class TextCodec implements ByteTransform
          {
             if (this.ctx != null)
             {
-               switch (mode)
+               switch (mode & ~MASK_FULL_ASCII)
                {
                   case MASK_NUMERIC:
                     this.ctx.put("dataType", Global.DataType.NUMERIC);
@@ -1194,7 +1194,7 @@ public final class TextCodec implements ByteTransform
          {
             if (this.ctx != null)
             {
-               switch (mode)
+               switch (mode & ~MASK_FULL_ASCII)
                {
                   case MASK_NUMERIC:
                     this.ctx.put("dataType", Global.DataType.NUMERIC);
