@@ -50,7 +50,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private static final int DEFAULT_BLOCK_SIZE  = 4*1024*1024;
    private static final int MIN_BLOCK_SIZE  = 1024;
    private static final int MAX_BLOCK_SIZE  = 1024*1024*1024;
-   private static final int DEFAULT_CONCURRENCY = 1;
    private static final int MAX_CONCURRENCY = 64;
    private static final String STDOUT = "STDOUT";
    private static final String STDIN = "STDIN";
@@ -129,7 +128,13 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.verbosity = (Integer) map.remove("verbose");
       int concurrency = (Integer) map.remove("jobs");
 
-      if (concurrency > MAX_CONCURRENCY)
+      if (concurrency == 0)
+      {
+         // Default to half of cores
+         int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1); 
+         concurrency = Math.min(cores, MAX_CONCURRENCY);
+      }
+      else if (concurrency > MAX_CONCURRENCY)
       {
          if (this.verbosity > 0)
             System.err.println("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY);
@@ -137,7 +142,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          concurrency = MAX_CONCURRENCY;
       }
 
-      this.jobs = (concurrency == 0) ? DEFAULT_CONCURRENCY : concurrency;
+      this.jobs = concurrency;
       this.pool = Executors.newFixedThreadPool(this.jobs);
       this.listeners = new ArrayList<>(10);
 

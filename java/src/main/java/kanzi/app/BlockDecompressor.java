@@ -47,7 +47,6 @@ import kanzi.Listener;
 public class BlockDecompressor implements Runnable, Callable<Integer>
 {
    private static final int DEFAULT_BUFFER_SIZE = 65536;
-   private static final int DEFAULT_CONCURRENCY = 1;
    private static final int MAX_CONCURRENCY = 64;
    private static final String STDOUT = "STDOUT";
    private static final String STDIN = "STDIN";
@@ -75,7 +74,13 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       this.to = (map.containsKey("to") ? (Integer) map.remove("to") : -1);
       int concurrency = (Integer) map.remove("jobs");
 
-      if (concurrency > MAX_CONCURRENCY)
+      if (concurrency == 0)
+      {
+         // Default to half of cores
+         int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1); 
+         concurrency = Math.min(cores, MAX_CONCURRENCY);
+      }
+      else if (concurrency > MAX_CONCURRENCY)
       {
          if (this.verbosity > 0)
             System.err.println("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY);
@@ -83,7 +88,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          concurrency = MAX_CONCURRENCY;
       }
 
-      this.jobs = (concurrency == 0) ? DEFAULT_CONCURRENCY : concurrency;
+      this.jobs = concurrency;
       this.pool = Executors.newFixedThreadPool(this.jobs);
       this.listeners = new ArrayList<>(10);
 

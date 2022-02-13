@@ -670,7 +670,7 @@ public class Kanzi
 
       printOut("   -j, --jobs=<jobs>", true);
       printOut("        maximum number of jobs the program may start concurrently", true);
-      printOut("        (default is 1, maximum is 64).\n", true);
+      printOut("        (default is half of available cores, maximum is 64).\n", true);
       printOut("   -v, --verbose=<level>", true);
       printOut("        0=silent, 1=default, 2=display details, 3=display configuration,", true);
       printOut("        4=display block size and timings, 5=display extra information", true);
