@@ -562,7 +562,7 @@ public class X86Codec implements ByteTransform
    {
       // Let us check the first bytes ... but this may not be the first block
       // Best effort
-      final int magic = Magic.getType(src);
+      final int magic = Magic.getType(src, start);
       this.arch = 0;
 
       if (this.parseHeader(src, start, count, magic) == true) 

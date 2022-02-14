@@ -56,9 +56,9 @@ public class Magic
    };
 
 
-   public static int getType(byte[] src)
+   public static int getType(byte[] src, int start)
    {
-      final int key = Memory.BigEndian.readInt32(src, 0);
+      final int key = Memory.BigEndian.readInt32(src, start);
 
       if (((key & ~0x0F) == JPG_MAGIC) || ((key >> 8) == BZIP2_MAGIC))
          return key;

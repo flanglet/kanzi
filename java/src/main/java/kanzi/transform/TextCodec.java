@@ -258,13 +258,13 @@ public final class TextCodec implements ByteTransform
 
    // Analyze the block and return an 8-bit status (see MASK flags constants)
    // The goal is to detect test data amenable to pre-processing.
-   public static int computeStats(byte[] block, final int srcIdx, final int srcEnd, int[] freqs0, boolean strict)
+   public static int computeStats(byte[] block, final int start, final int end, int[] freqs0, boolean strict)
    {
       if (strict == false) 
       {
         // This is going to fail if the block is not the first of the file.
         // But this is a cheap test, good enough for fast mode.
-        if (Magic.getType(block) != Magic.NO_MAGIC)
+        if (Magic.getType(block, start) != Magic.NO_MAGIC)
             return TextCodec.MASK_NOT_TEXT;
       }
 
@@ -274,11 +274,11 @@ public final class TextCodec implements ByteTransform
          freqs[i] = new int[256];
 
       int prv = 0;
-      final int count = srcEnd - srcIdx;
-      final int srcEnd4 = srcIdx + (count & -4);
+      final int count = end - start;
+      final int end4 = start + (count & -4);
 
       // Unroll loop
-      for (int i=srcIdx; i<srcEnd4; i+=4)
+      for (int i=start; i<end4; i+=4)
       {
          final int cur0 = block[i]   & 0xFF;
          final int cur1 = block[i+1] & 0xFF;
@@ -295,7 +295,7 @@ public final class TextCodec implements ByteTransform
          prv = cur3;
       }
 
-      for (int i=srcEnd4; i<srcEnd; i++)
+      for (int i=end4; i<end; i++)
       {
          final int cur = block[i] & 0xFF;
          freqs0[cur]++;

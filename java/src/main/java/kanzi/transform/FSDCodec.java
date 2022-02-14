@@ -71,12 +71,10 @@ public class FSDCodec implements ByteTransform
             return false;
       }
 
-      final byte[] src = input.array;
-      final byte[] dst = output.array;
       final int count5 = count / 5;
       final int count10 = count / 10;
       final int[][] histo = new int[6][256];
-      final int magic = Magic.getType(src);
+      final int magic = Magic.getType(input.array, input.index);
       
       // Skip detection except for a few candidate types
       switch (magic) 
@@ -90,11 +88,16 @@ public class FSDCodec implements ByteTransform
             break;
          default:
             return false;
-      };
+      }
+      
+      final byte[] src = input.array;
+      final byte[] dst = output.array;
+      final int start1 = input.index + 3*count5;
+      final int end1 = input.index + (3*count5) + count10;
       
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
-      for (int i=3*count5; i<(3*count5)+count10; i++)
+      for (int i=start1; i<end1; i++)
       {
          final byte b = src[i];
          histo[0][b&0xFF]++;
@@ -105,7 +108,10 @@ public class FSDCodec implements ByteTransform
          histo[5][(b^src[i-8])&0xFF]++;
       }
 
-      for (int i=1*count5+count10; i<2*count5; i++)
+      final int start2 = input.index + 1*count5 + count10;
+      final int end2 = input.index + 2*count5;
+
+      for (int i=start2; i<end2; i++)
       {
          final byte b = src[i];
          histo[0][b&0xFF]++;
