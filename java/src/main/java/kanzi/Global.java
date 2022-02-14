@@ -163,6 +163,12 @@ public class Global
       65536
    };
 
+   private static final byte[] BASE64_SYMBOLS =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
+
+   private static final byte[] NUMERIC_SYMBOLS = "0123456789+-*/=,.:; ".getBytes();
+
+   private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(); // either T or U and N for unknown   
 
    private static final int[] SQUASH = initSquash();
 
@@ -769,5 +775,36 @@ public class Global
       };
 
       Collections.sort(files, c);
+   }
+   
+   
+   public static DataType detectSimpleType(int[] freqs0, int count)
+   {
+      int sum = 0;
+
+      for (int i=0; i<12; i++)
+         sum += freqs0[DNA_SYMBOLS[i]];
+
+      if (sum >= count-count/12)
+         return DataType.DNA;
+
+      sum = 0;
+
+      for (int i=0; i<20; i++)
+         sum += freqs0[NUMERIC_SYMBOLS[i]];
+
+      if (sum >= (count/100)*98)
+         return DataType.NUMERIC;
+
+      // Last symbol with padding '='
+      sum = (freqs0[0x3D] == 1) ? 1 : 0;
+
+      for (int i=0; i<64; i++)
+         sum += freqs0[BASE64_SYMBOLS[i]];
+
+      if (sum == count)
+         return DataType.BASE64;  
+      
+      return DataType.UNDEFINED;
    }
 }

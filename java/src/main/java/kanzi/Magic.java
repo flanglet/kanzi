@@ -87,4 +87,28 @@ public class Magic
 
       return NO_MAGIC;      
    }
+   
+   
+   public static boolean isCompressed(int magic) 
+   {
+      switch (magic) 
+      {
+         case JPG_MAGIC:
+         case GIF_MAGIC:
+         case PNG_MAGIC:
+         case RIFF_MAGIC:
+         case LZMA_MAGIC:
+         case ZSTD_MAGIC:
+         case BROTLI_MAGIC:
+         case CAB_MAGIC:
+         case ZIP_MAGIC:
+         case GZIP_MAGIC:
+         case BZIP2_MAGIC:
+            return true;
+
+         default:
+            return false;
+      }
+   }
+   
 }

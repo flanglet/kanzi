@@ -42,10 +42,7 @@ public final class TextCodec implements ByteTransform
    private static final int HASH1 = 0x7FEB352D;
    private static final int HASH2 = 0x846CA68B;
    private static final int MASK_NOT_TEXT = 0x80;
-   private static final int MASK_DNA = MASK_NOT_TEXT | 0x40;
-   private static final int MASK_UTF8 = MASK_NOT_TEXT | 0x20;
-   private static final int MASK_BASE64 = MASK_NOT_TEXT | 0x10;
-   private static final int MASK_NUMERIC = MASK_NOT_TEXT | 0x08;
+   private static final int MASK_UTF8 = MASK_NOT_TEXT | 0x40;
    private static final int MASK_FULL_ASCII = 0x04;
    private static final int MASK_XML_HTML = 0x02;
    private static final int MASK_CRLF = 0x01;
@@ -176,14 +173,6 @@ public final class TextCodec implements ByteTransform
       "rGenerationLeafCopyMatchClaimAnyoneSoftwarePartyDeviceCodeLangua" +
       "geLinkHoweverConfirmCommentCityAnywhereSomewhereDebateDriveHighe" +
       "rBeautifulOnlineFanPriorityTraditionalSixUnited").getBytes();
-
-   private static final byte[] BASE64_SYMBOLS =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
-
-   private static final byte[] NUMERIC_SYMBOLS = "0123456789+-*/=,.:; ".getBytes();
-
-   private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(); // either T or U and N for unknown
-
 
    private static final DictEntry[] STATIC_DICTIONARY = new DictEntry[1024];
    private static final int STATIC_DICT_WORDS = createDictionary(DICT_EN_1024, STATIC_DICTIONARY, 1024, 0);
@@ -395,31 +384,9 @@ public final class TextCodec implements ByteTransform
 
    private static int detectType(int[] freqs0, int[][]freqs, int count)
    {
-      int sum = 0;
-
-      for (int i=0; i<12; i++)
-         sum += freqs0[DNA_SYMBOLS[i]];
-
-      if (sum >= count-count/12)
-         return MASK_DNA;
-
-      sum = 0;
-
-      for (int i=0; i<20; i++)
-         sum += freqs0[NUMERIC_SYMBOLS[i]];
-
-      if (sum >= (count/100)*98)
-         return MASK_NUMERIC;
-
-      // Last symbol with padding '='
-      sum = (freqs0[0x3D] == 1) ? 1 : 0;
-
-      for (int i=0; i<64; i++)
-         sum += freqs0[BASE64_SYMBOLS[i]];
-
-      if (sum == count)
-         return MASK_BASE64;
-
+      if (Global.detectSimpleType(freqs0, count) != Global.DataType.UNDEFINED)
+         return MASK_NOT_TEXT;
+      
       // Check UTF-8
       // See Unicode 14 Standard - UTF-8 Table 3.7
       // U+0000..U+007F          00..7F
@@ -441,7 +408,7 @@ public final class TextCodec implements ByteTransform
             return MASK_NOT_TEXT;
       }
 
-      sum = 0;
+      int sum = 0;
       
       for (int i=0; i<256; i++) 
       {
@@ -640,26 +607,8 @@ public final class TextCodec implements ByteTransform
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
          {
-            if (this.ctx != null)
-            {
-               switch (mode & ~MASK_FULL_ASCII)
-               {
-                  case MASK_NUMERIC:
-                    this.ctx.put("dataType", Global.DataType.NUMERIC);
-                    break;
-                  case MASK_BASE64:
-                    this.ctx.put("dataType", Global.DataType.BASE64);
-                    break;
-                  case MASK_UTF8:
-                    this.ctx.put("dataType", Global.DataType.UTF8);
-                    break;
-                  case MASK_DNA:
-                    this.ctx.put("dataType", Global.DataType.DNA);
-                    break;
-                  default :
-                    break;
-               }
-            }
+            if ((this.ctx != null) && ((mode & ~MASK_NOT_TEXT) == MASK_UTF8))
+               this.ctx.put("dataType", Global.DataType.UTF8);
 
             return false;
          }
@@ -1192,26 +1141,8 @@ public final class TextCodec implements ByteTransform
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
          {
-            if (this.ctx != null)
-            {
-               switch (mode & ~MASK_FULL_ASCII)
-               {
-                  case MASK_NUMERIC:
-                    this.ctx.put("dataType", Global.DataType.NUMERIC);
-                    break;
-                  case MASK_BASE64:
-                    this.ctx.put("dataType", Global.DataType.BASE64);
-                    break;
-                  case MASK_UTF8:
-                    this.ctx.put("dataType", Global.DataType.UTF8);
-                    break;
-                  case MASK_DNA:
-                    this.ctx.put("dataType", Global.DataType.DNA);
-                    break;
-                  default :
-                    break;
-               }
-            }
+            if ((this.ctx != null) && ((mode & ~MASK_NOT_TEXT) == MASK_UTF8))
+               this.ctx.put("dataType", Global.DataType.UTF8);
 
             return false;
          }
