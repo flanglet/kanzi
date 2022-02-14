@@ -17,6 +17,7 @@ package kanzi.transform;
 
 import java.util.Map;
 import kanzi.ByteTransform;
+import kanzi.Global;
 import kanzi.Memory;
 import kanzi.SliceByteArray;
 
@@ -98,8 +99,9 @@ public final class LZCodec implements ByteTransform
       private static final int HASH_MASK2         = (1<<HASH_LOG2) - 1;
       private static final int MAX_DISTANCE1      = (1<<17) - 2;
       private static final int MAX_DISTANCE2      = (1<<24) - 2;
-      private static final int MIN_MATCH          = 5;
-      private static final int MAX_MATCH          = 65535 + 254 + 15 + MIN_MATCH;
+      private static final int MIN_MATCH1         = 5;
+      private static final int MIN_MATCH2         = 9;
+      private static final int MAX_MATCH          = 65535 + 254 + 15 + MIN_MATCH1;
       private static final int MIN_BLOCK_LENGTH   = 24;
       private static final int MIN_MATCH_MIN_DIST = 1 << 16;
 
@@ -108,6 +110,7 @@ public final class LZCodec implements ByteTransform
       private byte[] mLenBuf;
       private byte[] tkBuf;
       private final boolean extra;
+      private final Map<String, Object> ctx;
 
 
       public LZXCodec()
@@ -117,6 +120,7 @@ public final class LZCodec implements ByteTransform
          this.mLenBuf = new byte[0];
          this.tkBuf = new byte[0];
          this.extra = false;
+         this.ctx = null;
       }
 
 
@@ -126,8 +130,9 @@ public final class LZCodec implements ByteTransform
          this.mBuf = new byte[0];
          this.mLenBuf = new byte[0];
          this.tkBuf = new byte[0];
-         short lzType = (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE);
-         this.extra = lzType == TransformFactory.LZX_TYPE;
+         this.extra = (ctx == null) ? false : 
+            (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE) == TransformFactory.LZX_TYPE;
+         this.ctx = ctx;
       }
 
 
@@ -236,6 +241,20 @@ public final class LZCodec implements ByteTransform
          final int srcEnd = srcIdx0 + count - 16 - 1;
          final int maxDist = (srcEnd < 4*MAX_DISTANCE1) ? MAX_DISTANCE1 : MAX_DISTANCE2;
          dst[dstIdx0+12] = (maxDist == MAX_DISTANCE1) ? (byte) 0 : (byte) 1;
+         int mm = MIN_MATCH1;
+                     
+         if (this.ctx != null)
+         {
+            Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
+            
+            if (dt == Global.DataType.DNA)
+            {
+               mm = MIN_MATCH2;
+               dst[dstIdx0+12] |= 2;
+            }
+         }
+         
+         final int minMatch = mm;
          final int dThreshold = (maxDist == MAX_DISTANCE1) ? MAX_DISTANCE1 + 1 : 1<<16;
          int srcIdx = srcIdx0;
          int anchor = srcIdx0;
@@ -268,7 +287,7 @@ public final class LZCodec implements ByteTransform
             }
 
             // No good match ?
-            if ((bestLen < MIN_MATCH) || ((bestLen == MIN_MATCH) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)))
+            if ((bestLen < minMatch) || ((bestLen == minMatch) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)))
             {
                srcIdx++;
                continue;
@@ -296,7 +315,7 @@ public final class LZCodec implements ByteTransform
                }
             }
 
-            final int mLen = bestLen - MIN_MATCH;
+            final int mLen = bestLen - minMatch;
             final int d = srcIdx - ref;
             int dist;
             
@@ -440,7 +459,8 @@ public final class LZCodec implements ByteTransform
             return false;
 
          final int srcEnd = srcIdx0 + tkIdx - 13;
-         final int maxDist = (src[srcIdx0+12] == 1) ? MAX_DISTANCE2 : MAX_DISTANCE1;
+         final int maxDist = ((src[srcIdx0+12] & 1) == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
+         final int minMatch = ((src[srcIdx0+12] & 2) == 0) ? MIN_MATCH1 : MIN_MATCH1;
          int srcIdx = srcIdx0 + 13;
          int dstIdx = dstIdx0;
          int repd0 = 0;
@@ -491,7 +511,7 @@ public final class LZCodec implements ByteTransform
                mLenIdx = sba2.index;
             }
 
-            mLen += MIN_MATCH;
+            mLen += minMatch;
             final int mEnd = dstIdx + mLen;
 
             // Get distance
