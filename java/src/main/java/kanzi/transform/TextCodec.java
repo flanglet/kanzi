@@ -42,10 +42,9 @@ public final class TextCodec implements ByteTransform
    private static final int HASH1 = 0x7FEB352D;
    private static final int HASH2 = 0x846CA68B;
    private static final int MASK_NOT_TEXT = 0x80;
-   private static final int MASK_UTF8 = MASK_NOT_TEXT | 0x40;
-   private static final int MASK_FULL_ASCII = 0x04;
-   private static final int MASK_XML_HTML = 0x02;
-   private static final int MASK_CRLF = 0x01;
+   private static final int MASK_CRLF = 0x40;
+   private static final int MASK_XML_HTML = 0x20;
+   private static final int MASK_DT = 0x0F;
    private static final int MASK_LENGTH = 0x0007FFFF; // 19 bits
 
    private static final boolean[] DELIMITER_CHARS = initDelimiterChars();
@@ -325,7 +324,7 @@ public final class TextCodec implements ByteTransform
             notText = ((nbTextChars < (count>>1)) || (freqs0[32] < (count/50))); 
       }
       
-      int res = (nbBinChars == 0) ? MASK_FULL_ASCII : 0;
+      int res = 0;
 
       if (notText == true)
          return res | detectType(freqs0, freqs, count);
@@ -384,8 +383,10 @@ public final class TextCodec implements ByteTransform
 
    private static int detectType(int[] freqs0, int[][]freqs, int count)
    {
-      if (Global.detectSimpleType(freqs0, count) != Global.DataType.UNDEFINED)
-         return MASK_NOT_TEXT;
+      Global.DataType dt = Global.detectSimpleType(freqs0, count);
+      
+      if (dt != Global.DataType.UNDEFINED)
+         return MASK_NOT_TEXT | dt.ordinal();
       
       // Check UTF-8
       // See Unicode 14 Standard - UTF-8 Table 3.7
@@ -434,7 +435,7 @@ public final class TextCodec implements ByteTransform
       } 
 
       // Another ad-hoc threshold
-      return (sum < count/4) ? MASK_NOT_TEXT : MASK_UTF8;  
+      return (sum < count/4) ? MASK_NOT_TEXT : MASK_NOT_TEXT | Global.DataType.UTF8.ordinal();  
    }
    
             
@@ -607,8 +608,19 @@ public final class TextCodec implements ByteTransform
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
          {
-            if ((this.ctx != null) && ((mode & ~MASK_NOT_TEXT) == MASK_UTF8))
-               this.ctx.put("dataType", Global.DataType.UTF8);
+            if (this.ctx != null)
+            {
+               final int dt = mode & MASK_DT;
+               
+               if (dt == Global.DataType.NUMERIC.ordinal())
+                  this.ctx.put("dataType", Global.DataType.NUMERIC);
+               else if (dt == Global.DataType.BASE64.ordinal())
+                  this.ctx.put("dataType", Global.DataType.BASE64);
+               else if (dt == Global.DataType.UTF8.ordinal())
+                  this.ctx.put("dataType", Global.DataType.UTF8);
+               else if (dt == Global.DataType.DNA.ordinal())
+                  this.ctx.put("dataType", Global.DataType.DNA);
+            }
 
             return false;
          }
@@ -1141,8 +1153,16 @@ public final class TextCodec implements ByteTransform
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
          {
-            if ((this.ctx != null) && ((mode & ~MASK_NOT_TEXT) == MASK_UTF8))
+            final int dt = mode & MASK_DT;
+
+            if (dt == Global.DataType.NUMERIC.ordinal())
+               this.ctx.put("dataType", Global.DataType.NUMERIC);
+            else if (dt == Global.DataType.BASE64.ordinal())
+               this.ctx.put("dataType", Global.DataType.BASE64);
+            else if (dt == Global.DataType.UTF8.ordinal())
                this.ctx.put("dataType", Global.DataType.UTF8);
+            else if (dt == Global.DataType.DNA.ordinal())
+               this.ctx.put("dataType", Global.DataType.DNA);
 
             return false;
          }
