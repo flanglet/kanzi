@@ -67,7 +67,8 @@ public class FSDCodec implements ByteTransform
          Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
             Global.DataType.UNDEFINED);
 
-         if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.MULTIMEDIA))
+         if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.MULTIMEDIA) &&
+             (dt != Global.DataType.BIN))
             return false;
       }
 

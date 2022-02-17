@@ -32,9 +32,10 @@ public class X86Codec implements ByteTransform
    private static final byte X86_TWO_BYTE_PREFIX = (byte) 0x0F;
    private static final byte X86_MASK_JCC = (byte) 0xF0;
    private static final byte X86_ESCAPE = (byte) 0x9B;
-   private static final byte NOT_EXE = 0;
-   private static final byte X86 = 1;
-   private static final byte ARM64 = 2;
+   private static final byte NOT_EXE = (byte) 0x80;
+   private static final byte X86 = (byte) 0x40;
+   private static final byte ARM64 = (byte) 0x20;
+   private static final byte MASK_DT = (byte) 0x0F;
    private static final int X86_ADDR_MASK = (1 << 24) - 1;
    private static final int MASK_ADDRESS = 0xF0F0F0F0;
    private static final int ARM_B_ADDR_MASK = (1 << 26) - 1;
@@ -114,11 +115,13 @@ public class X86Codec implements ByteTransform
       this.codeEnd = input.index + count - 8;
       byte mode = detectType(input.array, input.index, count-8);
 
-      if (mode == NOT_EXE)
+      if ((mode & NOT_EXE) != 0)
          return false;
 
+      mode &= ~MASK_DT;
+      
       if (this.ctx != null)
-         this.ctx.put("dataType", Global.DataType.EXE);
+         this.ctx.put("dataType", mode&MASK_DT);
 
       if (mode == X86)
          return this.forwardX86(input, output);
@@ -585,19 +588,12 @@ public class X86Codec implements ByteTransform
       
       int jumpsX86 = 0;
       int jumpsARM64 = 0;
-      int zeros = 0;
-      int smallVals = 0;
+      int[] histo = new int[256];
       final int end = start + count;
 
       for (int i=start; i<end; i++) 
       {
-         if (src[i] < 16) 
-         {
-            smallVals++;
-            
-            if (src[i] == 0)
-               zeros++;
-         }
+         histo[src[i]&0xFF]++;
 
          // X86
          if ((src[i] & X86_MASK_JUMP) == X86_INSTRUCTION_JUMP)
@@ -607,7 +603,7 @@ public class X86Codec implements ByteTransform
                // Count relative jumps (CALL = E8/ JUMP = E9 .. .. .. 00/FF)
                jumpsX86++;
             }
-         } 
+         }
          else if ((src[i] == X86_TWO_BYTE_PREFIX) && ((src[i+1] & X86_MASK_JCC) == X86_INSTRUCTION_JCC)) 
          {
             i++;
@@ -634,23 +630,29 @@ public class X86Codec implements ByteTransform
             jumpsARM64++;
       }
 
-      if (zeros < (count / 10))
-         return NOT_EXE;
+      Global.DataType dt = Global.detectSimpleType(histo, count); 
+      
+      if (dt != Global.DataType.BIN) 
+         return (byte) (NOT_EXE | dt.ordinal());	
 
       // Filter out (some/many) multimedia files
-      if (smallVals > (count / 2))
-         return NOT_EXE;
+      int smallVals = 0;
+
+      for (int i=0; i<16; i++)
+         smallVals += histo[i];
+
+      if ((histo[0] < (count/10)) || (smallVals > (count/2)) || (histo[255] < (count/100)))
+         return (byte) (NOT_EXE | dt.ordinal());
 
       // Ad-hoc thresholds
-      if (jumpsX86 >= (count / 200)) 
+      if ((jumpsX86 >= (count/200)) && (histo[255] >= (count/50)))
          return X86;
 
-      if (jumpsARM64 >= (count / 200))
-         return ARM64;
+      if (jumpsARM64 >= (count/200))
+        return ARM64;
 
-      // Number of jump instructions too small => either not a binary
-      // or not worth the change, skip.
-      return NOT_EXE;
+      // Number of jump instructions too small => either not an exe or not worth the change, skip.
+      return (byte) (NOT_EXE | dt.ordinal());	
    }
    
    

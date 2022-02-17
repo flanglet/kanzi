@@ -803,7 +803,15 @@ public class Global
          sum += freqs0[BASE64_SYMBOLS[i]];
 
       if (sum == count)
-         return DataType.BASE64;  
+         return DataType.BASE64;
+
+      sum = 0;
+
+      for (int i = 0; i < 256; i++)
+         sum += (freqs0[i] > 0) ? 1 : 0;
+
+      if (sum == 256)
+         return DataType.BIN;      
       
       return DataType.UNDEFINED;
    }
