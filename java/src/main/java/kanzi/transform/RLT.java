@@ -37,17 +37,20 @@ public class RLT implements ByteTransform
    private static final int MAX_RUN4 = MAX_RUN - 4;
 
    private final int[] freqs;
+   private final Map<String, Object> ctx;
 
 
    public RLT()
    {
       this.freqs = new int[256];
+      this.ctx = null;
    }
 
 
    public RLT(Map<String, Object> ctx)
    {
       this.freqs = new int[256];
+      this.ctx = ctx;
    }
 
 
@@ -71,7 +74,14 @@ public class RLT implements ByteTransform
       final byte[] src = input.array;
       final byte[] dst = output.array;
 
-      // Find escape symbol
+      if (this.ctx != null) 
+      {
+         Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
+
+         if ((dt == Global.DataType.DNA) || (dt == Global.DataType.BASE64) || (dt == Global.DataType.UTF8))
+            return false;
+      }
+
       int srcIdx = input.index;
       int dstIdx = output.index;
       final int srcEnd = srcIdx + count;
@@ -82,6 +92,14 @@ public class RLT implements ByteTransform
          this.freqs[i] = 0;
 
       Global.computeHistogramOrder0(src, srcIdx, srcEnd, this.freqs, false);
+      Global.DataType dt = Global.detectSimpleType(this.freqs, count);
+      
+      if ((this.ctx != null) && (dt != Global.DataType.UNDEFINED))
+         this.ctx.put("dataType", dt);
+
+      if ((dt == Global.DataType.DNA) || (dt == Global.DataType.BASE64) || (dt == Global.DataType.UTF8))
+         return false;
+      
       int minIdx = 0;
 
       // Select escape symbol
