@@ -92,7 +92,7 @@ public class RLT implements ByteTransform
          this.freqs[i] = 0;
 
       Global.computeHistogramOrder0(src, srcIdx, srcEnd, this.freqs, false);
-      Global.DataType dt = Global.detectSimpleType(this.freqs, count);
+      Global.DataType dt = Global.detectSimpleType(count, this.freqs);
       
       if ((this.ctx != null) && (dt != Global.DataType.UNDEFINED))
          this.ctx.put("dataType", dt);

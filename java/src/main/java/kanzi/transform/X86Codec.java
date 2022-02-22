@@ -637,7 +637,7 @@ public class X86Codec implements ByteTransform
             jumpsARM64++;
       }
 
-      Global.DataType dt = Global.detectSimpleType(histo, count); 
+      Global.DataType dt = Global.detectSimpleType(count, histo); 
       
       if (dt != Global.DataType.BIN) 
          return (byte) (NOT_EXE | dt.ordinal());	

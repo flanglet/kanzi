@@ -383,7 +383,7 @@ public final class TextCodec implements ByteTransform
 
    private static int detectType(int[] freqs0, int[][]freqs, int count)
    {
-      Global.DataType dt = Global.detectSimpleType(freqs0, count);
+      Global.DataType dt = Global.detectSimpleType(count, freqs0);
       
       if (dt != Global.DataType.UNDEFINED)
          return MASK_NOT_TEXT | dt.ordinal();

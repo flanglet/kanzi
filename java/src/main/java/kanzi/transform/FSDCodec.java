@@ -136,6 +136,9 @@ public class FSDCodec implements ByteTransform
             minIdx = i;
       }
 
+      if (this.ctx != null)
+         this.ctx.put("dataType", Global.detectSimpleType(count5, histo[0]));
+
       // If not better, quick exit
       if (ent[minIdx] >= ent[0])
          return false;

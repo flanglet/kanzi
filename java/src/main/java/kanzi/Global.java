@@ -778,7 +778,7 @@ public class Global
    }
    
    
-   public static DataType detectSimpleType(int[] freqs0, int count)
+   public static DataType detectSimpleType(int count, int[] freqs0)
    {
       int sum = 0;
 
