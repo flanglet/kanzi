@@ -44,14 +44,14 @@ import kanzi.entropy.EntropyUtils;
 
 
 
-// Implementation of a java.io.OutputStream that encodes a stream
+// Implementation of a java.io.OutputStream that compresses a stream
 // using a 2 step process:
 // - step 1: a ByteFunction is used to reduce the size of the input data (bytes input & output)
 // - step 2: an EntropyEncoder is used to entropy code the results of step 1 (bytes input, bits output)
 public class CompressedOutputStream extends OutputStream
 {
    private static final int BITSTREAM_TYPE           = 0x4B414E5A; // "KANZ"
-   private static final int BITSTREAM_FORMAT_VERSION = 2;
+   private static final int BITSTREAM_FORMAT_VERSION = 3;
    private static final int COPY_BLOCK_MASK          = 0x80;
    private static final int TRANSFORMS_MASK          = 0x10;
    private static final int MIN_BITSTREAM_BLOCK_SIZE = 1024;

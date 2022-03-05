@@ -111,6 +111,7 @@ public final class LZCodec implements ByteTransform
       private byte[] tkBuf;
       private final boolean extra;
       private final Map<String, Object> ctx;
+      private boolean isBsVersion2;
 
 
       public LZXCodec()
@@ -121,6 +122,7 @@ public final class LZCodec implements ByteTransform
          this.tkBuf = new byte[0];
          this.extra = false;
          this.ctx = null;
+         this.isBsVersion2 = false; // old encoding
       }
 
 
@@ -133,6 +135,8 @@ public final class LZCodec implements ByteTransform
          this.extra = (ctx == null) ? false : 
             (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE) == TransformFactory.LZX_TYPE;
          this.ctx = ctx;
+         final int bsVersion = (ctx == null) ? 3 : (Integer) ctx.getOrDefault("bsVersion", 3);
+         this.isBsVersion2 = bsVersion < 3; // old encoding
       }
 
 
@@ -439,6 +443,15 @@ public final class LZCodec implements ByteTransform
       @Override
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
+         if (this.isBsVersion2 == true)
+            return inverseV2(input, output); // old encdoing bitstream version < 3
+         
+         return inverseV3(input, output);
+      }
+      
+      
+      public boolean inverseV3(SliceByteArray input, SliceByteArray output)
+      {
          if (input.length == 0)
             return true;
 
@@ -574,7 +587,129 @@ public final class LZCodec implements ByteTransform
          return srcIdx == srcEnd + 13;
       }
 
+      
+      public boolean inverseV2(SliceByteArray input, SliceByteArray output)
+      {
+         if (input.length == 0)
+            return true;
 
+         final int count = input.length;
+         final int srcIdx0 = input.index;
+         final int dstIdx0 = output.index;
+         final byte[] src = input.array;
+         final byte[] dst = output.array;
+         final int dstEnd = dst.length - 16;
+         int tkIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
+         int mIdx = tkIdx + Memory.LittleEndian.readInt32(src, srcIdx0+4);
+
+         if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (tkIdx > srcIdx0+count) || (mIdx > srcIdx0+count))
+            return false;
+
+         final int srcEnd = srcIdx0 + tkIdx - 9;
+         final int maxDist = (src[srcIdx0+8] == 1) ? MAX_DISTANCE2 : MAX_DISTANCE1;
+         int srcIdx = srcIdx0 + 9;
+         int dstIdx = dstIdx0;
+         int repd = 0;
+         SliceByteArray sba1 = new SliceByteArray(src, srcIdx);
+         SliceByteArray sba2 = new SliceByteArray(src, mIdx);
+
+         while (true)
+         {
+            final int token = src[tkIdx++] & 0xFF;
+
+            if (token >= 32)
+            {
+               // Get literal length
+               int litLen = token >> 5;
+
+               if (litLen == 7)
+               {
+                  sba1.index = srcIdx;
+                  litLen += readLength(sba1);
+                  srcIdx = sba1.index;
+               }
+
+               // Emit literals
+               if (dstIdx+litLen >= dstEnd)
+               {
+                  System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
+               }
+               else
+               {
+                  emitLiterals(src, srcIdx, dst, dstIdx, litLen);
+               }
+
+               srcIdx += litLen;
+               dstIdx += litLen;
+
+               if (srcIdx >= srcEnd)
+                  break;
+            }
+
+            // Get match length
+            int mLen = token & 0x0F;
+
+            if (mLen == 15)
+            {
+               sba2.index = mIdx;
+               mLen += readLength(sba2);
+               mIdx = sba2.index;
+            }
+
+            mLen += 5;
+            final int mEnd = dstIdx + mLen;
+
+            // Get distance
+            int d = ((src[mIdx]&0xFF) << 8) | (src[mIdx+1]&0xFF);
+            mIdx += 2;
+
+            if ((token&0x10) != 0)
+            {
+               d = (maxDist==MAX_DISTANCE1) ? d+65536 : (d<<8) | (src[mIdx++]&0xFF);
+            }
+
+            final int dist = (d == 0) ? repd : d - 1;
+            repd = dist;
+
+            // Sanity check
+            if ((dstIdx-dist < dstIdx0) || (dist > maxDist) || (mEnd > dstEnd+16))
+            {
+               input.index = srcIdx;
+               output.index = dstIdx;
+               return false;
+            }
+
+            // Copy match
+            if (dist >= 16)
+            {
+               int ref = dstIdx - dist;
+
+               do
+               {
+                  // No overlap
+                  System.arraycopy(dst, ref, dst, dstIdx, 16);
+                  ref += 16;
+                  dstIdx += 16;
+               }
+               while (dstIdx < mEnd);
+            }
+            else
+            {
+               final int ref = dstIdx - dist;
+
+               for (int i=0; i<mLen; i++)
+                  dst[dstIdx+i] = dst[ref+i];
+            }
+
+            dstIdx = mEnd;
+         }
+
+         output.index = dstIdx;
+         input.index = mIdx;
+         return srcIdx == srcEnd + 9;
+      }
+
+      
       private int hash(byte[] block, int idx)
       {
          if (this.extra == true)

@@ -42,12 +42,12 @@ import kanzi.util.hash.XXHash32;
 import kanzi.Listener;
 
 
-// Implementation of a java.io.InputStream that can decode a stream
+// Implementation of a java.io.InputStream that can decompress a stream
 // compressed with CompressedOutputStream
 public class CompressedInputStream extends InputStream
 {
    private static final int BITSTREAM_TYPE           = 0x4B414E5A; // "KANZ"
-   private static final int BITSTREAM_FORMAT_VERSION = 2;
+   private static final int BITSTREAM_FORMAT_VERSION = 3;
    private static final int DEFAULT_BUFFER_SIZE      = 256*1024;
    private static final int EXTRA_BUFFER_SIZE        = 256;
    private static final int COPY_BLOCK_MASK          = 0x80;
@@ -638,7 +638,7 @@ public class CompressedInputStream extends InputStream
          // Read shared bitstream sequentially (each task is gated by _processedBlockId)
          final int lr = (int) this.ibs.readBits(5) + 3;
          long read = this.ibs.readBits(lr);
-         
+
          if (read == 0)
          {
             this.processedBlockId.set(CANCEL_TASKS_ID);
