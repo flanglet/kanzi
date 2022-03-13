@@ -39,6 +39,8 @@ public class ROLZCodec implements ByteTransform
    private static final int CHUNK_SIZE = 1 << 26;
    private static final int MATCH_FLAG = 0;
    private static final int LITERAL_FLAG = 1;
+   private static final int LITERAL_CTX = 0;
+   private static final int MATCH_CTX = 1;
    private static final int HASH = 200002979;
    private static final int HASH_MASK = ~(CHUNK_SIZE - 1);
    private static final int MAX_BLOCK_SIZE = 1 << 30; // 1 GB
@@ -815,7 +817,7 @@ public class ROLZCodec implements ByteTransform
             srcIdx = startChunk;
 
             // First literals
-            re.setContext(LITERAL_FLAG, (byte) 0);
+            re.setContext(LITERAL_CTX, (byte) 0);
             re.encode9Bits((LITERAL_FLAG<<8)|(src[srcIdx]&0xFF));
             srcIdx++;
 
@@ -828,7 +830,7 @@ public class ROLZCodec implements ByteTransform
             // Next chunk
             while (srcIdx < endChunk)
             {
-               re.setContext(LITERAL_FLAG, src[srcIdx-1]);
+               re.setContext(LITERAL_CTX, src[srcIdx-1]);
                final int match = findMatch(sba2, srcIdx);
 
                if (match < 0)
@@ -842,7 +844,7 @@ public class ROLZCodec implements ByteTransform
                // Emit one match length and index
                final int matchLen = match & 0xFFFF;
                re.encode9Bits((MATCH_FLAG<<8)|matchLen);
-               re.setContext(MATCH_FLAG, src[srcIdx-1]);
+               re.setContext(MATCH_CTX, src[srcIdx-1]);
                final int matchIdx = match >>> 16;        
                re.encodeBits(matchIdx, this.logPosChecks);
                srcIdx += (matchLen+this.minMatch);
@@ -854,7 +856,7 @@ public class ROLZCodec implements ByteTransform
          // Emit last literals
          for (int i=0; i<4; i++, srcIdx++)
          {
-            re.setContext(LITERAL_FLAG, src[srcIdx-1]);
+            re.setContext(LITERAL_CTX, src[srcIdx-1]);
             re.encode9Bits((LITERAL_FLAG<<8)|(src[srcIdx]&0xFF));
          }
 
@@ -899,7 +901,7 @@ public class ROLZCodec implements ByteTransform
             int dstIdx = output.index;
 
             // First literals
-            rd.setContext(LITERAL_FLAG, (byte) 0);
+            rd.setContext(LITERAL_CTX, (byte) 0);
             int val1 = rd.decode9Bits();
 
             // Sanity check
@@ -931,7 +933,7 @@ public class ROLZCodec implements ByteTransform
                final int savedIdx = dstIdx;
                final int key = getKey(dst, dstIdx-2) & 0xFFFF;
                final int base = key << this.logPosChecks;
-               rd.setContext(LITERAL_FLAG, dst[dstIdx-1]);
+               rd.setContext(LITERAL_CTX, dst[dstIdx-1]);
                final int val = rd.decode9Bits();
 
                if ((val>>>8) == LITERAL_FLAG)
@@ -951,7 +953,7 @@ public class ROLZCodec implements ByteTransform
                      break;
                   }
 
-                  rd.setContext(MATCH_FLAG, dst[dstIdx-1]);
+                  rd.setContext(MATCH_CTX, dst[dstIdx-1]);
                   final int matchIdx = rd.decodeBits(this.logPosChecks);
                   final int ref = output.index + this.matches[base+((this.counters[key]-matchIdx)&this.maskChecks)];
                   dstIdx = emitCopy(dst, dstIdx, ref, matchLen+this.minMatch);
@@ -988,8 +990,6 @@ public class ROLZCodec implements ByteTransform
       private static final long TOP         = 0x00FFFFFFFFFFFFFFL;
       private static final long MASK_0_32   = 0x00000000FFFFFFFFL;
       private static final int PSCALE       = 0xFFFF;
-      private static final int MATCH_FLAG   = 0;
-      private static final int LITERAL_FLAG = 1;
 
 
       private final SliceByteArray sba;
@@ -1010,25 +1010,25 @@ public class ROLZCodec implements ByteTransform
          this.pIdx = LITERAL_FLAG;
          this.c1 = 1;
          this.probs = new int[2][];
-         this.probs[MATCH_FLAG] = new int[256<<mLogSize];
-         this.probs[LITERAL_FLAG] = new int[256<<litLogSize];
+         this.probs[MATCH_CTX] = new int[256<<mLogSize];
+         this.probs[LITERAL_CTX] = new int[256<<litLogSize];
          this.logSizes = new int[2];
-         this.logSizes[MATCH_FLAG] = mLogSize;
-         this.logSizes[LITERAL_FLAG] = litLogSize;
+         this.logSizes[MATCH_CTX] = mLogSize;
+         this.logSizes[LITERAL_CTX] = litLogSize;
          this.reset();
       }
 
       private void reset()
       {
-         final int mLogSize = this.logSizes[MATCH_FLAG];
+         final int mLogSize = this.logSizes[MATCH_CTX];
 
          for (int i=0; i<(256<<mLogSize); i++)
-            this.probs[MATCH_FLAG][i] = PSCALE>>1;
+            this.probs[MATCH_CTX][i] = PSCALE>>1;
 
-         final int litLogSize = this.logSizes[LITERAL_FLAG];
+         final int litLogSize = this.logSizes[LITERAL_CTX];
 
          for (int i=0; i<(256<<litLogSize); i++)
-            this.probs[LITERAL_FLAG][i] = PSCALE>>1;
+            this.probs[LITERAL_CTX][i] = PSCALE>>1;
       }
 
       public void setContext(int n, byte ctx)
@@ -1111,8 +1111,6 @@ public class ROLZCodec implements ByteTransform
       private static final long MASK_0_56   = 0x00FFFFFFFFFFFFFFL;
       private static final long MASK_0_32   = 0x00000000FFFFFFFFL;
       private static final int PSCALE       = 0xFFFF;
-      private static final int MATCH_FLAG   = 0;
-      private static final int LITERAL_FLAG = 1;
 
       private final SliceByteArray sba;
       private long low;
@@ -1136,28 +1134,28 @@ public class ROLZCodec implements ByteTransform
             this.current = (this.current<<8) | (long) (this.sba.array[this.sba.index+i] &0xFF);
 
          this.sba.index += 8;
-         this.pIdx = LITERAL_FLAG;
+         this.pIdx = LITERAL_CTX;
          this.c1 = 1;
          this.probs = new int[2][];
-         this.probs[MATCH_FLAG] = new int[256<<mLogSize];
-         this.probs[LITERAL_FLAG] = new int[256<<litLogSize];
+         this.probs[MATCH_CTX] = new int[256<<mLogSize];
+         this.probs[LITERAL_CTX] = new int[256<<litLogSize];
          this.logSizes = new int[2];
-         this.logSizes[MATCH_FLAG] = mLogSize;
-         this.logSizes[LITERAL_FLAG] = litLogSize;
+         this.logSizes[MATCH_CTX] = mLogSize;
+         this.logSizes[LITERAL_CTX] = litLogSize;
          this.reset();
       }
 
       private void reset()
       {
-         final int mLogSize = this.logSizes[MATCH_FLAG];
+         final int mLogSize = this.logSizes[MATCH_CTX];
 
          for (int i=0; i<(256<<mLogSize); i++)
-            this.probs[MATCH_FLAG][i] = PSCALE>>1;
+            this.probs[MATCH_CTX][i] = PSCALE>>1;
 
-         final int litLogSize = this.logSizes[LITERAL_FLAG];
+         final int litLogSize = this.logSizes[LITERAL_CTX];
 
          for (int i=0; i<(256<<litLogSize); i++)
-            this.probs[LITERAL_FLAG][i] = PSCALE>>1;
+            this.probs[LITERAL_CTX][i] = PSCALE>>1;
       }
 
       public void setContext(int n, byte ctx)
