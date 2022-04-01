@@ -234,7 +234,7 @@ public class TransformFactory
             return new LZCodec(ctx);
 
          case EXE_TYPE:
-            return new X86Codec(ctx);
+            return new EXECodec(ctx);
 
          case FSD_TYPE:
             return new FSDCodec(ctx);

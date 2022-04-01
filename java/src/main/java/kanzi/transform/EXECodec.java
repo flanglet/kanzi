@@ -24,7 +24,7 @@ import kanzi.Memory.LittleEndian;
 import kanzi.SliceByteArray;
 
 
-public class X86Codec implements ByteTransform
+public class EXECodec implements ByteTransform
 {
    private static final byte X86_MASK_JUMP = (byte) 0xFE;
    private static final byte X86_INSTRUCTION_JUMP = (byte) 0xE8;
@@ -72,12 +72,12 @@ public class X86Codec implements ByteTransform
    private int arch;
 
 
-   public X86Codec()
+   public EXECodec()
    {
    }
 
 
-   public X86Codec(Map<String, Object> ctx)
+   public EXECodec(Map<String, Object> ctx)
    {
       this.ctx = ctx;
    }
