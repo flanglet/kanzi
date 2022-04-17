@@ -266,38 +266,54 @@ public final class LZCodec implements ByteTransform
          int mIdx = 0;
          int mLenIdx = 0;
          int tkIdx = 0;
-         int repd0 = 0;
+         int repd0 = count;
          int repd1 = 0;
 
          while (srcIdx < srcEnd)
          {
             final int minRef = Math.max(srcIdx-maxDist, srcIdx0);
             int h0 = hash(src, srcIdx);
-            int ref = this.hashes[h0];
-            this.hashes[h0] = srcIdx;
-            
-            if (ref <= minRef)
-            {
-               srcIdx++;
-               continue;
-            }
-                      
+            int ref = srcIdx - repd0;
             int bestLen = 0;
-
-            // Find a match
-            if (differentInts(src, ref, srcIdx) == false)
+            
+            if (ref > minRef)
             {
-               bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
+               // Check repd0 first
+               if (differentInts(src, ref, srcIdx) == false)
+               {
+                  bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
+               }
+            }                     
+
+            if (bestLen < minMatch) 
+            {
+               ref = this.hashes[h0];
+               this.hashes[h0] = srcIdx;
+               
+               if (ref <= minRef) 
+               {
+                  srcIdx++;
+                  continue;
+               }
+
+               if (differentInts(src, ref, srcIdx) == false)
+               {
+                  bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
+               }
+            } 
+            else 
+            {
+               this.hashes[h0] = srcIdx;
             }
 
             // No good match ?
-            if ((bestLen < minMatch) || ((bestLen == minMatch) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)))
+            if ((bestLen < minMatch) || ((bestLen == minMatch) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)&& (srcIdx-ref != repd0)))
             {
                srcIdx++;
                continue;
             }
 
-            if (ref != srcIdx - repd0)
+            if (ref != srcIdx-repd0)
             {
                // Check if better match at next position
                final int h1 = hash(src, srcIdx+1);
