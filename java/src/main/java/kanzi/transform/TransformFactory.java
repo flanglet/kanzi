@@ -43,12 +43,12 @@ public class TransformFactory
    public static final short LZP_TYPE     = 14; // Lempel Ziv Predict
    public static final short FSD_TYPE     = 15; // Fix Shift Delta codec
    public static final short LZX_TYPE     = 16; // Lempel Ziv Extra
-   public static final short RESERVED1    = 17; // Reserved
-   public static final short RESERVED2    = 18; // Reserved
-   public static final short RESERVED3    = 19; // Reserved
-   public static final short RESERVED4    = 20; // Reserved
-   public static final short RESERVED5    = 21; // Reserved
-   public static final short RESERVED6    = 22; // Reserved
+   public static final short UTF_TYPE     = 17; // UTF codec
+   public static final short RESERVED1    = 18; // Reserved
+   public static final short RESERVED2    = 19; // Reserved
+   public static final short RESERVED3    = 20; // Reserved
+   public static final short RESERVED4    = 21; // Reserved
+   public static final short RESERVED5    = 22; // Reserved
 
 
    // The returned type contains 8 transform values
@@ -126,6 +126,9 @@ public class TransformFactory
 
          case "ZRLT":
             return ZRLT_TYPE;
+
+         case "UTF":
+            return UTF_TYPE;
 
          case "RLT":
             return RLT_TYPE;
@@ -218,6 +221,9 @@ public class TransformFactory
          case ZRLT_TYPE:
             return new ZRLT(ctx);
 
+         case UTF_TYPE:
+            return new UTFCodec(ctx);
+
          case RLT_TYPE:
             return new RLT(ctx);
 
@@ -295,6 +301,9 @@ public class TransformFactory
 
          case SRT_TYPE:
             return "SRT";
+
+         case UTF_TYPE:
+            return "UTF";
 
          case RANK_TYPE:
             return "RANK";
