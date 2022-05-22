@@ -79,7 +79,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       this.freqs = new int[dim][257]; // freqs[x][256] = total(freqs[x][0..255])
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
-      this.logRange = logRange;
+      this.logRange = (order == 0) ? logRange : logRange - 1;
       this.chunkSize = Math.min(chunkSize << (8*order), MAX_CHUNK_SIZE);
 
       for (int i=0; i<dim; i++)
@@ -104,7 +104,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       this.freqs = new int[dim][257]; // freqs[x][256] = total(freqs[x][0..255])
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
-      this.logRange = DEFAULT_LOG_RANGE;
+      this.logRange = (order == 0) ? DEFAULT_LOG_RANGE : DEFAULT_LOG_RANGE - 1;
       this.chunkSize = Math.min(DEFAULT_ANS0_CHUNK_SIZE << (8*order), MAX_CHUNK_SIZE);
 
       for (int i=0; i<dim; i++)
