@@ -124,7 +124,7 @@ public class EXECodec implements ByteTransform
       mode &= ~MASK_DT;
       
       if (this.ctx != null)
-         this.ctx.put("dataType", mode&MASK_DT);
+         this.ctx.put("dataType", Global.DataType.EXE);
 
       if (mode == X86)
          return this.forwardX86(input, output);
