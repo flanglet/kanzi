@@ -277,9 +277,7 @@ public final class LZCodec implements ByteTransform
          int repd1 = 0;
 
          while (srcIdx < srcEnd)
-         {
-            if (3004847 == srcIdx)
-               System.out.println("");            
+         {          
             final int minRef = Math.max(srcIdx-maxDist, srcIdx0);
             int h0 = hash(src, srcIdx);
             int ref = srcIdx + 1 - repd0;
