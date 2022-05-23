@@ -192,12 +192,19 @@ public final class LZCodec implements ByteTransform
       {
          int bestLen = 0;
 
-         while ((bestLen+4 <= maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
+         while (bestLen+4 <= maxMatch) 
+         {
+            final int diff = Memory.LittleEndian.readInt32(src, srcIdx+bestLen) ^ Memory.LittleEndian.readInt32(src, ref+bestLen);
+
+            if (diff != 0) 
+            {
+               bestLen += (Long.numberOfTrailingZeros(diff)>>3);
+               break;
+            }
+
             bestLen += 4;
-
-         while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
-            bestLen++;
-
+         } 
+         
          return bestLen;
       }
 
@@ -271,17 +278,19 @@ public final class LZCodec implements ByteTransform
 
          while (srcIdx < srcEnd)
          {
+            if (3004847 == srcIdx)
+               System.out.println("");            
             final int minRef = Math.max(srcIdx-maxDist, srcIdx0);
             int h0 = hash(src, srcIdx);
-            int ref = srcIdx - repd0;
+            int ref = srcIdx + 1 - repd0;
             int bestLen = 0;
             
             if (ref > minRef)
             {
                // Check repd0 first
-               if (differentInts(src, ref, srcIdx) == false)
+               if (differentInts(src, ref, srcIdx+1) == false)
                {
-                  bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
+                  bestLen = 4 + findMatch(src, srcIdx+5, ref+4, Math.min(srcEnd-srcIdx-5, MAX_MATCH));
                }
             }                     
 
@@ -303,11 +312,12 @@ public final class LZCodec implements ByteTransform
             } 
             else 
             {
+               srcIdx++;
                this.hashes[h0] = srcIdx;
             }
 
             // No good match ?
-            if ((bestLen < minMatch) || ((bestLen == minMatch) && (srcIdx-ref >= MIN_MATCH_MIN_DIST)&& (srcIdx-ref != repd0)))
+            if ((bestLen < minMatch) || ((bestLen == minMatch) && (srcIdx-ref >= MIN_MATCH_MIN_DIST) && (srcIdx-ref != repd0)))
             {
                srcIdx++;
                continue;
@@ -326,7 +336,7 @@ public final class LZCodec implements ByteTransform
                   final int bestLen1 = findMatch(src, srcIdx+1, ref1, maxMatch);
 
                   // Select best match
-                  if ((bestLen1 > bestLen) || ((bestLen1 == bestLen) && ((srcIdx-ref1) < (srcIdx-ref)))) 
+                  if ((bestLen1 > bestLen) || ((bestLen1 == bestLen) && ((srcIdx+1-ref1) < (srcIdx-ref)))) 
                   {
                      ref = ref1;
                      bestLen = bestLen1;
@@ -335,7 +345,6 @@ public final class LZCodec implements ByteTransform
                }
             }
 
-            final int mLen = bestLen - minMatch;
             final int d = srcIdx - ref;
             int dist;
             
@@ -354,6 +363,7 @@ public final class LZCodec implements ByteTransform
             // Token: 3 bits litLen + 1 bit flag + 4 bits mLen (LLLFMMMM)
             // flag = if maxDist = MAX_DISTANCE1, then highest bit of distance
             //        else 1 if dist needs 3 bytes (> 0xFFFF) and 0 otherwise
+            final int mLen = bestLen - minMatch;
             final int token = ((dist>0xFFFF) ? 0x10 : 0) | Math.min(mLen, 15);
 
             // Literals to process ?
@@ -986,13 +996,17 @@ public final class LZCodec implements ByteTransform
       {
          int bestLen = 0;
 
-         while ((bestLen+4 < maxMatch) && (differentInts(src, ref+bestLen, srcIdx+bestLen) == false))
-            bestLen += 4;
-
-         if (bestLen >= MIN_MATCH - 4) 
+         while (bestLen+8 <= maxMatch) 
          {
-            while ((bestLen < maxMatch) && (src[ref+bestLen] == src[srcIdx+bestLen]))
-               bestLen++;
+            final long diff = Memory.LittleEndian.readLong64(src, srcIdx+bestLen) ^ Memory.LittleEndian.readLong64(src, ref+bestLen);
+
+            if (diff != 0) 
+            {
+               bestLen += (Long.numberOfTrailingZeros(diff)>>3);
+               break;
+            }
+
+            bestLen += 8;
          }
 
          return bestLen;
