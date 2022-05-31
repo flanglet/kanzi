@@ -72,11 +72,17 @@ public class ROLZCodec implements ByteTransform
       this.delegate = (transform.contains("ROLZX")) ? new ROLZCodec2(ctx) 
          : new ROLZCodec1(ctx);
    }
-
-
-   private static short getKey(final byte[] buf, final int idx)
+   
+   
+   private static int getKey1(final byte[] buf, final int idx)
    {
-      return (short) (Memory.LittleEndian.readInt16(buf, idx) & 0x7FFFFFFF);
+      return Memory.LittleEndian.readInt16(buf, idx) & 0xFFFF;
+   }
+   
+   
+   private static int getKey2(final byte[] buf, final int idx)
+   {
+      return (int) ((Memory.LittleEndian.readLong64(buf, idx) * HASH) >> 40) & 0xFFFF;
    }
 
 
@@ -156,7 +162,7 @@ public class ROLZCodec implements ByteTransform
    {
       private static final int MIN_MATCH3 = 3;
       private static final int MIN_MATCH4 = 4;
-      private static final int MIN_MATCH9 = 9;
+      private static final int MIN_MATCH7 = 7;
       private static final int MAX_MATCH = MIN_MATCH3 + 65535;
       private static final int LOG_POS_CHECKS = 4;
 
@@ -203,10 +209,9 @@ public class ROLZCodec implements ByteTransform
 
 
       // return position index (LOG_POS_CHECKS bits) + length (16 bits) or -1
-      private int findMatch(final SliceByteArray sba, final int pos)
+      private int findMatch(final SliceByteArray sba, final int pos, final int key)
       {
-         final byte[] buf = sba.array;
-         final int key = getKey(buf, pos-2) & 0xFFFF;
+         final byte[] buf = sba.array;         
          final int base = key << this.logPosChecks;
          final int hash32 = hash(buf, pos);
          final int counter = this.counters[key];
@@ -299,11 +304,12 @@ public class ROLZCodec implements ByteTransform
             }
             else if (dt == Global.DataType.DNA)
             {
-               this.minMatch = MIN_MATCH9;
+               this.minMatch = MIN_MATCH7;
                flags |= 4;
             }
          }
 
+         final int mm = this.minMatch;
          dst[output.index+4] = flags;
          int srcIdx = input.index;
          int dstIdx = output.index + 5;
@@ -323,9 +329,9 @@ public class ROLZCodec implements ByteTransform
             sizeChunk = endChunk - startChunk;
             srcIdx = startChunk;
             final SliceByteArray sba = new SliceByteArray(src, endChunk, startChunk);
-            litBuf.array[litBuf.index++] = src[srcIdx++];
+            final int n = Math.min(srcEnd-startChunk, 8);
 
-            if (startChunk+1 < srcEnd)
+            for (int j=0; j<n; j++)
                litBuf.array[litBuf.index++] = src[srcIdx++];
 
             int firstLitIdx = srcIdx;
@@ -333,7 +339,8 @@ public class ROLZCodec implements ByteTransform
             // Next chunk
             while (srcIdx < endChunk)
             {
-               final int match = findMatch(sba, srcIdx);
+               final int match = (mm == MIN_MATCH3) ? findMatch(sba, srcIdx, getKey1(src, srcIdx-2)) :
+                   findMatch(sba, srcIdx, getKey2(src, srcIdx-8));
 
                if (match == -1)
                {
@@ -374,7 +381,7 @@ public class ROLZCodec implements ByteTransform
 
                // Emit match index
                mIdxBuf.array[mIdxBuf.index++] = (byte) (match>>>16);
-               srcIdx += (mLen + this.minMatch);
+               srcIdx += (mLen + mm);
                firstLitIdx = srcIdx;
             }
 
@@ -486,11 +493,17 @@ public class ROLZCodec implements ByteTransform
          final int litOrder = src[input.index+4] & 0x01;
          this.minMatch = MIN_MATCH3;
          
-         if ((src[input.index+4] & 0x06) == 0x02) 
-            this.minMatch = MIN_MATCH4;
-         else if ((src[input.index+4] & 0x06) == 0x04) 
-            this.minMatch = MIN_MATCH9;
+         final int bsVersion = (this.ctx == null) ? 3 : (Integer) this.ctx.getOrDefault("bsVersion", 3);
          
+         if (bsVersion >= 3) 
+         {
+            if ((src[input.index+4] & 0x06) == 0x02) 
+               this.minMatch = MIN_MATCH4;
+            else if ((src[input.index+4] & 0x06) == 0x04) 
+               this.minMatch = MIN_MATCH7;
+         }
+         
+         final int mm = this.minMatch;
          int srcIdx = input.index + 5;
 
          // Main loop
@@ -538,9 +551,9 @@ public class ROLZCodec implements ByteTransform
                ibs.close();
             }
 
-            dst[dstIdx++] = litBuf.array[litBuf.index++];
+            final int n = Math.min(dstEnd-dstIdx, 8);
 
-            if (dstIdx+1 < dstEnd)
+            for (int j=0; j<n; j++)
                dst[dstIdx++] = litBuf.array[litBuf.index++];
 
             // Next chunk
@@ -554,7 +567,17 @@ public class ROLZCodec implements ByteTransform
                   matchLen = readLength(lenBuf) + 7;
 
                final int litLen = (mode < 0xF8) ? mode >> 3 : readLength(lenBuf) + 31;
-               this.emitLiterals(litBuf, dst, dstIdx, output.index, litLen);
+               final int n0 = dstIdx - output.index;
+
+               for (int j=0; j<litLen; j++)
+               {
+                  final int key = (mm == MIN_MATCH3) ? getKey1(dst, dstIdx+j-2) : getKey2(dst, dstIdx+j-8);
+                  final int base = key << this.logPosChecks;
+                  dst[dstIdx+j] = litBuf.array[litBuf.index+j];
+                  this.counters[key] = (this.counters[key]+1) & this.maskChecks;
+                  this.matches[base+this.counters[key]] = n0 + j;
+               }
+               
                litBuf.index += litLen;
                dstIdx += litLen;
 
@@ -570,14 +593,14 @@ public class ROLZCodec implements ByteTransform
                }
 
                // Sanity check
-               if (dstIdx+matchLen+this.minMatch > dstEnd)
+               if (dstIdx+matchLen+mm > dstEnd)
                {
                   output.index = dstIdx;
                   input.index = srcIdx;
                   return false;
                }
 
-               final int key = getKey(dst, dstIdx-2) & 0xFFFF;
+               final int key = (mm == MIN_MATCH3) ? getKey1(dst, dstIdx-2) : getKey2(dst, dstIdx-8);
                final int base = key << this.logPosChecks;
                final int matchIdx = mIdxBuf.array[mIdxBuf.index++] & 0xFF;
                final int ref = output.index + this.matches[base+((this.counters[key]-matchIdx)&this.maskChecks)];
@@ -629,23 +652,6 @@ public class ROLZCodec implements ByteTransform
       }
 
 
-      private int emitLiterals(SliceByteArray litBuf, byte[] dst, int dstIdx, int startIdx, final int length)
-      {
-         final int n0 = dstIdx - startIdx;
-
-         for (int n=0; n<length; n++)
-         {
-            final int key = getKey(dst, dstIdx+n-2) & 0xFFFF;
-            final int base = key << this.logPosChecks;
-            dst[dstIdx+n] = litBuf.array[litBuf.index+n];
-            this.counters[key] = (this.counters[key]+1) & this.maskChecks;
-            this.matches[base+this.counters[key]] = n0 + n;
-         }
-
-         return length;
-      }
-
-
       @Override
       public int getMaxEncodedLength(int srcLen)
       {
@@ -660,7 +666,7 @@ public class ROLZCodec implements ByteTransform
    {
       private static final int MIN_MATCH3 = 3;
       private static final int MIN_MATCH4 = 4;
-      private static final int MIN_MATCH9 = 9;
+      private static final int MIN_MATCH7 = 7;
       private static final int MAX_MATCH = MIN_MATCH3 + 255;
       private static final int LOG_POS_CHECKS = 5;
 
@@ -707,10 +713,9 @@ public class ROLZCodec implements ByteTransform
 
 
       // return position index (LOG_POS_CHECKS bits) + length (16 bits) or -1
-      private int findMatch(final SliceByteArray sba, final int pos)
+      private int findMatch(final SliceByteArray sba, final int pos, final int key)
       {
          final byte[] buf = sba.array;
-         final int key = getKey(buf, pos-2) & 0xFFFF;
          final int base = key << this.logPosChecks;
          final int hash32 = hash(buf, pos);
          final int counter = this.counters[key];
@@ -793,11 +798,12 @@ public class ROLZCodec implements ByteTransform
             }
             else if (dt == Global.DataType.DNA)
             {
-               this.minMatch = MIN_MATCH9;
+               this.minMatch = MIN_MATCH7;
                flags = 2;
             }
          }
 
+         final int mm = this.minMatch;
          dst[output.index+4] = flags;
          SliceByteArray sba1 = new SliceByteArray(dst, output.index+5);
          ROLZEncoder re = new ROLZEncoder(9, this.logPosChecks, sba1);
@@ -817,11 +823,10 @@ public class ROLZCodec implements ByteTransform
             srcIdx = startChunk;
 
             // First literals
+            final int n = Math.min(srcEnd-startChunk, 8);
             re.setContext(LITERAL_CTX, (byte) 0);
-            re.encode9Bits((LITERAL_FLAG<<8)|(src[srcIdx]&0xFF));
-            srcIdx++;
-
-            if (startChunk+1 < srcEnd)
+            
+            for (int j=0; j<n; j++)
             {
                re.encode9Bits((LITERAL_FLAG<<8)|(src[srcIdx]&0xFF));
                srcIdx++;
@@ -831,8 +836,9 @@ public class ROLZCodec implements ByteTransform
             while (srcIdx < endChunk)
             {
                re.setContext(LITERAL_CTX, src[srcIdx-1]);
-               final int match = findMatch(sba2, srcIdx);
-
+               final int match = (mm == MIN_MATCH3) ? findMatch(sba2, srcIdx, getKey1(src, srcIdx-2)) :
+                  findMatch(sba2, srcIdx, getKey2(src, srcIdx-8));
+                  
                if (match < 0)
                {
                   // Emit one literal
@@ -845,7 +851,7 @@ public class ROLZCodec implements ByteTransform
                final int matchLen = match & 0xFFFF;
                re.encode9Bits((MATCH_FLAG<<8)|matchLen);
                re.setContext(MATCH_CTX, src[srcIdx-1]);
-               final int matchIdx = match >>> 16;        
+               final int matchIdx = match >>> 16;
                re.encodeBits(matchIdx, this.logPosChecks);
                srcIdx += (matchLen+this.minMatch);
             }
@@ -877,13 +883,18 @@ public class ROLZCodec implements ByteTransform
          final int dstEnd = output.index + Memory.BigEndian.readInt32(src, input.index);
          int sizeChunk = Math.min(dstEnd-output.index, CHUNK_SIZE);
          int startChunk = output.index;
-         this.minMatch = MIN_MATCH3;
-         
-         if (src[input.index+4] == 1)
-            this.minMatch = MIN_MATCH4;
-         else if (src[input.index+4] == 2)
-            this.minMatch = MIN_MATCH9;
-                  
+         this.minMatch = MIN_MATCH3;         
+         final int bsVersion = (this.ctx == null) ? 3 : (Integer) this.ctx.getOrDefault("bsVersion", 3);
+
+         if (bsVersion >= 3)
+         {
+            if (src[input.index+4] == 1)
+               this.minMatch = MIN_MATCH4;
+            else if (src[input.index+4] == 2)
+               this.minMatch = MIN_MATCH7;
+         }
+              
+         final int mm = this.minMatch;
          int srcIdx = input.index + 5;
          SliceByteArray sba = new SliceByteArray(src, srcIdx);
          ROLZDecoder rd = new ROLZDecoder(9, this.logPosChecks, sba);
@@ -901,21 +912,12 @@ public class ROLZCodec implements ByteTransform
             int dstIdx = output.index;
 
             // First literals
+            final int n = Math.min(dstEnd-startChunk, 8);
             rd.setContext(LITERAL_CTX, (byte) 0);
-            int val1 = rd.decode9Bits();
-
-            // Sanity check
-            if ((val1>>>8) == MATCH_FLAG)
+            
+            for (int j=0; j<n; j++)
             {
-               output.index = dstIdx;
-               break;
-            }
-
-            dst[dstIdx++] = (byte) val1;
-
-            if (dstIdx < dstEnd)
-            {
-               val1 = rd.decode9Bits();
+               int val1 = rd.decode9Bits();
 
                // Sanity check
                if ((val1>>>8) == MATCH_FLAG)
@@ -931,7 +933,7 @@ public class ROLZCodec implements ByteTransform
             while (dstIdx < endChunk)
             {
                final int savedIdx = dstIdx;
-               final int key = getKey(dst, dstIdx-2) & 0xFFFF;
+               final int key = (mm == MIN_MATCH3) ? getKey1(dst, dstIdx-2) : getKey2(dst, dstIdx-8);
                final int base = key << this.logPosChecks;
                rd.setContext(LITERAL_CTX, dst[dstIdx-1]);
                final int val = rd.decode9Bits();
@@ -956,7 +958,7 @@ public class ROLZCodec implements ByteTransform
                   rd.setContext(MATCH_CTX, dst[dstIdx-1]);
                   final int matchIdx = rd.decodeBits(this.logPosChecks);
                   final int ref = output.index + this.matches[base+((this.counters[key]-matchIdx)&this.maskChecks)];
-                  dstIdx = emitCopy(dst, dstIdx, ref, matchLen+this.minMatch);
+                  dstIdx = emitCopy(dst, dstIdx, ref, matchLen+mm);
                }
 
                // Update map
