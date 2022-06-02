@@ -665,7 +665,6 @@ public class ROLZCodec implements ByteTransform
    static class ROLZCodec2 implements ByteTransform
    {
       private static final int MIN_MATCH3 = 3;
-      private static final int MIN_MATCH4 = 4;
       private static final int MIN_MATCH7 = 7;
       private static final int MAX_MATCH = MIN_MATCH3 + 255;
       private static final int LOG_POS_CHECKS = 5;
@@ -791,15 +790,10 @@ public class ROLZCodec implements ByteTransform
             Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
                Global.DataType.UNDEFINED);
 
-            if (dt == Global.DataType.MULTIMEDIA)
-            {
-               this.minMatch = MIN_MATCH4;
-               flags = 1;
-            }
-            else if (dt == Global.DataType.DNA)
+            if (dt == Global.DataType.DNA)
             {
                this.minMatch = MIN_MATCH7;
-               flags = 2;
+               flags = 1;
             }
          }
 
@@ -889,8 +883,6 @@ public class ROLZCodec implements ByteTransform
          if (bsVersion >= 3)
          {
             if (src[input.index+4] == 1)
-               this.minMatch = MIN_MATCH4;
-            else if (src[input.index+4] == 2)
                this.minMatch = MIN_MATCH7;
          }
               
