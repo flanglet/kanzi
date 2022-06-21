@@ -2,7 +2,7 @@ kanzi
 =====
 
 
-Kanzi is a modern, modular, expendable and efficient lossless data compressor implemented in Java.
+Kanzi is a modern, modular, expandable and efficient lossless data compressor implemented in Java.
 
 * modern: state-of-the-art algorithms are implemented and multi-core CPUs can take advantage of the built-in multi-threading.
 * modular: entropy codec and a combination of transforms can be provided at runtime to best match the kind of data to compress.
