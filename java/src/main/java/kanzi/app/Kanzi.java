@@ -338,6 +338,12 @@ public class Kanzi
                else
                   codec = name;
 
+	       if (codec.length() == 0)
+               {
+                  System.err.println("Invalid empty entropy provided on command line");
+                  return kanzi.Error.ERR_INVALID_PARAM;
+               }
+
                ctx = -1;
                continue;
            }
@@ -357,6 +363,12 @@ public class Kanzi
 
                while ((transform.length()>0) && (transform.charAt(transform.length()-1) == '+'))
                   transform = transform.substring(0, transform.length()-1);
+
+	       if (transform.length() == 0)
+               {
+                  System.err.println("Invalid empty transform provided on command line");
+                  return kanzi.Error.ERR_INVALID_PARAM;
+               }
 
                ctx = -1;
                continue;
@@ -651,16 +663,16 @@ public class Kanzi
          printOut("   -l, --level=<compression>", true);
          printOut("        set the compression level [0..9]", true);
          printOut("        Providing this option forces entropy and transform.", true);
-         printOut("        0=None&None (store), 1=TEXT+LZ&HUFFMAN, 2=TEXT+UTF+FSD+LZX&HUFFMAN", true);
-         printOut("        3=TEXT+UTF+FSD+ROLZ, 4=TEXT+UTF+FSD+ROLZX, 5=TEXT+UTF+BWT+RANK+ZRLT&ANS0", true);
-         printOut("        6=TEXT+UTF+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+UTF+BWT+LZP&CM, 8=EXE+RLT+TEXT+UTF&TPAQ", true);
-         printOut("        9=EXE+RLT+TEXT+UTF&TPAQX\n", true);
+         printOut("        0=None&None (store), 1=TEXT+LZ&HUFFMAN, 2=TEXT+FSD+LZX&HUFFMAN", true);
+         printOut("        3=TEXT+FSD+ROLZ, 4=TEXT+FSD+ROLZX, 5=TEXT+BWT+RANK+ZRLT&ANS0", true);
+         printOut("        6=TEXT+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+BWT+LZP&CM, 8=X86+RLT+TEXT&TPAQ", true);
+         printOut("        9=X86+RLT+TEXT&TPAQX\n", true);
          printOut("   -e, --entropy=<codec>", true);
          printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
          printOut("        (default is ANS0)\n", true);
          printOut("   -t, --transform=<codec>", true);
          printOut("        transform [None|BWT|BWTS|LZ|LZX|LZP|ROLZ|ROLZX|RLT|ZRLT]", true);
-         printOut("                  [MTFT|RANK|SRT|TEXT|EXE|UTF]", true);
+         printOut("                  [MTFT|RANK|SRT|TEXT|X86]", true);
          printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
          printOut("   -x, --checksum", true);
          printOut("        enable block checksum\n", true);
@@ -670,7 +682,7 @@ public class Kanzi
 
       printOut("   -j, --jobs=<jobs>", true);
       printOut("        maximum number of jobs the program may start concurrently", true);
-      printOut("        (default is half of available cores, maximum is 64).\n", true);
+      printOut("        (default is 1, maximum is 64).\n", true);
       printOut("   -v, --verbose=<level>", true);
       printOut("        0=silent, 1=default, 2=display details, 3=display configuration,", true);
       printOut("        4=display block size and timings, 5=display extra information", true);
