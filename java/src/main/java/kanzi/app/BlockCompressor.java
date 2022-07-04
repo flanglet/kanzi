@@ -524,6 +524,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          boolean overwrite = (Boolean) this.ctx.get("overwrite");
 
          OutputStream os;
+         File output = null;
 
          try
          {
@@ -537,7 +538,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             }
             else
             {
-               File output = new File(outputName);
+               output = new File(outputName);
 
                if (output.exists())
                {
@@ -684,6 +685,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          if (read == 0)
          {
             printOut("Input file " + inputName + " is empty... nothing to do", verbosity > 0);
+            
+            if (output != null)
+               output.delete(); // best effort to delete output file, ignore return code
+            
             return new FileCompressResult(0, read, this.cos.getWritten());
          }
 
