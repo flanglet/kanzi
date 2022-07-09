@@ -438,17 +438,19 @@ public final class TextCodec implements ByteTransform
       return (sum < count/4) ? MASK_NOT_TEXT : MASK_NOT_TEXT | Global.DataType.UTF8.ordinal();  
    }
    
-            
-   private static boolean sameWords(byte[] buf1, final int idx1, byte[] buf2, final int idx2, final int length)
+       
+   private static boolean sameWords(byte[] buf1, final int idx1, byte[] buf2, final int idx2, int length)
    {
-      for (int i=idx1, j=idx2; i<idx1+length; i++, j++)
+      while (length > 0) 
       {
-         if (buf1[i] != buf2[j])
-            return false;
-      }
+          length--;
+
+          if (buf1[idx1+length] != buf2[idx2+length])
+             return false;
+       }
 
       return true;
-   }
+    }
 
 
    @Override
@@ -543,11 +545,11 @@ public final class TextCodec implements ByteTransform
       private void reset(int count)
       {
          // Select an appropriate initial dictionary size
-         final int log = (count < 8) ? 13 : Math.max(Math.min(Global.log2(count / 8), 22), 17);
-         this.dictSize = 1 << (log - 4);
+         final int log = (count < 1024) ? 9 : Math.max(Math.min(Global.log2(count / 128), 18), 13);
+         this.dictSize = 1 << log;
 
          // Allocate lazily (only if text input detected)
-         if (this.dictMap.length == 0)
+         if (this.dictMap.length < (1<<this.logHashSize))
          {
             this.dictMap = new DictEntry[1<<this.logHashSize];
          }
@@ -557,7 +559,7 @@ public final class TextCodec implements ByteTransform
                this.dictMap[i] = null;
          }
 
-         if (this.dictList.length == 0)
+         if (this.dictList.length < this.dictSize)
          {
             this.dictList = new DictEntry[this.dictSize];
             System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
@@ -684,9 +686,10 @@ public final class TextCodec implements ByteTransform
 
                   // Check for hash collisions
                   if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
+                  {
                      e = e1;
-
-                  if (e == null)
+                  }
+                  else
                   {
                      DictEntry e2 = this.dictMap[h2&this.hashMask];
 
@@ -1091,11 +1094,11 @@ public final class TextCodec implements ByteTransform
       private void reset(int count)
       {
          // Select an appropriate initial dictionary size
-         final int log = (count < 8) ? 13 : Math.max(Math.min(Global.log2(count / 8), 22), 17);
-         this.dictSize = 1 << (log - 4);
+         final int log = (count < 1024) ? 9 : Math.max(Math.min(Global.log2(count / 128), 18), 13);
+         this.dictSize = 1 << log;
 
          // Allocate lazily (only if text input detected)
-         if (this.dictMap.length == 0)
+         if (this.dictMap.length < (1<<this.logHashSize))
          {
             this.dictMap = new DictEntry[1<<this.logHashSize];
          }
@@ -1105,7 +1108,7 @@ public final class TextCodec implements ByteTransform
                this.dictMap[i] = null;
          }
 
-         if (this.dictList.length == 0)
+         if (this.dictList.length < this.dictSize)
          {
             this.dictList = new DictEntry[this.dictSize];
             System.arraycopy(STATIC_DICTIONARY, 0, this.dictList, 0, Math.min(STATIC_DICTIONARY.length, this.dictSize));
@@ -1226,9 +1229,10 @@ public final class TextCodec implements ByteTransform
 
                   // Check for hash collisions
                   if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
+                  {
                      e = e1;
-
-                  if (e == null)
+                  }
+                  else
                   {
                      DictEntry e2 = this.dictMap[h2&this.hashMask];
 
