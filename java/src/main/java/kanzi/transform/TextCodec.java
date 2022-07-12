@@ -569,7 +569,7 @@ public final class TextCodec implements ByteTransform
             this.dictList[STATIC_DICT_WORDS+1] = new DictEntry(new byte[] { ESCAPE_TOKEN1 }, 0, 0, STATIC_DICT_WORDS+1, 1);
          }
 
-         for (int i=0; i<this.staticDictSize; i++)
+         for (int i=0; i<STATIC_DICT_WORDS; i++)
          {
             DictEntry e = this.dictList[i];
             this.dictMap[e.hash&this.hashMask] = e;
@@ -738,15 +738,7 @@ public final class TextCodec implements ByteTransform
                      // Skip space if only delimiter between 2 word references
                      if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
                      {
-                        final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
-
-                        if (dIdx < 0)
-                        {
-                           res = false;
-                           break;
-                        }
-
-                        dstIdx = dIdx;
+                        dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
                      }
 
                      if (dstIdx >= dstEnd4)
@@ -827,7 +819,7 @@ public final class TextCodec implements ByteTransform
                      lenIdx = 1;
 
                   if (dstIdx+lenIdx >= dstEnd)
-                     return -1;
+                     return dstEnd + 1;
 
                   dstIdx = emitWordIndex(dst, dstIdx, idx);
                   break;
@@ -1257,7 +1249,6 @@ public final class TextCodec implements ByteTransform
                         if ((e.data&MASK_LENGTH) >= this.staticDictSize)
                         {
                            // Reuse old entry
-                           this.dictMap[e.hash&this.hashMask] = null;
                            e.buf = src;
                            e.pos = delimAnchor + 1;
                            e.hash = h1;
@@ -1281,15 +1272,7 @@ public final class TextCodec implements ByteTransform
                      // Skip space if only delimiter between 2 word references
                      if ((emitAnchor != delimAnchor) || (src[delimAnchor] != ' '))
                      {
-                        final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
-
-                        if (dIdx < 0)
-                        {
-                           res = false;
-                           break;
-                        }
-
-                        dstIdx = dIdx;
+                        dstIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, delimAnchor+1, dstEnd);
                      }
 
                      if (dstIdx >= dstEnd3)
@@ -1383,7 +1366,7 @@ public final class TextCodec implements ByteTransform
                {
                   case ESCAPE_TOKEN1:
                      if (dstIdx >= dstEnd-1)
-                        return -1;
+                        return dstEnd + 1;
 
                      dst[dstIdx++] = ESCAPE_TOKEN1;
                      dst[dstIdx++] = ESCAPE_TOKEN1;
@@ -1393,7 +1376,7 @@ public final class TextCodec implements ByteTransform
                      if (this.isCRLF == false)
                      {
                         if (dstIdx >= dstEnd)
-                           return -1;
+                           return dstEnd + 1;
 
                         dst[dstIdx++] = cur;
                      }
@@ -1404,13 +1387,13 @@ public final class TextCodec implements ByteTransform
                      if ((cur & 0x80) != 0)
                      {
                         if (dstIdx >= dstEnd)
-                           return -1;
+                           return dstEnd + 1;
 
                         dst[dstIdx++] = ESCAPE_TOKEN1;
                      }
 
                      if (dstIdx >= dstEnd)
-                        return -1;
+                        return dstEnd + 1;
 
                      dst[dstIdx++] = cur;
                }
