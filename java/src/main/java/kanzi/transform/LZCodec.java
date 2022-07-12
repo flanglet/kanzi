@@ -91,7 +91,7 @@ public final class LZCodec implements ByteTransform
    static final class LZXCodec implements ByteTransform
    {
       private static final int HASH_SEED          = 0x1E35A7BD;
-      private static final int HASH_LOG1          = 16;
+      private static final int HASH_LOG1          = 17;
       private static final int HASH_SHIFT1        = 40 - HASH_LOG1;
       private static final int HASH_MASK1         = (1<<HASH_LOG1) - 1;
       private static final int HASH_LOG2          = 21;

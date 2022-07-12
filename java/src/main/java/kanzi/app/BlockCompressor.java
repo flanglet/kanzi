@@ -444,7 +444,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
            return "NONE&NONE";
 
         case 1 :
-           return "TEXT+LZ&HUFFMAN";
+           return "LZ&HUFFMAN";
 
         case 2 :
            return "TEXT+UTF+FSD+LZX&HUFFMAN";
