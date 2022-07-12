@@ -600,7 +600,8 @@ public final class TextCodec implements ByteTransform
             Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
                Global.DataType.UNDEFINED);
 
-            if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.TEXT))
+            // Filter out most types. Still check binaries which may contain significant parts of text
+            if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.TEXT) && (dt != Global.DataType.BIN))
                return false;
          }
 
@@ -1137,8 +1138,9 @@ public final class TextCodec implements ByteTransform
          {
             Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
                Global.DataType.UNDEFINED);
-
-            if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.TEXT))
+            
+            // Filter out most types. Still check binaries which may contain significant parts of text
+            if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.TEXT) && (dt != Global.DataType.BIN))
                return false;
          }
 
