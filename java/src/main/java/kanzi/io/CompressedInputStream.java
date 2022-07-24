@@ -149,14 +149,30 @@ public class CompressedInputStream extends InputStream
          this.hasher = new XXHash32(BITSTREAM_TYPE);
 
       // Read entropy codec
-      this.entropyType = (int) this.ibs.readBits(5);
-      this.ctx.put("codec", EntropyCodecFactory.getName(this.entropyType));
-      this.ctx.put("extra", this.entropyType == EntropyCodecFactory.TPAQX_TYPE);
-
-      // Read transforms: 8*6 bits
-      this.transformType = this.ibs.readBits(48);
-      this.ctx.put("transform", new TransformFactory().getName(this.transformType));
-
+      try
+      {
+         this.entropyType = (int) this.ibs.readBits(5);
+         this.ctx.put("codec", EntropyCodecFactory.getName(this.entropyType));
+         this.ctx.put("extra", this.entropyType == EntropyCodecFactory.TPAQX_TYPE);
+      }
+      catch (IllegalArgumentException e)
+      {
+         throw new kanzi.io.IOException("Invalid bitstream, unknown entropy codec type: "+
+                 this.entropyType , Error.ERR_INVALID_CODEC);
+      }
+      
+      try
+      {
+         // Read transforms: 8*6 bits
+         this.transformType = this.ibs.readBits(48);
+         this.ctx.put("transform", new TransformFactory().getName(this.transformType));
+      }
+      catch (IllegalArgumentException e)
+      {
+         throw new kanzi.io.IOException("Invalid bitstream, unknown transform type: "+
+                 this.transformType, Error.ERR_INVALID_CODEC);
+      }
+      
       // Read block size
       this.blockSize = (int) this.ibs.readBits(28) << 4;
 
@@ -182,36 +198,18 @@ public class CompressedInputStream extends InputStream
          StringBuilder sb = new StringBuilder(200);
          sb.append("Checksum set to ").append(this.hasher != null).append("\n");
          sb.append("Block size set to ").append(this.blockSize).append(" bytes").append("\n");
+         String w1 = EntropyCodecFactory.getName(this.entropyType);
 
-         try
-         {
-            String w1 = EntropyCodecFactory.getName(this.entropyType);
+         if ("NONE".equals(w1))
+            w1 = "no";
 
-            if ("NONE".equals(w1))
-               w1 = "no";
+         sb.append("Using ").append(w1).append(" entropy codec (stage 1)").append("\n");
+         String w2 = new TransformFactory().getName(this.transformType);
 
-            sb.append("Using ").append(w1).append(" entropy codec (stage 1)").append("\n");
-         }
-         catch (IllegalArgumentException e)
-         {
-            throw new kanzi.io.IOException("Invalid bitstream, unknown entropy codec type: "+
-                    this.entropyType , Error.ERR_INVALID_CODEC);
-         }
+         if ("NONE".equals(w2))
+            w2 = "no";
 
-         try
-         {
-            String w2 = new TransformFactory().getName(this.transformType);
-
-            if ("NONE".equals(w2))
-               w2 = "no";
-
-            sb.append("Using ").append(w2).append(" transform (stage 2)").append("\n");
-         }
-         catch (IllegalArgumentException e)
-         {
-            throw new kanzi.io.IOException("Invalid bitstream, unknown transform type: "+
-                    this.transformType, Error.ERR_INVALID_CODEC);
-         }
+         sb.append("Using ").append(w2).append(" transform (stage 2)").append("\n");
 
          // Protect against future concurrent modification of the block listeners list
          Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
