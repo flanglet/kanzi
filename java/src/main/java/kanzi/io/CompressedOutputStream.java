@@ -188,9 +188,6 @@ public class CompressedOutputStream extends OutputStream
 
       if (this.obs.writeBits(this.nbInputBlocks & (MAX_CONCURRENCY-1), 6) != 6)
          throw new kanzi.io.IOException("Cannot write number of blocks to header", Error.ERR_WRITE_FILE);
-
-      if (this.obs.writeBits(0L, 4) != 4)
-         throw new kanzi.io.IOException("Cannot write reserved bits to header", Error.ERR_WRITE_FILE);
       
       final int HASH = 0x1E35A7BD;
       int cksum = HASH * BITSTREAM_FORMAT_VERSION;
