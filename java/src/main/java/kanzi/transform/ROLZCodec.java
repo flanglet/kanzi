@@ -479,8 +479,13 @@ public class ROLZCodec implements ByteTransform
          final byte[] src = input.array;
          final byte[] dst = output.array;
          final int srcEnd = input.index + count;
-         final int dstEnd = output.index + Memory.BigEndian.readInt32(src, input.index) - 4;
-         int sizeChunk = Math.min(dstEnd-output.index, CHUNK_SIZE);
+         final int szBlock = Memory.BigEndian.readInt32(src, input.index) - 4;
+         
+         if ((szBlock <= 0) || (szBlock > output.length))
+            return false;
+         
+         final int dstEnd = output.index + szBlock;
+         int sizeChunk = Math.min(szBlock, CHUNK_SIZE);
          int startChunk = output.index;
          final SliceByteArray litBuf  = new SliceByteArray(new byte[this.getMaxEncodedLength(sizeChunk)], 0);
          final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/5], 0);
@@ -874,8 +879,13 @@ public class ROLZCodec implements ByteTransform
          final byte[] src = input.array;
          final byte[] dst = output.array;
          final int srcEnd = input.index + count;
-         final int dstEnd = output.index + Memory.BigEndian.readInt32(src, input.index);
-         int sizeChunk = Math.min(dstEnd-output.index, CHUNK_SIZE);
+         final int szBlock = Memory.BigEndian.readInt32(src, input.index);
+         
+         if ((szBlock <= 0) || (szBlock > output.length))
+            return false;
+         
+         final int dstEnd = output.index + szBlock;
+         int sizeChunk = Math.min(szBlock, CHUNK_SIZE);
          int startChunk = output.index;
          this.minMatch = MIN_MATCH3;         
          final int bsVersion = (this.ctx == null) ? 3 : (Integer) this.ctx.getOrDefault("bsVersion", 3);
