@@ -190,8 +190,24 @@ public class CompressedInputStream extends InputStream
       if (this.nbInputBlocks == 0)
          this.nbInputBlocks = UNKNOWN_NB_BLOCKS;
 
-      // Read reserved bits
-      this.ibs.readBits(4);
+      // Read checksum
+      final int cksum1 = (int) this.ibs.readBits(4);
+
+      if (bsVersion >= 3) 
+      {
+         // Verify checksum from bitstream version 3
+         final int HASH = 0x1E35A7BD;
+         int cksum2 = HASH * (int) (bsVersion);
+         cksum2 ^= (HASH * (int)  this.entropyType);
+         cksum2 ^= (HASH * (int) (this.transformType >>> 32));
+         cksum2 ^= (HASH * (int)  this.transformType);
+         cksum2 ^= (HASH * (int)  this.blockSize);
+         cksum2 ^= (HASH * (int)  this.nbInputBlocks);
+         cksum2 = (cksum2 >>> 23) ^ (cksum2 >>> 3);
+
+         if (cksum1 != (cksum2&0x0F))
+            throw new kanzi.io.IOException("Invalid bitstream, corrupted header", Error.ERR_CRC_CHECK);
+      }
 
       if (this.listeners.size() > 0)
       {

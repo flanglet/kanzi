@@ -140,7 +140,7 @@ public class CompressedOutputStream extends OutputStream
       // decompression scenario.
       long fileSize = (long) ctx.getOrDefault("fileSize", (long) UNKNOWN_NB_BLOCKS);
       int nbBlocks = (fileSize == UNKNOWN_NB_BLOCKS) ? UNKNOWN_NB_BLOCKS : (int) ((fileSize+(bSize-1)) / bSize);
-      this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
+      this.nbInputBlocks = Math.max(Math.min(nbBlocks, MAX_CONCURRENCY-1), 1);
 
       boolean checksum = (Boolean) ctx.get("checksum");
       this.hasher = (checksum == true) ? new XXHash32(BITSTREAM_TYPE) : null;
@@ -191,6 +191,18 @@ public class CompressedOutputStream extends OutputStream
 
       if (this.obs.writeBits(0L, 4) != 4)
          throw new kanzi.io.IOException("Cannot write reserved bits to header", Error.ERR_WRITE_FILE);
+      
+      final int HASH = 0x1E35A7BD;
+      int cksum = HASH * BITSTREAM_FORMAT_VERSION;
+      cksum ^= (HASH * (int)  this.entropyType);
+      cksum ^= (HASH * (int) (this.transformType >>> 32));
+      cksum ^= (HASH * (int)  this.transformType);
+      cksum ^= (HASH * (int)  this.blockSize);
+      cksum ^= (HASH * (int)  this.nbInputBlocks);
+      cksum = (cksum >>> 23) ^ (cksum >>> 3);
+
+      if (this.obs.writeBits(cksum, 4) != 4)
+         throw new kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);      
    }
 
 
