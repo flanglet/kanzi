@@ -32,7 +32,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 
-public class TestCompressedtStream
+public class TestCompressedStream
 {
    private static final ExecutorService pool = Executors.newFixedThreadPool(4);
 
