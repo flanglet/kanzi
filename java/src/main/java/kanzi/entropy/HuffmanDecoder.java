@@ -188,16 +188,34 @@ public class HuffmanDecoder implements EntropyDecoder
             padding++;
 
          final int endChunk4 = startChunk + Math.max(((endChunk-startChunk-padding)&-4), 0);
+         long st = 0;
+         int b = 0;
 
          for (int i=startChunk; i<endChunk4; i+=4)
          {
-            this.fetchBits();
-            block[i]   = this.decodeByte();
-            block[i+1] = this.decodeByte();
-            block[i+2] = this.decodeByte();
-            block[i+3] = this.decodeByte();
+            st = (st << -b) | this.bs.readBits(64-b);
+            b = 64;
+            final int idx0 = (int) (st >>> (b-DECODING_BATCH_SIZE));
+            final int val0 = this.table[idx0&TABLE_MASK];
+            b -= (val0 >>> 8);
+            final int idx1 = (int) (st >>> (b-DECODING_BATCH_SIZE));
+            final int val1 = this.table[idx1&TABLE_MASK];
+            b -= (val1 >>> 8);
+            final int idx2 = (int) (st >>> (b-DECODING_BATCH_SIZE));
+            final int val2 = this.table[idx2&TABLE_MASK];
+            b -= (val2 >>> 8);
+            final int idx3 = (int) (st >>> (b-DECODING_BATCH_SIZE));
+            final int val3 = this.table[idx3&TABLE_MASK];
+            b -= (val3 >>> 8);
+            block[i]   = (byte) val0;
+            block[i+1] = (byte) val1;
+            block[i+2] = (byte) val2;
+            block[i+3] = (byte) val3;
          }
 
+         this.state = st;
+         this.bits = b;
+         
          // Fallback to regular decoding
          for (int i=endChunk4; i<endChunk; i++)
             block[i] = this.slowDecodeByte();
@@ -237,23 +255,6 @@ public class HuffmanDecoder implements EntropyDecoder
 
       throw new BitStreamException("Invalid bitstream: incorrect Huffman code",
          BitStreamException.INVALID_STREAM);
-   }
-
-
-   private void fetchBits()
-   {
-      this.state = (this.bits == 0) ? this.bs.readBits(64) :
-         (this.state << -this.bits) | this.bs.readBits(64-this.bits);
-      this.bits = 64;
-   }
-
-
-   private byte decodeByte()
-   {
-      final int idx = (int) (this.state >>> (this.bits-DECODING_BATCH_SIZE));
-      final int val = this.table[idx&TABLE_MASK];
-      this.bits -= (val >>> 8);
-      return (byte) val;
    }
 
 
