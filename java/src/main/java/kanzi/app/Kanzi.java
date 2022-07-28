@@ -48,7 +48,7 @@ public class Kanzi
    // private static final int ARG_IDX_FROM = 10;
    //private static final int ARG_IDX_TO = 11;
 
-   private static final String APP_HEADER = "Kanzi 2.0 (c) Frederic Langlet";
+   private static final String APP_HEADER = "Kanzi 2.1 (c) Frederic Langlet";
 
 
    public static void main(String[] args)
