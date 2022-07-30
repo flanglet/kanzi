@@ -676,7 +676,7 @@ public class EXECodec implements ByteTransform
             if ((posPE > 0) && (posPE <= count-48) && (LittleEndian.readInt32(src, start+posPE) == WIN_PE)) 
             {
                this.codeStart = Math.min(start+LittleEndian.readInt32(src, start+posPE+44), start+count);
-               this.codeEnd = Math.min(start+LittleEndian.readInt32(src, start+posPE+28), start+count);
+               this.codeEnd = Math.min(this.codeStart+start+LittleEndian.readInt32(src, start+posPE+28), start+count);
                this.arch = LittleEndian.readInt16(src, start+posPE+4);                     
             }
 
