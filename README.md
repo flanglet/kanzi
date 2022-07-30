@@ -9,9 +9,9 @@ Kanzi is a modern, modular, expandable and efficient lossless data compressor im
 * expandable: clean design with heavy use of interfaces as contracts makes integrating and expanding the code easy. No dependencies.
 * efficient: the code is optimized for efficiency (trade-off between compression ratio and speed).
 
-Kanzi supports a wide range of compression ratios and can compress many files more than most common compressors (at the cost of decompression speed).
+Unlike the most common lossless data compressors, Kanzi uses a variety of different compression algorithms and supports a wider range of compression ratios as a result. Kanzi is also multithreadead by design and generates a seekable bit stream.
 It is not compatible with standard compression formats. 
-Kanzi is a lossless data compressor, not an archiver. It uses checksums (optional but recommendeD) to validate data integrity but does not have a mechanism for data recovery. It also lacks data deduplication across files.
+Kanzi is a lossless data compressor, not an archiver. It uses checksums (optional but recommended) to validate data integrity but does not have a mechanism for data recovery. It also lacks data deduplication across files.
 
 
 For more details, check https://github.com/flanglet/kanzi/wiki.
@@ -74,8 +74,8 @@ Kanzi version 2.1 Java implementation. Block size is 100 MB.
 |Lzma 5.2.2 -3	                  |       24.1	    |       2.6       |    55,743,540    |
 |**Kanzi -l 4 -j 1**              |      **9.8**    |     **6.3**     |  **54,998,198**  |
 |**Kanzi -l 4 -j 6**              |      **3.8**    |     **2.5**     |  **54,998,198**  |
-|Bzip2 1.0.6 -9	                  |       14.9      |       5.2       |    54,506,769	   |
-|Zstd 1.5.3 -19 --long=30	        |       62.0      |       0.3       |    52,828,057    |
+|Bzip2 1.0.6 -9	                  |       14.9      |       5.2       |    54,506,769    |
+|Zstd 1.5.3 -19 --long=30         |       62.0      |       0.3       |    52,828,057    |
 |Zstd 1.5.3 -19	-T6 --long=30     |       62.0      |       0.4       |    52,828,057    |
 |**Kanzi -l 5 -j 1**              |     **16.5**    |     **6.6**     |  **51,760,244**  |
 |**Kanzi -l 5 -j 6**              |      **6.0**    |     **2.5**     |  **51,760,244**  |
@@ -88,14 +88,14 @@ Kanzi version 2.1 Java implementation. Block size is 100 MB.
 |BCM 1.65 -b100                   |       15.5      |      21.1       |    46,506,716    |
 |**Kanzi -l 7 -j 1**              |     **23.8**    |    **13.4**     |  **46,447,003**  |
 |**Kanzi -l 7 -j 6**              |      **8.6**    |     **5.1**     |  **46,447,003**  |
-|Tangelo 2.4	                    |       83.2      |      85.9       |    44,862,127    |
+|Tangelo 2.4                      |       83.2      |      85.9       |    44,862,127    |
 |zpaq v7.14 m4 t1                 |      107.3	    |     112.2       |    42,628,166    |
 |zpaq v7.14 m4 t12                |      108.1	    |     111.5       |    42,628,166    |
-|**Kanzi -l 8 -j 1**              |     **60.5**    |    **62.1**     |  **41,821,155**  |
-|**Kanzi -l 8 -j 6**              |     **21.5**    |    **20.2**     |  **41,821,155**  |
-|Tangelo 2.0	                    |      302.0      |     310.9       |    41,267,068    |
-|**Kanzi -l 9 -j 1**              |     **89.4**    |    **92.3**     |  **40,361,411**  |
-|**Kanzi -l 9 -j 6**              |     **36.5**    |    **34.5**     |  **40,361,411**  |
+|**Kanzi -l 8 -j 1**              |     **60.2**    |    **62.1**     |  **41,821,127**  |
+|**Kanzi -l 8 -j 6**              |     **20.7**    |    **20.9**     |  **41,821,127**  |
+|Tangelo 2.0                      |      302.0      |     310.9       |    41,267,068    |
+|**Kanzi -l 9 -j 1**              |     **89.5**    |    **92.3**     |  **40,361,391**  |
+|**Kanzi -l 9 -j 6**              |     **37.4**    |    **34.9**     |  **40,361,391**  |
 |zpaq v7.14 m5 t1                 |      343.1	    |     352.0       |    39,112,924    |
 |zpaq v7.14 m5 t12                |	     344.3	    |     350.4       |    39,112,924    |
 
