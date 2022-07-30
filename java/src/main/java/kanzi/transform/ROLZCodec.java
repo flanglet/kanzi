@@ -556,7 +556,7 @@ public class ROLZCodec implements ByteTransform
                ibs.close();
             }
 
-            final int n = Math.min(dstEnd-dstIdx, 8);
+            final int n = (bsVersion < 3) ? 2 : Math.min(dstEnd-dstIdx, 8);
 
             for (int j=0; j<n; j++)
                dst[dstIdx++] = litBuf.array[litBuf.index++];
@@ -888,16 +888,16 @@ public class ROLZCodec implements ByteTransform
          int sizeChunk = Math.min(szBlock, CHUNK_SIZE);
          int startChunk = output.index;
          this.minMatch = MIN_MATCH3;         
+         int srcIdx = input.index + 4;
          final int bsVersion = (this.ctx == null) ? 3 : (Integer) this.ctx.getOrDefault("bsVersion", 3);
 
          if (bsVersion >= 3)
          {
-            if (src[input.index+4] == 1)
+            if (src[srcIdx++] == 1)
                this.minMatch = MIN_MATCH7;
          }
               
          final int mm = this.minMatch;
-         int srcIdx = input.index + 5;
          SliceByteArray sba = new SliceByteArray(src, srcIdx);
          ROLZDecoder rd = new ROLZDecoder(9, this.logPosChecks, sba);
 
@@ -914,7 +914,7 @@ public class ROLZCodec implements ByteTransform
             int dstIdx = output.index;
 
             // First literals
-            final int n = Math.min(dstEnd-startChunk, 8);
+            final int n = (bsVersion < 3) ? 2 : Math.min(dstEnd-startChunk, 8);
             rd.setContext(LITERAL_CTX, (byte) 0);
             
             for (int j=0; j<n; j++)
@@ -925,7 +925,7 @@ public class ROLZCodec implements ByteTransform
                if ((val1>>>8) == MATCH_FLAG)
                {
                   output.index = dstIdx;
-                  break;
+                  return false;
                }
 
                dst[dstIdx++] = (byte) val1;
@@ -954,7 +954,7 @@ public class ROLZCodec implements ByteTransform
                   if (dstIdx+matchLen+3 > dstEnd)
                   {
                      output.index = dstIdx;
-                     break;
+                     return false;
                   }
 
                   rd.setContext(MATCH_CTX, dst[dstIdx-1]);
