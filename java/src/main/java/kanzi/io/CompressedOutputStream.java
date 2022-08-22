@@ -40,6 +40,7 @@ import kanzi.entropy.EntropyCodecFactory;
 import kanzi.transform.Sequence;
 import kanzi.util.hash.XXHash32;
 import kanzi.Listener;
+import kanzi.Magic;
 import kanzi.entropy.EntropyUtils;
 
 
@@ -627,16 +628,25 @@ public class CompressedOutputStream extends OutputStream
             }
             else
             {
-               boolean skipHighEntropyBlocks = (Boolean) this.ctx.getOrDefault("skipBlocks", false);
+               boolean skipBlockOpt = (Boolean) this.ctx.getOrDefault("skipBlocks", false);
 
-               if (skipHighEntropyBlocks == true)
+               if (skipBlockOpt == true)
                {
-                  int[] histo = new int[256];
-                  Global.computeHistogramOrder0(data.array, data.index, data.index+blockLength, histo, false);
-                  final int entropy = Global.computeFirstOrderEntropy1024(blockLength, histo);
-                  //this.ctx.put("histo0", histo);
-
-                  if (entropy >= EntropyUtils.INCOMPRESSIBLE_THRESHOLD)
+                  boolean skipBlock = false;
+                  
+                  if (blockLength >= 8) 
+                     skipBlock = Magic.isCompressed(Magic.getType(data.array, data.index));
+				
+                  if (skipBlock == false)
+                  {
+                     int[] histo = new int[256];
+                     Global.computeHistogramOrder0(data.array, data.index, data.index+blockLength, histo, false);
+                     final int entropy = Global.computeFirstOrderEntropy1024(blockLength, histo);
+                     skipBlock = entropy >= EntropyUtils.INCOMPRESSIBLE_THRESHOLD;
+                     //this.ctx.put("histo0", histo);
+                  }
+                  
+                  if (skipBlock == true)
                   {
                      blockTransformType = TransformFactory.NONE_TYPE;
                      blockEntropyType = EntropyCodecFactory.NONE_TYPE;

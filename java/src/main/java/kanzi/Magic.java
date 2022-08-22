@@ -21,7 +21,7 @@ public class Magic
    public static final int GIF_MAGIC = 0x47494638;
    public static final int PDF_MAGIC = 0x25504446;
    public static final int ZIP_MAGIC = 0x504B0304; // Works for jar & office docs
-   public static final int LZMA_MAGIC = 0x377ABCAF;
+   public static final int LZMA_MAGIC = 0x377ABCAF;  // Works for 7z  37 7A BC AF 27 1C
    public static final int PNG_MAGIC = 0x89504E47;
    public static final int ELF_MAGIC = 0x7F454C46;
    public static final int MAC_MAGIC32 = 0xFEEDFACE;
@@ -30,10 +30,14 @@ public class Magic
    public static final int MAC_CIGAM64 = 0xCFFAEDFE;
    public static final int ZSTD_MAGIC = 0x28B52FFD;
    public static final int BROTLI_MAGIC = 0x81CFB2CE;
-   public static final int RIFF_MAGIC = 0x04524946;
+   public static final int RIFF_MAGIC = 0x52494646; // WAV, AVI, WEBP
    public static final int CAB_MAGIC = 0x4D534346;
-   
+   public static final int FLAC_MAGIC = 0x664C6143;
+   public static final int XZ_MAGIC = 0xFD377A58; // FD 37 7A 58 5A 00
+   public static final int KNZ_MAGIC = 0x4B414E5A;
+	
    public static final int BZIP2_MAGIC = 0x425A68;
+   public static final int MP3_ID3_MAGIC = 0x494433;
    
    public static final int GZIP_MAGIC = 0x1F8B;
    public static final int BMP_MAGIC = 0x424D;
@@ -47,7 +51,8 @@ public class Magic
    { 
       GIF_MAGIC, PDF_MAGIC, ZIP_MAGIC, LZMA_MAGIC, PNG_MAGIC,
       ELF_MAGIC, MAC_MAGIC32, MAC_CIGAM32, MAC_MAGIC64, MAC_CIGAM64,
-      ZSTD_MAGIC, BROTLI_MAGIC, CAB_MAGIC, RIFF_MAGIC
+      ZSTD_MAGIC, BROTLI_MAGIC, CAB_MAGIC, RIFF_MAGIC, FLAC_MAGIC,
+      XZ_MAGIC, KNZ_MAGIC
    };
 
    private static final int[] KEYS16 = 
@@ -56,12 +61,16 @@ public class Magic
    };
 
 
+   // 4 bytes must be available in 'src' at position 'start'
    public static int getType(byte[] src, int start)
    {
       final int key = Memory.BigEndian.readInt32(src, start);
 
-      if (((key & ~0x0F) == JPG_MAGIC) || ((key >> 8) == BZIP2_MAGIC))
+      if ((key & ~0x0F) == JPG_MAGIC)
          return key;
+
+      if (((key >> 8) == BZIP2_MAGIC) || ((key >> 8) == MP3_ID3_MAGIC))
+         return key >> 8;
 
       for (int i=0; i<KEYS32.length; i++) 
       {
@@ -104,6 +113,10 @@ public class Magic
          case ZIP_MAGIC:
          case GZIP_MAGIC:
          case BZIP2_MAGIC:
+         case FLAC_MAGIC:
+         case MP3_ID3_MAGIC:
+         case XZ_MAGIC:
+         case KNZ_MAGIC:       
             return true;
 
          default:
