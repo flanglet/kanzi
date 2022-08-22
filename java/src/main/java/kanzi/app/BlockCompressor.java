@@ -59,6 +59,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private final boolean overwrite;
    private final boolean checksum;
    private final boolean skipBlocks;
+   private final boolean reoderFiles;
    private final String inputName;
    private final String outputName;
    private final String codec;
@@ -125,6 +126,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.transform = (strTransf == null) ? "BWT+RANK+ZRLT" : bff.getName(bff.getType(strTransf));
       Boolean bChecksum = (Boolean) map.remove("checksum");
       this.checksum = (bChecksum == null) ? false : bChecksum;
+      Boolean bReorder = (Boolean) map.remove("fileReorder");
+      this.reoderFiles = (bReorder == null) ? true : bReorder;
       this.verbosity = (Integer) map.remove("verbose");
       int concurrency = (Integer) map.remove("jobs");
 
@@ -315,7 +318,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             ArrayBlockingQueue<FileCompressTask> queue = new ArrayBlockingQueue(nbFiles, true);
             int[] jobsPerTask = Global.computeJobsPerTask(new int[nbFiles], this.jobs, nbFiles);
             int n = 0;
-            Global.sortFilesByPathAndSize(files, true);
+            
+            if (this.reoderFiles == true)
+               Global.sortFilesByPathAndSize(files, true);
 
             // Create one task per file
             for (Path file : files)

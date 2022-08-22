@@ -140,6 +140,7 @@ public class Kanzi
         boolean overwrite = false;
         boolean checksum = false;
         boolean skip = false;
+        boolean fileReorder = true;
         String inputName = null;
         String outputName = null;
         String codec = null;
@@ -282,6 +283,16 @@ public class Kanzi
                continue;
            }
 
+           if (arg.equals("--no-file-reorder"))
+           {
+               if (ctx != -1)
+                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+
+               fileReorder = false;
+               ctx = -1;
+               continue;
+           }
+
            if (ctx == -1)
            {
                int idx = -1;
@@ -338,7 +349,7 @@ public class Kanzi
                else
                   codec = name;
 
-	       if (codec.length() == 0)
+               if (codec.length() == 0)
                {
                   System.err.println("Invalid empty entropy provided on command line");
                   return kanzi.Error.ERR_INVALID_PARAM;
@@ -364,7 +375,7 @@ public class Kanzi
                while ((transform.length()>0) && (transform.charAt(transform.length()-1) == '+'))
                   transform = transform.substring(0, transform.length()-1);
 
-	       if (transform.length() == 0)
+               if (transform.length() == 0)
                {
                   System.err.println("Invalid empty transform provided on command line");
                   return kanzi.Error.ERR_INVALID_PARAM;
@@ -587,7 +598,7 @@ public class Kanzi
            map.put("level", level);
 
         if (overwrite == true)
-           map.put("overwrite", overwrite);
+           map.put("overwrite", true);
 
         map.put("inputName", inputName);
         map.put("outputName", outputName);
@@ -599,10 +610,13 @@ public class Kanzi
            map.put("transform", transform);
 
         if (checksum == true)
-           map.put("checksum", checksum);
+           map.put("checksum", true);
+
+        if (fileReorder == false)
+           map.put("fileReorder", false);
 
         if (skip == true)
-           map.put("skipBlocks", skip);
+           map.put("skipBlocks", true);
 
         if (from >= 0)
            map.put("from", from);
