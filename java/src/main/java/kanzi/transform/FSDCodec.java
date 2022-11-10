@@ -94,7 +94,7 @@ public class FSDCodec implements ByteTransform
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int start1 = input.index + 3*count5;
-      final int end1 = input.index + (3*count5) + count10;
+      final int end1 = start1 + count10;
       
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
@@ -109,8 +109,8 @@ public class FSDCodec implements ByteTransform
          histo[5][(b^src[i-8])&0xFF]++;
       }
 
-      final int start2 = input.index + 1*count5 + count10;
-      final int end2 = input.index + 2*count5;
+      final int start2 = input.index + 1*count5;
+      final int end2 = start2 + count10;
 
       for (int i=start2; i<end2; i++)
       {
