@@ -98,6 +98,16 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                <archive>
+                    <manifestFile>MANIFEST.MF</manifestFile>
+                </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.6.1</version>
                 <configuration>
@@ -107,9 +117,6 @@
                     <optimize>true</optimize>
                     <showDeprecation>true</showDeprecation>
                     <showWarnings>true</showWarnings>
-                <archive>
-                    <manifestFile>MANIFEST.MF</manifestFile>
-                </archive>
                 </configuration>
             </plugin>
         </plugins>
