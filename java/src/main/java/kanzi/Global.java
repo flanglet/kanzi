@@ -28,7 +28,7 @@ public class Global
 {
    public enum DataType
    {
-      UNDEFINED, TEXT, MULTIMEDIA, EXE, NUMERIC, BASE64, DNA, BIN, UTF8
+      UNDEFINED, TEXT, MULTIMEDIA, EXE, NUMERIC, BASE64, DNA, BIN, UTF8, SMALL_ALPHABET
    }
 
    private Global()
@@ -813,6 +813,9 @@ public class Global
       if (sum == 256)
          return DataType.BIN;      
       
+      if (sum <= 4)
+         return DataType.SMALL_ALPHABET;
+
       return DataType.UNDEFINED;
    }
 }

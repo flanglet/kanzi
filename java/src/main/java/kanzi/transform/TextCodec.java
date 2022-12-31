@@ -384,7 +384,7 @@ public final class TextCodec implements ByteTransform
    private static int detectType(int[] freqs0, int[][]freqs, int count)
    {
       Global.DataType dt = Global.detectSimpleType(count, freqs0);
-      
+
       if (dt != Global.DataType.UNDEFINED)
          return MASK_NOT_TEXT | dt.ordinal();
       
@@ -614,7 +614,7 @@ public final class TextCodec implements ByteTransform
             if (this.ctx != null)
             {
                final int dt = mode & MASK_DT;
-               
+
                if (dt == Global.DataType.NUMERIC.ordinal())
                   this.ctx.put("dataType", Global.DataType.NUMERIC);
                else if (dt == Global.DataType.BASE64.ordinal())
@@ -623,6 +623,8 @@ public final class TextCodec implements ByteTransform
                   this.ctx.put("dataType", Global.DataType.UTF8);
                else if (dt == Global.DataType.DNA.ordinal())
                   this.ctx.put("dataType", Global.DataType.DNA);
+               else if (dt == Global.DataType.SMALL_ALPHABET.ordinal())
+                  this.ctx.put("dataType", Global.DataType.SMALL_ALPHABET);
             }
 
             return false;
@@ -1160,6 +1162,8 @@ public final class TextCodec implements ByteTransform
                this.ctx.put("dataType", Global.DataType.UTF8);
             else if (dt == Global.DataType.DNA.ordinal())
                this.ctx.put("dataType", Global.DataType.DNA);
+            else if (dt == Global.DataType.SMALL_ALPHABET.ordinal())
+               this.ctx.put("dataType", Global.DataType.SMALL_ALPHABET);
 
             return false;
          }

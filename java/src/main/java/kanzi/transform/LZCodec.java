@@ -257,11 +257,15 @@ public final class LZCodec implements ByteTransform
          if (this.ctx != null)
          {
             Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
-            
+
             if (dt == Global.DataType.DNA)
             {
                mm = MIN_MATCH2;
                dst[dstIdx0+12] |= 2;
+            }
+            else if (dt == Global.DataType.SMALL_ALPHABET)
+            {
+               return false;
             }
          }
          
