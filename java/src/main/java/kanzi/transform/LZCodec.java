@@ -314,8 +314,8 @@ public final class LZCodec implements ByteTransform
             } 
             else 
             {
-               srcIdx++;
                this.hashes[h0] = srcIdx;
+               srcIdx++;
             }
 
             // No good match ?
