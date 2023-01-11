@@ -613,18 +613,16 @@ public final class TextCodec implements ByteTransform
          {
             if (this.ctx != null)
             {
-               final int dt = mode & MASK_DT;
+                final int t = mode & MASK_DT;
 
-               if (dt == Global.DataType.NUMERIC.ordinal())
-                  this.ctx.put("dataType", Global.DataType.NUMERIC);
-               else if (dt == Global.DataType.BASE64.ordinal())
-                  this.ctx.put("dataType", Global.DataType.BASE64);
-               else if (dt == Global.DataType.UTF8.ordinal())
-                  this.ctx.put("dataType", Global.DataType.UTF8);
-               else if (dt == Global.DataType.DNA.ordinal())
-                  this.ctx.put("dataType", Global.DataType.DNA);
-               else if (dt == Global.DataType.SMALL_ALPHABET.ordinal())
-                  this.ctx.put("dataType", Global.DataType.SMALL_ALPHABET);
+                for (Global.DataType dt : Global.DataType.values())
+                {
+                    if (dt.ordinal() == t)
+                    {
+                        this.ctx.put("dataType", dt);
+                        break;
+                    }
+                }
             }
 
             return false;
@@ -1152,18 +1150,19 @@ public final class TextCodec implements ByteTransform
          // Not text ?
          if ((mode & MASK_NOT_TEXT) != 0)
          {
-            final int dt = mode & MASK_DT;
+            if (this.ctx != null)
+            {
+                final int t = mode & MASK_DT;
 
-            if (dt == Global.DataType.NUMERIC.ordinal())
-               this.ctx.put("dataType", Global.DataType.NUMERIC);
-            else if (dt == Global.DataType.BASE64.ordinal())
-               this.ctx.put("dataType", Global.DataType.BASE64);
-            else if (dt == Global.DataType.UTF8.ordinal())
-               this.ctx.put("dataType", Global.DataType.UTF8);
-            else if (dt == Global.DataType.DNA.ordinal())
-               this.ctx.put("dataType", Global.DataType.DNA);
-            else if (dt == Global.DataType.SMALL_ALPHABET.ordinal())
-               this.ctx.put("dataType", Global.DataType.SMALL_ALPHABET);
+                for (Global.DataType dt : Global.DataType.values())
+                {
+                    if (dt.ordinal() == t)
+                    {
+                        this.ctx.put("dataType", dt);
+                        break;
+                    }
+                }
+            }
 
             return false;
          }
