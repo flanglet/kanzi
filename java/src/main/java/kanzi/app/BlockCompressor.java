@@ -73,7 +73,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
    public BlockCompressor(Map<String, Object> map)
    {
-      this.level = (Integer) map.remove("level");
+      this.level = map.containsKey("level") ? (Integer) map.remove("level") : -1;
       Boolean bForce = (Boolean) map.remove("overwrite");
       this.overwrite = (bForce == null) ? false : bForce;
       Boolean bSkip = (Boolean) map.remove("skipBlocks");
