@@ -780,12 +780,15 @@ public class Global
    
    public static DataType detectSimpleType(int count, int[] freqs0)
    {
+      if (count == 0)
+         return DataType.UNDEFINED;
+      
       int sum = 0;
 
       for (int i=0; i<12; i++)
          sum += freqs0[DNA_SYMBOLS[i]];
 
-      if (sum >= count-count/12)
+      if (sum > count-count/12)
          return DataType.DNA;
 
       sum = 0;
@@ -793,7 +796,7 @@ public class Global
       for (int i=0; i<20; i++)
          sum += freqs0[NUMERIC_SYMBOLS[i]];
 
-      if (sum >= (count/100)*98)
+      if (sum == count)
          return DataType.NUMERIC;
 
       // Last symbol with padding '='
@@ -807,8 +810,17 @@ public class Global
 
       sum = 0;
 
-      for (int i = 0; i < 256; i++)
-         sum += (freqs0[i] > 0) ? 1 : 0;
+      for (int i=0; i<256; i+=8)
+      {
+         sum += (freqs0[i+0] > 0) ? 1 : 0;
+         sum += (freqs0[i+1] > 0) ? 1 : 0;
+         sum += (freqs0[i+2] > 0) ? 1 : 0;
+         sum += (freqs0[i+3] > 0) ? 1 : 0;
+         sum += (freqs0[i+4] > 0) ? 1 : 0;
+         sum += (freqs0[i+5] > 0) ? 1 : 0;
+         sum += (freqs0[i+6] > 0) ? 1 : 0;
+         sum += (freqs0[i+7] > 0) ? 1 : 0;
+      }
 
       if (sum == 256)
          return DataType.BIN;      
