@@ -50,8 +50,8 @@ public class HuffmanEncoder implements EntropyEncoder
       if (bitstream == null)
          throw new NullPointerException("Huffman codec: Invalid null bitstream parameter");
 
-      if (chunkSize < 1024)
-         throw new IllegalArgumentException("Huffman codec: The chunk size must be at least 1024");
+      if (chunkSize < HuffmanCommon.MIN_CHUNK_SIZE)
+         throw new IllegalArgumentException("Huffman codec: The chunk size must be at least "+HuffmanCommon.MIN_CHUNK_SIZE);
 
       if (chunkSize > HuffmanCommon.MAX_CHUNK_SIZE)
          throw new IllegalArgumentException("Huffman codec: The chunk size must be at most "+HuffmanCommon.MAX_CHUNK_SIZE);
