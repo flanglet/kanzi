@@ -18,6 +18,7 @@ package kanzi.entropy;
 public final class HuffmanCommon
 {
    public static final int LOG_MAX_CHUNK_SIZE = 14;
+   public static final int MIN_CHUNK_SIZE = 1024;
    public static final int MAX_CHUNK_SIZE = 1<<LOG_MAX_CHUNK_SIZE;
    public static final int MAX_SYMBOL_SIZE = LOG_MAX_CHUNK_SIZE;
    private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE<<8) + 256;
