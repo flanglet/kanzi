@@ -521,17 +521,18 @@ public final class TextCodec implements ByteTransform
       {
          int log = 13;
 
-         if (ctx.containsKey("blockSize"))
+         if (ctx != null)
          {
             // Actual block size
-            final int blockSize = (Integer) ctx.get("blockSize");
+            final int blockSize = (Integer) ctx.getOrDefault("blockSize", 4*1024*1024);
 
             if (blockSize >= 8)
                log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
+            
+            boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
+            log += (extraPerf == true) ? 1 : 0;         
          }
 
-         boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
-         log += (extraPerf == true) ? 1 : 0;
          this.logHashSize = log;
          this.dictSize = 1<<13;
          this.dictMap = new DictEntry[0];
@@ -613,16 +614,16 @@ public final class TextCodec implements ByteTransform
          {
             if (this.ctx != null)
             {
-                final int t = mode & MASK_DT;
+               final int t = mode & MASK_DT;
 
-                for (Global.DataType dt : Global.DataType.values())
-                {
-                    if (dt.ordinal() == t)
-                    {
-                        this.ctx.put("dataType", dt);
-                        break;
-                    }
-                }
+               for (Global.DataType dt : Global.DataType.values())
+               {
+                  if (dt.ordinal() == t)
+                  {
+                     this.ctx.put("dataType", dt);
+                     break;
+                  }
+               }
             }
 
             return false;
@@ -1063,17 +1064,18 @@ public final class TextCodec implements ByteTransform
       {
          int log = 13;
 
-         if (ctx.containsKey("blockSize"))
+         if (ctx != null)
          {
             // Actual block size
-            final int blockSize = (Integer) ctx.get("blockSize");
+            final int blockSize = (Integer) ctx.getOrDefault("blockSize", 4*1024*1024);
 
             if (blockSize >= 32)
                log = Math.max(Math.min(Global.log2(blockSize/32), 24), 13);
-         }
 
-         boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
-         log += (extraPerf == true) ? 1 : 0;
+            boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
+            log += (extraPerf == true) ? 1 : 0;     
+         }
+         
          this.logHashSize = log;
          this.dictSize = 1<<13;
          this.dictMap = new DictEntry[0];
@@ -1130,9 +1132,6 @@ public final class TextCodec implements ByteTransform
 
          final byte[] src = input.array;
          final byte[] dst = output.array;
-         int srcIdx = input.index;
-         int dstIdx = output.index;
-         final int srcEnd = input.index + count;
 
          if (this.ctx != null)
          {
@@ -1144,6 +1143,9 @@ public final class TextCodec implements ByteTransform
                return false;
          }
 
+         int srcIdx = input.index;
+         int dstIdx = output.index;
+         final int srcEnd = input.index + count;
          int[] freqs0 = new int[256];
          final int mode = computeStats(src, srcIdx, srcEnd, freqs0, false);
 
@@ -1152,16 +1154,16 @@ public final class TextCodec implements ByteTransform
          {
             if (this.ctx != null)
             {
-                final int t = mode & MASK_DT;
+               final int t = mode & MASK_DT;
 
-                for (Global.DataType dt : Global.DataType.values())
-                {
-                    if (dt.ordinal() == t)
-                    {
-                        this.ctx.put("dataType", dt);
-                        break;
-                    }
-                }
+               for (Global.DataType dt : Global.DataType.values())
+               {
+                  if (dt.ordinal() == t)
+                  {
+                     this.ctx.put("dataType", dt);
+                     break;
+                  }
+               }
             }
 
             return false;
@@ -1254,6 +1256,7 @@ public final class TextCodec implements ByteTransform
                         if ((e.data&MASK_LENGTH) >= this.staticDictSize)
                         {
                            // Reuse old entry
+                           this.dictMap[e.hash&this.hashMask] = null;
                            e.buf = src;
                            e.pos = delimAnchor + 1;
                            e.hash = h1;
