@@ -221,21 +221,21 @@ public class EntropyUtils
          ArrayList<FreqSortData> list = new ArrayList<>(alphabetSize);
 
          for (int i=0; i<alphabetSize; i++)
-            list.add(new FreqSortData(freqs, alphabet[i]));
+         {
+            // Do not zero out any frequency
+            if (freqs[alphabet[i]] != -inc)
+               list.add(new FreqSortData(freqs, alphabet[i]));
+         }
 
          Collections.sort(list);
          Deque<FreqSortData> queue = new ArrayDeque<>(list);
 
-         while ((sumScaledFreq != scale) && (queue.size() > 0))
+         while (sumScaledFreq != scale)
          {
-            // Remove symbol with highest frequency
+            // Remove next symbol
             FreqSortData fsd = queue.removeFirst();
 
-            // Do not zero out any frequency
-            if (freqs[fsd.symbol] == -inc)
-               continue;
-
-            // Distort frequency
+            // Distort frequency and re-enqueue
             freqs[fsd.symbol] += inc;
             sumScaledFreq += inc;
             queue.addLast(fsd);
