@@ -128,7 +128,7 @@ public class HuffmanEncoder implements EntropyEncoder
 
          // Normalize to a smaller scale
          EntropyUtils.normalizeFrequencies(f, symbols, totalFreq,
-              HuffmanCommon.MAX_CHUNK_SIZE>>(2*retries));
+              HuffmanCommon.MAX_CHUNK_SIZE>>retries);
 
          for (int i=0; i<count; i++)
             frequencies[this.alphabet[i]] = f[i];
