@@ -23,7 +23,7 @@ import kanzi.InputBitStream;
 // Uses tables to decode symbols
 public class HuffmanDecoder implements EntropyDecoder
 {
-   private static final int DECODING_BATCH_SIZE = 14; // ensures decoding table fits in L1 cache
+   private static final int DECODING_BATCH_SIZE = 12; // 14 or less ensures decoding table fits in L1 cache
    private static final int TABLE_MASK = (1<<DECODING_BATCH_SIZE) - 1;
 
    private final InputBitStream bs;
@@ -187,11 +187,12 @@ public class HuffmanDecoder implements EntropyDecoder
          if (minCodeLen * padding != 64)
             padding++;
 
-         final int endChunk4 = startChunk + Math.max(((endChunk-startChunk-padding)&-4), 0);
+         final int szChunk = Math.max(endChunk-startChunk-padding, 0);
+         final int endChunk5 = startChunk + szChunk - (szChunk % 5);
          long st = 0;
          int b = 0;
 
-         for (int i=startChunk; i<endChunk4; i+=4)
+         for (int i=startChunk; i<endChunk5; i+=5)
          {
             st = (st << -b) | this.bs.readBits(64-b);
             b = 64;
@@ -207,17 +208,21 @@ public class HuffmanDecoder implements EntropyDecoder
             final int idx3 = (int) (st >>> (b-DECODING_BATCH_SIZE));
             final int val3 = this.table[idx3&TABLE_MASK];
             b -= (val3 >>> 8);
+            final int idx4 = (int) (st >>> (b-DECODING_BATCH_SIZE));
+            final int val4 = this.table[idx4&TABLE_MASK];
+            b -= (val4 >>> 8);
             block[i]   = (byte) val0;
             block[i+1] = (byte) val1;
             block[i+2] = (byte) val2;
             block[i+3] = (byte) val3;
+            block[i+4] = (byte) val4;
          }
 
          this.state = st;
          this.bits = b;
          
          // Fallback to regular decoding
-         for (int i=endChunk4; i<endChunk; i++)
+         for (int i=endChunk5; i<endChunk; i++)
             block[i] = this.slowDecodeByte();
 
          startChunk = endChunk;
