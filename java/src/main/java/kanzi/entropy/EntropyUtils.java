@@ -15,10 +15,8 @@ limitations under the License.
 
 package kanzi.entropy;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
+import java.util.LinkedList;
 import kanzi.BitStreamException;
 import kanzi.InputBitStream;
 import kanzi.OutputBitStream;
@@ -218,22 +216,24 @@ public class EntropyUtils
 
          // Slow path: spread error across frequencies
          final int inc = (sumScaledFreq > scale) ? -1 : 1;
-         ArrayList<FreqSortData> list = new ArrayList<>(alphabetSize);
+         LinkedList<FreqSortData> queue = new LinkedList<>();
 
          for (int i=0; i<alphabetSize; i++)
          {
-            // Do not zero out any frequency
             if (freqs[alphabet[i]] != -inc)
-               list.add(new FreqSortData(freqs, alphabet[i]));
+               queue.add(new FreqSortData(freqs, alphabet[i]));
          }
 
-         Collections.sort(list);
-         Deque<FreqSortData> queue = new ArrayDeque<>(list);
+         Collections.sort(queue);
 
          while (sumScaledFreq != scale)
          {
             // Remove next symbol
             FreqSortData fsd = queue.removeFirst();
+            
+            // Do not zero out any frequency
+            if (freqs[fsd.symbol] == -inc)
+               continue;
 
             // Distort frequency and re-enqueue
             freqs[fsd.symbol] += inc;
