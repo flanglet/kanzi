@@ -221,7 +221,7 @@ public class EntropyUtils
          for (int i=0; i<alphabetSize; i++)
          {
             if (freqs[alphabet[i]] != -inc)
-               queue.add(new FreqSortData(freqs[alphabet[i]], alphabet[i]));
+               queue.add(new FreqSortData(freqs, alphabet[i]));
          }
 
          Collections.sort(queue);
@@ -232,11 +232,11 @@ public class EntropyUtils
             FreqSortData fsd = queue.removeFirst();
             
             // Do not zero out any frequency
-            if (fsd.freq == -inc)
+            if (freqs[fsd.symbol] == -inc)
                continue;
 
             // Distort frequency and re-enqueue
-            fsd.freq += inc;
+            freqs[fsd.symbol] += inc;
             sumScaledFreq += inc;
             queue.addLast(fsd);
          }
@@ -288,13 +288,13 @@ public class EntropyUtils
 
    private static class FreqSortData implements Comparable<FreqSortData>
    {
-      int freq;
+      int[] freqs;
       final int symbol;
 
 
-      public FreqSortData(int freq, int symbol)
+      public FreqSortData(int[] freqs, int symbol)
       {
-         this.freq = freq;
+         this.freqs = freqs;
          this.symbol = symbol & 0xFFFF;
       }
 
@@ -329,8 +329,12 @@ public class EntropyUtils
       @Override
       public int compareTo(FreqSortData sd)
       {
-         // Decreasing frequency then decreasing symbol
-         return (sd.freq == this.freq) ? sd.symbol - this.symbol : sd.freq - this.freq;
+         // Decreasing frequency
+         final int res = sd.freqs[sd.symbol] - this.freqs[this.symbol];
+
+         // Decreasing symbol
+         return (res == 0) ? sd.symbol - this.symbol : res;
+
       }
    }
 }
