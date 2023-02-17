@@ -23,7 +23,7 @@ import kanzi.InputBitStream;
 // Uses tables to decode symbols
 public class HuffmanDecoder implements EntropyDecoder
 {
-   private static final int DECODING_BATCH_SIZE = 12; // 14 or less ensures decoding table fits in L1 cache
+   private static final int DECODING_BATCH_SIZE = 14; // 14 or less ensures decoding table fits in L1 cache
    private static final int TABLE_MASK = (1<<DECODING_BATCH_SIZE) - 1;
 
    private final InputBitStream bs;
