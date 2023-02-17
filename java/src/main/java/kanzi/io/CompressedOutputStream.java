@@ -658,6 +658,18 @@ public class CompressedOutputStream extends OutputStream
             this.ctx.put("size", blockLength);
             Sequence transform = new TransformFactory().newFunction(this.ctx, blockTransformType);
             int requiredSize = transform.getMaxEncodedLength(blockLength);
+            
+            if (blockLength >= 4) 
+            {
+               final int magic = Magic.getType(data.array, 0);
+
+               if (Magic.isCompressed(magic) == true)
+                  this.ctx.put("dataType", Global.DataType.BIN);
+               else if (Magic.isMultimedia(magic) == true)
+                  this.ctx.put("dataType", Global.DataType.MULTIMEDIA);
+               else if (Magic.isExecutable(magic) == true)
+                  this.ctx.put("dataType", Global.DataType.EXE);
+            }      
 
             if (buffer.length < requiredSize)
             {
