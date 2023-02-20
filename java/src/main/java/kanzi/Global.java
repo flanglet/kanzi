@@ -666,9 +666,9 @@ public class Global
          else 
          {
             int prv0 = 0;
-            int prv1 = 256 * block[n1-1];
-            int prv2 = 256 * block[n2-1];
-            int prv3 = 256 * block[n3-1];
+            int prv1 = block[n1-1] & 0xFF;
+            int prv2 = block[n2-1] & 0xFF;
+            int prv3 = block[n3-1] & 0xFF;
 
             for (; n0<start+quarter; n0++, n1++, n2++, n3++)
             {
