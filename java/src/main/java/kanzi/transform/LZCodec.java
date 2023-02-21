@@ -135,7 +135,7 @@ public final class LZCodec implements ByteTransform
          this.extra = (ctx == null) ? false : 
             (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE) == TransformFactory.LZX_TYPE;
          this.ctx = ctx;
-         final int bsVersion = (ctx == null) ? 3 : (Integer) ctx.getOrDefault("bsVersion", 3);
+         final int bsVersion = (ctx == null) ? 3 : (int) ctx.getOrDefault("bsVersion", 3);
          this.isBsVersion2 = bsVersion < 3; // old encoding
       }
 
@@ -493,10 +493,16 @@ public final class LZCodec implements ByteTransform
          final byte[] dst = output.array;
          final int dstEnd = dst.length - 16;
          int tkIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
-         int mIdx = tkIdx + Memory.LittleEndian.readInt32(src, srcIdx0+4);
-         int mLenIdx = mIdx + Memory.LittleEndian.readInt32(src, srcIdx0+8);
+         int mIdx = Memory.LittleEndian.readInt32(src, srcIdx0+4);
+         int mLenIdx = Memory.LittleEndian.readInt32(src, srcIdx0+8);
 
-         if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (mLenIdx < srcIdx0) || (mLenIdx > srcIdx0+count))
+         if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (mLenIdx < srcIdx0))
+            return false;
+         
+         mIdx += tkIdx;
+         mLenIdx += mIdx;
+
+         if ((tkIdx > srcIdx0+count) || (mIdx > srcIdx0+count) || (mLenIdx > srcIdx0+count))
             return false;
 
          final int srcEnd = srcIdx0 + tkIdx - 13;
@@ -628,9 +634,14 @@ public final class LZCodec implements ByteTransform
          final byte[] dst = output.array;
          final int dstEnd = dst.length - 16;
          int tkIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
-         int mIdx = tkIdx + Memory.LittleEndian.readInt32(src, srcIdx0+4);
+         int mIdx = Memory.LittleEndian.readInt32(src, srcIdx0+4);
 
-         if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (tkIdx > srcIdx0+count) || (mIdx > srcIdx0+count))
+         if ((tkIdx < srcIdx0) || (mIdx < srcIdx0))
+            return false;
+
+         mIdx += tkIdx;
+         
+         if ((tkIdx > srcIdx0+count) || (mIdx > srcIdx0+count))
             return false;
 
          final int srcEnd = srcIdx0 + tkIdx - 9;
