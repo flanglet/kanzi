@@ -107,7 +107,7 @@ public class EXECodec implements ByteTransform
          Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
             Global.DataType.UNDEFINED);
 
-         if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.EXE))
+         if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.EXE) && (dt != Global.DataType.BIN))
             return false;
          
          final int bsVersion = (Integer) ctx.getOrDefault("bsVersion", -1);
