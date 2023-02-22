@@ -303,6 +303,9 @@ public class ROLZCodec implements ByteTransform
                int[] freqs0 = new int[256];
                Global.computeHistogramOrder0(src, 0, count, freqs0, false);
                dt = Global.detectSimpleType(count, freqs0);
+               
+               if (dt != Global.DataType.UNDEFINED)
+                  this.ctx.put("dataType", dt);
             }
 
             switch (dt)
@@ -847,6 +850,9 @@ public class ROLZCodec implements ByteTransform
                int[] freqs0 = new int[256];
                Global.computeHistogramOrder0(src, 0, count, freqs0, false);
                dt = Global.detectSimpleType(count, freqs0);
+               
+               if (dt != Global.DataType.UNDEFINED)
+                  this.ctx.put("dataType", dt);               
             }
             
             if (dt == Global.DataType.EXE) 
