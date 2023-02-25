@@ -196,6 +196,9 @@ public class UTFCodec implements ByteTransform
       if (input.length == 0)
          return true;
 
+      if (input.length < 4)
+         return false;
+
       if (input.array == output.array)
          return false;
 
