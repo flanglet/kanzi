@@ -59,10 +59,7 @@ public class UTFCodec implements ByteTransform
 
       final int count = input.length;
 
-      if (output.length < count)
-         return false;
-
-      if (output.index+count > output.array.length)
+      if (output.length - output.index < this.getMaxEncodedLength(count))
          return false;
 
       final byte[] src = input.array;
@@ -203,13 +200,6 @@ public class UTFCodec implements ByteTransform
          return false;
 
       final int count = input.length;
-
-      if (output.length < count)
-         return false;
-
-      if (output.index + count > output.array.length)
-         return false;
-
       final byte[] src = input.array;
       final byte[] dst = output.array;
       int srcIdx = input.index;
