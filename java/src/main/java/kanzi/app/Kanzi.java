@@ -141,6 +141,7 @@ public class Kanzi
         boolean checksum = false;
         boolean skip = false;
         boolean fileReorder = true;
+        boolean noDotFile = false;
         String inputName = null;
         String outputName = null;
         String codec = null;
@@ -288,8 +289,32 @@ public class Kanzi
                if (ctx != -1)
                   printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
 
-               fileReorder = false;
                ctx = -1;
+
+               if (mode != 'c')
+               {
+                  printOut("Warning: ignoring option [" + arg + "]. Only applicable in compress mode.", verbose>0);
+                  continue;
+               }
+               
+               fileReorder = false;
+               continue;
+           }
+
+           if (arg.equals("--no-dot-file"))
+           {
+               if (ctx != -1)
+                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+
+               ctx = -1;
+
+               if (mode != 'c')
+               {
+                  printOut("Warning: ignoring option [" + arg + "]. Only applicable in compress mode.", verbose>0);
+                  continue;
+               }
+               
+               noDotFile = true;
                continue;
            }
 
@@ -615,6 +640,9 @@ public class Kanzi
         if (fileReorder == false)
            map.put("fileReorder", false);
 
+        if (noDotFile == true)
+           map.put("noDotFile", true);
+
         if (skip == true)
            map.put("skipBlocks", true);
 
@@ -739,7 +767,8 @@ public class Kanzi
     }
 
 
-    public static void createFileList(String target, List<Path> files) throws IOException
+    public static void createFileList(String target, List<Path> files, boolean isRecursive,
+       boolean ignoreDotFiles) throws IOException
     {
        if (target == null)
           return;
@@ -754,9 +783,7 @@ public class Kanzi
 
        if (Files.isRegularFile(root) == true)
        {
-          if (target.charAt(0) != '.')
-             files.add(root);
-
+          files.add(root);
           return;
        }
 
@@ -764,32 +791,49 @@ public class Kanzi
        if (Files.isDirectory(root) == false)
           throw new IOException("Invalid file type '"+root+"'");
 
-       String suffix = File.separator + ".";
-       String strRoot = root.toString();
-       boolean isRecursive = !strRoot.endsWith(suffix);
+       if (ignoreDotFiles == true)
+       {
+          String name = root.toString();
+          int idx = name.lastIndexOf(File.separator);
 
-       if (isRecursive == true)
-       {
-          if (strRoot.endsWith(File.separator) == false)
-             root = Paths.get(strRoot+File.separator);
-       }
-       else
-       {
-          // Remove suffix
-          root = Paths.get(strRoot.substring(0, strRoot.length()-1));
+          if (idx > 0) 
+          {
+             name = name.substring(idx+1);
+
+             if (name.charAt(0) == '.')
+                return;
+          }
        }
 
        try (DirectoryStream<Path> stream = Files.newDirectoryStream(root))
        {
           for (Path entry: stream)
           {
-             if ((Files.exists(entry) == false) || (Files.isHidden(entry) == true))
+             if (Files.exists(entry) == false)
                 continue;
 
-             if ((Files.isRegularFile(entry) == true) && (String.valueOf(entry.getFileName()).startsWith(".") == false))
+             if (Files.isRegularFile(entry) == true)
+             {
+                if (ignoreDotFiles == true)
+                {
+                   String name = entry.toString();
+                   int idx = name.lastIndexOf(File.separator);
+                   
+                   if (idx > 0) 
+                   {
+                      name = name.substring(idx+1);
+                      
+                      if (name.charAt(0) == '.')
+                         continue;
+                   }
+                }
+                
                 files.add(entry);
+             }
              else if ((isRecursive == true) && (Files.isDirectory(entry) == true))
-                createFileList(entry.toString(), files);
+             {
+                createFileList(entry.toString(), files, isRecursive, ignoreDotFiles);
+             }
           }
        }
        catch (DirectoryIteratorException e)

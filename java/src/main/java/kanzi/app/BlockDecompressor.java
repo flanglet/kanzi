@@ -123,7 +123,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
       try
       {
-         Kanzi.createFileList(this.inputName, files);
+         Kanzi.createFileList(this.inputName, files, true, false);
       }
       catch (IOException e)
       {
