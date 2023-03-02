@@ -120,26 +120,35 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       List<Path> files = new ArrayList<>();
       long read = 0;
       long before = System.nanoTime();
+      int nbFiles = 1;
 
-      try
-      {
-         Kanzi.createFileList(this.inputName, files, true, false);
-      }
-      catch (IOException e)
-      {
-         System.err.println(e.getMessage());
-         return Error.ERR_OPEN_FILE;
-      }
+      if (STDIN.equalsIgnoreCase(this.inputName) == false)
+      {   
+         try
+         {
+            String suffix = File.separator + ".";
+            boolean isRecursive = !this.inputName.endsWith(suffix);
+            String target = isRecursive ? this.inputName :
+               this.inputName.substring(0, this.inputName.length()-1);
 
-      if (files.isEmpty())
-      {
-         System.err.println("Cannot open input file '"+this.inputName+"'");
-         return Error.ERR_OPEN_FILE;
-      }
+            Kanzi.createFileList(target, files, isRecursive, false);
+         }
+         catch (IOException e)
+         {
+            System.err.println(e.getMessage());
+            return Error.ERR_OPEN_FILE;
+         }
 
-      int nbFiles = files.size();
-      String strFiles = (nbFiles > 1) ? " files" : " file";
-      printOut(nbFiles+strFiles+" to decompress\n", this.verbosity > 0);
+         if (files.isEmpty())
+         {
+            System.err.println("Cannot open input file '"+this.inputName+"'");
+            return Error.ERR_OPEN_FILE;
+         }
+
+         nbFiles = files.size();
+         String strFiles = (nbFiles > 1) ? " files" : " file";
+         printOut(nbFiles+strFiles+" to decompress\n", this.verbosity > 0);
+      }
       
       if (this.verbosity > 2)
       {
