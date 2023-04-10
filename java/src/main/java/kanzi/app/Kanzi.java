@@ -228,7 +228,7 @@ public class Kanzi
 
         outputName = null;
         ctx = -1;
-        
+
         if (args.length == 0)
         {
            printHelp(mode);
@@ -296,7 +296,7 @@ public class Kanzi
                   printOut("Warning: ignoring option [" + arg + "]. Only applicable in compress mode.", verbose>0);
                   continue;
                }
-               
+
                fileReorder = false;
                continue;
            }
@@ -313,7 +313,7 @@ public class Kanzi
                   printOut("Warning: ignoring option [" + arg + "]. Only applicable in compress mode.", verbose>0);
                   continue;
                }
-               
+
                noDotFile = true;
                continue;
            }
@@ -705,10 +705,16 @@ public class Kanzi
          printOut("   -l, --level=<compression>", true);
          printOut("        set the compression level [0..9]", true);
          printOut("        Providing this option forces entropy and transform.", true);
-         printOut("        0=None&None (store), 1=LZ&HUFFMAN, 2=TEXT+UTF+FSD+LZX&HUFFMAN", true);
-         printOut("        3=TEXT+UTF+FSD+ROLZ, 4=TEXT+UTF+FSD+ROLZX, 5=TEXT+UTF+BWT+RANK+ZRLT&ANS0", true);
-         printOut("        6=TEXT+UTF+BWT+SRT+ZRLT&FPAQ, 7=LZP+TEXT+UTF+BWT+LZP&CM", true);
-         printOut("        8=EXE+RLT+TEXT+UTF&TPAQ, 9=EXE+RLT+TEXT+UTF&TPAQX\n", true);
+         printOut("        0=None&None (store)", true);
+         printOut("        1=LZ&HUFFMAN", true);
+         printOut("        2=TEXT+UTF+FSD+LZX&HUFFMAN", true);
+         printOut("        3=TEXT+UTF+FSD+ROLZ", true);
+         printOut("        4=TEXT+UTF+FSD+ROLZX", true);
+         printOut("        5=TEXT+UTF+BWT+RANK+ZRLT&ANS0", true);
+         printOut("        6=TEXT+UTF+BWT+SRT+ZRLT&FPAQ", true);
+         printOut("        7=LZP+TEXT+UTF+BWT+LZP&CM", true);
+         printOut("        8=EXE+RLT+TEXT+UTF&TPAQ", true);
+         printOut("        9=EXE+RLT+TEXT+UTF&TPAQX\n", true);
          printOut("   -e, --entropy=<codec>", true);
          printOut("        entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
          printOut("        (default is ANS0)\n", true);
@@ -796,7 +802,7 @@ public class Kanzi
           String name = root.toString();
           int idx = name.lastIndexOf(File.separator);
 
-          if (idx > 0) 
+          if (idx > 0)
           {
              name = name.substring(idx+1);
 
@@ -818,16 +824,16 @@ public class Kanzi
                 {
                    String name = entry.toString();
                    int idx = name.lastIndexOf(File.separator);
-                   
-                   if (idx > 0) 
+
+                   if (idx > 0)
                    {
                       name = name.substring(idx+1);
-                      
+
                       if (name.charAt(0) == '.')
                          continue;
                    }
                 }
-                
+
                 files.add(entry);
              }
              else if ((isRecursive == true) && (Files.isDirectory(entry) == true))
