@@ -319,7 +319,7 @@ public final class LZCodec implements ByteTransform
             }
 
             // No good match ?
-            if ((bestLen < minMatch) || ((bestLen == minMatch) && (srcIdx-ref >= MIN_MATCH_MIN_DIST) && (srcIdx-ref != repd0)))
+            if (bestLen < minMatch)
             {
                srcIdx++;
                continue;
@@ -410,13 +410,13 @@ public final class LZCodec implements ByteTransform
             if (mIdx >= this.mBuf.length-8)
             {
                // Expand match buffer
-               byte[] buf1 = new byte[this.mBuf.length<<1];
+               byte[] buf1 = new byte[(this.mBuf.length*3)/2];
                System.arraycopy(this.mBuf, 0, buf1, 0, this.mBuf.length);
                this.mBuf = buf1;
                
                if (mLenIdx >= this.mLenBuf.length-4)
                {
-                  byte[] buf2 = new byte[this.mLenBuf.length<<1];
+                  byte[] buf2 = new byte[(this.mLenBuf.length*3)/2];
                   System.arraycopy(this.mLenBuf, 0, buf2, 0, this.mLenBuf.length);
                   this.mLenBuf = buf2;
                }
