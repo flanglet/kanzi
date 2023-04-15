@@ -67,7 +67,7 @@ public class EntropyCodecFactory
             return new FPAQDecoder(ibs);
 
          case CM_TYPE:
-            return new BinaryEntropyDecoder(ibs, new CMPredictor());
+            return new BinaryEntropyDecoder(ibs, new CMPredictor(ctx));
 
          case TPAQ_TYPE:
             return new BinaryEntropyDecoder(ibs, new TPAQPredictor(ctx));
@@ -107,7 +107,7 @@ public class EntropyCodecFactory
             return new FPAQEncoder(obs);
 
          case CM_TYPE:
-            return new BinaryEntropyEncoder(obs, new CMPredictor());
+            return new BinaryEntropyEncoder(obs, new CMPredictor(ctx));
 
          case TPAQ_TYPE:
             return new BinaryEntropyEncoder(obs, new TPAQPredictor(ctx));

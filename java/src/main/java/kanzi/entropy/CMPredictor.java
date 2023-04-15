@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.entropy;
 
 import java.util.Arrays;
+import java.util.Map;
 import kanzi.Predictor;
 
 
@@ -33,9 +34,10 @@ public class CMPredictor implements Predictor
    private int runMask;
    private final int[][] counter1;
    private final int[][] counter2;
+   private final boolean isBsVersion3;
 
 
-   public CMPredictor()
+   public CMPredictor(Map<String, Object> ctx)
    {
       this.ctx = 1;
       this.idx = 0;
@@ -55,6 +57,13 @@ public class CMPredictor implements Predictor
          this.counter2[i+i][16]   = 15 << 12;
          this.counter2[i+i+1][16] = 15 << 12;
       }
+
+      int bsVersion = 4;
+
+      if (ctx != null)
+        bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
+
+      this.isBsVersion3 = bsVersion < 4;
    }
 
 
@@ -64,7 +73,6 @@ public class CMPredictor implements Predictor
    {
       final int[] counter1_ = this.counter1[this.ctx];
       final int[] counter2_ = this.counter2[this.ctx|this.runMask];
-      this.ctx <<= 1;
 
       if (bit == 0)
       {
@@ -72,6 +80,7 @@ public class CMPredictor implements Predictor
          counter1_[this.c1]  -= (counter1_[this.c1]  >> MEDIUM_RATE);
          counter2_[this.idx] -= (counter2_[this.idx] >> SLOW_RATE);
          counter2_[this.idx+1] -= (counter2_[this.idx+1] >> SLOW_RATE);
+         this.ctx += this.ctx;
       }
       else
       {
@@ -79,7 +88,7 @@ public class CMPredictor implements Predictor
          counter1_[this.c1]  -= ((counter1_[this.c1]-PSCALE+16)  >> MEDIUM_RATE);
          counter2_[this.idx] -= ((counter2_[this.idx]-PSCALE+16) >> SLOW_RATE);
          counter2_[this.idx+1] -= ((counter2_[this.idx+1]-PSCALE+16) >> SLOW_RATE);
-         this.ctx++;
+         this.ctx += (this.ctx + 1);
       }
 
       if (this.ctx > 255)
@@ -102,7 +111,13 @@ public class CMPredictor implements Predictor
       final int[] pc2 = this.counter2[this.ctx|this.runMask];
       final int x1 = pc2[this.idx];
       final int x2 = pc2[this.idx+1];
-      final int ssep = x1 + (((x2-x1)*(p&4095)) >> 12);
-      return (p + 3*ssep + 32) >>> 6; // rescale to [0..4095]
+
+      if (this.isBsVersion3 == true)
+      {
+        final int ssep = x1 + (((x2-x1)*(p&4095)) >> 12);
+        return (p + 3*ssep + 32) >>> 6; // rescale to [0..4095]
+      }
+
+      return (p + 3*((x1+x2)>>>1) + 32) >>> 6; // rescale to [0..4095]
    }
 }
