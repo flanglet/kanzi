@@ -31,17 +31,25 @@ public class UTFCodec implements ByteTransform
    private static final int MIN_BLOCK_SIZE = 1024;
    
    private final Map<String, Object> ctx;
-   
+   private final boolean isBsVersion3;
+
    
    public UTFCodec()
    {
       this.ctx = null;
+      this.isBsVersion3 = false;
    }
 
 
    public UTFCodec(Map<String, Object> ctx)
    {
       this.ctx = ctx;
+      int bsVersion = 4;
+
+      if (ctx != null)
+        bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
+
+      this.isBsVersion3 = bsVersion < 4;
    }
 
 
@@ -88,7 +96,13 @@ public class UTFCodec implements ByteTransform
       if ((mustValidate == true) && (validate(src, srcIdx+start, srcEnd)) == false)
          return false;
 
-      int[] aliasMap = new int[1<<23]; // 2 bit size + (7 or 11 or 16 or 21) bit payload
+      // 1-3 bit size + (7 or 11 or 16 or 21) bit payload
+      // 3 MSBs indicate symbol size (limit map size to 22 bits)
+      // 000 -> 7 bits
+      // 001 -> 11 bits
+      // 010 -> 16 bits
+      // 1xx -> 21 bits
+      int[] aliasMap = new int[1<<22];
       SymbolData[] symb = new SymbolData[32768];
       int[] ranks = new int[32768];
       int n = 0;
@@ -241,9 +255,18 @@ public class UTFCodec implements ByteTransform
          if (alias >= 128)
             alias = ((src[srcIdx++] & 0xFF) << 7) + (alias & 0x7F);
 
-         int s = unpack(m[alias], dst, dstIdx);
+         int s;
 
-         if (s == 0) 
+         if (this.isBsVersion3 == true)
+         {
+            s = unpackV0(m[alias], dst, dstIdx);
+         }
+         else
+         {
+            s = unpackV1(m[alias], dst, dstIdx);
+         }
+
+         if (s == 0)
          {
             res = false;
             break;
@@ -367,16 +390,16 @@ public class UTFCodec implements ByteTransform
          break;
 
       case 2:
-         out[0] = (1 << 21) | ((in[idx+0] & 0xFF) << 8) | (in[idx+1] & 0xFF);
+         out[0] = (1 << 19) | ((in[idx+0] & 0xFF) << 8) | (in[idx+1] & 0xFF);
          break; 
 
       case 3:
-         out[0] = (2 << 21) | ((in[idx+0] & 0x0F) << 12) | ((in[idx+1] & 0x3F) << 6) | 
+         out[0] = (2 << 19) | ((in[idx+0] & 0x0F) << 12) | ((in[idx+1] & 0x3F) << 6) | 
                   (in[idx+2] & 0x3F);
          break;
 
       case 4:
-         out[0] = (3 << 21) | ((in[idx+0] & 0x07) << 18) | ((in[idx+1] & 0x3F) << 12) | 
+         out[0] = (4 << 19) | ((in[idx+0] & 0x07) << 18) | ((in[idx+1] & 0x3F) << 12) | 
                   ((in[idx+2] & 0x3F) << 6) | (in[idx+3] & 0x3F);
           break;
 
@@ -390,7 +413,7 @@ public class UTFCodec implements ByteTransform
    }
 
 
-   public static int unpack(int in, byte out[], int idx) 
+   public static int unpackV0(int in, byte out[], int idx) 
    { 
       int s = (in>>>21) + 1;
 
@@ -425,6 +448,49 @@ public class UTFCodec implements ByteTransform
       return s; 
    }   
    
+
+   public static int unpackV1(int in, byte out[], int idx)
+   {
+      int s;
+
+      switch (in >>> 19) {
+      case 0:
+         out[idx] = (byte) in;
+         s = 1;
+         break;
+
+      case 1:
+         out[idx+0] = (byte) (in >> 8);
+         out[idx+1] = (byte) in;
+         s = 2;
+         break;
+
+      case 2:
+         out[idx+0] = (byte) (((in >> 12) & 0x0F) | 0xE0);
+         out[idx+1] = (byte) (((in >>  6) & 0x3F) | 0x80);
+         out[idx+2] = (byte) ((in & 0x3F) | 0x80);
+         s = 3;
+         break;
+
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+         out[idx+0] = (byte) (((in >> 18) & 0x07) | 0xF0);
+         out[idx+1] = (byte) (((in >> 12) & 0x3F) | 0x80);
+         out[idx+2] = (byte) (((in >>  6) & 0x3F) | 0x80);
+         out[idx+3] = (byte) ((in & 0x3F) | 0x80);
+         s = 4;
+         break;
+
+      default:
+         s = 0; // signal invalid value
+         break;
+      }
+
+      return s;
+   }
+
    
    static class SymbolData
    {
@@ -446,12 +512,10 @@ public class UTFCodec implements ByteTransform
       @Override
       public int compare(int lidx, int ridx)
       {
-         int res = this.data[lidx].freq - this.data[ridx].freq;
-         
-         if (res == 0)
-            return this.data[lidx].sym - this.data[ridx].sym;
-         
-         return res;
+         final int res = this.data[lidx].freq - this.data[ridx].freq;
+
+         return (res != 0) ? res :
+            this.data[lidx].sym - this.data[ridx].sym;
       }
    }
 }
