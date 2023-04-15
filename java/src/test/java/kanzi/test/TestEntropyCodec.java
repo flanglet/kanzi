@@ -168,7 +168,7 @@ public class TestEntropyCodec
          return new TPAQPredictor(null);
 
       if (type.equals("CM"))
-         return new CMPredictor();
+         return new CMPredictor(null);
 
       return null;
    }
