@@ -63,23 +63,30 @@ public class EXECodec implements ByteTransform
    private static final int MAC_LC_SEGMENT64 = 0x19;
    private static final int MIN_BLOCK_SIZE = 4096;
    private static final int MAX_BLOCK_SIZE = (1 << (26+2)) - 1; // max offset << 2
-   private boolean isBsVersion2;
 
    
    private Map<String, Object> ctx;
    private int codeStart;
    private int codeEnd;
    private int arch;
+   private final boolean isBsVersion2;
 
 
    public EXECodec()
    {
+       this.isBsVersion2 = false;
    }
 
 
    public EXECodec(Map<String, Object> ctx)
    {
       this.ctx = ctx;
+      int bsVersion  = 4;
+
+      if (this.ctx != null)
+         bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
+
+      this.isBsVersion2 = bsVersion < 3;
    }
 
 
@@ -100,8 +107,6 @@ public class EXECodec implements ByteTransform
       if (output.length - output.index < getMaxEncodedLength(count))
          return false;
       
-      this.isBsVersion2 = false;
-
       if (this.ctx != null)
       {
          Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
@@ -109,9 +114,6 @@ public class EXECodec implements ByteTransform
 
          if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.EXE) && (dt != Global.DataType.BIN))
             return false;
-         
-         final int bsVersion = (Integer) ctx.getOrDefault("bsVersion", -1);
-         this.isBsVersion2 = bsVersion == 2;
       }
 
       this.codeStart = input.index;
