@@ -44,6 +44,13 @@ public class CMPredictor implements Predictor
       this.counter1 = new int[256][257];
       this.counter2 = new int[512][17];
 
+      int bsVersion = 4;
+
+      if (ctx != null)
+         bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
+
+      this.isBsVersion3 = bsVersion < 4;
+
       for (int i=0; i<256; i++)
       {
          Arrays.fill(this.counter1[i], PSCALE>>1);
@@ -54,16 +61,9 @@ public class CMPredictor implements Predictor
             this.counter2[i+i+1][j] = j << 12;
          }
 
-         this.counter2[i+i][16]   = 15 << 12;
-         this.counter2[i+i+1][16] = 15 << 12;
+         this.counter2[i+i][16]   = (this.isBsVersion3 == true) ? 15 << 12 : 65535;
+         this.counter2[i+i+1][16] = (this.isBsVersion3 == true) ? 15 << 12 : 65535;
       }
-
-      int bsVersion = 4;
-
-      if (ctx != null)
-        bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
-
-      this.isBsVersion3 = bsVersion < 4;
    }
 
 
