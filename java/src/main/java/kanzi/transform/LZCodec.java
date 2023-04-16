@@ -792,22 +792,31 @@ public final class LZCodec implements ByteTransform
       private static final int HASH_SEED        = 0x7FEB352D;
       private static final int HASH_LOG         = 16;
       private static final int HASH_SHIFT       = 32 - HASH_LOG;
-      private static final int MIN_MATCH        = 96;
+      private static final int MIN_MATCH96      = 96;
+      private static final int MIN_MATCH64      = 64;
       private static final int MIN_BLOCK_LENGTH = 128;
       private static final int MATCH_FLAG       = 0xFC;
 
       private int[] hashes;
+      private final boolean isBsVersion3;
 
 
       public LZPCodec()
       {
          this.hashes = new int[0];
+         this.isBsVersion3 = false;
       }
 
 
       public LZPCodec(Map<String, Object> ctx)
       {
          this.hashes = new int[0];
+         int bsVersion = 4;
+
+         if (ctx != null)
+           bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
+
+         this.isBsVersion3 = bsVersion < 4;
       }
 
 
@@ -853,21 +862,22 @@ public final class LZCodec implements ByteTransform
          srcIdx += 4;
          dstIdx += 4;
          int minRef = 4;
+         final int minMatch = MIN_MATCH64;
 
-         while ((srcIdx < srcEnd-MIN_MATCH) && (dstIdx < dstEnd)) {
+         while ((srcIdx < srcEnd-minMatch) && (dstIdx < dstEnd)) {
             final int h = (HASH_SEED*ctx) >>> HASH_SHIFT;
             final int ref = this.hashes[h];
             this.hashes[h] = srcIdx;
             int bestLen = 0;
 
             // Find a match
-            if ((ref > minRef) && (LZCodec.differentInts(src, ref+MIN_MATCH-4, srcIdx+MIN_MATCH-4) == false))
+            if ((ref > minRef) && (LZCodec.differentInts(src, ref+minMatch, srcIdx+minMatch-4) == false))
             {
                bestLen = findMatch(src, srcIdx, ref, srcEnd-srcIdx);
             }
 
             // No good match ?
-            if (bestLen < MIN_MATCH)
+            if (bestLen < minMatch)
             {
                final int val = src[srcIdx] & 0xFF;
                ctx = (ctx<<8) | val;
@@ -888,7 +898,7 @@ public final class LZCodec implements ByteTransform
             srcIdx += bestLen;
             ctx = Memory.LittleEndian.readInt32(src, srcIdx-4);
             dst[dstIdx++] = (byte) MATCH_FLAG;
-            bestLen -= MIN_MATCH;
+            bestLen -= minMatch;
 
             // Emit match length
             while (bestLen >= 254)
@@ -934,6 +944,7 @@ public final class LZCodec implements ByteTransform
          final int srcEnd = input.index + count;
          int srcIdx = input.index;
          int dstIdx = output.index;
+         final int minMatch = (this.isBsVersion3 == true) ? MIN_MATCH96 : MIN_MATCH64;
 
          if (this.hashes.length == 0)
          {
@@ -979,7 +990,7 @@ public final class LZCodec implements ByteTransform
                continue;
             }
 
-            int mLen = MIN_MATCH;
+            int mLen = minMatch;
 
             while ((srcIdx < srcEnd) && (src[srcIdx] == (byte) 0xFE))
             {
