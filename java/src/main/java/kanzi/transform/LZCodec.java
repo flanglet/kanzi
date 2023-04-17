@@ -301,15 +301,41 @@ public final class LZCodec implements ByteTransform
                ref = this.hashes[h0];
                this.hashes[h0] = srcIdx;
                
-               if (ref <= minRef) 
+               if (ref > minRef)
+               {
+                  if (differentInts(src, ref, srcIdx) == false)
+                  {
+                     bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
+                  }
+               }
+
+               // No good match ?
+               if (bestLen < minMatch)
                {
                   srcIdx++;
                   continue;
                }
 
-               if (differentInts(src, ref, srcIdx) == false)
+               if (ref != srcIdx-repd0)
                {
-                  bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
+                  // Check if better match at next position
+                  final int h1 = hash(src, srcIdx+1);
+                  final int ref1 = this.hashes[h1];
+                  this.hashes[h1] = srcIdx + 1;
+
+                  if (ref1 > minRef + 1)
+                  {
+                     final int maxMatch = Math.min(srcEnd-srcIdx-1, MAX_MATCH);
+                     final int bestLen1 = findMatch(src, srcIdx+1, ref1, maxMatch);
+
+                     // Select best match
+                     if ((bestLen1 > bestLen) || ((bestLen1 == bestLen) && (ref1 > ref)))
+                     {
+                        ref = ref1;
+                        bestLen = bestLen1;
+                        srcIdx++;
+                     }
+                  }
                }
             } 
             else 
@@ -318,38 +344,9 @@ public final class LZCodec implements ByteTransform
                srcIdx++;
             }
 
-            // No good match ?
-            if (bestLen < minMatch)
-            {
-               srcIdx++;
-               continue;
-            }
-
-            if (ref != srcIdx-repd0)
-            {
-               // Check if better match at next position
-               final int h1 = hash(src, srcIdx+1);
-               final int ref1 = this.hashes[h1];
-               this.hashes[h1] = srcIdx + 1;
-
-               if (ref1 > minRef + 1)
-               {
-                  final int maxMatch = Math.min(srcEnd-srcIdx-1, MAX_MATCH);
-                  final int bestLen1 = findMatch(src, srcIdx+1, ref1, maxMatch);
-
-                  // Select best match
-                  if ((bestLen1 > bestLen) || ((bestLen1 == bestLen) && ((srcIdx+1-ref1) < (srcIdx-ref)))) 
-                  {
-                     ref = ref1;
-                     bestLen = bestLen1;
-                     srcIdx++;
-                  }
-               }
-            }
-
             final int d = srcIdx - ref;
             int dist;
-            
+
             if (d == repd0) 
             {
                dist = 0;
