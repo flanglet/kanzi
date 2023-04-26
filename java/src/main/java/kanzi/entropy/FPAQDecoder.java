@@ -17,6 +17,7 @@ package kanzi.entropy;
 
 
 import java.util.Arrays;
+import java.util.Map;
 import kanzi.EntropyDecoder;
 import kanzi.InputBitStream;
 import kanzi.Memory;
@@ -44,9 +45,10 @@ public class FPAQDecoder implements EntropyDecoder
    private final int[][] probs; // probability of bit=1
    private int[] p; // pointer to current prob
    private int ctx; // previous bits
+   private final boolean isBsVersion3;
+   
 
-
-   public FPAQDecoder(InputBitStream bitstream)
+   public FPAQDecoder(InputBitStream bitstream, Map<String, Object> ctx)
    {
       if (bitstream == null)
          throw new NullPointerException("FPAQ codec: Invalid null bitstream parameter");
@@ -62,6 +64,13 @@ public class FPAQDecoder implements EntropyDecoder
 
       for (int i=0; i<4; i++)
          Arrays.fill(this.probs[i], PSCALE>>1);
+      
+      int bsVersion = 4;
+
+      if (ctx != null)
+         bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
+
+      this.isBsVersion3 = bsVersion < 4;      
    }
 
 
@@ -95,20 +104,40 @@ public class FPAQDecoder implements EntropyDecoder
          final int endChunk = startChunk + chunkSize;
          this.p = this.probs[0];
 
-         for (int i=startChunk; i<endChunk; i++)
+         if (this.isBsVersion3 == true)
          {
-            this.ctx = 1;
-            this.decodeBit(this.p[this.ctx]>>>4);
-            this.decodeBit(this.p[this.ctx]>>>4);
-            this.decodeBit(this.p[this.ctx]>>>4);
-            this.decodeBit(this.p[this.ctx]>>>4);
-            this.decodeBit(this.p[this.ctx]>>>4);
-            this.decodeBit(this.p[this.ctx]>>>4);
-            this.decodeBit(this.p[this.ctx]>>>4);
-            this.decodeBit(this.p[this.ctx]>>>4);
-            block[i] = (byte) this.ctx;
-            this.p = this.probs[(this.ctx&0xFF)>>>6];
+            for (int i=startChunk; i<endChunk; i++)
+            {
+               this.ctx = 1;
+               this.decodeBitV1(this.p[this.ctx]>>>4);
+               this.decodeBitV1(this.p[this.ctx]>>>4);
+               this.decodeBitV1(this.p[this.ctx]>>>4);
+               this.decodeBitV1(this.p[this.ctx]>>>4);
+               this.decodeBitV1(this.p[this.ctx]>>>4);
+               this.decodeBitV1(this.p[this.ctx]>>>4);
+               this.decodeBitV1(this.p[this.ctx]>>>4);
+               this.decodeBitV1(this.p[this.ctx]>>>4);
+               block[i] = (byte) this.ctx;
+               this.p = this.probs[(this.ctx&0xFF)>>>6];
+            }
          }
+         else 
+         {
+            for (int i=startChunk; i<endChunk; i++)
+            {
+               this.ctx = 1;
+               this.decodeBitV2(this.p[this.ctx]);
+               this.decodeBitV2(this.p[this.ctx]);
+               this.decodeBitV2(this.p[this.ctx]);
+               this.decodeBitV2(this.p[this.ctx]);
+               this.decodeBitV2(this.p[this.ctx]);
+               this.decodeBitV2(this.p[this.ctx]);
+               this.decodeBitV2(this.p[this.ctx]);
+               this.decodeBitV2(this.p[this.ctx]);
+               block[i] = (byte) this.ctx;
+               this.p = this.probs[(this.ctx&0xFF)>>>6];
+            }                 
+        }
 
          startChunk = endChunk;
       }
@@ -117,7 +146,7 @@ public class FPAQDecoder implements EntropyDecoder
    }
 
 
-   private int decodeBit(int pred)
+   private int decodeBitV1(int pred)
    {
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division
@@ -147,7 +176,38 @@ public class FPAQDecoder implements EntropyDecoder
       return bit;
    }
 
+   
+   private int decodeBitV2(int pred)
+   {
+      // Calculate interval split
+      // Written in a way to maximize accuracy of multiplication/division
+      final long split = ((((this.high-this.low) >>> 8) * pred) >>> 8) + this.low;
+      int bit;
 
+      // Update probabilities
+      if (split >= this.current)
+      {
+         bit = 1;
+         this.high = split;
+         this.p[this.ctx] -= ((this.p[this.ctx]-PSCALE+64) >> 6);
+         this.ctx = (this.ctx<<1) + 1;
+      }
+      else
+      {
+         bit = 0;
+         this.low = -~split;
+         this.p[this.ctx] -= (this.p[this.ctx] >> 6);
+         this.ctx = this.ctx << 1;
+      }
+
+      // Read 32 bits from bitstream
+      while (((this.low ^ this.high) & MASK_24_56) == 0)
+         this.read();
+
+      return bit;
+   }
+
+   
    protected void read()
    {
       this.low = (this.low<<32) & MASK_0_56;

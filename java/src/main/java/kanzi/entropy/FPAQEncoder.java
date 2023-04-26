@@ -117,7 +117,7 @@ public class FPAQEncoder implements EntropyEncoder
    {
       // Calculate interval split
       // Written in a way to maximize accuracy of multiplication/division
-      final long split = (((this.high-this.low) >>> 4) * (this.p[pIdx]>>>4)) >>> 8;
+      final long split = (((this.high-this.low) >>> 8) * this.p[pIdx]) >>> 8;
 
       // Update probabilities
       if (bit == 0)
