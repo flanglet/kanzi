@@ -227,7 +227,7 @@ public class TestEntropyCodec
             return new BinaryEntropyDecoder(ibs, pred);
 
          case "FPAQ":
-            return new FPAQDecoder(ibs);
+            return new FPAQDecoder(ibs, null);
 
          case "HUFFMAN":
             return new HuffmanDecoder(ibs);
