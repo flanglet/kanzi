@@ -159,12 +159,12 @@ public class UTFCodec implements ByteTransform
       {
          final int r = ranks[n-1-i];
          final int s = symb[r].sym;
-         aliasMap[s] = i;
          dst[dstIdx] = (byte) (s>>16);
          dst[dstIdx + 1] = (byte) (s>>8);
          dst[dstIdx + 2] = (byte) s;
          dstIdx += 3;    
          estimate += ((i<128) ? symb[r].freq : 2*symb[r].freq);
+         aliasMap[s] = (i<128) ? i : 0x10080 | ((i << 1) & 0xFF00) | (i & 0x7F);
       }
 
       if (estimate >= dstEnd) 
@@ -181,14 +181,9 @@ public class UTFCodec implements ByteTransform
       {
          srcIdx += pack(src, srcIdx, val);
          int alias = aliasMap[val[0]];
-
-         if (alias >= 128) 
-         {
-            dst[dstIdx++] = (byte) (alias|0x80);
-            alias >>= 7;
-         }
-
-         dst[dstIdx++] = (byte) alias;
+         dst[dstIdx++] = (byte) (alias);
+         dst[dstIdx++] = (byte) (alias>>>8);
+         dstIdx += (alias>>>16);
       }
 
       dst[0] = (byte) start;
