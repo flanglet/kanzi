@@ -61,11 +61,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private final boolean skipBlocks;
    private final boolean reoderFiles;
    private final boolean noDotFile;
+   private final boolean autoBlockSize;
    private final String inputName;
    private final String outputName;
    private final String codec;
    private final String transform;
-   private final int blockSize;
+   private int blockSize;
    private final int level; // command line compression level
    private final int jobs;
    private final List<Listener> listeners;
@@ -141,6 +142,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.reoderFiles = (bReorder == null) ? true : bReorder;
       Boolean bNoDotFile = (Boolean) map.remove("noDotFile");
       this.noDotFile = (bNoDotFile == null) ? false : bNoDotFile;
+      Boolean bAuto = (Boolean) map.remove("autoBlock");
+      this.autoBlockSize = (bAuto == null) ? false : bAuto;
       this.verbosity = (Integer) map.remove("verbose");
       int concurrency = (Integer) map.remove("jobs");
 
@@ -222,7 +225,11 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
       if (this.verbosity > 2)
       {
-         printOut("Block size set to " + this.blockSize + " bytes", true);
+         if (this.autoBlockSize == true)
+            printOut("Block size set to 'auto'", true);
+         else
+            printOut("Block size set to " + this.blockSize + " bytes", true);
+
          printOut("Verbosity set to " + this.verbosity, true);
          printOut("Overwrite set to " + this.overwrite, true);
          printOut("Checksum set to " +  this.checksum, true);
@@ -294,7 +301,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          ctx.put("verbosity", this.verbosity);
          ctx.put("overwrite", this.overwrite);
          ctx.put("skipBlocks", this.skipBlocks);
-         ctx.put("blockSize", this.blockSize);
          ctx.put("checksum", this.checksum);
          ctx.put("pool", this.pool);
          ctx.put("codec", this.codec);
@@ -310,7 +316,15 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             if (STDIN.equalsIgnoreCase(this.inputName) == false)
             {
                iName = files.get(0).toString();
-               ctx.put("fileSize", Files.size(files.get(0)));
+               long fileSize = Files.size(files.get(0));
+               ctx.put("fileSize", fileSize);
+
+               if ((this.autoBlockSize == true) && (this.jobs > 0))
+               {
+                   long bl = fileSize / this.jobs;
+                   bl = (bl + 63) & ~63;
+                   this.blockSize = (int) Math.max(Math.min(bl, MAX_BLOCK_SIZE), MIN_BLOCK_SIZE);
+               }
 
                if (oName == null)
                {
@@ -324,6 +338,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
             ctx.put("inputName", iName);
             ctx.put("outputName", oName);
+            ctx.put("blockSize", this.blockSize);
             ctx.put("jobs", this.jobs);
             FileCompressTask task = new FileCompressTask(ctx, this.listeners);
             FileCompressResult fcr = task.call();
@@ -348,6 +363,13 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                long fileSize = Files.size(file);
                Map taskCtx = new HashMap(ctx);
 
+               if ((this.autoBlockSize == true) && (this.jobs > 0))
+               {
+                   long bl = fileSize / this.jobs;
+                   bl = (bl + 63) & ~63;
+                   this.blockSize = (int) Math.max(Math.min(bl, MAX_BLOCK_SIZE), MIN_BLOCK_SIZE);
+               }
+
                if (oName == null)
                {
                   oName = iName + ".knz";
@@ -360,6 +382,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                taskCtx.put("fileSize", fileSize);
                taskCtx.put("inputName", iName);
                taskCtx.put("outputName", oName);
+               taskCtx.put("blockSize", this.blockSize);
                taskCtx.put("jobs", jobsPerTask[n++]);
                FileCompressTask task = new FileCompressTask(taskCtx, this.listeners);
 

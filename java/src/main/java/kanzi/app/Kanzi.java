@@ -142,6 +142,7 @@ public class Kanzi
         boolean skip = false;
         boolean fileReorder = true;
         boolean noDotFile = false;
+        boolean autoBlockSize = false;
         String inputName = null;
         String outputName = null;
         String codec = null;
@@ -447,46 +448,53 @@ public class Kanzi
                String name = arg.startsWith("--block=") ? arg.substring(8).toUpperCase().trim() :
                   arg.toUpperCase();
 
-               if (blockSize != -1)
+               if ((blockSize != -1) || (autoBlockSize == true))
                {
                   System.err.println("Warning: ignoring duplicate block size: "+name);
                   ctx = -1;
                   continue;
                }
 
-               char lastChar = (name.length() == 0) ? ' ' : name.charAt(name.length()-1);
-               int scale = 1;
+               if (name.equals("AUTO"))
+               {
+                   autoBlockSize = true;
+               }
+               else
+               {
+                   char lastChar = (name.length() == 0) ? ' ' : name.charAt(name.length()-1);
+                   int scale = 1;
 
-              try
-              {
-                  // Process K or M or G suffix
-                  switch (lastChar)
-                  {
-                     case 'K':
-                        scale = 1024;
-                        name = name.substring(0, name.length()-1);
-                        break;
-                     case 'M':
-                        scale = 1024 * 1024;
-                        name = name.substring(0, name.length()-1);
-                        break;
-                     case 'G':
-                        scale = 1024 * 1024 * 1024;
-                        name = name.substring(0, name.length()-1);
-                        break;
-                     default:
-                        break;
-                  }
+                   try
+                   {
+                       // Process K or M or G suffix
+                       switch (lastChar)
+                       {
+                          case 'K':
+                             scale = 1024;
+                             name = name.substring(0, name.length()-1);
+                             break;
+                          case 'M':
+                             scale = 1024 * 1024;
+                             name = name.substring(0, name.length()-1);
+                             break;
+                          case 'G':
+                             scale = 1024 * 1024 * 1024;
+                             name = name.substring(0, name.length()-1);
+                             break;
+                          default:
+                             break;
+                       }
 
-                  blockSize = scale * Integer.parseInt(name);
-                  ctx = -1;
-                  continue;
-              }
-              catch (NumberFormatException e)
-              {
-                 System.err.println("Invalid block size provided on command line: "+arg);
-                 return kanzi.Error.ERR_INVALID_PARAM;
-              }
+                       blockSize = scale * Integer.parseInt(name);
+                       ctx = -1;
+                       continue;
+                   }
+                   catch (NumberFormatException e)
+                   {
+                       System.err.println("Invalid block size provided on command line: "+arg);
+                       return kanzi.Error.ERR_INVALID_PARAM;
+                   }
+               }
            }
 
            if (arg.startsWith("--jobs=") || (ctx == ARG_IDX_JOBS))
@@ -615,6 +623,9 @@ public class Kanzi
 
         if (blockSize != -1)
            map.put("block", blockSize);
+
+        if (autoBlockSize == true)
+            map.put("autoBlock", true);
 
         map.put("verbose", verbose);
         map.put("mode", mode);
