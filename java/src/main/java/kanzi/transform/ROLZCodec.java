@@ -135,7 +135,7 @@ public class ROLZCodec implements ByteTransform
          return false;
 
       if (src.length > MAX_BLOCK_SIZE)
-         throw new IllegalArgumentException("The max ROLZ codec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
+         return false;
 
       return this.delegate.forward(src, dst);
    }
@@ -151,7 +151,7 @@ public class ROLZCodec implements ByteTransform
          return false;
 
       if (src.length > MAX_BLOCK_SIZE)
-         throw new IllegalArgumentException("The max ROLZ codec block size is "+MAX_BLOCK_SIZE+", got "+src.length);
+         return false;
 
       return this.delegate.inverse(src, dst);
    }
