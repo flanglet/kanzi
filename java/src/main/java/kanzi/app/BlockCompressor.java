@@ -104,11 +104,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       {
          switch (this.level)
          {
-             case 6:
-                 this.blockSize = 2 * DEFAULT_BLOCK_SIZE;
-                 break;
              case 7:
-                 this.blockSize = 4 * DEFAULT_BLOCK_SIZE;
+                 this.blockSize = 2 * DEFAULT_BLOCK_SIZE;
                  break;
              case 8:
                  this.blockSize = 4 * DEFAULT_BLOCK_SIZE;
