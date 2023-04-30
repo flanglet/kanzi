@@ -102,10 +102,23 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       
       if (iBlockSize == null)
       {
-         if (this.level < 7)
-            this.blockSize = DEFAULT_BLOCK_SIZE;
-         else // level 7 or 8
-            this.blockSize = (this.level >= 9) ? 4*DEFAULT_BLOCK_SIZE : 2*DEFAULT_BLOCK_SIZE;
+         switch (this.level)
+         {
+             case 6:
+                 this.blockSize = 2 * DEFAULT_BLOCK_SIZE;
+                 break;
+             case 7:
+                 this.blockSize = 4 * DEFAULT_BLOCK_SIZE;
+                 break;
+             case 8:
+                 this.blockSize = 4 * DEFAULT_BLOCK_SIZE;
+                 break;
+             case 9:
+                 this.blockSize = 8 *DEFAULT_BLOCK_SIZE;
+                 break;
+             default:
+                 this.blockSize = DEFAULT_BLOCK_SIZE;
+         }
       }
       else
       {
