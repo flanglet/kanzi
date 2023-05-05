@@ -72,9 +72,6 @@ public class FSDCodec implements ByteTransform
             return false;
       }
 
-      final int count5 = count / 5;
-      final int count10 = count / 10;
-      final int[][] histo = new int[6][256];
       final int magic = Magic.getType(input.array, input.index);
       
       // Skip detection except for a few candidate types
@@ -93,42 +90,39 @@ public class FSDCodec implements ByteTransform
       
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int start1 = input.index + 3*count5;
-      final int end1 = start1 + count10;
+      final int count5 = count / 5;
+      final int count10 = count / 10;
+      final int[][] histo = new int[7][256];
+      final int start1 = input.index + 1*count5;
+      final int start2 = input.index + 3*count5;
       
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
-      for (int i=start1; i<end1; i++)
+      for (int i=0; i<count10; i++)
       {
-         final byte b = src[i];
-         histo[0][b&0xFF]++;
-         histo[1][(b^src[i-1])&0xFF]++;
-         histo[2][(b^src[i-2])&0xFF]++;
-         histo[3][(b^src[i-3])&0xFF]++;
-         histo[4][(b^src[i-4])&0xFF]++;
-         histo[5][(b^src[i-8])&0xFF]++;
-      }
-
-      final int start2 = input.index + 1*count5;
-      final int end2 = start2 + count10;
-
-      for (int i=start2; i<end2; i++)
-      {
-         final byte b = src[i];
-         histo[0][b&0xFF]++;
-         histo[1][(b^src[i-1])&0xFF]++;
-         histo[2][(b^src[i-2])&0xFF]++;
-         histo[3][(b^src[i-3])&0xFF]++;
-         histo[4][(b^src[i-4])&0xFF]++;
-         histo[5][(b^src[i-8])&0xFF]++;
+         final byte b1 = src[i];
+         histo[0][b1&0xFF]++;
+         histo[1][(b1^src[start1+i-1])&0xFF]++;
+         histo[2][(b1^src[start1+i-2])&0xFF]++;
+         histo[3][(b1^src[start1+i-3])&0xFF]++;
+         histo[4][(b1^src[start1+i-4])&0xFF]++;
+         histo[5][(b1^src[start1+i-8])&0xFF]++;
+         histo[6][(b1^src[start1+i-16])&0xFF]++;
+         final byte b2 = src[i];
+         histo[0][b2&0xFF]++;
+         histo[1][(b2^src[start2+i-1])&0xFF]++;
+         histo[2][(b2^src[start2+i-2])&0xFF]++;
+         histo[3][(b2^src[start2+i-3])&0xFF]++;
+         histo[4][(b2^src[start2+i-4])&0xFF]++;
+         histo[5][(b2^src[start2+i-8])&0xFF]++;
+         histo[6][(b2^src[start2+i-16])&0xFF]++;
       }
 
       // Find if entropy is lower post transform
-      int[] ent = new int[6];
-      ent[0] = Global.computeFirstOrderEntropy1024(count5, histo[0]);
+      int[] ent = new int[7];
       int minIdx = 0;
 
-      for (int i=1; i<ent.length; i++)
+      for (int i=0; i<ent.length; i++)
       {
          ent[i] = Global.computeFirstOrderEntropy1024(count5, histo[i]);
 
@@ -136,12 +130,14 @@ public class FSDCodec implements ByteTransform
             minIdx = i;
       }
 
-      if (this.ctx != null)
-         this.ctx.put("dataType", Global.detectSimpleType(count5, histo[0]));
-
       // If not better, quick exit
       if (ent[minIdx] >= ent[0])
+      {
+        if (this.ctx != null)
+           this.ctx.put("dataType", Global.detectSimpleType(count5, histo[0]));
+
          return false;
+      }
 
       if (this.ctx != null)
          this.ctx.put("dataType", Global.DataType.MULTIMEDIA);
@@ -246,7 +242,7 @@ public class FSDCodec implements ByteTransform
       srcIdx += 2;
 
       // Sanity check
-      if ((dist < 1) || ((dist > 4) && (dist != 8)))
+      if ((dist < 1) || ((dist > 4) && (dist != 8) && (dist != 16)))
          return false;
 
       // Copy first bytes
