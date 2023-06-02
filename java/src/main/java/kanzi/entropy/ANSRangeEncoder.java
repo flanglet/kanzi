@@ -39,7 +39,7 @@ public class ANSRangeEncoder implements EntropyEncoder
    private byte[] buffer;
    private final int chunkSize;
    private final int order;
-   private int logRange;
+   private final int logRange;
 
 
    public ANSRangeEncoder(OutputBitStream bs)
@@ -231,13 +231,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       while (startChunk < end)
       {
          final int endChunk = Math.min(startChunk+sizeChunk, end);
-         int lr = this.logRange;
-
-         // Lower log range if the size of the data chunk is small
-         while ((lr > 8) && (1<<lr > endChunk-startChunk))
-            lr--;
-
-         final int alphabetSize = this.rebuildStatistics(block, startChunk, endChunk, lr);
+         final int alphabetSize = this.rebuildStatistics(block, startChunk, endChunk, this.logRange);
 
          // Skip chunk if only one symbol
          if ((alphabetSize <= 1) && (this.order == 0))
