@@ -598,7 +598,7 @@ public class EXECodec implements ByteTransform
       int jumpsX86 = 0;
       int jumpsARM64 = 0;
       int[] histo = new int[256];
-      final int end = start + count;
+      final int end = start + count - 4;
 
       for (int i=start; i<end; i++) 
       {
