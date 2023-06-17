@@ -35,6 +35,7 @@ public class RLT implements ByteTransform
    private static final int RUN_THRESHOLD = 3;
    private static final int MAX_RUN = 0xFFFF + RUN_LEN_ENCODE2 + RUN_THRESHOLD - 1;
    private static final int MAX_RUN4 = MAX_RUN - 4;
+   private static final byte DEFAULT_ESCAPE = (byte) 0xFB;
 
    private final int[] freqs;
    private final Map<String, Object> ctx;
@@ -73,52 +74,71 @@ public class RLT implements ByteTransform
 
       final byte[] src = input.array;
       final byte[] dst = output.array;
+      Global.DataType dt = Global.DataType.UNDEFINED;
+      boolean findBestEscape = true;
 
-      if (this.ctx != null) 
+      if (this.ctx != null)
       {
-         Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
+         dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
 
          if ((dt == Global.DataType.DNA) || (dt == Global.DataType.BASE64) || (dt == Global.DataType.UTF8))
             return false;
+
+         String entropyType = (String) this.ctx.getOrDefault("codec", "NONE");
+         entropyType = entropyType.toUpperCase();
+
+         // Fast track if entropy coder is used
+         if (entropyType.equals("NONE") || entropyType.equals("ANS0") ||
+             entropyType.equals("HUFFMAN") || entropyType.equals("RANGE"))
+            findBestEscape = false;
       }
 
+      byte escape = DEFAULT_ESCAPE;
       int srcIdx = input.index;
       int dstIdx = output.index;
       final int srcEnd = srcIdx + count;
       final int srcEnd4 = srcEnd - 4;
       final int dstEnd = dst.length;
 
-      for (int i=1; i<256; i++)
-         this.freqs[i] = 0;
-
-      Global.computeHistogramOrder0(src, srcIdx, srcEnd, this.freqs, false);
-      Global.DataType dt = Global.detectSimpleType(count, this.freqs);
-      
-      if ((this.ctx != null) && (dt != Global.DataType.UNDEFINED))
-         this.ctx.put("dataType", dt);
-
-      if ((dt == Global.DataType.DNA) || (dt == Global.DataType.BASE64) || (dt == Global.DataType.UTF8))
-         return false;
-      
-      int minIdx = 0;
-
-      // Select escape symbol
-      if (this.freqs[minIdx] > 0)
+      if (findBestEscape == true)
       {
-         for (int i=1; i<256; i++)
-         {
-            if (this.freqs[i] < this.freqs[minIdx])
-            {
-               minIdx = i;
+         for (int i=0; i<256; i++)
+            this.freqs[i] = 0;
 
-               if (this.freqs[i] == 0)
-                  break;
+         Global.computeHistogramOrder0(src, srcIdx, srcEnd, this.freqs, false);
+
+         if (dt == Global.DataType.UNDEFINED)
+         {
+            dt = Global.detectSimpleType(count, this.freqs);
+
+            if ((this.ctx != null) && (dt != Global.DataType.UNDEFINED))
+               this.ctx.put("dataType", dt);
+
+            if ((dt == Global.DataType.DNA) || (dt == Global.DataType.BASE64) || (dt == Global.DataType.UTF8))
+               return false;
+         }
+
+         int minIdx = 0;
+
+         // Select escape symbol
+         if (this.freqs[minIdx] > 0)
+         {
+            for (int i=1; i<256; i++)
+            {
+               if (this.freqs[i] < this.freqs[minIdx])
+               {
+                  minIdx = i;
+
+                  if (this.freqs[i] == 0)
+                     break;
+               }
             }
          }
+
+         escape = (byte) minIdx;
       }
 
       boolean res = true;
-      byte escape = (byte) minIdx;
       int run = 0;
       byte prev = src[srcIdx++];
       dst[dstIdx++] = escape;
@@ -155,15 +175,19 @@ public class RLT implements ByteTransform
 
          if (run > RUN_THRESHOLD)
          {
-            final int dIdx = emitRunLength(dst, dstIdx, dstEnd, run, escape, prev);
-
-            if (dIdx < 0)
+            if (dstIdx+6 >= dstEnd)
             {
                res = false;
                break;
             }
 
-            dstIdx = dIdx;
+            dst[dstIdx++] = prev;
+
+            if (prev == escape)
+               dst[dstIdx++] = (byte) 0;
+
+            dst[dstIdx++] = escape;
+            dstIdx = emitRunLength(dst, dstIdx, run);
          }
          else if (prev != escape)
          {
@@ -172,9 +196,6 @@ public class RLT implements ByteTransform
                res = false;
                break;
             }
-
-            if (run-- > 0)
-               dst[dstIdx++] = prev;
 
             while (run-- > 0)
                dst[dstIdx++] = prev;
@@ -255,32 +276,19 @@ public class RLT implements ByteTransform
    }
 
 
-   private static int emitRunLength(byte[] dst, int dstIdx, int dstEnd, int run, byte escape, byte val)
+   private static int emitRunLength(byte[] dst, int dstIdx, int run)
    {
-      dst[dstIdx++] = val;
-
-      if (val == escape)
-         dst[dstIdx++] = (byte) 0;
-
-      dst[dstIdx++] = escape;
       run -= RUN_THRESHOLD;
 
-      // Encode run length
       if (run >= RUN_LEN_ENCODE1)
       {
          if (run < RUN_LEN_ENCODE2)
          {
-            if (dstIdx >= dstEnd-2)
-               return -1;
-
             run -= RUN_LEN_ENCODE1;
             dst[dstIdx++] = (byte) (RUN_LEN_ENCODE1 + (run>>8));
          }
          else
          {
-            if (dstIdx >= dstEnd-3)
-               return -1;
-
             run -= RUN_LEN_ENCODE2;
             dst[dstIdx++] = (byte) 0xFF;
             dst[dstIdx++] = (byte) (run>>8);
