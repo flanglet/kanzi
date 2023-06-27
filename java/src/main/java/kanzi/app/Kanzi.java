@@ -713,8 +713,8 @@ public class Kanzi
       {
          printOut("   -b, --block=<size>", true);
          printOut("        size of blocks (default 4|8|16|32 MB based on level, max 1 GB, min 1 KB).\n", true);
-         printOut("        'auto' means that the compressor derives the best value'\n", true)
-         printOut("        based on input size (when available) and number of jobs.\n", true)
+         printOut("        'auto' means that the compressor derives the best value'\n", true);
+         printOut("        based on input size (when available) and number of jobs.\n", true);
          printOut("   -l, --level=<compression>", true);
          printOut("        set the compression level [0..9]", true);
          printOut("        Providing this option forces entropy and transform.", true);
