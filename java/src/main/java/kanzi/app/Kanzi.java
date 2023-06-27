@@ -712,7 +712,9 @@ public class Kanzi
       if (mode == 'c')
       {
          printOut("   -b, --block=<size>", true);
-         printOut("        size of blocks (default 4|8|16 MB based on level, max 1 GB, min 1 KB).\n", true);
+         printOut("        size of blocks (default 4|8|16|32 MB based on level, max 1 GB, min 1 KB).\n", true);
+         printOut("        'auto' means that the compressor derives the best value'\n", true)
+         printOut("        based on input size (when available) and number of jobs.\n", true)
          printOut("   -l, --level=<compression>", true);
          printOut("        set the compression level [0..9]", true);
          printOut("        Providing this option forces entropy and transform.", true);
@@ -731,7 +733,7 @@ public class Kanzi
          printOut("        (default is ANS0)\n", true);
          printOut("   -t, --transform=<codec>", true);
          printOut("        transform [None|BWT|BWTS|LZ|LZX|LZP|ROLZ|ROLZX|RLT|ZRLT]", true);
-         printOut("                  [MTFT|RANK|SRT|TEXT|FSD|EXE|UTF]", true);
+         printOut("                  [MTFT|RANK|SRT|TEXT|FSD|EXE|UTF|ALIAS]", true);
          printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
          printOut("   -x, --checksum", true);
          printOut("        enable block checksum\n", true);
