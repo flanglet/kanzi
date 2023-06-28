@@ -44,7 +44,7 @@ public class TransformFactory
    public static final short FSD_TYPE     = 15; // Fix Shift Delta codec
    public static final short LZX_TYPE     = 16; // Lempel Ziv Extra
    public static final short UTF_TYPE     = 17; // UTF codec
-   public static final short RESERVED1    = 18; // Reserved
+   public static final short ALIAS_TYPE   = 18; // Alias codec
    public static final short RESERVED2    = 19; // Reserved
    public static final short RESERVED3    = 20; // Reserved
    public static final short RESERVED4    = 21; // Reserved
@@ -138,6 +138,9 @@ public class TransformFactory
 
          case "FSD":
             return FSD_TYPE;
+
+         case "ALIAS":
+            return ALIAS_TYPE;
 
          case "NONE":
             return NONE_TYPE;
@@ -245,6 +248,9 @@ public class TransformFactory
          case FSD_TYPE:
             return new FSDCodec(ctx);
 
+         case ALIAS_TYPE:
+            return new AliasCodec(ctx);
+
          case NONE_TYPE:
             return new NullTransform(ctx);
 
@@ -331,6 +337,9 @@ public class TransformFactory
 
          case FSD_TYPE:
             return "FSD";
+
+         case ALIAS_TYPE:
+            return "ALIAS";
 
          case NONE_TYPE:
             return "NONE";
