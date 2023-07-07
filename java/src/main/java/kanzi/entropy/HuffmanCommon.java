@@ -20,12 +20,14 @@ public final class HuffmanCommon
    public static final int LOG_MAX_CHUNK_SIZE = 14;
    public static final int MIN_CHUNK_SIZE = 1024;
    public static final int MAX_CHUNK_SIZE = 1<<LOG_MAX_CHUNK_SIZE;
-   public static final int MAX_SYMBOL_SIZE = 12;
-   private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE<<8) + 256;
+   public static final int MAX_SYMBOL_SIZE_V3 = 14;
+   public static final int MAX_SYMBOL_SIZE_V4 = 12;
+   private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE_V3<<8) + 256;
 
 
    // Return the number of codes generated
-   public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] symbols, int count)
+   public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] symbols, 
+           int count, final int maxSymbolSize)
    {
       // Sort symbols by increasing size (first key) and increasing value (second key)
       if (count > 1)
@@ -36,7 +38,7 @@ public final class HuffmanCommon
          {
             final int s = symbols[i];
 
-            if (((s&0xFF) != s) || (sizes[s] > MAX_SYMBOL_SIZE))
+            if (((s&0xFF) != s) || (sizes[s] > maxSymbolSize))
                return -1;
 
             buf[((sizes[s]-1)<<8)|s] = 1;

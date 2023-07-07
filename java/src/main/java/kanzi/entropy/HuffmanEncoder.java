@@ -19,22 +19,20 @@ import java.util.Arrays;
 import kanzi.OutputBitStream;
 import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
+import kanzi.Error;
 import kanzi.Global;
+import kanzi.Memory.BigEndian;
 
 
 // Implementation of a static Huffman encoder.
 // Uses in place generation of canonical codes instead of a tree
 public class HuffmanEncoder implements EntropyEncoder
 {
-   private final OutputBitStream bs;
-   private final int[] freqs;
-   private final int[] codes;
+   private final OutputBitStream bitstream;
    private final int[] alphabet;
-   private final int[] sranks;  // sorted ranks
-   private final int[] buffer;  // temporary data
-   private final short[] sizes;
+   private final int[] codes;
    private final int chunkSize;
-   private int maxCodeLen;
+   private byte[] buffer;
 
 
    public HuffmanEncoder(OutputBitStream bitstream) throws BitStreamException
@@ -56,86 +54,95 @@ public class HuffmanEncoder implements EntropyEncoder
       if (chunkSize > HuffmanCommon.MAX_CHUNK_SIZE)
          throw new IllegalArgumentException("Huffman codec: The chunk size must be at most "+HuffmanCommon.MAX_CHUNK_SIZE);
 
-      this.bs = bitstream;
-      this.freqs = new int[256];
-      this.sizes = new short[256];
-      this.alphabet = new int[256];
-      this.sranks = new int[256];
-      this.buffer = new int[256];
+      this.bitstream = bitstream;
+      this.buffer = new byte[0];
       this.codes = new int[256];
+      this.alphabet = new int[256];
       this.chunkSize = chunkSize;
 
       // Default frequencies, sizes and codes
       for (int i=0; i<256; i++)
-      {
-         this.freqs[i] = 1;
-         this.sizes[i] = 8;
          this.codes[i] = i;
-      }
    }
 
 
    // Rebuild Huffman codes
-   private int updateFrequencies(int[] frequencies) throws BitStreamException
+   private int updateFrequencies(int[] freqs) throws BitStreamException
    {
-      if ((frequencies == null) || (frequencies.length != 256))
+      if ((freqs == null) || (freqs.length != 256))
          return -1;
 
       int count = 0;
+      short[] sizes = new short[256];
 
       for (int i=0; i<256; i++)
       {
-         this.sizes[i] = 0;
          this.codes[i] = 0;
 
-         if (frequencies[i] > 0)
+         if (freqs[i] > 0)
             this.alphabet[count++] = i;
       }
 
-      EntropyUtils.encodeAlphabet(this.bs, this.alphabet, count);
-      int retries = 0;
-
-      while (true)
+      EntropyUtils.encodeAlphabet(this.bitstream, this.alphabet, count);
+      
+      if (count == 0)
+          return 0;
+      
+      if (count == 1)
       {
-         this.computeCodeLengths(frequencies, count);
-
-         if (this.maxCodeLen <= HuffmanCommon.MAX_SYMBOL_SIZE)
-         {
-            // Usual case
-            HuffmanCommon.generateCanonicalCodes(this.sizes, this.codes, this.sranks, count);
-            break;
-         }
-
-         // Sometime, codes exceed the budget for the max code length => normalize
-         // frequencies (boost the smallest frequencies) and try once more.
-         if (retries > 2)
-            throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
-               HuffmanCommon.MAX_SYMBOL_SIZE + " bits) exceeded");
-
-         int[] f = new int[count];
-         int totalFreq = 0;
-
-         for (int i=0; i<count; i++)
-         {
-            f[i] = frequencies[this.alphabet[i]];
-            totalFreq += f[i];
-         }
-
-         // Copy alphabet (modified by normalizeFrequencies)
-         int[] symbols = new int[count];
-         System.arraycopy(this.alphabet, 0, symbols, 0, count);
-         retries++;
-
-         // Normalize to a smaller scale
-         EntropyUtils.normalizeFrequencies(f, symbols, totalFreq,
-              HuffmanCommon.MAX_CHUNK_SIZE>>(retries+1));
-
-         for (int i=0; i<count; i++)
-            frequencies[this.alphabet[i]] = f[i];
+          this.codes[this.alphabet[0]] = 1<<24;
+          sizes[this.alphabet[0]] = 1;
       }
+      else 
+      {
+          int retries = 0;
+          int[] ranks = new int[256];
 
+          while (true)
+          {
+              for (int i=0; i<count; i++)
+                  ranks[i] = (freqs[this.alphabet[i]] << 8) | this.alphabet[i];
+
+              int maxCodeLen = this.computeCodeLengths(sizes, ranks, count);
+
+              if (maxCodeLen == 0)
+                  throw new BitStreamException("Could not generate Huffman codes: invalid code length 0", Error.ERR_PROCESS_BLOCK);
+             
+              if (maxCodeLen <= HuffmanCommon.MAX_SYMBOL_SIZE_V4)
+              {
+                 // Usual case
+                 HuffmanCommon.generateCanonicalCodes(sizes, this.codes, ranks, count, HuffmanCommon.MAX_SYMBOL_SIZE_V4);
+                 break;
+              }
+
+              // Sometimes, codes exceed the budget for the max code length => normalize
+              // frequencies (boost the smallest frequencies) and try once more.
+              if (retries > 2)
+                 throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
+                    HuffmanCommon.MAX_SYMBOL_SIZE_V4 + " bits) exceeded");
+
+              retries++;
+              int[] f = new int[count];
+              int[] symbols = new int[count];
+              int totalFreq = 0;
+
+              for (int i=0; i<count; i++)
+              {
+                 f[i] = freqs[this.alphabet[i]];
+                 totalFreq += f[i];
+              }
+
+              // Normalize to a smaller scale
+              EntropyUtils.normalizeFrequencies(f, symbols, totalFreq,
+                   HuffmanCommon.MAX_CHUNK_SIZE>>(retries+1));
+
+              for (int i=0; i<count; i++)
+                 freqs[this.alphabet[i]] = f[i];
+          }
+      }
+      
       // Transmit code lengths only, frequencies and codes do not matter
-      ExpGolombEncoder egenc = new ExpGolombEncoder(this.bs, true);
+      ExpGolombEncoder egenc = new ExpGolombEncoder(this.bitstream, true);
       short prevSize = 2;
 
       // Pack size and code (size <= MAX_SYMBOL_SIZE bits)
@@ -143,7 +150,7 @@ public class HuffmanEncoder implements EntropyEncoder
       for (int i=0; i<count; i++)
       {
          final int s = this.alphabet[i];
-         final short currSize = this.sizes[s];
+         final short currSize = sizes[s];
          this.codes[s] |= (currSize<<24);
          egenc.encodeByte((byte) (currSize - prevSize));
          prevSize = currSize;
@@ -153,33 +160,26 @@ public class HuffmanEncoder implements EntropyEncoder
    }
 
 
-   private void computeCodeLengths(int[] frequencies, int count)
+   private int computeCodeLengths(short[] sizes, int[] ranks, int count)
    {
-      if (count == 1)
-      {
-         this.sranks[0] = this.alphabet[0];
-         this.sizes[this.alphabet[0]] = 1;
-         this.maxCodeLen = 1;
-         return;
-      }
-
       // Sort ranks by increasing frequencies (first key) and increasing value (second key)
-      for (int i=0; i<count; i++)
-         this.sranks[i] = (frequencies[this.alphabet[i]]<<8) | this.alphabet[i];
-
-      Arrays.sort(this.sranks, 0, count);
+      Arrays.sort(ranks, 0, count);
+      int[] freqs = new int[256];
 
       for (int i=0; i<count; i++)
       {
-         this.buffer[i] = this.sranks[i] >>> 8;
-         this.sranks[i] &= 0xFF;
+         freqs[i] = ranks[i] >>> 8;
+         ranks[i] &= 0xFF;
+         
+         if (freqs[i] == 0)
+             return 0;
       }
 
       // See [In-Place Calculation of Minimum-Redundancy Codes]
       // by Alistair Moffat & Jyrki Katajainen
-      computeInPlaceSizesPhase1(this.buffer, count);
-      computeInPlaceSizesPhase2(this.buffer, count);
-      this.maxCodeLen = 0;
+      computeInPlaceSizesPhase1(freqs, count);
+      computeInPlaceSizesPhase2(freqs, count);
+      int maxCodeLen = 0;
 
       for (int i=0; i<count; i++)
       {
@@ -188,11 +188,13 @@ public class HuffmanEncoder implements EntropyEncoder
          if (codeLen == 0)
             throw new IllegalArgumentException("Could not generate Huffman codes: invalid code length 0");
 
-         if (this.maxCodeLen < codeLen)
-            this.maxCodeLen = codeLen;
+         if (maxCodeLen < codeLen)
+            maxCodeLen = codeLen;
 
-         this.sizes[this.sranks[i]] = codeLen;
+         sizes[ranks[i]] = codeLen;
       }
+      
+      return maxCodeLen;
    }
 
 
@@ -264,30 +266,38 @@ public class HuffmanEncoder implements EntropyEncoder
 
       final int end = blkptr + count;
       int startChunk = blkptr;
+      int minLenBuf = Math.min(Math.min(this.chunkSize+(this.chunkSize>>3), 2*count), 65536);
+
+      if (this.buffer.length < minLenBuf)
+          this.buffer = new byte[minLenBuf];
+      
+      int[] freqs = new int[256];
 
       while (startChunk < end)
       {
          // Update frequencies and rebuild Huffman codes
          final int endChunk = Math.min(startChunk+this.chunkSize, end);
-         Global.computeHistogramOrder0(block, startChunk, endChunk, this.freqs, false);
+         Global.computeHistogramOrder0(block, startChunk, endChunk, freqs, false);
 
-         if (this.updateFrequencies(this.freqs) <= 1)
+         if (this.updateFrequencies(freqs) <= 1)
          {
             // Skip chunk if only one symbol
             startChunk = endChunk;
             continue;
          }
 
-         final OutputBitStream bitstream = this.bs;
          final int[] c = this.codes;
          final int endChunk4 = ((endChunk-startChunk) & -4) + startChunk;
-
+         int idx = 0;
+         long st = 0;
+         int bits = 0; // accumulated bits
+         
          for (int i=startChunk; i<endChunk4; i+=4)
          {
-            // Pack 4 codes into 1 long
-            int code = c[block[i]&0xFF];
+            int code;
+            code = c[block[i]&0xFF];
             final int codeLen0 = code >>> 24;
-            long st = code & 0xFFFFFF;
+            st = (st << codeLen0) | (code & 0xFFFFFF);
             code = c[block[i+1]&0xFF];
             final int codeLen1 = code >>> 24;
             st = (st<<codeLen1) | (code&0xFFFFFF);
@@ -297,15 +307,41 @@ public class HuffmanEncoder implements EntropyEncoder
             code = c[block[i+3]&0xFF];
             final int codeLen3 = code >>> 24;
             st = (st<<codeLen3) | (code&0xFFFFFF);
-            bitstream.writeBits(st, codeLen0+codeLen1+codeLen2+codeLen3);
+            bits += (codeLen0+codeLen1+codeLen2+codeLen3);
+            int shift = bits & -8;
+            BigEndian.writeLong64(this.buffer, idx, st << (64 - bits));
+            bits -= shift;
+            idx += (shift>>3);
          }
 
          for (int i=endChunk4; i<endChunk; i++)
          {
             final int code = c[block[i]&0xFF];
-            bitstream.writeBits(code, code>>>24);
+            final int codeLen = code >>> 24;
+            st = (st<<codeLen) | (code&0xFFFFFF);
+            bits += codeLen;
          }
 
+         int nbBits = (idx * 8) + bits;
+         
+         while (bits >= 8)
+         {
+             bits -= 8;
+             this.buffer[idx++] = (byte) (st>>bits);
+         }
+         
+         if (bits > 0)
+             this.buffer[idx++] = (byte) (st<<(8-bits));
+         
+         // Write number of streams (0->1, 1->4, 2->8, 3->32)
+         this.bitstream.writeBits(0, 2);
+         
+         // Write chunk size in bits
+         EntropyUtils.writeVarInt(this.bitstream, nbBits);
+         
+         // Write compressed data to bitstream
+         this.bitstream.writeBits(this.buffer, 0, nbBits);
+         
          startChunk = endChunk;
       }
 
@@ -316,7 +352,7 @@ public class HuffmanEncoder implements EntropyEncoder
    @Override
    public OutputBitStream getBitStream()
    {
-      return this.bs;
+      return this.bitstream;
    }
 
 
