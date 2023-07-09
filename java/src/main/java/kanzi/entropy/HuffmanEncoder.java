@@ -183,7 +183,7 @@ public class HuffmanEncoder implements EntropyEncoder
 
       for (int i=0; i<count; i++)
       {
-         short codeLen = (short) this.buffer[i];
+         short codeLen = (short) freqs[i];
 
          if (codeLen == 0)
             throw new IllegalArgumentException("Could not generate Huffman codes: invalid code length 0");
