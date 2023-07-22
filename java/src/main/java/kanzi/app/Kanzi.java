@@ -16,15 +16,21 @@ limitations under the License.
 package kanzi.app;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import kanzi.Global;
+import kanzi.OutputBitStream;
+import kanzi.bitstream.DefaultOutputBitStream;
+import kanzi.entropy.HuffmanEncoder;
 
 
 

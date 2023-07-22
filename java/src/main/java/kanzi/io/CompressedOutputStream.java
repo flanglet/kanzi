@@ -712,10 +712,13 @@ public class CompressedOutputStream extends OutputStream
                notifyListeners(this.listeners, evt);
             }
 
-            if (data.length < postTransformLength)
+            final int bufSize = Math.max(512*1024, Math.max(postTransformLength, blockLength+(blockLength>>3)));
+
+            if (data.length < bufSize)
             {
-               // Rare case where the transform expanded the input
-               data.length = Math.max(1024, postTransformLength + (postTransformLength>>5));
+               // Rare case where the transform expanded the input or entropy coder
+               // may expand size
+               data.length = bufSize;
 
                if (data.array.length < data.length)
                   data.array = new byte[data.length];
