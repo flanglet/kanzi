@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.transform;
 
+import java.util.Arrays;
 import java.util.Map;
 import kanzi.ByteTransform;
 import kanzi.Global;
@@ -25,7 +26,7 @@ import kanzi.SliceByteArray;
 // Decorrelate values separated by a constant distance (step) and encode residuals
 public class FSDCodec implements ByteTransform
 {
-   private static final int MIN_LENGTH = 128;
+   private static final int MIN_LENGTH = 1024;
    private static final byte ESCAPE_TOKEN = (byte) 255;
    private static final byte DELTA_CODING = (byte) 0;
    private static final byte XOR_CODING = (byte) 1;
@@ -93,14 +94,14 @@ public class FSDCodec implements ByteTransform
       final int count5 = count / 5;
       final int count10 = count / 10;
       final int[][] histo = new int[7][256];
-      final int start1 = input.index + 1*count5;
-      final int start2 = input.index + 3*count5;
+      int start1 = input.index + 1*count5;
+      int start2 = input.index + 3*count5;
       
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
       for (int i=0; i<count10; i++)
       {
-         final byte b1 = src[i];
+         final byte b1 = src[start1+i];
          histo[0][b1&0xFF]++;
          histo[1][(b1^src[start1+i-1])&0xFF]++;
          histo[2][(b1^src[start1+i-2])&0xFF]++;
@@ -108,7 +109,7 @@ public class FSDCodec implements ByteTransform
          histo[4][(b1^src[start1+i-4])&0xFF]++;
          histo[5][(b1^src[start1+i-8])&0xFF]++;
          histo[6][(b1^src[start1+i-16])&0xFF]++;
-         final byte b2 = src[i];
+         final byte b2 = src[start2+i];
          histo[0][b2&0xFF]++;
          histo[1][(b2^src[start2+i-1])&0xFF]++;
          histo[2][(b2^src[start2+i-2])&0xFF]++;
@@ -205,10 +206,17 @@ public class FSDCodec implements ByteTransform
          return false;
 
       // Extra check that the transform makes sense
-      boolean isFast = (this.ctx == null) ? true : (this.ctx.getOrDefault("fullFSD", false) == Boolean.FALSE);
-      final int length = (isFast == true) ? dstIdx>>1 : dstIdx;
-      Global.computeHistogramOrder0(dst, (dstIdx-length)>>1, (dstIdx+length)>>1, histo[0], false);
-      final int entropy = Global.computeFirstOrderEntropy1024(length, histo[0]);
+      Arrays.fill(histo[0], 0, 256, 0);
+      start1 = output.index + 1*count5;
+      start2 = output.index + 3*count5;
+      
+      for (int i=0; i<count10; i++)
+      {
+         histo[0][src[start1+i]&0xFF]++;
+         histo[0][src[start2+i]&0xFF]++;
+      }
+      
+      final int entropy = Global.computeFirstOrderEntropy1024(count5, histo[0]);
 
       if (entropy >= ent[0])
          return false;

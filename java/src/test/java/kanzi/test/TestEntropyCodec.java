@@ -230,7 +230,7 @@ public class TestEntropyCodec
             return new FPAQDecoder(ibs, null);
 
          case "HUFFMAN":
-            return new HuffmanDecoder(ibs);
+            return new HuffmanDecoder(ibs, null);
 
          case "ANS0":
             return new ANSRangeDecoder(ibs, 0);
