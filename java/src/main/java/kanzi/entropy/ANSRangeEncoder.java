@@ -133,13 +133,14 @@ public class ANSRangeEncoder implements EntropyEncoder
          {
             int sum = 0;
 
-            for (int i=0; i<256; i++)
+            for (int i=0, count=0; (i<256) && (count<alphabetSize); i++)
             {
                if (f[i] == 0)
                   continue;
 
                symb[i].reset(sum, f[i], lr);
                sum += f[i];
+               count++;
             }
          }
 
@@ -159,7 +160,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       if (encoded < 0)
          return false;
 
-      if (encoded == 0)
+      if (encoded <= 1)
          return true;
 
       final int chkSize = (alphabetSize >= 64) ? 8 : 6;
