@@ -378,11 +378,17 @@ public class ANSRangeDecoder implements EntropyDecoder
 
       for (int k=0; k<dim; k++)
       {
-         final int[] f = frequencies[k];
          int alphabetSize = EntropyUtils.decodeAlphabet(this.bitstream, alphabet);
 
          if (alphabetSize == 0)
             continue;
+
+         int llr = 3;
+
+         while (1<<llr <= this.logRange)
+            llr++;
+
+         final int[] f = frequencies[k];
 
          if (alphabetSize != f.length)
          {
@@ -395,10 +401,6 @@ public class ANSRangeDecoder implements EntropyDecoder
 
          final int chkSize = (alphabetSize >= 64) ? 8 : 6;
          int sum = 0;
-         int llr = 3;
-
-         while (1<<llr <= this.logRange)
-            llr++;
 
          // Decode all frequencies (but the first one) by chunks
          for (int i=1; i<alphabetSize; i+=chkSize)
