@@ -27,17 +27,35 @@ public class AliasCodec implements ByteTransform
 {
    private static final int MIN_BLOCK_SIZE = 1024;
    private final Map<String, Object> ctx;
+   private final int order; // 0 or 1
 
 
    public AliasCodec()
    {
       this.ctx = null;
+      this.order = 1;
    }
 
+   
+   public AliasCodec(int order)
+   {
+      if ((order != 0) && (order != 1))
+         throw new IllegalArgumentException("Alias Codec: The 'order' parameter must be 0 or 1");
+      
+      this.ctx = null;
+      this.order = order;
+   }
 
+   
    public AliasCodec(Map<String, Object> ctx)
    {
       this.ctx = ctx;
+      final int o = (int) this.ctx.getOrDefault("alias", 1);
+      
+      if ((o != 0) && (o != 1))
+         throw new IllegalArgumentException("Alias Codec: 'order' must be 0 or 1");
+
+      this.order = o;
    }
 
 
@@ -144,6 +162,9 @@ public class AliasCodec implements ByteTransform
        }
        else
        {
+          if (this.order == 0)
+             return false;
+          
           // Digram encoding
           TreeSet<Alias> t = new TreeSet<>();
 
