@@ -41,10 +41,10 @@ public class TransformFactory
    public static final short ROLZX_TYPE   = 12; // ROLZ Extra codec
    public static final short SRT_TYPE     = 13; // Sorted Rank
    public static final short LZP_TYPE     = 14; // Lempel Ziv Predict
-   public static final short FSD_TYPE     = 15; // Fix Shift Delta codec
+   public static final short MM_TYPE      = 15; // Multimedia (FSD) codec
    public static final short LZX_TYPE     = 16; // Lempel Ziv Extra
    public static final short UTF_TYPE     = 17; // UTF codec
-   public static final short ALIAS_TYPE   = 18; // Alias codec
+   public static final short PACK_TYPE   = 18; // Alias codec
    public static final short RESERVED2    = 19; // Reserved
    public static final short RESERVED3    = 20; // Reserved
    public static final short RESERVED4    = 21; // Reserved
@@ -136,11 +136,11 @@ public class TransformFactory
          case "EXE":
             return EXE_TYPE;
 
-         case "FSD":
-            return FSD_TYPE;
+         case "MM":
+            return MM_TYPE;
 
-         case "ALIAS":
-            return ALIAS_TYPE;
+         case "PACK":
+            return PACK_TYPE;
 
          case "NONE":
             return NONE_TYPE;
@@ -245,10 +245,10 @@ public class TransformFactory
          case EXE_TYPE:
             return new EXECodec(ctx);
 
-         case FSD_TYPE:
+         case MM_TYPE:
             return new FSDCodec(ctx);
 
-         case ALIAS_TYPE:
+         case PACK_TYPE:
             return new AliasCodec(ctx);
 
          case NONE_TYPE:
@@ -335,11 +335,11 @@ public class TransformFactory
          case LZP_TYPE:
             return "LZP";
 
-         case FSD_TYPE:
-            return "FSD";
+         case MM_TYPE:
+            return "MM";
 
-         case ALIAS_TYPE:
-            return "ALIAS";
+         case PACK_TYPE:
+            return "PACK";
 
          case NONE_TYPE:
             return "NONE";
