@@ -143,8 +143,8 @@ public class Kanzi
         boolean fileReorder = true;
         boolean noDotFile = false;
         boolean autoBlockSize = false;
-        String inputName = null;
-        String outputName = null;
+        String inputName = "";
+        String outputName = "";
         String codec = null;
         String transform = null;
         int from = -1;
@@ -212,22 +212,29 @@ public class Kanzi
                   return kanzi.Error.ERR_INVALID_PARAM;
                }
            }
-           else if (arg.startsWith("--output=") || (ctx == ARG_IDX_OUTPUT))
+           else if (ctx == ARG_IDX_OUTPUT)
            {
-               outputName = arg.startsWith("--output=") ? arg.substring(9).trim() : arg;
+               outputName =  arg.trim();
+           }
+           else if (ctx == ARG_IDX_INPUT)
+           {
+               inputName =  arg.trim();
            }
 
            ctx = -1;
         }
 
         // Overwrite verbosity if the output goes to stdout
-        if ("STDOUT".equalsIgnoreCase(outputName))
+        if ("".equals(inputName) && "".equals(outputName))
+            verbose = 0;
+        else if ("STDOUT".equalsIgnoreCase(outputName))
            verbose = 0;
 
         if (verbose >= 1)
             printOut("\n" + APP_HEADER +"\n", true);
 
-        outputName = null;
+        inputName = "";
+        outputName = "";
         ctx = -1;
 
         if (args.length == 0)
@@ -343,7 +350,7 @@ public class Kanzi
            {
                String name = arg.startsWith("--output=") ? arg.substring(9).trim() : arg;
 
-               if (outputName != null)
+               if (!outputName.isEmpty())
                   System.err.println("Warning: ignoring duplicate output name: "+name);
                else
                   outputName = name;
@@ -356,7 +363,7 @@ public class Kanzi
            {
                String name = arg.startsWith("--input=") ? arg.substring(8).trim() : arg;
 
-               if (inputName != null)
+               if (!inputName.isEmpty())
                   System.err.println("Warning: ignoring duplicate input name: "+name);
                else
                   inputName = name;
@@ -591,7 +598,7 @@ public class Kanzi
            ctx = -1;
         }
 
-        if (inputName == null)
+        if (inputName.isEmpty())
         {
            System.err.println("Missing input file name, exiting ...");
            return kanzi.Error.ERR_MISSING_PARAM;
