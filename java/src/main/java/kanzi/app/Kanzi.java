@@ -16,21 +16,15 @@ limitations under the License.
 package kanzi.app;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import kanzi.Global;
-import kanzi.OutputBitStream;
-import kanzi.bitstream.DefaultOutputBitStream;
-import kanzi.entropy.HuffmanEncoder;
 
 
 
@@ -718,17 +712,17 @@ public class Kanzi
       if (mode == 'c')
       {
          printOut("   -b, --block=<size>", true);
-         printOut("        size of blocks (default 4|8|16|32 MB based on level, max 1 GB, min 1 KB).\n", true);
-         printOut("        'auto' means that the compressor derives the best value'\n", true);
+         printOut("        size of blocks (default 4|8|16|32 MB based on level, max 1 GB, min 1 KB).", true);
+         printOut("        'auto' means that the compressor derives the best value'", true);
          printOut("        based on input size (when available) and number of jobs.\n", true);
          printOut("   -l, --level=<compression>", true);
          printOut("        set the compression level [0..9]", true);
          printOut("        Providing this option forces entropy and transform.", true);
          printOut("        0=None&None (store)", true);
-         printOut("        1=LZ&HUFFMAN", true);
-         printOut("        2=TEXT+UTF+FSD+LZX&HUFFMAN", true);
-         printOut("        3=TEXT+UTF+FSD+ROLZ", true);
-         printOut("        4=TEXT+UTF+FSD+ROLZX", true);
+         printOut("        1=PACK+LZ&NONE", true);
+         printOut("        2=PACK+LZ&HUFFMAN", true);
+         printOut("        3=TEXT+UTF+PACK+MM+LZX&HUFFMAN", true);
+         printOut("        4=TEXT+UTF+EXE+PACK+MM+ROLZ&NONE", true);
          printOut("        5=TEXT+UTF+BWT+RANK+ZRLT&ANS0", true);
          printOut("        6=TEXT+UTF+BWT+SRT+ZRLT&FPAQ", true);
          printOut("        7=LZP+TEXT+UTF+BWT+LZP&CM", true);
@@ -739,7 +733,7 @@ public class Kanzi
          printOut("        (default is ANS0)\n", true);
          printOut("   -t, --transform=<codec>", true);
          printOut("        transform [None|BWT|BWTS|LZ|LZX|LZP|ROLZ|ROLZX|RLT|ZRLT]", true);
-         printOut("                  [MTFT|RANK|SRT|TEXT|FSD|EXE|UTF|ALIAS]", true);
+         printOut("                  [MTFT|RANK|SRT|TEXT|MM|EXE|UTF|PACK]", true);
          printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
          printOut("   -x, --checksum", true);
          printOut("        enable block checksum\n", true);

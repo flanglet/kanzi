@@ -20,6 +20,8 @@ import kanzi.entropy.BinaryEntropyDecoder;
 import kanzi.entropy.BinaryEntropyEncoder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import kanzi.EntropyDecoder;
 import kanzi.EntropyEncoder;
@@ -212,6 +214,9 @@ public class TestEntropyCodec
 
    private static EntropyDecoder getDecoder(String name, InputBitStream ibs)
    {
+      Map<String, Object> ctx = new HashMap<>();
+      ctx.put("bsVersion", 4);
+      
       switch(name)
       {
          case "CM":
@@ -227,16 +232,16 @@ public class TestEntropyCodec
             return new BinaryEntropyDecoder(ibs, pred);
 
          case "FPAQ":
-            return new FPAQDecoder(ibs, null);
+            return new FPAQDecoder(ibs, ctx);
 
          case "HUFFMAN":
-            return new HuffmanDecoder(ibs);
+            return new HuffmanDecoder(ibs, ctx);
 
          case "ANS0":
-            return new ANSRangeDecoder(ibs, 0);
+            return new ANSRangeDecoder(ibs, 0, ctx);
 
          case "ANS1":
-            return new ANSRangeDecoder(ibs, 1);
+            return new ANSRangeDecoder(ibs, 1, ctx);
 
          case "RANGE":
             return new RangeDecoder(ibs);

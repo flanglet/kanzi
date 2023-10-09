@@ -493,16 +493,16 @@ public class BlockCompressor implements Runnable, Callable<Integer>
            return "NONE&NONE";
 
         case 1 :
-           return "LZ&HUFFMAN";
+           return "PACK+LZ&NONE";
 
         case 2 :
-           return "TEXT+UTF+FSD+LZX&HUFFMAN";
+           return "PACK+LZ&HUFFMAN";
 
         case 3 :
-           return "TEXT+UTF+FSD+ROLZ&NONE";
+           return "TEXT+UTF+PACK+MM+LZX&HUFFMAN";
 
         case 4 :
-           return "TEXT+UTF+FSD+ROLZX&NONE";
+           return "TEXT+UTF+EXE+PACK+MM+ROLZ&NONE";
 
         case 5 :
            return "TEXT+UTF+BWT+RANK+ZRLT&ANS0";

@@ -162,8 +162,8 @@ public class TestTransforms
       Assert.assertTrue(testCorrectness("ZRLT"));
       //testSpeed("ZRLT");
       System.out.println("\n\nTestFSD");
-      Assert.assertTrue(testCorrectness("FSD"));
-      //testSpeed("FSD");
+      Assert.assertTrue(testCorrectness("MM"));
+      //testSpeed("MM");
       System.out.println("\n\nTestRLT");
       Assert.assertTrue(testCorrectness("RLT"));
       //testSpeed("RLT");
@@ -196,7 +196,7 @@ public class TestTransforms
          case "SRT":
             return new SRT();
 
-         case "FSD":
+         case "MM":
             return new FSDCodec();
 
          case "ROLZ":
