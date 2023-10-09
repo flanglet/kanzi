@@ -384,46 +384,55 @@ public class AliasCodec implements ByteTransform
 
    static class Alias implements Comparable<Alias>
    {
-      public int val;
-      public int freq;
+        public int val;
+        public int freq;
 
-      public Alias(int val, int freq)
-      {
-         this.val = val;
-         this.freq = freq;
-      }
+        public Alias(int val, int freq)
+        {
+           this.val = val;
+           this.freq = freq;
+        }
 
-      @Override
-      public int compareTo(Alias other)
-      {
-         if (other == this)
-           return 0;
+        @Override
+        public int compareTo(Alias other)
+        {
+           if (other == this)
+             return 0;
 
-         if (other == null)
-           return 1;
+           if (other == null)
+             return 1;
 
-         final int r = other.freq - this.freq;
+           final int r = other.freq - this.freq;
 
-         if (r != 0)
-            return r;
+           if (r != 0)
+              return r;
 
-         return other.val - this.val;
-      }
+           return other.val - this.val;
+        }
 
-      @Override
-      public boolean equals(Object other)
-      {
-          if (other == this)
-              return true;
+        @Override
+        public boolean equals(Object other)
+        {
+            if (other == this)
+                return true;
 
-          if (other == null)
-              return false;
+            if (other == null)
+                return false;
 
-          if ((other instanceof Alias) == false)
-              return false;
+            if ((other instanceof Alias) == false)
+                return false;
 
-          Alias alias = (Alias) other;
-          return (this.freq == alias.freq) && (this.val == alias.val);
-      }
+            Alias alias = (Alias) other;
+            return (this.freq == alias.freq) && (this.val == alias.val);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            int hash = 7;
+            hash = 19 * hash + this.val;
+            hash = 19 * hash + this.freq;
+            return hash;
+        }
    }
 }

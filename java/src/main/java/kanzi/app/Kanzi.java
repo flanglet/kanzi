@@ -225,7 +225,7 @@ public class Kanzi
         }
 
         // Overwrite verbosity if the output goes to stdout
-        if ("".equals(inputName) && "".equals(outputName))
+        if ((inputName.length() == 0) && (outputName.length() == 0))
             verbose = 0;
         else if ("STDOUT".equalsIgnoreCase(outputName))
            verbose = 0;

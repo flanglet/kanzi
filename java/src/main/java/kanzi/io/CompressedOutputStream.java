@@ -632,10 +632,7 @@ public class CompressedOutputStream extends OutputStream
 
                if (skipBlockOpt == true)
                {
-                  boolean skipBlock = false;
-                  
-                  if (blockLength >= 8) 
-                     skipBlock = Magic.isCompressed(Magic.getType(data.array, data.index));
+                  boolean skipBlock = Magic.isCompressed(Magic.getType(data.array, data.index));
 				
                   if (skipBlock == false)
                   {

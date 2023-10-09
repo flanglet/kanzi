@@ -338,9 +338,6 @@ public class EXECodec implements ByteTransform
       if (input.length == 0)
         return true;
 
-      if (input.length == 0)
-         return true;
-
       if (input.array == output.array)
          return false;
 
