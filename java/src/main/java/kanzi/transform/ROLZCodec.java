@@ -526,7 +526,7 @@ public class ROLZCodec implements ByteTransform
          
          final int bsVersion = (this.ctx == null) ? 3 : (Integer) this.ctx.getOrDefault("bsVersion", 3);
          
-         if (bsVersion >= 3) 
+         if (bsVersion >= 4)
          {
             switch (flags & 0x0E)
             {

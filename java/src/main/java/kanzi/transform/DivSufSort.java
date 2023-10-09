@@ -1304,7 +1304,7 @@ public final class DivSufSort
                 : LOG_TABLE[x & 0xFF]);
 
         if (e < 8)
-           return SQQ_TABLE[x] >> 4;
+           return SQQ_TABLE[x & 0xFF] >> 4;
 
         int y;
 

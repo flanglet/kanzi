@@ -257,7 +257,7 @@ public class AliasCodec implements ByteTransform
       final byte[] dst = output.array;
       int n = src[srcIdx] & 0xFF;
 
-      if ((n < 16) || (n >= 256))
+      if (n < 16)
           return false;
 
       if (n >= 240)
@@ -283,7 +283,7 @@ public class AliasCodec implements ByteTransform
           {
              final int adjust = src[srcIdx++] & 0xFF;
 
-             if ((adjust < 0) || (adjust >= 4))
+             if (adjust >= 4)
                  return false;
 
              if (n <= 4)
@@ -408,6 +408,22 @@ public class AliasCodec implements ByteTransform
             return r;
 
          return other.val - this.val;
+      }
+
+      @Override
+      public boolean equals(Object other)
+      {
+          if (other == this)
+              return true;
+
+          if (other == null)
+              return false;
+
+          if ((other instanceof Alias) == false)
+              return false;
+
+          Alias alias = (Alias) other;
+          return (this.freq == alias.freq) && (this.val == alias.val);
       }
    }
 }
