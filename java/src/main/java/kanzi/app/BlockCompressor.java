@@ -158,9 +158,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       }
       else if (concurrency > MAX_CONCURRENCY)
       {
-         if (this.verbosity > 0)
-            System.err.println("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY);
-
+         printOut("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY, this.verbosity>0);
          concurrency = MAX_CONCURRENCY;
       }
 
@@ -171,7 +169,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       if ((this.verbosity > 0) && (map.size() > 0))
       {
          for (String k : map.keySet())
-            printOut("Ignoring invalid option [" + k + "]", true); //this.verbosity>0
+            printOut("Warning: Ignoring invalid option [" + k + "]", true); //this.verbosity>0
       }
    }
 
