@@ -80,8 +80,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.overwrite = (bForce == null) ? false : bForce;
       Boolean bSkip = (Boolean) map.remove("skipBlocks");
       this.skipBlocks = (bSkip == null) ? false : bSkip;
-      this.inputName = (String) map.remove("inputName");
-      this.outputName = (String) map.remove("outputName");
+      String iName = (String) map.remove("inputName");
+      this.inputName = iName.isEmpty() ? STDIN : iName;
+      String oName = (String) map.remove("outputName");
+      this.outputName = (oName.isEmpty() && STDIN.equalsIgnoreCase(iName)) ? STDOUT : oName;
       String strTransf;
       String strCodec;
 
@@ -195,8 +197,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       List<Path> files = new ArrayList<>();
       long before = System.nanoTime();
       int nbFiles = 1;
+      boolean isStdIn = STDIN.equalsIgnoreCase(this.inputName);
 
-      if (STDIN.equalsIgnoreCase(this.inputName) == false)
+      if (isStdIn == false)
       {
          try
          {            
@@ -224,6 +227,23 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          printOut(nbFiles+strFiles+" to compress\n", this.verbosity > 0);
       }
 
+      String upperOutputName = this.outputName.toUpperCase();
+      boolean isStdOut = STDOUT.equals(upperOutputName);
+
+      // Limit verbosity level when output is stdout
+      // Logic is duplicated here to avoid dependency to Kanzi.java
+      if (isStdOut == true)
+      {
+          this.verbosity = 0;
+      }
+
+      // Limit verbosity level when files are processed concurrently
+      if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1))
+      {
+         printOut("Warning: limiting verbosity to 1 due to concurrent processing of input files.\n", true);
+         this.verbosity = 1;
+      }
+
       if (this.verbosity > 2)
       {
          if (this.autoBlockSize == true)
@@ -239,29 +259,21 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          String ecodec = (NONE.equals(this.codec)) ? "no" : this.codec;
          printOut("Using " + ecodec + " entropy codec (stage 2)", true);
          printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
+         this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.ENCODING, System.out));
       }
       
-      // Limit verbosity level when files are processed concurrently
-      if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1)) {
-         printOut("Warning: limiting verbosity to 1 due to concurrent processing of input files.\n", true);
-         this.verbosity = 1;
-      }
-
-      if (this.verbosity > 2)
-         this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.ENCODING, System.out));
-
       int res = 0;
       long read = 0;
       long written = 0;
       boolean inputIsDir = false;
       String formattedOutName = this.outputName;
       String formattedInName = this.inputName;
-      boolean specialOutput = (NONE.equalsIgnoreCase(formattedOutName)) ||
-         (STDOUT.equalsIgnoreCase(formattedOutName));
+      boolean specialOutput = NONE.equals(upperOutputName) ||
+         STDOUT.equals(upperOutputName);
 
       try
       {
-         if (STDIN.equalsIgnoreCase(this.inputName) == false)
+         if (isStdIn == false)
          {
             if (Files.isDirectory(Paths.get(formattedInName)))
             {
@@ -273,7 +285,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                if (formattedInName.endsWith(File.separator) == false)
                   formattedInName += File.separator;
 
-               if ((formattedOutName != null) && (specialOutput == false))
+               if ((formattedOutName.isEmpty() == false) && (specialOutput == false))
                {
                   if (Files.isDirectory(Paths.get(formattedOutName)) == false)
                   {
@@ -287,7 +299,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             }
             else
             {
-               if ((formattedOutName != null) && (specialOutput == false))
+               if ((formattedOutName.isEmpty() == false) && (specialOutput == false))
                {
                   if (Files.isDirectory(Paths.get(formattedOutName)) == true)
                   {
@@ -311,10 +323,15 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          // Run the task(s)
          if (nbFiles == 1)
          {
-            String oName = formattedOutName;
+            String oName = (formattedOutName == null) ? "" : formattedOutName;
             String iName = STDIN;
 
-            if (STDIN.equalsIgnoreCase(this.inputName) == false)
+            if (isStdIn == true)
+            {
+                if (oName.isEmpty())
+                   oName = STDOUT;
+            }
+            else
             {
                iName = files.get(0).toString();
                long fileSize = Files.size(files.get(0));
@@ -327,7 +344,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                    this.blockSize = (int) Math.max(Math.min(bl, MAX_BLOCK_SIZE), MIN_BLOCK_SIZE);
                }
 
-               if (oName == null)
+               if (oName.isEmpty())
                {
                   oName = iName + ".knz";
                }

@@ -67,8 +67,10 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    {
       Boolean bForce = (Boolean) map.remove("overwrite");
       this.overwrite = (bForce == null) ? false : bForce;
-      this.inputName = (String) map.remove("inputName");
-      this.outputName = (String) map.remove("outputName");
+      String iName = (String) map.remove("inputName");
+      this.inputName = iName.isEmpty() ? STDIN : iName;
+      String oName = (String) map.remove("outputName");
+      this.outputName = (oName.isEmpty() && STDIN.equalsIgnoreCase(iName)) ? STDOUT : oName;
       this.verbosity = (Integer) map.remove("verbose");
       this.from = (map.containsKey("from") ? (Integer) map.remove("from") : -1);
       this.to = (map.containsKey("to") ? (Integer) map.remove("to") : -1);
@@ -119,8 +121,9 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       long read = 0;
       long before = System.nanoTime();
       int nbFiles = 1;
+      boolean isStdIn = STDIN.equalsIgnoreCase(this.inputName);
 
-      if (STDIN.equalsIgnoreCase(this.inputName) == false)
+      if (isStdIn == false)
       {   
          try
          {
@@ -147,65 +150,77 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          String strFiles = (nbFiles > 1) ? " files" : " file";
          printOut(nbFiles+strFiles+" to decompress\n", this.verbosity > 0);
       }
+
+      String upperOutputName = this.outputName.toUpperCase();
+      boolean isStdOut = STDOUT.equals(upperOutputName);
       
-      if (this.verbosity > 2)
+      // Limit verbosity level when output is stdout
+      // Logic is duplicated here to avoid dependency to Kanzi.java
+      if (isStdOut == true)
       {
-         printOut("Verbosity set to "+this.verbosity, true);
-         printOut("Overwrite set to "+this.overwrite, true);
-         printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
+          this.verbosity = 0;
       }
-      
+
       // Limit verbosity level when files are processed concurrently
-      if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1)) {
+      if ((this.jobs > 1) && (nbFiles > 1) && (this.verbosity > 1))
+      {
          printOut("Warning: limiting verbosity to 1 due to concurrent processing of input files.\n", true);
          this.verbosity = 1;
       }
 
       if (this.verbosity > 2)
+      {
+         printOut("Verbosity set to "+this.verbosity, true);
+         printOut("Overwrite set to "+this.overwrite, true);
+         printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
          this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.DECODING, System.out));
+      }
 
       int res = 0;
 
       try
       {
-         boolean inputIsDir;
+         boolean inputIsDir = false;
          String formattedOutName = this.outputName;
          String formattedInName = this.inputName;
-         boolean specialOutput = (NONE.equalsIgnoreCase(formattedOutName)) ||
-            (STDOUT.equalsIgnoreCase(formattedOutName));
+         boolean specialOutput = NONE.equals(upperOutputName) ||
+            STDOUT.equals(upperOutputName);
 
-         if (Files.isDirectory(Paths.get(this.inputName)))
+         if (isStdIn == false)
          {
-            inputIsDir = true;
-
-            if (formattedInName.endsWith(".") == true)
-               formattedInName = formattedInName.substring(0, formattedInName.length()-1);
-
-            if (formattedInName.endsWith(File.separator) == false)
-               formattedInName += File.separator;
-
-            if ((formattedOutName != null) && (specialOutput== false))
+            if (Files.isDirectory(Paths.get(this.inputName)))
             {
-               if (Files.isDirectory(Paths.get(formattedOutName)) == false)
+               inputIsDir = true;
+
+               if (formattedInName.endsWith(".") == true)
+                  formattedInName = formattedInName.substring(0, formattedInName.length()-1);
+
+               if (formattedInName.endsWith(File.separator) == false)
+                  formattedInName += File.separator;
+
+               if ((formattedOutName.isEmpty() == false) && (specialOutput== false))
                {
-                  System.err.println("Output must be an existing directory (or 'NONE')");
-                  return Error.ERR_CREATE_FILE;
+                  if (Files.isDirectory(Paths.get(formattedOutName)) == false)
+                  {
+                     System.err.println("Output must be an existing directory (or 'NONE')");
+                     return Error.ERR_CREATE_FILE;
+                  }
+
+                  if (formattedOutName.endsWith(File.separator) == false)
+                     formattedOutName += File.separator;
                }
-
-               if (formattedOutName.endsWith(File.separator) == false)
-                  formattedOutName += File.separator;
             }
-         }
-         else
-         {
-            inputIsDir = false;
-
-            if ((formattedOutName != null) && (specialOutput == false))
+            else
             {
-               if (Files.isDirectory(Paths.get(formattedOutName)) == true)
+               inputIsDir = false;
+
+               if ((formattedOutName.isEmpty() == false) && (specialOutput == false))
                {
-                  System.err.println("Output must be a file (or 'NONE')");
-                  return Error.ERR_CREATE_FILE;
+                  if (Files.isDirectory(Paths.get(formattedOutName)) == true)
+                  {
+                     System.err.println("Output must be a file (or 'NONE')");
+                     return Error.ERR_CREATE_FILE;
+                  }
                }
             }
          }
@@ -224,20 +239,30 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          // Run the task(s)
          if (nbFiles == 1)
          {
-            String oName = this.outputName;
-            String iName = files.get(0).toString();
-            long fileSize = Files.size(files.get(0));
+            String oName = (formattedOutName == null) ? "" : formattedOutName;
+            String iName = STDIN;
 
-            if (oName == null)
+            if (isStdIn == true)
             {
-               oName = iName + ".bak";
+                if (oName.isEmpty())
+                    oName = STDOUT;
             }
-            else if ((inputIsDir == true) && (specialOutput == false))
+            else
             {
-               oName = formattedOutName + iName.substring(formattedInName.length()+1) + ".bak";
+                iName = files.get(0).toString();
+                long fileSize = Files.size(files.get(0));
+                ctx.put("fileSize", fileSize);
+
+                if (oName.isEmpty())
+                {
+                   oName = iName + ".bak";
+                }
+                else if ((inputIsDir == true) && (specialOutput == false))
+                {
+                   oName = formattedOutName + iName.substring(formattedInName.length()+1) + ".bak";
+                }
             }
 
-            ctx.put("fileSize", fileSize);
             ctx.put("inputName", iName);
             ctx.put("outputName", oName);
             ctx.put("jobs", this.jobs);
@@ -324,7 +349,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
          printOut("Total decompression time: "+str, this.verbosity > 0);
          printOut("Total output size: "+read+((read>1)?" bytes":" byte"), this.verbosity > 0);
-	   }
+       }
 
       return res;
    }

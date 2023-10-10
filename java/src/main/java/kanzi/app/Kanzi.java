@@ -158,13 +158,19 @@ public class Kanzi
         {
            arg = arg.trim();
 
-           if (arg.equals("-o"))
+           if ((arg.startsWith("--output=")) || (arg.equals("-o")))
            {
               ctx = ARG_IDX_OUTPUT;
               continue;
            }
 
-           if (arg.equals("-v"))
+           if ((arg.startsWith("--input=")) || (arg.equals("-i")))
+           {
+              ctx = ARG_IDX_INPUT;
+              continue;
+           }
+
+           if ((arg.startsWith("--verbose=")) || (arg.equals("-v")))
            {
               ctx = ARG_IDX_VERBOSE;
               continue;
@@ -596,12 +602,6 @@ public class Kanzi
            }
 
            ctx = -1;
-        }
-
-        if (inputName.isEmpty())
-        {
-           System.err.println("Missing input file name, exiting ...");
-           return kanzi.Error.ERR_MISSING_PARAM;
         }
 
         if (ctx != -1)
