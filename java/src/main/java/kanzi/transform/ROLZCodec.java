@@ -336,7 +336,6 @@ public class ROLZCodec implements ByteTransform
          final int dt = delta;
          flags |= (this.logPosChecks << 4);
          dst[output.index+4] = flags;
-         int srcIdx = input.index;
          int dstIdx = output.index + 5;
          
          // Main loop
@@ -352,7 +351,7 @@ public class ROLZCodec implements ByteTransform
 
             final int endChunk = Math.min(startChunk+sizeChunk, srcEnd);
             sizeChunk = endChunk - startChunk;
-            srcIdx = startChunk;
+            int srcIdx = startChunk;
             final SliceByteArray sba = new SliceByteArray(src, endChunk, startChunk);
             final int n = Math.min(srcEnd-startChunk, 8);
 
@@ -416,7 +415,7 @@ public class ROLZCodec implements ByteTransform
 
             // Emit last chunk literals
             srcIdx = sizeChunk;
-            final int litLen = srcIdx - firstLitIdx;
+            final int litLen = srcIdx - (firstLitIdx - startChunk);
             final int mode = (litLen < 31) ? (litLen << 3) : 0xF8;
             tkBuf.array[tkBuf.index++] = (byte) mode;
 
@@ -467,19 +466,26 @@ public class ROLZCodec implements ByteTransform
          if (dstIdx+4 > dst.length)
          {
             output.index = dstIdx;
-            input.index = srcIdx;
+            input.index = startChunk;
             return false;
          }
 
-         // Emit last literals
-         dst[dstIdx++] = src[srcIdx];
-         dst[dstIdx++] = src[srcIdx+1];
-         dst[dstIdx++] = src[srcIdx+2];
-         dst[dstIdx++] = src[srcIdx+3];
+         if (dstIdx + 4 > output.length)
+         {
+            input.index = srcEnd;
+         }
+         else
+         {
+            // Emit last literals
+            dst[dstIdx++] = src[srcEnd];
+            dst[dstIdx++] = src[srcEnd+1];
+            dst[dstIdx++] = src[srcEnd+2];
+            dst[dstIdx++] = src[srcEnd+3];
+            input.index = srcEnd + 4;
+         }
 
-         input.index = srcIdx + 4;
-         output.index = dstIdx;
-         return (srcIdx == srcEnd) && (dstIdx < count);
+         output.index += dstIdx;
+         return (input.index == srcEnd + 4) && (dstIdx < count);
       }
 
 
@@ -517,7 +523,7 @@ public class ROLZCodec implements ByteTransform
          final int dstEnd = output.index + szBlock;
          int sizeChunk = Math.min(szBlock, CHUNK_SIZE);
          int startChunk = output.index;
-         final SliceByteArray litBuf  = new SliceByteArray(new byte[this.getMaxEncodedLength(sizeChunk)], 0);
+         final SliceByteArray litBuf  = new SliceByteArray(new byte[sizeChunk], 0);
          final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk/5], 0);
          final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
          final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk/4], 0);
