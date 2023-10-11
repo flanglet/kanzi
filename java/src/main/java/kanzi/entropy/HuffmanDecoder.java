@@ -121,7 +121,6 @@ public class HuffmanDecoder implements EntropyDecoder
                  this.maxSymbolSize + " bits) exceeded", BitStreamException.INVALID_STREAM);
       }
 
-      this.buildDecodingTables(count);
       return count;
    }
 
@@ -146,7 +145,7 @@ public class HuffmanDecoder implements EntropyDecoder
          final short val = (short) ((this.sizes[s]<<8) | s);
          final int code = this.codes[s];
 
-         // All DECODING_BATCH_SIZE bit values read from the bit stream and
+         // All this.maxSymbolSize bit values read from the bit stream and
          // starting with the same prefix point to symbol s
          int idx = code << (shift-length);
          final int end = idx + (1<<(shift-length));
@@ -270,7 +269,7 @@ public class HuffmanDecoder implements EntropyDecoder
                     BitStreamException.INVALID_STREAM);
 
             // Read chunk size
-            int szBits = EntropyUtils.readVarInt(this.bitstream);
+            final int szBits = EntropyUtils.readVarInt(this.bitstream);
 
             // Read compressed data from the bitstream
             if (szBits != 0)
@@ -282,15 +281,15 @@ public class HuffmanDecoder implements EntropyDecoder
                    this.buffer = new byte[minLenBuf];
 
                this.bitstream.readBits(this.buffer, 0, szBits);
-               long state = 0;
-               int bits = 0;
+               long state = 0; // holds bits read from bitstream
+               int bits = 0; // number of available bits in state
                int idx = 0;
                int n = startChunk;
 
                while (idx < sz-8)
                {
-                   final int shift = (56 - bits) & 0xF8;
-                   state = (state << shift) | (Memory.BigEndian.readLong64(this.buffer, idx) >> (63-shift) >> 1); // handle shift = 0
+                   final int shift = (56 - bits) & -8;
+                   state = (state << shift) | (Memory.BigEndian.readLong64(this.buffer, idx) >>> (63-shift) >>> 1); // handle shift = 0
                    int bs = bits + shift - HuffmanCommon.MAX_SYMBOL_SIZE_V4;
                    idx += (shift >>> 3);
                    final int idx0 = (int) ((state>>bs) & TABLE_MASK_V4);
