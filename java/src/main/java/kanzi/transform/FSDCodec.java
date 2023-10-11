@@ -212,8 +212,8 @@ public class FSDCodec implements ByteTransform
       
       for (int i=0; i<count10; i++)
       {
-         histo[0][src[start1+i]&0xFF]++;
-         histo[0][src[start2+i]&0xFF]++;
+         histo[0][dst[start1+i]&0xFF]++;
+         histo[0][dst[start2+i]&0xFF]++;
       }
       
       final int entropy = Global.computeFirstOrderEntropy1024(count5, histo[0]);
