@@ -99,7 +99,7 @@ public class FSDCodec implements ByteTransform
       
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
-      for (int i=0; i<count10; i++)
+      for (int i=16; i<count10; i++)
       {
          final byte b1 = src[start1+i];
          histo[0][b1&0xFF]++;
