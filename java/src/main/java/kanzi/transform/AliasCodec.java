@@ -110,54 +110,66 @@ public class AliasCodec implements ByteTransform
       if (n0 >= 240)
       {
           // Small alphabet => pack bits
-          int[] map8 = new int[256];
-          dst[0] = (byte) n0;
-          dstIdx++;
+          
+          dst[dstIdx++] = (byte) n0;
 
-          for (int i=0, j=0; i<256; i++)
+          if (n0 == 255) 
           {
-              if (freqs0[i] != 0)
-              {
-                  dst[dstIdx++] = (byte) i;
-                  map8[i] = j;
-                  j++;
-              }
-          }
-
-          if (n0 >= 252)
-          {
-               // 4 symbols or less
-               dst[dstIdx++] = (byte) (count & 3);
-
-               if ((count & 3) > 2)
-                   dst[dstIdx++] = src[srcIdx++];
-
-               if ((count & 3) > 1)
-                   dst[dstIdx++] = src[srcIdx++];
-
-               if ((count & 3) > 0)
-                   dst[dstIdx++] = src[srcIdx++];
-
-               while (srcIdx < count)
-               {
-                   dst[dstIdx++] = (byte) ((map8[src[srcIdx + 0] & 0xFF] << 6) | (map8[src[srcIdx + 1] & 0xFF] << 4) |
-                                           (map8[src[srcIdx + 2] & 0xFF] << 2) |  map8[src[srcIdx + 3] & 0xFF]);
-                   srcIdx += 4;
-               }
+              // One symbol
+              dst[dstIdx++] = src[srcIdx];
+              Memory.LittleEndian.writeInt32(dst, dstIdx, count);
+              dstIdx += 4;
+              srcIdx += count;
           }
           else
           {
-              // 16 symbols or less
-              dst[dstIdx++] = (byte) (count & 1);
+            int[] map8 = new int[256];
+              
+            for (int i=0, j=0; i<256; i++)
+            {
+                if (freqs0[i] != 0)
+                {
+                    dst[dstIdx++] = (byte) i;
+                    map8[i] = j;
+                    j++;
+                }
+            }
 
-              if ((count & 1) != 0)
-                  dst[dstIdx++] = src[srcIdx++];
+            if (n0 >= 252)
+            {
+                 // 4 symbols or less
+                 dst[dstIdx++] = (byte) (count & 3);
 
-              while (srcIdx < count)
-              {
-                  dst[dstIdx++] = (byte) ((map8[src[srcIdx] & 0xFF] << 4) | map8[src[srcIdx + 1] & 0xFF]);
-                  srcIdx += 2;
-              }
+                 if ((count & 3) > 2)
+                     dst[dstIdx++] = src[srcIdx++];
+
+                 if ((count & 3) > 1)
+                     dst[dstIdx++] = src[srcIdx++];
+
+                 if ((count & 3) > 0)
+                     dst[dstIdx++] = src[srcIdx++];
+
+                 while (srcIdx < count)
+                 {
+                     dst[dstIdx++] = (byte) ((map8[src[srcIdx + 0] & 0xFF] << 6) | (map8[src[srcIdx + 1] & 0xFF] << 4) |
+                                             (map8[src[srcIdx + 2] & 0xFF] << 2) |  map8[src[srcIdx + 3] & 0xFF]);
+                     srcIdx += 4;
+                 }
+            }
+            else
+            {
+                // 16 symbols or less
+                dst[dstIdx++] = (byte) (count & 1);
+
+                if ((count & 1) != 0)
+                    dst[dstIdx++] = src[srcIdx++];
+
+                while (srcIdx < count)
+                {
+                    dst[dstIdx++] = (byte) ((map8[src[srcIdx] & 0xFF] << 4) | map8[src[srcIdx + 1] & 0xFF]);
+                    srcIdx += 2;
+                }
+            }
           }
        }
        else
@@ -263,25 +275,33 @@ public class AliasCodec implements ByteTransform
       if (n >= 240)
       {
           n = 256 - n;
-          byte[] idx2symb = new byte[16];
           srcIdx++;
-
-          // Rebuild map alias -> symbol
-          for (int i=0; i<n; i++)
-              idx2symb[i] = src[srcIdx++];
 
           if (n == 1)
           {
              // One symbol
-             for (int i=0; i<count; i++)
-                dst[dstIdx+i] = idx2symb[0];
+             byte val = src[srcIdx++];
+             final int oSize =   Memory.LittleEndian.readInt32(src, srcIdx);
 
+             if (dstIdx + oSize > output.length)
+                 return false;
+             
+             for (int i=0; i<oSize; i++)
+                 dst[i] = val;
+             
              srcIdx += count;
-             dstIdx += count;
+             dstIdx += oSize;
           }
           else
           {
-             final int adjust = src[srcIdx++] & 0xFF;
+            byte[] idx2symb = new byte[16];
+            srcIdx++;
+
+            // Rebuild map alias -> symbol
+            for (int i=0; i<n; i++)
+                idx2symb[i] = src[srcIdx++];
+
+            final int adjust = src[srcIdx++] & 0xFF;
 
              if (adjust >= 4)
                  return false;
