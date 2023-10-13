@@ -132,88 +132,90 @@ public final class ZRLT implements ByteTransform
    @Override
    public boolean inverse(SliceByteArray input, SliceByteArray output)
    {
-      if (input.length == 0)
-         return true;
+        if (input.length == 0)
+           return true;
 
-      if (input.array == output.array)
-         return false;
+        if (input.array == output.array)
+           return false;
 
-      final int count = input.length;
-      int srcIdx = input.index;
-      int dstIdx = output.index;
-      final byte[] src = input.array;
-      final byte[] dst = output.array;
-      final int srcEnd = srcIdx + count;
-      final int dstEnd = output.length;
-      int runLength = 1;
+        final int count = input.length;
+        int srcIdx = input.index;
+        int dstIdx = output.index;
+        final byte[] src = input.array;
+        final byte[] dst = output.array;
+        final int srcEnd = srcIdx + count;
+        final int dstEnd = output.length;
+        int runLength = 1;
 
-      if (srcIdx < srcEnd)
-      {
 mainLoop:
-         while (dstIdx < dstEnd)
-         {
-            if (runLength > 1)
-            {
-               runLength--;
-               dst[dstIdx++] = 0;
-               continue;
-            }
+        while (true)
+        {
+           if (runLength > 1)
+           {
+              runLength--;
+              dst[dstIdx++] = 0;
 
-            int val = src[srcIdx] & 0xFF;
-
-            if (val <= 1)
-            {
-               // Generate the run length bit by bit (but force MSB)
-               runLength = 1;
-
-               do
-               {
-                  runLength += (runLength + val);
-                  srcIdx++;
-
-                  if (srcIdx >= srcEnd)
-                     break mainLoop;
-               }
-               while ((val = src[srcIdx] & 0xFF) <= 1);
-
-               continue;
-            }
-
-            // Regular data processing
-            if (val == 0xFF)
-            {
-               srcIdx++;
-
-               if (srcIdx >= srcEnd)
+              if (dstIdx >= dstEnd)
                   break;
 
-               dst[dstIdx] = (byte) (0xFE+src[srcIdx]);
-            }
-            else
-            {
-               dst[dstIdx] = (byte) (val-1);
-            }
+              continue;
+           }
 
-            srcIdx++;
-            dstIdx++;
+           int val = src[srcIdx] & 0xFF;
 
-            if (srcIdx >= srcEnd)
-               break;
-         }
-      }
+           if (val <= 1)
+           {
+              // Generate the run length bit by bit (but force MSB)
+              runLength = 1;
 
-      // If runLength is not 1, add trailing 0s
-      final int end = dstIdx + runLength - 1;
+              do
+              {
+                 runLength += (runLength + val);
+                 srcIdx++;
 
-      if (end > dstEnd)
-         return false;
+                 if (srcIdx >= srcEnd)
+                    break mainLoop;
+              }
+              while ((val = src[srcIdx] & 0xFF) <= 1);
 
-      while (dstIdx < end)
-         dst[dstIdx++] = 0;
+              continue;
+           }
 
-      input.index = srcIdx;
-      output.index = dstIdx;
-      return srcIdx == srcEnd;
+           // Regular data processing
+           if (val == 0xFF)
+           {
+              srcIdx++;
+
+              if (srcIdx >= srcEnd)
+                 break;
+
+              dst[dstIdx] = (byte) (0xFE+src[srcIdx]);
+           }
+           else
+           {
+              dst[dstIdx] = (byte) (val-1);
+           }
+
+           srcIdx++;
+           dstIdx++;
+
+           if (srcIdx >= srcEnd)
+              break;
+        }
+
+        // If runLength is not 1, add trailing 0s
+        while (runLength > 1)
+        {
+           runLength--;
+           dst[dstIdx++] = 0;
+
+           if (dstIdx >= dstEnd)
+               return false;
+        }
+
+        input.index = srcIdx;
+        output.index = dstIdx;
+        return srcIdx == srcEnd;
    }
 
 
