@@ -181,7 +181,7 @@ public class Sequence implements ByteTransform
          else
             System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
       }
-      
+
       if (count > dst.length)
          return false;
 

@@ -121,7 +121,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
 
          // Copy bits array to internal buffer
          final int maxPos = this.buffer.length - 8;
-         
+
          while ((remaining>>3) >= maxPos-this.position)
          {
             System.arraycopy(bits, start, this.buffer, this.position, maxPos-this.position);

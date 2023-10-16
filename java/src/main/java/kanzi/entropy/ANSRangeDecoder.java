@@ -119,7 +119,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       }
    }
 
-   
+
    @Override
    public int decode(byte[] block, int blkptr, int count)
    {
@@ -259,8 +259,8 @@ public class ANSRangeDecoder implements EntropyDecoder
          }
       }
    }
-   
-   
+
+
    private int decodeSymbol(int[] idx, int st, Symbol sym, final int mask)
    {
       // Compute next ANS state
@@ -273,12 +273,12 @@ public class ANSRangeDecoder implements EntropyDecoder
          st = (st<<8) | (this.buffer[idx[0]] & 0xFF);
          st = (st<<8) | (this.buffer[idx[0]+1] & 0xFF);
          idx[0] += 2;
-      }   
-      
+      }
+
       return st;
    }
 
-   
+
    protected void decodeChunkV2(byte[] block, final int start, final int end)
    {
       // Read chunk size
@@ -300,17 +300,17 @@ public class ANSRangeDecoder implements EntropyDecoder
          this.bitstream.readBits(this.buffer, 0, 8*sz);
       }
 
-      int n = 0;      
+      int n = 0;
       final int mask = (1<<this.logRange) - 1;
       final int end4 = start + ((end-start) & -4);
       final int[] idx = new int[] { n } ;
 
-      if (this.order == 0) 
+      if (this.order == 0)
       {
          final byte[] freq2sym = this.f2s[0];
          final Symbol[] symb = this.symbols[0];
 
-         for (int i=start; i<end4; i+=4) 
+         for (int i=start; i<end4; i+=4)
          {
             final int cur3 = freq2sym[st3 & mask] & 0xFF;
             block[i] = (byte) cur3;
@@ -326,7 +326,7 @@ public class ANSRangeDecoder implements EntropyDecoder
             st0 = decodeSymbol(idx, st0, symb[cur0], mask);
          }
       }
-      else 
+      else
       {
          final int quarter = (end4-start) >> 2;
          int i0 = start;
@@ -335,7 +335,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          int i3 = start + 3*quarter;
          int prv0 = 0, prv1 = 0, prv2 = 0, prv3 = 0;
 
-         for ( ; i0 < start+quarter; i0++, i1++, i2++, i3++) 
+         for ( ; i0 < start+quarter; i0++, i1++, i2++, i3++)
          {
             final int cur3 = this.f2s[prv3][st3&mask] & 0xFF;
             block[i3] = (byte) cur3;
@@ -357,12 +357,12 @@ public class ANSRangeDecoder implements EntropyDecoder
       }
 
       n = idx[0];
-      
+
       for (int i=end4; i<end; i++)
          block[i] = this.buffer[n++];
    }
 
-   
+
    // Decode alphabet and frequencies
    protected int decodeHeader(int[][] frequencies, int[] alphabet)
    {

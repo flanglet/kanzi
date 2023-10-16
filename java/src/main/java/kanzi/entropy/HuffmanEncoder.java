@@ -84,16 +84,16 @@ public class HuffmanEncoder implements EntropyEncoder
       }
 
       EntropyUtils.encodeAlphabet(this.bitstream, this.alphabet, count);
-      
+
       if (count == 0)
           return 0;
-      
+
       if (count == 1)
       {
           this.codes[this.alphabet[0]] = 1<<24;
           sizes[this.alphabet[0]] = 1;
       }
-      else 
+      else
       {
           int retries = 0;
           int[] ranks = new int[256];
@@ -107,7 +107,7 @@ public class HuffmanEncoder implements EntropyEncoder
 
               if (maxCodeLen == 0)
                   throw new BitStreamException("Could not generate Huffman codes: invalid code length 0", Error.ERR_PROCESS_BLOCK);
-             
+
               if (maxCodeLen <= HuffmanCommon.MAX_SYMBOL_SIZE_V4)
               {
                  // Usual case
@@ -140,7 +140,7 @@ public class HuffmanEncoder implements EntropyEncoder
                  freqs[this.alphabet[i]] = f[i];
           }
       }
-      
+
       // Transmit code lengths only, frequencies and codes do not matter
       ExpGolombEncoder egenc = new ExpGolombEncoder(this.bitstream, true);
       short prevSize = 2;
@@ -170,7 +170,7 @@ public class HuffmanEncoder implements EntropyEncoder
       {
          freqs[i] = ranks[i] >>> 8;
          ranks[i] &= 0xFF;
-         
+
          if (freqs[i] == 0)
              return 0;
       }
@@ -193,7 +193,7 @@ public class HuffmanEncoder implements EntropyEncoder
 
          sizes[ranks[i]] = codeLen;
       }
-      
+
       return maxCodeLen;
    }
 
@@ -270,7 +270,7 @@ public class HuffmanEncoder implements EntropyEncoder
 
       if (this.buffer.length < minLenBuf)
           this.buffer = new byte[minLenBuf];
-      
+
       int[] freqs = new int[256];
 
       while (startChunk < end)
@@ -291,7 +291,7 @@ public class HuffmanEncoder implements EntropyEncoder
          int idx = 0;
          long st = 0;
          int bits = 0; // accumulated bits
-         
+
          for (int i=startChunk; i<endChunk4; i+=4)
          {
             int code;
@@ -323,25 +323,25 @@ public class HuffmanEncoder implements EntropyEncoder
          }
 
          int nbBits = (idx * 8) + bits;
-         
+
          while (bits >= 8)
          {
              bits -= 8;
              this.buffer[idx++] = (byte) (st>>bits);
          }
-         
+
          if (bits > 0)
              this.buffer[idx++] = (byte) (st<<(8-bits));
-         
+
          // Write number of streams (0->1, 1->4, 2->8, 3->32)
          this.bitstream.writeBits(0, 2);
-         
+
          // Write chunk size in bits
          EntropyUtils.writeVarInt(this.bitstream, nbBits);
-         
+
          // Write compressed data to bitstream
          this.bitstream.writeBits(this.buffer, 0, nbBits);
-         
+
          startChunk = endChunk;
       }
 

@@ -74,9 +74,9 @@ public class FSDCodec implements ByteTransform
       }
 
       final int magic = Magic.getType(input.array, input.index);
-      
+
       // Skip detection except for a few candidate types
-      switch (magic) 
+      switch (magic)
       {
          case Magic.BMP_MAGIC:
          case Magic.RIFF_MAGIC:
@@ -88,7 +88,7 @@ public class FSDCodec implements ByteTransform
          default:
             return false;
       }
-      
+
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int count5 = count / 5;
@@ -96,7 +96,7 @@ public class FSDCodec implements ByteTransform
       final int[][] histo = new int[7][256];
       int start1 = input.index + 1*count5;
       int start2 = input.index + 3*count5;
-      
+
       // Check several step values on a sub-block (no memory allocation)
       // Sample 2 sub-blocks
       for (int i=16; i<count10; i++)
@@ -209,13 +209,13 @@ public class FSDCodec implements ByteTransform
       Arrays.fill(histo[0], 0, 256, 0);
       start1 = output.index + 1*count5;
       start2 = output.index + 3*count5;
-      
+
       for (int i=0; i<count10; i++)
       {
          histo[0][dst[start1+i]&0xFF]++;
          histo[0][dst[start2+i]&0xFF]++;
       }
-      
+
       final int entropy = Global.computeFirstOrderEntropy1024(count5, histo[0]);
 
       if (entropy >= ent[0])

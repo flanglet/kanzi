@@ -36,7 +36,7 @@ public class TestCompressedStream
 {
    private static final ExecutorService pool = Executors.newFixedThreadPool(4);
 
-   
+
    public static void main(String[] args)
    {
       testCorrectness();
@@ -65,7 +65,7 @@ public class TestCompressedStream
          for (int test=1; test<=40; test++)
          {
             final int length = 65536 << (test % 7);
-            
+
             for (int i=0; i<length; i++)
             {
                values[i] = (byte) rnd.nextInt(4*test+1);
@@ -83,7 +83,7 @@ public class TestCompressedStream
             res = compress3(incompressible, length);
             System.out.println((res == 0) ? "Success" : "Failure");
             sum += res;
-            
+
             if (test == 1)
             {
                res = compress4(values, length);
@@ -103,7 +103,7 @@ public class TestCompressedStream
 
       return sum == 0;
    }
-   
+
    public static long compress1(byte[] block, int length)
    {
       try
@@ -116,7 +116,7 @@ public class TestCompressedStream
          OutputStream os = new BufferedOutputStream(baos);
          HashMap<String, Object> ctx1 = new HashMap<>();
          ctx1.put("transform", "NONE");
-         ctx1.put("codec", "HUFFMAN"); 
+         ctx1.put("codec", "HUFFMAN");
          ctx1.put("blockSize", blockSize);
          ctx1.put("checksum", false);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
@@ -130,30 +130,30 @@ public class TestCompressedStream
          InputStream is = new BufferedInputStream(bais);
          HashMap<String, Object> ctx2 = new HashMap<>();
          CompressedInputStream cis = new CompressedInputStream(is, ctx2);
-         
+
          for (int i=0; i<length; i++)
             block[i] = 0;
-         
+
          while (cis.read(block, 0, length) == length)
          {  }
-         
+
          cis.close();
          is.close();
          long read = cis.getRead();
          int res = check(block, buf, length);
-         
+
          if (res != 0)
             return res;
-         
+
          return read ^ written;
       }
-      catch (IOException e) 
+      catch (IOException e)
       {
          System.out.println("Exception: " +e.getMessage());
          return 2;
       }
    }
-   
+
    public static long compress2(byte[] block, int length)
    {
       try
@@ -183,28 +183,28 @@ public class TestCompressedStream
          ByteArrayInputStream bais = new ByteArrayInputStream(output);
          InputStream is = new BufferedInputStream(bais);
          HashMap<String, Object> ctx2 = new HashMap<>();
-         ctx2.put("pool", pool); 
+         ctx2.put("pool", pool);
          ctx2.put("jobs", jobs);
          CompressedInputStream cis = new CompressedInputStream(is, ctx2);
-         
+
          for (int i=0; i<length; i++)
             block[i] = 0;
-         
+
          while (cis.read(block, 0, length) == length)
          {  }
-         
+
          cis.close();
          is.close();
          long read = cis.getRead();
-         
+
          int res = check(block, buf, length);
-         
+
          if (res != 0)
             return res;
-         
+
          return read ^ written;
       }
-      catch (IOException e) 
+      catch (IOException e)
       {
          System.out.println("Exception: " +e.getMessage());
          return 2;
@@ -226,7 +226,7 @@ public class TestCompressedStream
          ctx1.put("codec", "ANS0");
          ctx1.put("blockSize", blockSize);
          ctx1.put("checksum", false);
-         ctx1.put("pool", pool); 
+         ctx1.put("pool", pool);
          ctx1.put("jobs", 1);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
          cos.write(block, 0, length);
@@ -239,19 +239,19 @@ public class TestCompressedStream
          InputStream is = new BufferedInputStream(bais);
          HashMap<String, Object> ctx2 = new HashMap<>();
          CompressedInputStream cis = new CompressedInputStream(is, ctx2);
-         
+
          for (int i=0; i<length; i++)
             block[i] = 0;
-         
+
          while (cis.read(block, 0, length) == length)
          {  }
-          
+
          cis.close();
          is.close();
          long read = cis.getRead();
-         
+
          int res = check(block, buf, length);
-         
+
          if (res != 0)
             return res;
 
@@ -276,7 +276,7 @@ public class TestCompressedStream
          ctx1.put("codec", "HUFFMAN");
          ctx1.put("blockSize", length);
          ctx1.put("checksum", false);
-         ctx1.put("pool", pool); 
+         ctx1.put("pool", pool);
          ctx1.put("jobs", 1);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
          cos.write(block, 0, length);
@@ -307,7 +307,7 @@ public class TestCompressedStream
          ctx1.put("codec", "HUFFMAN");
          ctx1.put("blockSize", 4 * 1024 * 1024);
          ctx1.put("checksum", false);
-         ctx1.put("pool", pool); 
+         ctx1.put("pool", pool);
          ctx1.put("jobs", 1);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
          cos.write(block, 0, length);
@@ -319,10 +319,10 @@ public class TestCompressedStream
          InputStream is = new BufferedInputStream(bais);
          HashMap<String, Object> ctx2 = new HashMap<>();
          CompressedInputStream cis = new CompressedInputStream(is, ctx2);
-         
+
          while (cis.read(block, 0, length) == length)
          {  }
-         
+
          cis.close();
          //cis.read(block, 0, length);
          cis.read();
@@ -336,15 +336,15 @@ public class TestCompressedStream
          System.out.println("OK, exception: " +e.getMessage());
          return 0;
       }
-   }   
-   
-   
+   }
+
+
    private static int check(byte[] data1, byte[] data2, int length)
    {
       for (int i=0; i<length; i++)
          if (data1[i] != data2[i])
             return 3;
-      
+
       return 0;
    }
 }

@@ -193,7 +193,7 @@ public final class DivSufSort
 
 
    // Not thread safe
-   public int computeBWT(byte[] input, byte[] output, int[] bwt, int srcIdx, int dstIdx, 
+   public int computeBWT(byte[] input, byte[] output, int[] bwt, int srcIdx, int dstIdx,
       int length, int[] indexes, int idxCount)
    {
       // Lazy dynamic memory allocation
@@ -274,15 +274,15 @@ public final class DivSufSort
 
       int c2 = this.buffer[n-1];
       int k = bucketA[c2];
-      
-      if (this.buffer[n-2] < c2) 
+
+      if (this.buffer[n-2] < c2)
       {
          if ((n-1)%step == 0)
             indexes[(n-1)/step] = n;
 
          this.sa[k++] = ~this.buffer[n-2];
-      } 
-      else 
+      }
+      else
       {
          this.sa[k++] = n-1;
       }
@@ -302,20 +302,20 @@ public final class DivSufSort
             continue;
          }
 
-         if (s % step == 0) 
+         if (s % step == 0)
             indexes[s/step] = i+1;
 
          s--;
          final int c0 = this.buffer[s];
          this.sa[i] = c0;
-         
+
          if (c0 != c2)
          {
             bucketA[c2] = k;
             c2 = c0;
             k = bucketA[c2];
          }
-         
+
          if ((s > 0) && (this.buffer[s-1] < c0))
          {
             if (s % step == 0)

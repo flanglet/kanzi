@@ -168,7 +168,7 @@ public class Global
 
    private static final byte[] NUMERIC_SYMBOLS = "0123456789+-*/=,.:; ".getBytes();
 
-   private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(); // either T or U and N for unknown   
+   private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(); // either T or U and N for unknown
 
    private static final int[] SQUASH = initSquash();
 
@@ -603,27 +603,27 @@ public class Global
       int n2 = start + 2*quarter;
       int n3 = start + 3*quarter;
 
-      if (withTotal == true) 
+      if (withTotal == true)
       {
          if (end-start < 32)
          {
             int prv = 0;
 
-            for (int i=start; i<end; i++) 
+            for (int i=start; i<end; i++)
             {
                freqs[prv][block[i]&0xFF]++;
                freqs[prv][256]++;
                prv = block[i] & 0xFF;
             }
          }
-         else 
+         else
          {
             int prv0 = 0;
             int prv1 = block[n1-1] & 0xFF;
             int prv2 = block[n2-1] & 0xFF;
             int prv3 = block[n3-1] & 0xFF;
 
-            for (; n0<start+quarter; n0++, n1++, n2++, n3++) 
+            for (; n0<start+quarter; n0++, n1++, n2++, n3++)
             {
                final int cur0 = block[n0] & 0xFF;
                final int cur1 = block[n1] & 0xFF;
@@ -643,7 +643,7 @@ public class Global
                prv3 = cur3;
             }
 
-            for (; n3 < end; n3++) 
+            for (; n3 < end; n3++)
             {
                freqs[prv3][block[n3]&0xFF]++;
                freqs[prv3][256]++;
@@ -652,18 +652,18 @@ public class Global
          }
      }
      else // no total
-     { 
-         if (end-start < 32) 
+     {
+         if (end-start < 32)
          {
             int prv = 0;
 
-            for (int i=start; i<end; i++) 
+            for (int i=start; i<end; i++)
             {
                freqs[prv][block[i]&0xFF]++;
                prv = block[i] & 0xFF;
             }
          }
-         else 
+         else
          {
             int prv0 = 0;
             int prv1 = block[n1-1] & 0xFF;
@@ -686,7 +686,7 @@ public class Global
                prv3 = cur3;
             }
 
-            for (; n3<end; n3++) 
+            for (; n3<end; n3++)
             {
                freqs[prv3][block[n3]&0xFF]++;
                prv3 = block[n3] & 0xFF;
@@ -776,13 +776,13 @@ public class Global
 
       Collections.sort(files, c);
    }
-   
-   
+
+
    public static DataType detectSimpleType(int count, int[] freqs0)
    {
       if (count == 0)
          return DataType.UNDEFINED;
-      
+
       int sum = 0;
 
       for (int i=0; i<12; i++)
@@ -823,8 +823,8 @@ public class Global
       }
 
       if (sum == 256)
-         return DataType.BIN;      
-      
+         return DataType.BIN;
+
       if (sum <= 4)
          return DataType.SMALL_ALPHABET;
 

@@ -114,7 +114,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       }
    }
 
-      
+
    // Compute cumulated frequencies and encode header
    private int updateFrequencies(int[][] frequencies, int lr)
    {
@@ -250,7 +250,7 @@ public class ANSRangeEncoder implements EntropyEncoder
 
    private int encodeSymbol(int[] idx, int st, Symbol sym)
    {
-      if (st >= sym.xMax) 
+      if (st >= sym.xMax)
       {
          this.buffer[idx[0]--] = (byte) st;
          st >>= 8;
@@ -264,7 +264,7 @@ public class ANSRangeEncoder implements EntropyEncoder
       final int q = (int)((st*sym.invFreq) >> sym.invShift);
       return st + sym.bias + q*sym.cmplFreq;
    }
-   
+
 
    private void encodeChunk(byte[] block, int start, int end)
    {
@@ -277,14 +277,14 @@ public class ANSRangeEncoder implements EntropyEncoder
 
       for (int i=end-1; i>=end4; i--)
          this.buffer[n--] = block[i];
-      
+
       final int[] idx = new int[] { n };
 
-      if (this.order == 0) 
+      if (this.order == 0)
       {
          final Symbol[] symb = this.symbols[0];
 
-         for (int i=end4-1; i>start; i-=4) 
+         for (int i=end4-1; i>start; i-=4)
          {
             st0 = encodeSymbol(idx, st0, symb[block[i] & 0xFF]);
             st1 = encodeSymbol(idx, st1, symb[block[i-1] & 0xFF]);
@@ -292,7 +292,7 @@ public class ANSRangeEncoder implements EntropyEncoder
             st3 = encodeSymbol(idx, st3, symb[block[i-3] & 0xFF]);
          }
       }
-      else 
+      else
       {  // order 1
          final int quarter = (end4-start) >> 2;
          int i0 = start + 1*quarter - 2;
@@ -304,7 +304,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          int prv2 = block[i2+1] & 0xFF;
          int prv3 = block[i3+1] & 0xFF;
 
-         for ( ; i0>=start; i0--, i1--, i2--, i3--) 
+         for ( ; i0>=start; i0--, i1--, i2--, i3--)
          {
             final int cur0 = block[i0] & 0xFF;
             st0 = encodeSymbol(idx, st0, this.symbols[cur0][prv0]);
@@ -349,20 +349,20 @@ public class ANSRangeEncoder implements EntropyEncoder
    private int rebuildStatistics(byte[] block, int start, int end, int lr)
    {
       final int dim = 255*this.order + 1;
-      
+
       for (int i=0; i<dim; i++)
       {
          final int[] f = this.freqs[i];
-         
+
          for (int j=0; j<f.length; j++)
             f[j] = 0;
       }
-      
+
       if (this.order == 0)
       {
          Global.computeHistogramOrder0(block, start, end, this.freqs[0], true);
       }
-      else 
+      else
       {
          final int quarter = (end-start) >> 2;
          Global.computeHistogramOrder1(block, start+0*quarter, start+1*quarter, this.freqs, true);
@@ -370,7 +370,7 @@ public class ANSRangeEncoder implements EntropyEncoder
          Global.computeHistogramOrder1(block, start+2*quarter, start+3*quarter, this.freqs, true);
          Global.computeHistogramOrder1(block, start+3*quarter, start+4*quarter, this.freqs, true);
       }
-    
+
       return this.updateFrequencies(this.freqs, lr);
    }
 

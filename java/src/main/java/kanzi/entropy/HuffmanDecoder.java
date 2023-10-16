@@ -189,7 +189,7 @@ public class HuffmanDecoder implements EntropyDecoder
          }
 
          this.buildDecodingTables(alphabetSize);
-         
+
          if (this.isBsVersion3 == true)
          {
             // Compute minimum number of bits required in bitstream for fast decoding
@@ -320,7 +320,7 @@ public class HuffmanDecoder implements EntropyDecoder
                    while ((bits < HuffmanCommon.MAX_SYMBOL_SIZE_V4) && (idx < sz))
                    {
                        state = (state << 8) | (this.buffer[idx]&0xFF);
-                       idx++;                      
+                       idx++;
                        nbBits = (idx == sz) ? szBits : nbBits+8;
 
                        // 'bits' may overshoot when idx == sz due to padding state bits

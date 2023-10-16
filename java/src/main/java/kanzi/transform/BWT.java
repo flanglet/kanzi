@@ -69,7 +69,7 @@ public class BWT implements ByteTransform
    private static final int NB_FASTBITS = 17;
    private static final int MASK_FASTBITS = 1 << NB_FASTBITS;
    private static final int BLOCK_SIZE_THRESHOLD1 = 256;
-   private static final int BLOCK_SIZE_THRESHOLD2 = 8 * 1024 * 1024;     
+   private static final int BLOCK_SIZE_THRESHOLD2 = 8 * 1024 * 1024;
 
 
    private int[] buffer1;
@@ -170,7 +170,7 @@ public class BWT implements ByteTransform
       if (this.buffer1.length < count)
          this.buffer1 = new int[count];
 
-      this.saAlgo.computeBWT(src.array, dst.array, this.buffer1, src.index, dst.index, count, 
+      this.saAlgo.computeBWT(src.array, dst.array, this.buffer1, src.index, dst.index, count,
          this.primaryIndexes, getBWTChunks(count));
       src.index += count;
       dst.index += count;

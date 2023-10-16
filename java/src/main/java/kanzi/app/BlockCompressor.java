@@ -102,7 +102,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
       this.codec = (strCodec == null) ? "ANS0" : strCodec;
       Integer iBlockSize = (Integer) map.remove("block");
-      
+
       if (iBlockSize == null)
       {
          switch (this.level)
@@ -126,7 +126,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       else
       {
          final int bs = iBlockSize;
-         
+
          if (bs < MIN_BLOCK_SIZE)
             throw new IllegalArgumentException("Minimum block size is "+(MIN_BLOCK_SIZE/1024)+
                " KB ("+MIN_BLOCK_SIZE+" bytes), got "+bs+" bytes");
@@ -137,7 +137,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          this.blockSize = Math.min((bs+15) & -16, MAX_BLOCK_SIZE);
       }
-      
+
       // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)
       TransformFactory bff = new TransformFactory();
       this.transform = (strTransf == null) ? "BWT+RANK+ZRLT" : bff.getName(bff.getType(strTransf));
@@ -155,7 +155,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       if (concurrency == 0)
       {
          // Default to half of cores
-         int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1); 
+         int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
          concurrency = Math.min(cores, MAX_CONCURRENCY);
       }
       else if (concurrency > MAX_CONCURRENCY)
@@ -202,12 +202,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       if (isStdIn == false)
       {
          try
-         {            
+         {
             String suffix = File.separator + ".";
             boolean isRecursive = !this.inputName.endsWith(suffix);
             String target = isRecursive ? this.inputName :
                this.inputName.substring(0, this.inputName.length()-1);
-            
+
             Kanzi.createFileList(target, files, isRecursive, this.noDotFile);
          }
          catch (IOException e)
@@ -261,7 +261,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
          this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.ENCODING, System.out));
       }
-      
+
       int res = 0;
       long read = 0;
       long written = 0;
@@ -369,7 +369,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             ArrayBlockingQueue<FileCompressTask> queue = new ArrayBlockingQueue(nbFiles, true);
             int[] jobsPerTask = Global.computeJobsPerTask(new int[nbFiles], this.jobs, nbFiles);
             int n = 0;
-            
+
             if (this.reoderFiles == true)
                Global.sortFilesByPathAndSize(files, true);
 
@@ -578,13 +578,13 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          int verbosity = (Integer) this.ctx.get("verbosity");
          String inputName = (String) this.ctx.get("inputName");
          String outputName = (String) this.ctx.get("outputName");
-         
+
          if (verbosity > 2)
          {
             printOut("Input file name set to '" + inputName + "'", true);
             printOut("Output file name set to '" + outputName + "'", true);
          }
-         
+
          boolean overwrite = (Boolean) this.ctx.get("overwrite");
 
          OutputStream os;
@@ -749,10 +749,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          if (read == 0)
          {
             printOut("Input file " + inputName + " is empty... nothing to do", verbosity > 0);
-            
+
             if (output != null)
                output.delete(); // best effort to delete output file, ignore return code
-            
+
             return new FileCompressResult(0, read, this.cos.getWritten());
          }
 
@@ -763,14 +763,14 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          if (verbosity >= 1)
          {
             printOut("", verbosity>1);
-            
-            if (delta >= 100000) 
+
+            if (delta >= 100000)
                str = String.format("%1$.1f", (float) delta/1000) + " s";
             else
                str = String.valueOf(delta) + " ms";
 
             float f = this.cos.getWritten() / (float) read;
-            
+
             if (verbosity > 1)
             {
                printOut("Compressing:       "+str, true);
@@ -778,7 +778,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                printOut("Output size:       "+this.cos.getWritten(), true);
                printOut("Compression ratio: "+String.format("%1$.6f", f), true);
             }
-            
+
             if (verbosity == 1)
             {
                str = String.format("Compressing %s: %d => %d (%.2f%%) in %s", inputName, read, this.cos.getWritten(), 100*f, str);

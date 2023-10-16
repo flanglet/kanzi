@@ -26,7 +26,7 @@ public final class HuffmanCommon
 
 
    // Return the number of codes generated
-   public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] symbols, 
+   public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] symbols,
            int count, final int maxSymbolSize)
    {
       // Sort symbols by increasing size (first key) and increasing value (second key)

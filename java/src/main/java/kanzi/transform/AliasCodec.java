@@ -36,22 +36,22 @@ public class AliasCodec implements ByteTransform
       this.order = 1;
    }
 
-   
+
    public AliasCodec(int order)
    {
       if ((order != 0) && (order != 1))
          throw new IllegalArgumentException("Alias Codec: The 'order' parameter must be 0 or 1");
-      
+
       this.ctx = null;
       this.order = order;
    }
 
-   
+
    public AliasCodec(Map<String, Object> ctx)
    {
       this.ctx = ctx;
       final int o = (int) this.ctx.getOrDefault("alias", 1);
-      
+
       if ((o != 0) && (o != 1))
          throw new IllegalArgumentException("Alias Codec: 'order' must be 0 or 1");
 
@@ -110,10 +110,9 @@ public class AliasCodec implements ByteTransform
       if (n0 >= 240)
       {
           // Small alphabet => pack bits
-          
           dst[dstIdx++] = (byte) n0;
 
-          if (n0 == 255) 
+          if (n0 == 255)
           {
               // One symbol
               dst[dstIdx++] = src[srcIdx];
@@ -124,7 +123,7 @@ public class AliasCodec implements ByteTransform
           else
           {
             int[] map8 = new int[256];
-              
+
             for (int i=0, j=0; i<256; i++)
             {
                 if (freqs0[i] != 0)
@@ -176,7 +175,7 @@ public class AliasCodec implements ByteTransform
        {
           if (this.order == 0)
              return false;
-          
+
           // Digram encoding
           TreeSet<Alias> t = new TreeSet<>();
 
@@ -285,10 +284,10 @@ public class AliasCodec implements ByteTransform
 
              if (dstIdx + oSize > output.length)
                  return false;
-             
+
              for (int i=0; i<oSize; i++)
                  dst[i] = val;
-             
+
              srcIdx += count;
              dstIdx += oSize;
           }

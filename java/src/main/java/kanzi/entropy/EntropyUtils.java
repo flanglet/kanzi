@@ -84,7 +84,7 @@ public class EntropyUtils
       {
          if (ibs.readBit() == ALPHABET_0)
             return 0;
-         
+
          final int alphabetSize = 256;
 
          if (alphabetSize > alphabet.length)
@@ -230,7 +230,7 @@ public class EntropyUtils
          {
             // Remove next symbol
             FreqSortData fsd = queue.removeFirst();
-            
+
             // Do not zero out any frequency
             if (freqs[fsd.symbol] == -inc)
                continue;

@@ -29,11 +29,11 @@ public class UTFCodec implements ByteTransform
 {
    private static final int[] SIZES = { 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 2, 2, 3, 4 };
    private static final int MIN_BLOCK_SIZE = 1024;
-   
+
    private final Map<String, Object> ctx;
    private final boolean isBsVersion3;
 
-   
+
    public UTFCodec()
    {
       this.ctx = null;
@@ -61,7 +61,7 @@ public class UTFCodec implements ByteTransform
 
       if (input.length < MIN_BLOCK_SIZE)
          return false;
-    
+
       if (input.array == output.array)
          return false;
 
@@ -72,10 +72,10 @@ public class UTFCodec implements ByteTransform
 
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      int srcIdx = input.index;   
+      int srcIdx = input.index;
       boolean mustValidate = true;
 
-      if (this.ctx != null) 
+      if (this.ctx != null)
       {
          Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
             Global.DataType.UNDEFINED);
@@ -109,24 +109,24 @@ public class UTFCodec implements ByteTransform
       boolean res = true;
       int[] val = new int[1];
 
-      for (int i=srcIdx+start; i<srcEnd; ) 
+      for (int i=srcIdx+start; i<srcEnd; )
       {
          final int s = pack(src, i, val);
 
-         if (s == 0) 
+         if (s == 0)
          {
             res = false;
             break;
          }
 
-         if (aliasMap[val[0]] == 0) 
+         if (aliasMap[val[0]] == 0)
          {
             ranks[n] = n;
             SymbolData sb = new SymbolData();
             sb.sym = val[0];
             symb[n] = sb;
 
-            if (++n >= 32768) 
+            if (++n >= 32768)
             {
                res = false;
                break;
@@ -139,7 +139,7 @@ public class UTFCodec implements ByteTransform
 
       final int dstEnd = count - (count/10);
 
-      if ((res == false) || (n == 0) || ((3*n+6) >= dstEnd)) 
+      if ((res == false) || (n == 0) || ((3*n+6) >= dstEnd))
          return false;
 
       for (int i=0; i<n; i++)
@@ -155,19 +155,19 @@ public class UTFCodec implements ByteTransform
 
       int estimate = dstIdx + 6;
 
-      for (int i=0; i<n; i++) 
+      for (int i=0; i<n; i++)
       {
          final int r = ranks[n-1-i];
          final int s = symb[r].sym;
          dst[dstIdx] = (byte) (s>>16);
          dst[dstIdx + 1] = (byte) (s>>8);
          dst[dstIdx + 2] = (byte) s;
-         dstIdx += 3;    
+         dstIdx += 3;
          estimate += ((i<128) ? symb[r].freq : 2*symb[r].freq);
          aliasMap[s] = (i<128) ? i : 0x10080 | ((i << 1) & 0xFF00) | (i & 0x7F);
       }
 
-      if (estimate >= dstEnd) 
+      if (estimate >= dstEnd)
          return false;
 
       // Emit first (possibly) invalid symbols (due to block truncation)
@@ -177,7 +177,7 @@ public class UTFCodec implements ByteTransform
       srcIdx += start;
 
       // Emit aliases
-      while (srcIdx < srcEnd) 
+      while (srcIdx < srcEnd)
       {
          srcIdx += pack(src, srcIdx, val);
          int alias = aliasMap[val[0]];
@@ -192,7 +192,7 @@ public class UTFCodec implements ByteTransform
       // Emit last (possibly) invalid symbols (due to block truncation)
       while ((srcIdx < srcEnd+4) && (dstIdx < dstEnd))
          dst[dstIdx++] = src[srcIdx++];
-    
+
       input.index += srcIdx;
       output.index += dstIdx;
       return dstIdx < dstEnd;
@@ -230,7 +230,7 @@ public class UTFCodec implements ByteTransform
       srcIdx += 4;
 
       // Build inverse mapping
-      for (int i=0; i<n; i++) 
+      for (int i=0; i<n; i++)
       {
          m[i] = ((src[srcIdx]&0xFF) << 16) | ((src[srcIdx+1]&0xFF) << 8) | (src[srcIdx+2]&0xFF);
          srcIdx += 3;
@@ -243,7 +243,7 @@ public class UTFCodec implements ByteTransform
          dst[dstIdx++] = src[srcIdx++];
 
       // Emit data
-      while (srcIdx < srcEnd) 
+      while (srcIdx < srcEnd)
       {
          int alias = src[srcIdx++] & 0xFF;
 
@@ -272,7 +272,7 @@ public class UTFCodec implements ByteTransform
 
       for (int i=srcEnd; i<count; i++)
          dst[dstIdx++] = src[srcIdx++];
-      
+
       input.index += srcIdx;
       output.index += dstIdx;
       return res;
@@ -284,9 +284,9 @@ public class UTFCodec implements ByteTransform
    {
       return srcLength + 8192;
    }
-   
-   
-   private static boolean validate(byte block[], int start, int end) 
+
+
+   private static boolean validate(byte block[], int start, int end)
    {
       int[] freqs0 = new int[256];
       final int[][] freqs = new int[256][256];
@@ -339,7 +339,7 @@ public class UTFCodec implements ByteTransform
       if ((freqs0[0xC0] > 0) || (freqs0[0xC1] > 0))
          return false;
 
-      for (int i = 0xF5; i <= 0xFF; i++) 
+      for (int i = 0xF5; i <= 0xFF; i++)
       {
          if (freqs0[i] > 0)
             return false;
@@ -375,8 +375,8 @@ public class UTFCodec implements ByteTransform
    }
 
 
-   public static int pack(byte[] in, int idx, int[] out) 
-   {   
+   public static int pack(byte[] in, int idx, int[] out)
+   {
       int s = SIZES[(in[idx]>>>4)&0x0F];
 
       switch (s) {
@@ -386,15 +386,15 @@ public class UTFCodec implements ByteTransform
 
       case 2:
          out[0] = (1 << 19) | ((in[idx+0] & 0xFF) << 8) | (in[idx+1] & 0xFF);
-         break; 
+         break;
 
       case 3:
-         out[0] = (2 << 19) | ((in[idx+0] & 0x0F) << 12) | ((in[idx+1] & 0x3F) << 6) | 
+         out[0] = (2 << 19) | ((in[idx+0] & 0x0F) << 12) | ((in[idx+1] & 0x3F) << 6) |
                   (in[idx+2] & 0x3F);
          break;
 
       case 4:
-         out[0] = (4 << 19) | ((in[idx+0] & 0x07) << 18) | ((in[idx+1] & 0x3F) << 12) | 
+         out[0] = (4 << 19) | ((in[idx+0] & 0x07) << 18) | ((in[idx+1] & 0x3F) << 12) |
                   ((in[idx+2] & 0x3F) << 6) | (in[idx+3] & 0x3F);
           break;
 
@@ -404,12 +404,12 @@ public class UTFCodec implements ByteTransform
          break;
       }
 
-      return s; 
+      return s;
    }
 
 
-   public static int unpackV0(int in, byte out[], int idx) 
-   { 
+   public static int unpackV0(int in, byte out[], int idx)
+   {
       int s = (in>>>21) + 1;
 
       switch (s) {
@@ -428,7 +428,7 @@ public class UTFCodec implements ByteTransform
          out[idx+2] = (byte) ((in & 0x3F) | 0x80);
          break;
 
-      case 4:	  
+      case 4:
          out[idx+0] = (byte) (((in >> 18) & 0x07) | 0xF0);
          out[idx+1] = (byte) (((in >> 12) & 0x3F) | 0x80);
          out[idx+2] = (byte) (((in >>  6) & 0x3F) | 0x80);
@@ -440,9 +440,9 @@ public class UTFCodec implements ByteTransform
          break;
       }
 
-      return s; 
-   }   
-   
+      return s;
+   }
+
 
    public static int unpackV1(int in, byte out[], int idx)
    {
@@ -486,19 +486,19 @@ public class UTFCodec implements ByteTransform
       return s;
    }
 
-   
+
    static class SymbolData
    {
       int sym;
       int freq;
    }
-   
-   
+
+
    static class SymbolComparator implements ArrayComparator
    {
       private final SymbolData[] data;
-      
-      
+
+
       public SymbolComparator(SymbolData[] data)
       {
          this.data = data;

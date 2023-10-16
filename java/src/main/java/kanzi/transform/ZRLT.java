@@ -82,7 +82,7 @@ public final class ZRLT implements ByteTransform
                   res = false;
                   break;
                }
-               
+
                // Write every bit as a byte except the most significant one
                while (log2 > 0)
                {

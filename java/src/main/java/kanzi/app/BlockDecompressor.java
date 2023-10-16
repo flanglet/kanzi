@@ -79,7 +79,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       if (concurrency == 0)
       {
          // Default to half of cores
-         int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1); 
+         int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
          concurrency = Math.min(cores, MAX_CONCURRENCY);
       }
       else if (concurrency > MAX_CONCURRENCY)
@@ -124,7 +124,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       boolean isStdIn = STDIN.equalsIgnoreCase(this.inputName);
 
       if (isStdIn == false)
-      {   
+      {
          try
          {
             String suffix = File.separator + ".";
@@ -153,7 +153,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
       String upperOutputName = this.outputName.toUpperCase();
       boolean isStdOut = STDOUT.equals(upperOutputName);
-      
+
       // Limit verbosity level when output is stdout
       // Logic is duplicated here to avoid dependency to Kanzi.java
       if (isStdOut == true)
@@ -426,13 +426,13 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          int verbosity = (Integer) this.ctx.get("verbosity");
          String inputName = (String) this.ctx.get("inputName");
          String outputName = (String) this.ctx.get("outputName");
-         
-         if (verbosity > 2) 
+
+         if (verbosity > 2)
          {
             printOut("Input file name set to '" + inputName + "'", true);
             printOut("Output file name set to '" + outputName + "'", true);
          }
-         
+
          boolean overwrite = (Boolean) this.ctx.get("overwrite");
 
          long read = 0;
@@ -611,7 +611,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          long after = System.nanoTime();
          long delta = (after - before) / 1000000L; // convert to ms
          String str;
-         
+
          if (verbosity >= 1)
          {
             printOut("", verbosity>1);

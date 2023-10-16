@@ -216,7 +216,7 @@ public class TestEntropyCodec
    {
       Map<String, Object> ctx = new HashMap<>();
       ctx.put("bsVersion", 4);
-      
+
       switch(name)
       {
          case "CM":

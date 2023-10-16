@@ -259,7 +259,7 @@ public final class TextCodec implements ByteTransform
    // The goal is to detect test data amenable to pre-processing.
    public static int computeStats(byte[] block, final int start, final int end, int[] freqs0, boolean strict)
    {
-      if (strict == false) 
+      if (strict == false)
       {
         // This is going to fail if the block is not the first of the file.
         // But this is a cheap test, good enough for fast mode.
@@ -321,9 +321,9 @@ public final class TextCodec implements ByteTransform
          if (strict == true)
             notText = ((nbTextChars < (count>>2)) || (freqs0[0] >= (count/100)) || ((nbASCII/95) < (count/100)));
          else
-            notText = ((nbTextChars < (count>>1)) || (freqs0[32] < (count/50))); 
+            notText = ((nbTextChars < (count>>1)) || (freqs0[32] < (count/50)));
       }
-      
+
       int res = 0;
 
       if (notText == true)
@@ -387,7 +387,7 @@ public final class TextCodec implements ByteTransform
 
       if (dt != Global.DataType.UNDEFINED)
          return MASK_NOT_TEXT | dt.ordinal();
-      
+
       // Check UTF-8
       // See Unicode 14 Standard - UTF-8 Table 3.7
       // U+0000..U+007F          00..7F
@@ -399,49 +399,49 @@ public final class TextCodec implements ByteTransform
       // U+10000..U+3FFFF        F0 90..BF 80..BF 80..BF
       // U+40000..U+FFFFF        F1..F3 80..BF 80..BF 80..BF
       // U+100000..U+10FFFF      F4 80..8F 80..BF 80..BF
-      
+
       if ((freqs0[0xC0] > 0) || (freqs0[0xC1] > 0))
          return MASK_NOT_TEXT;
 
-      for (int i=0xF5; i<=0xFF; i++) 
+      for (int i=0xF5; i<=0xFF; i++)
       {
          if (freqs0[i] > 0)
             return MASK_NOT_TEXT;
       }
 
       int sum = 0;
-      
-      for (int i=0; i<256; i++) 
+
+      for (int i=0; i<256; i++)
       {
          // Exclude < 0xE0A0 || > 0xE0BF
          if (((i < 0xA0) || (i > 0xBF)) && (freqs[0xE0][i] > 0))
              return MASK_NOT_TEXT;
-         
+
          // Exclude < 0xED80 || > 0xEDE9F
          if (((i < 0x80) || (i > 0x9F)) && (freqs[0xED][i] > 0))
              return MASK_NOT_TEXT;
-         
+
          // Exclude < 0xF090 || > 0xF0BF
          if (((i < 0x90) || (i > 0xBF)) && (freqs[0xF0][i] > 0))
              return MASK_NOT_TEXT;
-         
+
          // Exclude < 0xF480 || > 0xF4BF
          if (((i < 0x80) || (i > 0xBF)) && (freqs[0xF4][i] > 0))
              return MASK_NOT_TEXT;
-         
+
          // Count non-primary bytes
          if ((i >= 0x80) && (i <= 0xBF))
             sum += freqs0[i];
-      } 
+      }
 
       // Another ad-hoc threshold
-      return (sum < count/4) ? MASK_NOT_TEXT : MASK_NOT_TEXT | Global.DataType.UTF8.ordinal();  
+      return (sum < count/4) ? MASK_NOT_TEXT : MASK_NOT_TEXT | Global.DataType.UTF8.ordinal();
    }
-   
-       
+
+
    private static boolean sameWords(byte[] buf1, final int idx1, byte[] buf2, final int idx2, int length)
    {
-      while (length > 0) 
+      while (length > 0)
       {
           length--;
 
@@ -471,7 +471,7 @@ public final class TextCodec implements ByteTransform
 
       if (src.array == dst.array)
          return false;
-      
+
       return this.delegate.forward(src, dst);
    }
 
@@ -528,9 +528,9 @@ public final class TextCodec implements ByteTransform
 
             if (blockSize >= 8)
                log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
-            
+
             boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
-            log += (extraPerf == true) ? 1 : 0;         
+            log += (extraPerf == true) ? 1 : 0;
          }
 
          this.logHashSize = log;
@@ -1073,9 +1073,9 @@ public final class TextCodec implements ByteTransform
                log = Math.max(Math.min(Global.log2(blockSize/32), 24), 13);
 
             boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
-            log += (extraPerf == true) ? 1 : 0;     
+            log += (extraPerf == true) ? 1 : 0;
          }
-         
+
          this.logHashSize = log;
          this.dictSize = 1<<13;
          this.dictMap = new DictEntry[0];
@@ -1137,7 +1137,7 @@ public final class TextCodec implements ByteTransform
          {
             Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
                Global.DataType.UNDEFINED);
-            
+
             // Filter out most types. Still check binaries which may contain significant parts of text
             if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.TEXT) && (dt != Global.DataType.BIN))
                return false;

@@ -14,7 +14,7 @@ limitations under the License.
 package kanzi;
 
 
-public class Magic 
+public class Magic
 {
    public static final int NO_MAGIC = 0;
    public static final int JPG_MAGIC = 0xFFD8FFE0;
@@ -38,25 +38,25 @@ public class Magic
 	
    public static final int BZIP2_MAGIC = 0x425A68;
    public static final int MP3_ID3_MAGIC = 0x494433;
-   
+
    public static final int GZIP_MAGIC = 0x1F8B;
    public static final int BMP_MAGIC = 0x424D;
    public static final int WIN_MAGIC = 0x4D5A;
-   public static final int PBM_MAGIC = 0x5034; // bin only       
+   public static final int PBM_MAGIC = 0x5034; // bin only
    public static final int PGM_MAGIC = 0x5035; // bin only
    public static final int PPM_MAGIC = 0x5036; // bin only
 
 
    private static final int[] KEYS32 =
-   { 
+   {
       GIF_MAGIC, PDF_MAGIC, ZIP_MAGIC, LZMA_MAGIC, PNG_MAGIC,
       ELF_MAGIC, MAC_MAGIC32, MAC_CIGAM32, MAC_MAGIC64, MAC_CIGAM64,
       ZSTD_MAGIC, BROTLI_MAGIC, CAB_MAGIC, RIFF_MAGIC, FLAC_MAGIC,
       XZ_MAGIC, KNZ_MAGIC
    };
 
-   private static final int[] KEYS16 = 
-   { 
+   private static final int[] KEYS16 =
+   {
       GZIP_MAGIC, BMP_MAGIC, WIN_MAGIC
    };
 
@@ -72,35 +72,35 @@ public class Magic
       if (((key >> 8) == BZIP2_MAGIC) || ((key >> 8) == MP3_ID3_MAGIC))
          return key >> 8;
 
-      for (int i=0; i<KEYS32.length; i++) 
+      for (int i=0; i<KEYS32.length; i++)
       {
          if (key == KEYS32[i])
             return key;
       }
 
       final int key16 = key >> 16;
-      
-      for (int i=0; i<KEYS16.length; i++) 
+
+      for (int i=0; i<KEYS16.length; i++)
       {
          if (key16 == KEYS16[i])
-            return key16;  
-      }     
-      
-      if ((key16 == PBM_MAGIC) || (key16 == PGM_MAGIC) || (key16 == PPM_MAGIC)) 
+            return key16;
+      }
+
+      if ((key16 == PBM_MAGIC) || (key16 == PGM_MAGIC) || (key16 == PPM_MAGIC))
       {
          final int subkey = (key >> 8) & 0xFF;
 
          if ((subkey == 0x07) || (subkey == 0x0A) || (subkey == 0x0D) || (subkey == 0x20))
             return key16;
-      }      
+      }
 
-      return NO_MAGIC;      
+      return NO_MAGIC;
    }
-   
-   
-   public static boolean isCompressed(int magic) 
+
+
+   public static boolean isCompressed(int magic)
    {
-      switch (magic) 
+      switch (magic)
       {
          case JPG_MAGIC:
          case GIF_MAGIC:
@@ -116,18 +116,18 @@ public class Magic
          case FLAC_MAGIC:
          case MP3_ID3_MAGIC:
          case XZ_MAGIC:
-         case KNZ_MAGIC:       
+         case KNZ_MAGIC:
             return true;
 
          default:
             return false;
       }
    }
-   
-   
-   public static boolean isMultimedia(int magic) 
+
+
+   public static boolean isMultimedia(int magic)
    {
-      switch (magic) 
+      switch (magic)
       {
          case JPG_MAGIC:
          case GIF_MAGIC:
@@ -146,10 +146,10 @@ public class Magic
       }
    }
 
-   
+
    public static boolean isExecutable(int magic)
    {
-      switch (magic) 
+      switch (magic)
       {
          case ELF_MAGIC:
          case WIN_MAGIC:
@@ -162,5 +162,5 @@ public class Magic
          default:
             return false;
       }
-    }   
+    }
 }

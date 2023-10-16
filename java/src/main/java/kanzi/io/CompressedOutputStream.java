@@ -67,8 +67,8 @@ public class CompressedOutputStream extends OutputStream
    private final int blockSize;
    private int bufferId; // index of current write buffer
    private final int nbInputBlocks;
-   private final int jobs;   
-   private int bufferThreshold;   
+   private final int jobs;
+   private int bufferThreshold;
    private final XXHash32 hasher;
    private final SliceByteArray[] buffers; // input & output per block
    private final int entropyType;
@@ -150,8 +150,8 @@ public class CompressedOutputStream extends OutputStream
       this.closed = new AtomicBoolean(false);
       this.initialized = new AtomicBoolean(false);
       this.buffers = new SliceByteArray[2*this.jobs];
-      
-      // Allocate first buffer and add padding for incompressible blocks 
+
+      // Allocate first buffer and add padding for incompressible blocks
       final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
       this.buffers[0] = new SliceByteArray(new byte[bufSize], bufSize, 0);
       this.buffers[this.jobs] = new SliceByteArray(new byte[0], 0, 0);
@@ -161,7 +161,7 @@ public class CompressedOutputStream extends OutputStream
          this.buffers[i] = new SliceByteArray(EMPTY_BYTE_ARRAY, 0);
          this.buffers[this.jobs+i] = new SliceByteArray(EMPTY_BYTE_ARRAY, 0);
       }
-      
+
       this.blockId = new AtomicInteger(0);
       this.listeners = new ArrayList<>(10);
       this.ctx = ctx;
@@ -189,7 +189,7 @@ public class CompressedOutputStream extends OutputStream
 
       if (this.obs.writeBits(this.nbInputBlocks & (MAX_CONCURRENCY-1), 6) != 6)
          throw new kanzi.io.IOException("Cannot write number of blocks to header", Error.ERR_WRITE_FILE);
-      
+
       final int HASH = 0x1E35A7BD;
       int cksum = HASH * BITSTREAM_FORMAT_VERSION;
       cksum ^= (HASH * (int)  this.entropyType);
@@ -200,7 +200,7 @@ public class CompressedOutputStream extends OutputStream
       cksum = (cksum >>> 23) ^ (cksum >>> 3);
 
       if (this.obs.writeBits(cksum, 4) != 4)
-         throw new kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);      
+         throw new kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);
    }
 
 
@@ -256,7 +256,7 @@ public class CompressedOutputStream extends OutputStream
       {
          // Limit to number of available bytes in current buffer
          final int lenChunk = Math.min(remaining, this.bufferThreshold-this.buffers[this.bufferId].index);
-         
+
          if (lenChunk > 0)
          {
             // Process a chunk of in-buffer data. No access to bitstream required
@@ -264,11 +264,11 @@ public class CompressedOutputStream extends OutputStream
             this.buffers[this.bufferId].index += lenChunk;
             off += lenChunk;
             remaining -= lenChunk;
-            
+
             if (this.buffers[this.bufferId].index >= this.bufferThreshold)
             {
                // Current write buffer is full
-               if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs)) 
+               if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs))
                {
                   this.bufferId++;
                   final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
@@ -281,12 +281,12 @@ public class CompressedOutputStream extends OutputStream
 
                   this.buffers[this.bufferId].index = 0;
                }
-               else 
+               else
                {
                   // If all buffers are full, time to encode
                   this.processBlock();
                }
-            }            
+            }
 
             if (remaining == 0)
                break;
@@ -322,13 +322,13 @@ public class CompressedOutputStream extends OutputStream
          if (this.buffers[this.bufferId].index >= this.bufferThreshold)
          {
             // Current write buffer is full
-            if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs)) 
+            if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs))
             {
                this.bufferId++;
 
                final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
 
-               if (this.buffers[this.bufferId].length == 0) 
+               if (this.buffers[this.bufferId].length == 0)
                {
                   this.buffers[this.bufferId].array = new byte[bufSize];
                   this.buffers[this.bufferId].length = bufSize;
@@ -336,12 +336,12 @@ public class CompressedOutputStream extends OutputStream
 
                this.buffers[this.bufferId].index = 0;
             }
-            else 
+            else
             {
                // If all buffers are full, time to encode
                if (this.closed.get() == true)
                   throw new kanzi.io.IOException("Stream closed", Error.ERR_WRITE_FILE);
-               
+
                this.processBlock();
             }
          }
@@ -420,7 +420,7 @@ public class CompressedOutputStream extends OutputStream
       this.bufferThreshold = 0;
 
       // Release resources, force error on any subsequent write attempt
-      for (int i=0; i<this.buffers.length; i++)         
+      for (int i=0; i<this.buffers.length; i++)
          this.buffers[i] = new SliceByteArray(EMPTY_BYTE_ARRAY, 0);
    }
 
@@ -642,7 +642,7 @@ public class CompressedOutputStream extends OutputStream
                      skipBlock = entropy >= EntropyUtils.INCOMPRESSIBLE_THRESHOLD;
                      //this.ctx.put("histo0", histo);
                   }
-                  
+
                   if (skipBlock == true)
                   {
                      blockTransformType = TransformFactory.NONE_TYPE;
@@ -655,8 +655,8 @@ public class CompressedOutputStream extends OutputStream
             this.ctx.put("size", blockLength);
             Sequence transform = new TransformFactory().newFunction(this.ctx, blockTransformType);
             int requiredSize = transform.getMaxEncodedLength(blockLength);
-            
-            if (blockLength >= 4) 
+
+            if (blockLength >= 4)
             {
                final int magic = Magic.getType(data.array, 0);
 
@@ -666,7 +666,7 @@ public class CompressedOutputStream extends OutputStream
                   this.ctx.put("dataType", Global.DataType.MULTIMEDIA);
                else if (Magic.isExecutable(magic) == true)
                   this.ctx.put("dataType", Global.DataType.EXE);
-            }      
+            }
 
             if (buffer.length < requiredSize)
             {

@@ -46,7 +46,7 @@ public class FPAQDecoder implements EntropyDecoder
    private int[] p; // pointer to current prob
    private int ctx; // previous bits
    private final boolean isBsVersion3;
-   
+
 
    public FPAQDecoder(InputBitStream bitstream, Map<String, Object> ctx)
    {
@@ -64,13 +64,13 @@ public class FPAQDecoder implements EntropyDecoder
 
       for (int i=0; i<4; i++)
          Arrays.fill(this.probs[i], PSCALE>>1);
-      
+
       int bsVersion = 4;
 
       if (ctx != null)
          bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
 
-      this.isBsVersion3 = bsVersion < 4;      
+      this.isBsVersion3 = bsVersion < 4;
    }
 
 
@@ -121,7 +121,7 @@ public class FPAQDecoder implements EntropyDecoder
                this.p = this.probs[(this.ctx&0xFF)>>>6];
             }
          }
-         else 
+         else
          {
             for (int i=startChunk; i<endChunk; i++)
             {
@@ -136,7 +136,7 @@ public class FPAQDecoder implements EntropyDecoder
                this.decodeBitV2(this.p[this.ctx]);
                block[i] = (byte) this.ctx;
                this.p = this.probs[(this.ctx&0xFF)>>>6];
-            }                 
+            }
         }
 
          startChunk = endChunk;
@@ -176,7 +176,7 @@ public class FPAQDecoder implements EntropyDecoder
       return bit;
    }
 
-   
+
    private int decodeBitV2(int pred)
    {
       // Calculate interval split
@@ -207,7 +207,7 @@ public class FPAQDecoder implements EntropyDecoder
       return bit;
    }
 
-   
+
    protected void read()
    {
       this.low = (this.low<<32) & MASK_0_56;
