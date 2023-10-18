@@ -28,7 +28,7 @@ import kanzi.OutputBitStream;
 public class ANSRangeEncoder implements EntropyEncoder
 {
    private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<<23
-   private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
+   private static final int DEFAULT_ANS0_CHUNK_SIZE = 16384;
    private static final int DEFAULT_LOG_RANGE = 12;
    private static final int MIN_CHUNK_SIZE = 1024;
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
@@ -51,6 +51,12 @@ public class ANSRangeEncoder implements EntropyEncoder
    public ANSRangeEncoder(OutputBitStream bs, int order)
    {
       this(bs, order, DEFAULT_ANS0_CHUNK_SIZE, DEFAULT_LOG_RANGE);
+   }
+
+
+   public ANSRangeEncoder(OutputBitStream bs, int order, int chunkSize)
+   {
+      this(bs, order, chunkSize, DEFAULT_LOG_RANGE);
    }
 
 
@@ -90,7 +96,7 @@ public class ANSRangeEncoder implements EntropyEncoder
    }
 
 
-   public ANSRangeEncoder(OutputBitStream bs, int order, Map<String, Object> ctx)
+   public ANSRangeEncoder(OutputBitStream bs, Map<String, Object> ctx, int order)
    {
       if (bs == null)
          throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");

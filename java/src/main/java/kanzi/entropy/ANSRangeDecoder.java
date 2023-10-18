@@ -28,7 +28,7 @@ import kanzi.InputBitStream;
 public class ANSRangeDecoder implements EntropyDecoder
 {
    private static final int ANS_TOP = 1 << 15; // max possible for ANS_TOP=1<23
-   private static final int DEFAULT_ANS0_CHUNK_SIZE = 1 << 15; // 32 KB by default
+   private static final int DEFAULT_ANS0_CHUNK_SIZE = 16384;
    private static final int DEFAULT_LOG_RANGE = 12;
    private static final int MIN_CHUNK_SIZE = 1024;
    private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
@@ -41,7 +41,7 @@ public class ANSRangeDecoder implements EntropyDecoder
    private final int chunkSize;
    private final int order;
    private int logRange;
-   private boolean isBsVersion1;
+   private int bsVersion;
 
 
    public ANSRangeDecoder(InputBitStream bs)
@@ -81,7 +81,7 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
       this.logRange = DEFAULT_LOG_RANGE;
-      this.isBsVersion1 = false; // old encoding
+      this.bsVersion = 4; // old encoding
 
       for (int i=0; i<dim; i++)
       {
@@ -91,17 +91,21 @@ public class ANSRangeDecoder implements EntropyDecoder
       }
    }
 
-   public ANSRangeDecoder(InputBitStream bs, int order, Map<String, Object> ctx)
+
+   public ANSRangeDecoder(InputBitStream bs, Map<String, Object> ctx, int order)
    {
-      if (bs == null)
+     if (bs == null)
          throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");
 
       if ((order != 0) && (order != 1))
          throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
 
-      final int bsVersion = (ctx == null) ? -1 : (Integer) ctx.getOrDefault("bsVersion", -1);
       this.bitstream = bs;
-      this.chunkSize = Math.min(DEFAULT_ANS0_CHUNK_SIZE << (8*order), MAX_CHUNK_SIZE);
+      this.bsVersion = (ctx == null) ? 4 : (Integer) ctx.getOrDefault("bsVersion", 4);
+
+      // Value for chunk size prior to bitstream version 4
+      final int ckSize = (this.bsVersion < 4) ? 32768 : DEFAULT_ANS0_CHUNK_SIZE;
+      this.chunkSize = Math.min(ckSize << (8*order), MAX_CHUNK_SIZE);
       this.order = order;
       final int dim = 255*order + 1;
       this.freqs = new int[dim][256];
@@ -109,7 +113,34 @@ public class ANSRangeDecoder implements EntropyDecoder
       this.symbols = new Symbol[dim][256];
       this.buffer = new byte[0];
       this.logRange = DEFAULT_LOG_RANGE;
-      this.isBsVersion1 = bsVersion == 1; // old encoding
+
+      for (int i=0; i<dim; i++)
+      {
+         this.freqs[i] = new int[256];
+         this.f2s[i] = new byte[0];
+         this.symbols[i] = new Symbol[256];
+      }
+   }
+
+
+   public ANSRangeDecoder(InputBitStream bs, Map<String, Object> ctx, int order, int chunkSize)
+   {
+      if (bs == null)
+         throw new NullPointerException("ANS Codec: Invalid null bitstream parameter");
+
+      if ((order != 0) && (order != 1))
+         throw new IllegalArgumentException("ANS Codec: The order must be 0 or 1");
+
+      this.bsVersion = (ctx == null) ? 4 : (Integer) ctx.getOrDefault("bsVersion", 4);
+      this.bitstream = bs;
+      this.chunkSize = Math.min(chunkSize << (8*order), MAX_CHUNK_SIZE);
+      this.order = order;
+      final int dim = 255*order + 1;
+      this.freqs = new int[dim][256];
+      this.f2s = new byte[dim][256];
+      this.symbols = new Symbol[dim][256];
+      this.buffer = new byte[0];
+      this.logRange = DEFAULT_LOG_RANGE;
 
       for (int i=0; i<dim; i++)
       {
@@ -160,7 +191,7 @@ public class ANSRangeDecoder implements EntropyDecoder
          }
          else
          {
-            if (this.isBsVersion1)
+            if (this.bsVersion == 1)
                this.decodeChunkV1(block, startChunk, endChunk);
             else
                this.decodeChunkV2(block, startChunk, endChunk);

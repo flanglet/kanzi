@@ -440,7 +440,7 @@ public class ROLZCodec implements ByteTransform
                ANSRangeEncoder litEnc = new ANSRangeEncoder(obs, litOrder);
                litEnc.encode(litBuf.array, 0, litBuf.index);
                litEnc.dispose();
-               ANSRangeEncoder mEnc = new ANSRangeEncoder(obs, 0);
+               ANSRangeEncoder mEnc = new ANSRangeEncoder(obs, 0, 32768);
                mEnc.encode(tkBuf.array, 0, tkBuf.index);
                mEnc.encode(lenBuf.array, 0, lenBuf.index);
                mEnc.encode(mIdxBuf.array, 0, mIdxBuf.index);
@@ -612,10 +612,10 @@ public class ROLZCodec implements ByteTransform
                   return false;
                }
 
-               ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, litOrder, this.ctx);
+               ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, this.ctx, litOrder);
                litDec.decode(litBuf.array, 0, litLen);
                litDec.dispose();
-               ANSRangeDecoder mDec = new ANSRangeDecoder(ibs, 0, this.ctx);
+               ANSRangeDecoder mDec = new ANSRangeDecoder(ibs, this.ctx, 0, 32768);
                mDec.decode(tkBuf.array, 0, tkLen);
                mDec.decode(lenBuf.array, 0, mLenLen);
                mDec.decode(mIdxBuf.array, 0, mIdxLen);

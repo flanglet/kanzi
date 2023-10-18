@@ -55,10 +55,10 @@ public class EntropyCodecFactory
             return new HuffmanDecoder(ibs, ctx);
 
          case ANS0_TYPE:
-            return new ANSRangeDecoder(ibs, 0, ctx);
+            return new ANSRangeDecoder(ibs, ctx, 0);
 
          case ANS1_TYPE:
-            return new ANSRangeDecoder(ibs, 1, ctx);
+            return new ANSRangeDecoder(ibs, ctx, 1);
 
          case RANGE_TYPE:
             return new RangeDecoder(ibs);
@@ -95,10 +95,10 @@ public class EntropyCodecFactory
             return new HuffmanEncoder(obs);
 
          case ANS0_TYPE:
-            return new ANSRangeEncoder(obs, 0, ctx);
+            return new ANSRangeEncoder(obs, ctx, 0);
 
          case ANS1_TYPE:
-            return new ANSRangeEncoder(obs, 1, ctx);
+            return new ANSRangeEncoder(obs, ctx, 1);
 
          case RANGE_TYPE:
             return new RangeEncoder(obs);
