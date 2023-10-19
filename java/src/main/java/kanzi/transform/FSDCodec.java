@@ -94,13 +94,21 @@ public class FSDCodec implements ByteTransform
       final int count5 = count / 5;
       final int count10 = count / 10;
       final int[][] histo = new int[7][256];
-      int start1 = input.index + 1*count5;
-      int start2 = input.index + 3*count5;
+      int start0 = input.index + 0*count5;
+      int start1 = input.index + 2*count5;
+      int start2 = input.index + 4*count5;
 
-      // Check several step values on a sub-block (no memory allocation)
-      // Sample 2 sub-blocks
-      for (int i=16; i<count10; i++)
+      // Check several step values on a few sub-blocks (no memory allocation)
+      for (int i=count10; i<count5; i++)
       {
+         final byte b0 = src[start0+i];
+         histo[0][b0&0xFF]++;
+         histo[1][(b0^src[start0+i-1])&0xFF]++;
+         histo[2][(b0^src[start0+i-2])&0xFF]++;
+         histo[3][(b0^src[start0+i-3])&0xFF]++;
+         histo[4][(b0^src[start0+i-4])&0xFF]++;
+         histo[5][(b0^src[start0+i-8])&0xFF]++;
+         histo[6][(b0^src[start0+i-16])&0xFF]++;
          final byte b1 = src[start1+i];
          histo[0][b1&0xFF]++;
          histo[1][(b1^src[start1+i-1])&0xFF]++;
@@ -125,7 +133,7 @@ public class FSDCodec implements ByteTransform
 
       for (int i=0; i<ent.length; i++)
       {
-         ent[i] = Global.computeFirstOrderEntropy1024(count5, histo[i]);
+         ent[i] = Global.computeFirstOrderEntropy1024(3*count10, histo[i]);
 
          if (ent[i] < ent[minIdx])
             minIdx = i;
@@ -135,7 +143,7 @@ public class FSDCodec implements ByteTransform
       if (ent[minIdx] >= ent[0])
       {
         if (this.ctx != null)
-           this.ctx.put("dataType", Global.detectSimpleType(count5, histo[0]));
+           this.ctx.put("dataType", Global.detectSimpleType(3*count10, histo[0]));
 
          return false;
       }
@@ -173,15 +181,12 @@ public class FSDCodec implements ByteTransform
       // Emit modified bytes
       if (mode == DELTA_CODING)
       {
-         while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
+         while ((srcIdx < srcEnd) && (dstIdx < dstEnd-1))
          {
             final int delta = (src[srcIdx]&0xFF) - (src[srcIdx-dist]&0xFF);
 
             if ((delta < -127) || (delta > 127))
             {
-               if (dstIdx == dstEnd-1)
-                  break;
-
                // Skip delta, encode with escape
                dst[dstIdx++] = ESCAPE_TOKEN;
                dst[dstIdx++] = (byte) (src[srcIdx] ^ src[srcIdx-dist]);
