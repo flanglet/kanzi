@@ -145,22 +145,11 @@ public final class ZRLT implements ByteTransform
         final byte[] dst = output.array;
         final int srcEnd = srcIdx + count;
         final int dstEnd = output.length;
-        int runLength = 1;
+        int runLength = 0;
 
 mainLoop:
         while (true)
         {
-           if (runLength > 1)
-           {
-              runLength--;
-              dst[dstIdx++] = 0;
-
-              if (dstIdx >= dstEnd)
-                  break;
-
-              continue;
-           }
-
            int val = src[srcIdx] & 0xFF;
 
            if (val <= 1)
@@ -175,10 +164,24 @@ mainLoop:
 
                  if (srcIdx >= srcEnd)
                     break mainLoop;
-              }
-              while ((val = src[srcIdx] & 0xFF) <= 1);
 
-              continue;
+                 val = src[srcIdx] & 0xFF;
+              }
+              while (val <= 1);
+
+              runLength--;
+
+              if (runLength > 0)
+              {
+                 if (dstIdx+runLength > dstEnd)
+                     break;
+
+                 while (runLength > 0)
+                 {
+                    runLength--;
+                    dst[dstIdx++] = 0;
+                 }
+              }
            }
 
            // Regular data processing
@@ -204,13 +207,19 @@ mainLoop:
         }
 
         // If runLength is not 1, add trailing 0s
-        while (runLength > 1)
+        if (runLength > 0)
         {
            runLength--;
-           dst[dstIdx++] = 0;
 
-           if (dstIdx >= dstEnd)
+           if (dstIdx+runLength > dstEnd)
                return false;
+
+           while (runLength > 0)
+           {
+               runLength--;
+               dst[dstIdx++] = 0;
+           }
+
         }
 
         input.index = srcIdx;
