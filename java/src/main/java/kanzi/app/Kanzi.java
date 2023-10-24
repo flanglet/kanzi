@@ -678,6 +678,8 @@ public class Kanzi
     private static void printHelp(char mode)
     {
       printOut("", true);
+      printOut(APP_HEADER, true);
+      printOut("", true);
       printOut("Credits: Matt Mahoney, Yann Collet, Jan Ondrus, Yuta Mori, Ilya Muravyov,", true);
       printOut("         Neal Burns, Fabian Giesen, Jarek Duda, Ilya Grebnov", true);
       printOut("", true);
