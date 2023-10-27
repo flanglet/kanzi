@@ -211,8 +211,9 @@ public class AliasCodec implements ByteTransform
               map16[i] = (i>>8) | 0x100;
 
           int savings = 0;
-          dst[0] = (byte) n0;
-          dstIdx++;
+          dst[output.index] = (byte) n0;
+          dst[output.index+1] = (byte) 0;
+          dstIdx += 2;
 
           // Header: emit map data
           for (int i=0; i<n0; i++)
@@ -242,7 +243,10 @@ public class AliasCodec implements ByteTransform
            }
 
            if (srcIdx != count)
+           {
+               dst[output.index+1] = (byte) 1;
                dst[dstIdx++] = src[srcIdx++];
+           }
         }
 
         boolean res = (dstIdx - output.index) < count;
@@ -266,7 +270,7 @@ public class AliasCodec implements ByteTransform
       int dstIdx = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      int n = src[srcIdx] & 0xFF;
+      int n = src[srcIdx++] & 0xFF;
 
       if (n < 16)
           return false;
@@ -274,13 +278,12 @@ public class AliasCodec implements ByteTransform
       if (n >= 240)
       {
           n = 256 - n;
-          srcIdx++;
 
           if (n == 1)
           {
              // One symbol
              byte val = src[srcIdx++];
-             final int oSize =   Memory.LittleEndian.readInt32(src, srcIdx);
+             final int oSize = Memory.LittleEndian.readInt32(src, srcIdx);
 
              if (dstIdx + oSize > output.length)
                  return false;
@@ -366,9 +369,9 @@ public class AliasCodec implements ByteTransform
       else
       {
           // Rebuild map alias -> symbol
+          final int adjust = src[srcIdx++] & 0xFF;
+          final int srcEnd = input.index + count - adjust;
           int[] map16 = new int[256];
-          srcIdx++;
-          final int srcEnd = input.index + count;
 
           for (int i=0; i<256; i++)
               map16[i] = 0x10000 | i;
@@ -386,6 +389,9 @@ public class AliasCodec implements ByteTransform
               dst[dstIdx + 1] = (byte) (val >>> 8);
               dstIdx += (val >>> 16);
           }
+
+          if (adjust != 0)
+              dst[dstIdx++] = src[srcIdx++];
       }
 
       output.index = dstIdx;
