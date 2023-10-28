@@ -164,7 +164,7 @@ public class ROLZCodec implements ByteTransform
       private static final int MIN_MATCH4 = 4;
       private static final int MIN_MATCH7 = 7;
       private static final int MAX_MATCH = MIN_MATCH3 + 65535;
-      private static final int LOG_POS_CHECKS = 5;
+      private static final int LOG_POS_CHECKS = 4;
 
       private int logPosChecks;
       private final int maskChecks;
@@ -209,12 +209,10 @@ public class ROLZCodec implements ByteTransform
 
 
       // return position index (LOG_POS_CHECKS bits) + length (16 bits) or -1
-      private int findMatch(final SliceByteArray sba, final int pos, final int key)
+      private int findMatch(final SliceByteArray sba, final int pos, int hash32,
+              int counter, int base)
       {
          final byte[] buf = sba.array;
-         final int base = key << this.logPosChecks;
-         final int hash32 = hash(buf, pos);
-         final int counter = this.counters[key];
          int bestLen = 0;
          int bestIdx = -1;
          final int maxMatch = Math.min(MAX_MATCH, sba.length-pos) - 4;
@@ -258,9 +256,6 @@ public class ROLZCodec implements ByteTransform
             }
          }
 
-         // Register current position
-         this.counters[key] = (this.counters[key]+1) & this.maskChecks;
-         this.matches[base+this.counters[key]] = hash32 | (pos-sba.index);
          return (bestLen < this.minMatch) ? -1 : (bestIdx<<16) | (bestLen-this.minMatch);
       }
 
@@ -364,8 +359,15 @@ public class ROLZCodec implements ByteTransform
             // Next chunk
             while (srcIdx < endChunk)
             {
-               final int match = (mm == MIN_MATCH3) ? findMatch(sba, srcIdx, getKey1(src, srcIdx-dt)) :
-                   findMatch(sba, srcIdx, getKey2(src, srcIdx-dt));
+               int key = (mm == MIN_MATCH3) ? getKey1(src, srcIdx-dt): getKey2(src, srcIdx-dt);
+               int base = key << this.logPosChecks;
+               int hash32 = hash(sba.array, srcIdx);
+               int counter = this.counters[key];
+               int match = findMatch(sba, srcIdx, hash32, counter, base);
+
+               // Register current position
+               this.counters[key] = (this.counters[key]+1) & this.maskChecks;
+               this.matches[base+this.counters[key]] = hash32 | (srcIdx-sba.index);
 
                if (match == -1)
                {
@@ -373,6 +375,26 @@ public class ROLZCodec implements ByteTransform
                   srcIdx += (srcInc >> 6);
                   srcInc++;
                   continue;
+               }
+
+               {
+                  // Check if there is a better match at next position
+                  key = (mm == MIN_MATCH3) ? getKey1(src, srcIdx+1-dt): getKey2(src, srcIdx+1-dt);
+                  base = key << this.logPosChecks;
+                  hash32 = hash(sba.array, srcIdx+1);
+                  counter = this.counters[key];
+                  final int match2 = findMatch(sba, srcIdx+1, hash32, counter, base);
+
+                  if ((match2 >= 0) && ((match2&0xFFFF) > (match&0xFFFF)))
+                  {
+                      // Better match at next position
+                      match = match2;
+                      srcIdx++;
+
+                      // Register current position
+                      this.counters[key] = (this.counters[key]+1) & this.maskChecks;
+                      this.matches[base+this.counters[key]] = hash32 | (srcIdx-sba.index);
+                  }
                }
 
                // mode LLLLLMMM -> L lit length, M match length
