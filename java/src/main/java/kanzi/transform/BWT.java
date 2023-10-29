@@ -155,11 +155,9 @@ public class BWT implements ByteTransform
       if (dst.index+count > dst.array.length)
          return false;
 
-      if (count < 2)
+      if (count == 1)
       {
-         if (count == 1)
-            dst.array[dst.index++] = src.array[src.index++];
-
+         dst.array[dst.index++] = src.array[src.index++];
          return true;
       }
 
@@ -198,11 +196,9 @@ public class BWT implements ByteTransform
       if (dst.index + count > dst.array.length)
          return false;
 
-      if (count < 2)
+      if (count == 1)
       {
-         if (count == 1)
-            dst.array[dst.index++] = src.array[src.index++];
-
+         dst.array[dst.index++] = src.array[src.index++];
          return true;
       }
 
