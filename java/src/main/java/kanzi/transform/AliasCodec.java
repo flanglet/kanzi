@@ -297,7 +297,6 @@ public class AliasCodec implements ByteTransform
           else
           {
             byte[] idx2symb = new byte[16];
-            srcIdx++;
 
             // Rebuild map alias -> symbol
             for (int i=0; i<n; i++)
