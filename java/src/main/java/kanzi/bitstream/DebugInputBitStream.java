@@ -91,12 +91,23 @@ public final class DebugInputBitStream implements InputBitStream
 
    protected synchronized void printByte(byte val)
    {
-      if ((val >= 0) && (val < 10))
-         this.out.print(" [00" + (val & 0xFF) + "] ");
-      else if ((val >= 0) && (val < 100))
-         this.out.print(" [0" + (val & 0xFF) + "] ");
-      else
-         this.out.print(" [" + (val & 0xFF) + "] ");
+       String s;
+
+       if (this.hexa == true)
+       {
+           s = "0x" + Integer.toHexString(val&0xFF);
+       }
+       else
+       {
+           if ((val >= 0) && (val < 10))
+               s = "00" + Integer.toString(val&0xFF);
+           else if ((val >= 0) && (val < 100))
+                s = "0" + Integer.toString(val&0xFF);
+           else
+                s = Integer.toString(val&0xFF);
+       }
+
+       this.out.print(" [" + s + "] ");
    }
 
 
