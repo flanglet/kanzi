@@ -154,6 +154,7 @@ public class Kanzi
         int ctx = -1;
         int level = -1;
         char mode = ' ';
+        boolean showHeader = false;
 
         for (String arg : args)
         {
@@ -238,7 +239,10 @@ public class Kanzi
            verbose = 0;
 
         if (verbose >= 1)
+        {
             printOut("\n" + APP_HEADER +"\n", true);
+            showHeader = false;
+        }
 
         inputName = "";
         outputName = "";
@@ -246,7 +250,7 @@ public class Kanzi
 
         if (args.length == 0)
         {
-           printHelp(mode);
+           printHelp(mode, showHeader);
            return 0;
         }
 
@@ -256,7 +260,7 @@ public class Kanzi
 
            if (arg.equals("--help") || arg.equals("-h"))
            {
-               printHelp(mode);
+               printHelp(mode, showHeader);
                return 0;
            }
 
@@ -676,10 +680,14 @@ public class Kanzi
     }
 
 
-    private static void printHelp(char mode)
+    private static void printHelp(char mode, boolean showHeader)
     {
-      printOut("", true);
-      printOut(APP_HEADER, true);
+      if (showHeader == true)
+      {
+         printOut("", true);
+         printOut(APP_HEADER, true);
+      }
+
       printOut("", true);
       printOut("Credits: Matt Mahoney, Yann Collet, Jan Ondrus, Yuta Mori, Ilya Muravyov,", true);
       printOut("         Neal Burns, Fabian Giesen, Jarek Duda, Ilya Grebnov", true);
