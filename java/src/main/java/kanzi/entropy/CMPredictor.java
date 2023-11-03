@@ -118,6 +118,6 @@ public class CMPredictor implements Predictor
         return (p + 3*ssep + 32) >>> 6; // rescale to [0..4095]
       }
 
-      return (p + 3*((x1+x2)>>>1) + 32) >>> 6; // rescale to [0..4095]
+      return (p + p + 3*(x1+x2) + 64) >>> 7; // rescale to [0..4095]
    }
 }
