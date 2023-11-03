@@ -1052,7 +1052,6 @@ public final class LZCodec implements ByteTransform
          int ctx = Memory.LittleEndian.readInt32(src, srcIdx);
          srcIdx += 4;
          dstIdx += 4;
-         int minRef = 4;
          final int minMatch = MIN_MATCH64;
 
          while ((srcIdx < srcEnd-minMatch) && (dstIdx < dstEnd)) {
@@ -1062,7 +1061,7 @@ public final class LZCodec implements ByteTransform
             int bestLen = 0;
 
             // Find a match
-            if ((ref > minRef) && (LZCodec.differentInts(src, ref+minMatch, srcIdx+minMatch-4) == false))
+            if ((ref != 0) && (LZCodec.differentInts(src, ref+minMatch, srcIdx+minMatch-4) == false))
             {
                bestLen = findMatch(src, srcIdx, ref, srcEnd-srcIdx);
             }
@@ -1074,14 +1073,8 @@ public final class LZCodec implements ByteTransform
                ctx = (ctx<<8) | val;
                dst[dstIdx++] = src[srcIdx++];
 
-               if (ref != 0)
-               {
-                  if (val == MATCH_FLAG)
-                     dst[dstIdx++] = (byte) 0xFF;
-
-                  if (minRef < bestLen)
-                     minRef = srcIdx + bestLen;
-               }
+               if ((ref != 0) && (val == MATCH_FLAG))
+                  dst[dstIdx++] = (byte) 0xFF;
 
                continue;
             }
