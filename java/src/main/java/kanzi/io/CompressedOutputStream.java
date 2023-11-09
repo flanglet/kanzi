@@ -427,11 +427,11 @@ public class CompressedOutputStream extends OutputStream
 
    private void processBlock() throws IOException
    {
-      if (this.buffers[0].index == 0)
-         return;
-
       if (this.initialized.getAndSet(true) == false)
          this.writeHeader();
+
+      if (this.buffers[0].index == 0)
+         return;
 
       try
       {
