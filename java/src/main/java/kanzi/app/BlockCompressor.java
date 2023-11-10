@@ -454,7 +454,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          printOut("Total compression time: "+str, this.verbosity > 0);
          printOut("Total output size: "+written+" byte"+((written>1)?"s":""), this.verbosity > 0);
 
-         if (read > 0)
+         if (read != 0)
          {
             float f = written / (float) read;
             printOut("Compression ratio: "+String.format("%1$.6f", f), this.verbosity > 0);
@@ -746,16 +746,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             }
          }
 
-         if (read == 0)
-         {
-            printOut("Input file " + inputName + " is empty... nothing to do", verbosity > 0);
-
-            if (output != null)
-               output.delete(); // best effort to delete output file, ignore return code
-
-            return new FileCompressResult(0, read, this.cos.getWritten());
-         }
-
          long after = System.nanoTime();
          long delta = (after - before) / 1000000L; // convert to ms
          String str;
@@ -769,23 +759,31 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             else
                str = String.valueOf(delta) + " ms";
 
-            float f = this.cos.getWritten() / (float) read;
-
             if (verbosity > 1)
             {
                printOut("Compressing:       "+str, true);
                printOut("Input size:        "+read, true);
                printOut("Output size:       "+this.cos.getWritten(), true);
-               printOut("Compression ratio: "+String.format("%1$.6f", f), true);
-            }
 
-            if (verbosity == 1)
+               if (read != 0)
+                   printOut("Compression ratio: "+String.format("%1$.6f", (this.cos.getWritten() / (float) read)), true);
+            }
+            else if (verbosity == 1)
             {
-               str = String.format("Compressing %s: %d => %d (%.2f%%) in %s", inputName, read, this.cos.getWritten(), 100*f, str);
+               if (read == 0)
+               {
+                   str = String.format("Compressing %s: %d => %d in %s", inputName, read, this.cos.getWritten(), str);
+               }
+               else
+               {
+                   float f = this.cos.getWritten() / (float) read;
+                   str = String.format("Compressing %s: %d => %d (%.2f%%) in %s", inputName, read, this.cos.getWritten(), 100*f, str);
+               }
+
                printOut(str, true);
             }
 
-            if ((verbosity > 1) && (delta > 0))
+            if ((verbosity > 1) && (delta != 0) && (read != 0))
                printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), true);
 
             printOut("", verbosity>1);
