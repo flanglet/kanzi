@@ -1041,7 +1041,7 @@ public final class LZCodec implements ByteTransform
          final byte[] src = input.array;
          final byte[] dst = output.array;
          final int srcEnd = srcIdx0 + count;
-         final int dstEnd = dstIdx0 + count - 4;
+         final int dstEnd = dstIdx0 + count - (count>>6);
          int srcIdx = srcIdx0;
          int dstIdx = dstIdx0;
 
@@ -1106,13 +1106,13 @@ public final class LZCodec implements ByteTransform
             ctx = (ctx<<8) | val;
             dst[dstIdx++] = src[srcIdx++];
 
-            if ((ref != 0) && (val == MATCH_FLAG) && (dstIdx < dstEnd))
+            if ((ref != 0) && (val == MATCH_FLAG))
                dst[dstIdx++] = (byte) 0xFF;
          }
 
          input.index = srcIdx;
          output.index = dstIdx;
-         return (srcIdx == count) && (dstIdx < (count-(count>>6)));
+         return (srcIdx == count) && (dstIdx < dstEnd);
       }
 
 
@@ -1187,8 +1187,15 @@ public final class LZCodec implements ByteTransform
 
             mLen += (src[srcIdx++]&0xFF);
 
-            for (int i=0; i<mLen; i++)
-               dst[dstIdx+i] = dst[ref+i];
+            if (ref+mLen < dstIdx)
+            {
+               System.arraycopy(dst, ref, dst, dstIdx, mLen);
+            }
+            else
+            {
+               for (int i=0; i<mLen; i++)
+                   dst[dstIdx+i] = dst[ref+i];
+            }
 
             dstIdx += mLen;
             ctx = Memory.LittleEndian.readInt32(dst, dstIdx-4);
