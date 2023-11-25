@@ -61,9 +61,11 @@ public class Magic
    };
 
 
-   // 4 bytes must be available in 'src' at position 'start'
    public static int getType(byte[] src, int start)
    {
+      if (src.length < 4)
+         return NO_MAGIC;
+
       final int key = Memory.BigEndian.readInt32(src, start);
 
       if ((key & ~0x0F) == JPG_MAGIC)
