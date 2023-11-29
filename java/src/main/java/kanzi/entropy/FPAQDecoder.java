@@ -92,12 +92,10 @@ public class FPAQDecoder implements EntropyDecoder
          final int chunkSize = Math.min(DEFAULT_CHUNK_SIZE, end-startChunk);
          final int szBytes = EntropyUtils.readVarInt(this.bitstream);
          this.current = this.bitstream.readBits(56);
+         final int bufSize = szBytes + (szBytes>>3);
 
-         if (szBytes == 0)
-            break;
-
-         if (this.sba.array.length < szBytes)
-            this.sba.array = new byte[szBytes+(szBytes>>3)];
+         if (this.sba.array.length < bufSize)
+            this.sba.array = new byte[bufSize];
 
          this.bitstream.readBits(this.sba.array, 0, 8*szBytes);
          this.sba.index = 0;
