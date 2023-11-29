@@ -178,20 +178,12 @@ public class HuffmanEncoder implements EntropyEncoder
       // See [In-Place Calculation of Minimum-Redundancy Codes]
       // by Alistair Moffat & Jyrki Katajainen
       computeInPlaceSizesPhase1(freqs, count);
-      computeInPlaceSizesPhase2(freqs, count);
-      int maxCodeLen = 0;
+      int maxCodeLen = computeInPlaceSizesPhase2(freqs, count);
 
-      for (int i=0; i<count; i++)
+      if (maxCodeLen <= HuffmanCommon.MAX_SYMBOL_SIZE_V4)
       {
-         short codeLen = (short) freqs[i];
-
-         if (codeLen == 0)
-            throw new IllegalArgumentException("Could not generate Huffman codes: invalid code length 0");
-
-         if (maxCodeLen < codeLen)
-            maxCodeLen = codeLen;
-
-         sizes[ranks[i]] = codeLen;
+         for (int i=0; i<count; i++)
+            sizes[ranks[i]] = (short) freqs[i];
       }
 
       return maxCodeLen;
@@ -227,8 +219,12 @@ public class HuffmanEncoder implements EntropyEncoder
    }
 
 
-   static void computeInPlaceSizesPhase2(int[] data, int n)
+   // n must be at least 2
+   static int computeInPlaceSizesPhase2(int[] data, int n)
    {
+      if (n < 2)
+          return 0;
+
       int levelTop = n - 2; //root
       int depth = 1;
       int i = n;
@@ -251,6 +247,8 @@ public class HuffmanEncoder implements EntropyEncoder
          levelTop = k;
          depth++;
       }
+
+      return depth - 1;
    }
 
 
