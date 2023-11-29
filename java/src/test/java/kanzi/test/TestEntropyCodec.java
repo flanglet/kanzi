@@ -284,12 +284,20 @@ public class TestEntropyCodec
                for (int i=0; i<values.length; i++)
                     values[i] = (byte) 2; // all identical
             }
-            else if (ii == 5)
+            else if (ii == 4)
             {
                values = new byte[32];
 
                for (int i=0; i<values.length; i++)
                     values[i] = (byte) (2 + (i & 1)); // 2 symbols
+            }
+            else if (ii == 5)
+            {
+               values = new byte[] { 42 };
+            }
+            else if (ii == 6)
+            {
+               values = new byte[] { 42, 42 };
             }
             else
             {
