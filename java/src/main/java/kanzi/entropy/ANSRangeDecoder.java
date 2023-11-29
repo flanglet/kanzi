@@ -157,8 +157,11 @@ public class ANSRangeDecoder implements EntropyDecoder
       if ((block == null) || (blkptr+count > block.length) || (blkptr < 0) || (count < 0))
          return -1;
 
-      if (count == 0)
-         return 0;
+      if (count <= 32)
+      {
+          this.bitstream.readBits(block, blkptr, 8*count);
+          return count;
+      }
 
       final int end = blkptr + count;
       int sizeChunk = this.chunkSize;
