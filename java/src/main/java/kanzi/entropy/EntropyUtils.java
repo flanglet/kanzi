@@ -149,10 +149,9 @@ public class EntropyUtils
       }
 
       int sumScaledFreq = 0;
-      int freqMax = 0;
-      int idxMax = -1;
+      int idxMax = 0;
 
-      // Scale frequencies by stretching distribution over complete range
+      // Scale frequencies by suqeezing/stretching distribution over complete range
       for (int i=0; i<alphabet.length; i++)
       {
          alphabet[i] = 0;
@@ -161,11 +160,8 @@ public class EntropyUtils
          if (f == 0)
             continue;
 
-         if (f > freqMax)
-         {
-            freqMax = f;
+         if (f > freqs[idxMax])
             idxMax = i;
-         }
 
          long sf = (long) freqs[i] * scale;
          int scaledFreq;
@@ -204,9 +200,9 @@ public class EntropyUtils
       {
          final int delta = (int) (sumScaledFreq-scale);
 
-         if (Math.abs(delta) * 100 < freqs[idxMax] * 5)
+         if (Math.abs(delta) * 20 < freqs[idxMax])
          {
-            // Fast path: just adjust the max frequency (or fallback to the slow path)
+            // Fast path (small error): just adjust the max frequency (or fallback to the slow path)
             if (freqs[idxMax] > delta)
             {
                freqs[idxMax] -= delta;
@@ -275,10 +271,14 @@ public class EntropyUtils
       int res = value & 0x7F;
       int shift = 7;
 
-      while ((value >= 128) && (shift <= 28))
+      while (value >= 128)
       {
          value = (int) bs.readBits(8);
          res |= ((value&0x7F)<<shift);
+
+         if (shift == 28)
+            break;
+
          shift += 7;
       }
 
