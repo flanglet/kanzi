@@ -768,7 +768,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                if (read != 0)
                    printOut("Compression ratio: "+String.format("%1$.6f", (this.cos.getWritten() / (float) read)), true);
             }
-            else if (verbosity == 1)
+            else
             {
                if (read == 0)
                {
