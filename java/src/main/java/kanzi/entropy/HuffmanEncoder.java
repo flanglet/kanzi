@@ -156,6 +156,7 @@ public class HuffmanEncoder implements EntropyEncoder
          prevSize = currSize;
       }
 
+      egenc.dispose();
       return count;
    }
 

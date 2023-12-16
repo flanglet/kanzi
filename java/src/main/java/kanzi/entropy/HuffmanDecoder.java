@@ -121,6 +121,7 @@ public class HuffmanDecoder implements EntropyDecoder
                  this.maxSymbolSize + " bits) exceeded", BitStreamException.INVALID_STREAM);
       }
 
+      egdec.dispose();
       return count;
    }
 
