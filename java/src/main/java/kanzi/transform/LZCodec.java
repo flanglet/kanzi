@@ -321,14 +321,15 @@ public final class LZCodec implements ByteTransform
                if ((ref != srcIdx-repd[0]) && (ref != srcIdx-repd[1]))
                {
                   // Check if better match at next position
-                  final int h1 = hash(src, srcIdx+1);
+                  final int srcIdx1 = srcIdx + 1;
+                  final int h1 = hash(src, srcIdx1);
                   final int ref1 = this.hashes[h1];
-                  this.hashes[h1] = srcIdx + 1;
+                  this.hashes[h1] = srcIdx1;
 
-                  if ((ref1 > minRef+1) && (differentInts(src, ref1, srcIdx+1) == false))
+                  if ((ref1 > minRef+1) && (differentInts(src, ref1+bestLen-3, srcIdx1+bestLen-3) == false))
                   {
-                     final int maxMatch = Math.min(srcEnd-srcIdx-1, MAX_MATCH);
-                     final int bestLen1 = findMatch(src, srcIdx+1, ref1, maxMatch);
+                     final int maxMatch = Math.min(srcEnd-srcIdx1, MAX_MATCH);
+                     final int bestLen1 = findMatch(src, srcIdx1, ref1, maxMatch);
 
                      // Select best match
                      if ((bestLen1 > bestLen) || ((bestLen1 == bestLen) && (ref1 > ref)))
