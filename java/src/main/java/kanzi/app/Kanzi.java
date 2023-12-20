@@ -142,7 +142,8 @@ public class Kanzi
         boolean checksum = false;
         boolean skip = false;
         boolean fileReorder = true;
-        boolean noDotFile = false;
+        boolean noDotFiles = false;
+        boolean noLinks = false;
         boolean autoBlockSize = false;
         String inputName = "";
         String outputName = "";
@@ -333,7 +334,24 @@ public class Kanzi
                   continue;
                }
 
-               noDotFile = true;
+               noDotFiles = true;
+               continue;
+           }
+
+           if (arg.equals("--no-link"))
+           {
+               if (ctx != -1)
+                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+
+               ctx = -1;
+
+               if (mode != 'c')
+               {
+                  printOut("Warning: ignoring option [" + arg + "]. Only applicable in compress mode.", verbose>0);
+                  continue;
+               }
+
+               noLinks = true;
                continue;
            }
 
@@ -663,8 +681,11 @@ public class Kanzi
         if (fileReorder == false)
            map.put("fileReorder", false);
 
-        if (noDotFile == true)
-           map.put("noDotFile", true);
+        if (noDotFiles == true)
+           map.put("noDotFiles", true);
+
+        if (noLinks == true)
+           map.put("noLinks", true);
 
         if (skip == true)
            map.put("skipBlocks", true);
@@ -805,7 +826,7 @@ public class Kanzi
 
 
     public static void createFileList(String target, List<Path> files, boolean isRecursive,
-       boolean ignoreDotFiles) throws IOException
+       boolean ignoreLinks, boolean ignoreDotFiles) throws IOException
     {
        if (target == null)
           return;
@@ -820,7 +841,9 @@ public class Kanzi
 
        if (Files.isRegularFile(root) == true)
        {
-          files.add(root);
+          if ((ignoreLinks == false) ||(Files.isSymbolicLink(root) == false))
+              files.add(root);
+
           return;
        }
 
@@ -865,11 +888,12 @@ public class Kanzi
                    }
                 }
 
-                files.add(entry);
+                if ((ignoreLinks == false) ||(Files.isSymbolicLink(entry) == false))
+                   files.add(entry);
              }
              else if ((isRecursive == true) && (Files.isDirectory(entry) == true))
              {
-                createFileList(entry.toString(), files, isRecursive, ignoreDotFiles);
+                createFileList(entry.toString(), files, isRecursive, ignoreLinks, ignoreDotFiles);
              }
           }
        }

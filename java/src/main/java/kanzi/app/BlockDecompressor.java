@@ -132,7 +132,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             String target = isRecursive ? this.inputName :
                this.inputName.substring(0, this.inputName.length()-1);
 
-            Kanzi.createFileList(target, files, isRecursive, false);
+            Kanzi.createFileList(target, files, isRecursive, false, false);
          }
          catch (IOException e)
          {

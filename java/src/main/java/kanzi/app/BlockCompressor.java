@@ -60,7 +60,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private final boolean checksum;
    private final boolean skipBlocks;
    private final boolean reoderFiles;
-   private final boolean noDotFile;
+   private final boolean noDotFiles;
+   private final boolean noLinks;
    private final boolean autoBlockSize;
    private final String inputName;
    private final String outputName;
@@ -145,8 +146,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.checksum = (bChecksum == null) ? false : bChecksum;
       Boolean bReorder = (Boolean) map.remove("fileReorder");
       this.reoderFiles = (bReorder == null) ? true : bReorder;
-      Boolean bNoDotFile = (Boolean) map.remove("noDotFile");
-      this.noDotFile = (bNoDotFile == null) ? false : bNoDotFile;
+      Boolean bNoDotFiles = (Boolean) map.remove("noDotFiles");
+      this.noDotFiles = (bNoDotFiles == null) ? false : bNoDotFiles;
+      Boolean bNoLinks = (Boolean) map.remove("noLinks");
+      this.noLinks = (bNoLinks == null) ? false : bNoLinks;
       Boolean bAuto = (Boolean) map.remove("autoBlock");
       this.autoBlockSize = (bAuto == null) ? false : bAuto;
       this.verbosity = (Integer) map.remove("verbose");
@@ -208,7 +211,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             String target = isRecursive ? this.inputName :
                this.inputName.substring(0, this.inputName.length()-1);
 
-            Kanzi.createFileList(target, files, isRecursive, this.noDotFile);
+            Kanzi.createFileList(target, files, isRecursive, this.noLinks, this.noDotFiles);
          }
          catch (IOException e)
          {
