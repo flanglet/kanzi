@@ -321,7 +321,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          ctx.put("pool", this.pool);
          ctx.put("entropy", this.codec);
          ctx.put("transform", this.transform);
-         ctx.put("extra", "TPAQX".equals(this.codec));
 
          // Run the task(s)
          if (nbFiles == 1)

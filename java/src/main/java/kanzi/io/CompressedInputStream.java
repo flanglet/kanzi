@@ -153,7 +153,6 @@ public class CompressedInputStream extends InputStream
       {
          this.entropyType = (int) this.ibs.readBits(5);
          this.ctx.put("entropy", EntropyCodecFactory.getName(this.entropyType));
-         this.ctx.put("extra", this.entropyType == EntropyCodecFactory.TPAQX_TYPE);
       }
       catch (IllegalArgumentException e)
       {

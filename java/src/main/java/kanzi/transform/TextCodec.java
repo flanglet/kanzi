@@ -529,7 +529,7 @@ public final class TextCodec implements ByteTransform
             if (blockSize >= 8)
                log = Math.max(Math.min(Global.log2(blockSize/8), 26), 13);
 
-            boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
+            boolean extraPerf = "TPAQX".equals(ctx.getOrDefault("entropy", ""));
             log += (extraPerf == true) ? 1 : 0;
          }
 
@@ -1072,7 +1072,7 @@ public final class TextCodec implements ByteTransform
             if (blockSize >= 32)
                log = Math.max(Math.min(Global.log2(blockSize/32), 24), 13);
 
-            boolean extraPerf = (Boolean) ctx.getOrDefault("extra", false);
+            boolean extraPerf = "TPAQX".equals(ctx.getOrDefault("entropy", ""));
             log += (extraPerf == true) ? 1 : 0;
          }
 
