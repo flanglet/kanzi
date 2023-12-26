@@ -186,7 +186,7 @@ public class TransformFactory
       switch (functionType)
       {
          case DICT_TYPE:
-            String entropyType = (String) ctx.getOrDefault("codec", "NONE");
+            String entropyType = (String) ctx.getOrDefault("entropy", "NONE");
             entropyType = entropyType.toUpperCase();
             int textCodecType  = 1;
 

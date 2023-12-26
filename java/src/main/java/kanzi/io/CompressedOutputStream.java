@@ -97,7 +97,7 @@ public class CompressedOutputStream extends OutputStream
       if (ctx == null)
          throw new NullPointerException("Invalid null context parameter");
 
-      String entropyCodec = (String) ctx.get("codec");
+      String entropyCodec = (String) ctx.get("entropy");
 
       if (entropyCodec == null)
          throw new NullPointerException("Invalid null entropy encoder type parameter");

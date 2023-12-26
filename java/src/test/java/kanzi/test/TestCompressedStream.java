@@ -116,7 +116,7 @@ public class TestCompressedStream
          OutputStream os = new BufferedOutputStream(baos);
          HashMap<String, Object> ctx1 = new HashMap<>();
          ctx1.put("transform", "NONE");
-         ctx1.put("codec", "HUFFMAN");
+         ctx1.put("entropy", "HUFFMAN");
          ctx1.put("blockSize", blockSize);
          ctx1.put("checksum", false);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
@@ -168,7 +168,7 @@ public class TestCompressedStream
          OutputStream os = new BufferedOutputStream(baos);
          HashMap<String, Object> ctx1 = new HashMap<>();
          ctx1.put("transform", "LZX");
-         ctx1.put("codec", "FPAQ");
+         ctx1.put("entropy", "FPAQ");
          ctx1.put("blockSize", blockSize);
          ctx1.put("checksum", check);
          ctx1.put("pool", pool);
@@ -223,7 +223,7 @@ public class TestCompressedStream
          OutputStream os = new BufferedOutputStream(baos);
          HashMap<String, Object> ctx1 = new HashMap<>();
          ctx1.put("transform", "LZP+ZRLT");
-         ctx1.put("codec", "ANS0");
+         ctx1.put("entropy", "ANS0");
          ctx1.put("blockSize", blockSize);
          ctx1.put("checksum", false);
          ctx1.put("pool", pool);
@@ -273,7 +273,7 @@ public class TestCompressedStream
          OutputStream os = new BufferedOutputStream(baos);
          HashMap<String, Object> ctx1 = new HashMap<>();
          ctx1.put("transform", "NONE");
-         ctx1.put("codec", "HUFFMAN");
+         ctx1.put("entropy", "HUFFMAN");
          ctx1.put("blockSize", length);
          ctx1.put("checksum", false);
          ctx1.put("pool", pool);
@@ -304,7 +304,7 @@ public class TestCompressedStream
          OutputStream os = new BufferedOutputStream(baos);
          HashMap<String, Object> ctx1 = new HashMap<>();
          ctx1.put("transform", "NONE");
-         ctx1.put("codec", "HUFFMAN");
+         ctx1.put("entropy", "HUFFMAN");
          ctx1.put("blockSize", 4 * 1024 * 1024);
          ctx1.put("checksum", false);
          ctx1.put("pool", pool);

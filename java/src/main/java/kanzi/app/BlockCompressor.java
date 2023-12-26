@@ -319,7 +319,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          ctx.put("skipBlocks", this.skipBlocks);
          ctx.put("checksum", this.checksum);
          ctx.put("pool", this.pool);
-         ctx.put("codec", this.codec);
+         ctx.put("entropy", this.codec);
          ctx.put("transform", this.transform);
          ctx.put("extra", "TPAQX".equals(this.codec));
 

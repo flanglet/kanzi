@@ -229,7 +229,7 @@ public class TPAQPredictor implements Predictor
       {
          // If extra mode, add more memory for states table, hash table
          // and add second SSE
-         String codec = (String) ctx.getOrDefault("codec", "NONE");
+         String codec = (String) ctx.getOrDefault("entropy", "NONE");
          this.extra = "TPAQX".equals(codec);
          extraMem = (this.extra == true) ? 1 : 0;
 

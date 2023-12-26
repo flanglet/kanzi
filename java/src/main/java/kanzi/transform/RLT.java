@@ -84,7 +84,7 @@ public class RLT implements ByteTransform
          if ((dt == Global.DataType.DNA) || (dt == Global.DataType.BASE64) || (dt == Global.DataType.UTF8))
             return false;
 
-         String entropyType = (String) this.ctx.getOrDefault("codec", "NONE");
+         String entropyType = (String) this.ctx.getOrDefault("entropy", "NONE");
          entropyType = entropyType.toUpperCase();
 
          // Fast track if entropy coder is used
