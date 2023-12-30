@@ -78,6 +78,7 @@ public class CompressedInputStream extends InputStream
    private final ExecutorService pool;
    private final List<Listener> listeners;
    private final Map<String, Object> ctx;
+   private final boolean headless;
 
 
    public CompressedInputStream(InputStream is, Map<String, Object> ctx)
@@ -122,6 +123,35 @@ public class CompressedInputStream extends InputStream
       this.bufferThreshold = 0;
       this.entropyType = EntropyCodecFactory.NONE_TYPE;
       this.transformType = TransformFactory.NONE_TYPE;
+      this.headless = (Boolean) ctx.getOrDefault("headerless", false);
+
+      if (this.headless == true)
+      {
+         // Validation of required values
+         int bsVersion = (Integer) ctx.getOrDefault("bsVersion", BITSTREAM_FORMAT_VERSION);
+
+         if (bsVersion != BITSTREAM_FORMAT_VERSION)
+             throw new IllegalArgumentException("Invalid or missing bitstream version, " +
+                                                "cannot read this version of the stream: " + bsVersion);
+
+         this.ctx.put("bsVersion", BITSTREAM_FORMAT_VERSION);
+         String entropy = (String) ctx.getOrDefault("entropy", "");
+         this.entropyType = EntropyCodecFactory.getType(entropy); // throws on error
+
+         String transform = (String) ctx.getOrDefault("transform", "");
+         this.transformType = new TransformFactory().getType(transform); // throws on error
+
+         this.blockSize = (Integer) ctx.getOrDefault("blockSize", 0);
+
+         if ((this.blockSize < MIN_BITSTREAM_BLOCK_SIZE) || (this.blockSize > MAX_BITSTREAM_BLOCK_SIZE))
+             throw new IllegalArgumentException("Invalid or missing block size: " + this.blockSize);
+
+         this.bufferThreshold = this.blockSize;
+         boolean cksum = (Boolean) ctx.getOrDefault("checksum", false);
+
+         if (cksum == true)
+             this.hasher = new XXHash32(BITSTREAM_TYPE);
+      }
    }
 
 
@@ -383,7 +413,7 @@ public class CompressedInputStream extends InputStream
 
    private int processBlock() throws IOException
    {
-      if (this.initialized.getAndSet(true)== false)
+      if ((this.headless == false) && (this.initialized.getAndSet(true)== false))
          this.readHeader();
 
       try
@@ -760,7 +790,7 @@ public class CompressedInputStream extends InputStream
 
             // Each block is decoded separately
             // Rebuild the entropy decoder to reset block statistics
-            ed = new EntropyCodecFactory().newDecoder(is, this.ctx, blockEntropyType);
+            ed = EntropyCodecFactory.newDecoder(is, this.ctx, blockEntropyType);
 
             // Block entropy decode
             if (ed.decode(buffer.array, 0, preTransformLength) != preTransformLength)

@@ -42,7 +42,7 @@ public class EntropyCodecFactory
    public static final byte RESERVED6    = 15; // Reserved
 
 
-   public EntropyDecoder newDecoder(InputBitStream ibs, Map<String, Object> ctx, int entropyType)
+   public static EntropyDecoder newDecoder(InputBitStream ibs, Map<String, Object> ctx, int entropyType)
    {
       if (ibs == null)
          throw new NullPointerException("Invalid null input bitstream parameter");
@@ -84,7 +84,7 @@ public class EntropyCodecFactory
    }
 
 
-   public EntropyEncoder newEncoder(OutputBitStream obs, Map<String, Object> ctx, int entropyType)
+   public static EntropyEncoder newEncoder(OutputBitStream obs, Map<String, Object> ctx, int entropyType)
    {
       if (obs == null)
          throw new NullPointerException("Invalid null output bitstream parameter");

@@ -80,6 +80,7 @@ public class CompressedOutputStream extends OutputStream
    private final ExecutorService pool;
    private final List<Listener> listeners;
    private final Map<String, Object> ctx;
+   private final boolean headless;
 
 
    public CompressedOutputStream(OutputStream os, Map<String, Object> ctx)
@@ -150,6 +151,7 @@ public class CompressedOutputStream extends OutputStream
       this.closed = new AtomicBoolean(false);
       this.initialized = new AtomicBoolean(false);
       this.buffers = new SliceByteArray[2*this.jobs];
+      this.headless = (Boolean) ctx.getOrDefault("headerless", false);
 
       // Allocate first buffer and add padding for incompressible blocks
       final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
@@ -427,7 +429,7 @@ public class CompressedOutputStream extends OutputStream
 
    private void processBlock() throws IOException
    {
-      if (this.initialized.getAndSet(true) == false)
+      if ((this.headless == false) && (this.initialized.getAndSet(true) == false))
          this.writeHeader();
 
       if (this.buffers[0].index == 0)
@@ -754,7 +756,7 @@ public class CompressedOutputStream extends OutputStream
 
             // Each block is encoded separately
             // Rebuild the entropy encoder to reset block statistics
-            ee = new EntropyCodecFactory().newEncoder(os, this.ctx, blockEntropyType);
+            ee = EntropyCodecFactory.newEncoder(os, this.ctx, blockEntropyType);
 
             // Entropy encode block
             if (ee.encode(buffer.array, 0, postTransformLength) != postTransformLength)
