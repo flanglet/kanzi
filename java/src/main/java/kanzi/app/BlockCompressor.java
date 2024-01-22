@@ -68,7 +68,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private final String codec;
    private final String transform;
    private int blockSize;
-   private final int level; // command line compression level
    private final int jobs;
    private final List<Listener> listeners;
    private final ExecutorService pool;
@@ -76,7 +75,40 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
    public BlockCompressor(Map<String, Object> map)
    {
-      this.level = map.containsKey("level") ? (Integer) map.remove("level") : -1;
+      int level = - 1;
+
+      if (map.containsKey("level") == true)
+      {
+         level = (Integer) map.remove("level");
+
+         if ((level < 0) || (level > 9))
+            throw new IllegalArgumentException("Invalid compression level (must be in [0..9], got " + level);
+
+         String tranformAndCodec = getTransformAndCodec(level);
+         String[] tokens = tranformAndCodec.split("&");
+         this.transform = tokens[0];
+         this.codec = tokens[1];
+      }
+      else
+      {
+         if ((map.containsKey("transform") == false) && (map.containsKey("entropy") == false))
+         {
+            // Defaults to level 3
+            String tranformAndCodec = getTransformAndCodec(3);
+            String[] tokens = tranformAndCodec.split("&");
+            this.transform = tokens[0];
+            this.codec = tokens[1];
+         }
+         else
+         {
+            // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)
+            String strT = map.containsKey("transform") ? (String) map.remove("transform") : "NONE";
+            TransformFactory tf = new TransformFactory();
+            this.transform = tf.getName(tf.getType(strT));
+            this.codec = map.containsKey("entropy") ? (String) map.remove("entropy") : "NONE";
+         }
+      }
+
       Boolean bForce = (Boolean) map.remove("overwrite");
       this.overwrite = (bForce == null) ? false : bForce;
       Boolean bSkip = (Boolean) map.remove("skipBlocks");
@@ -85,28 +117,11 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.inputName = iName.isEmpty() ? STDIN : iName;
       String oName = (String) map.remove("outputName");
       this.outputName = (oName.isEmpty() && STDIN.equalsIgnoreCase(iName)) ? STDOUT : oName;
-      String strTransf;
-      String strCodec;
-
-      if (this.level >= 0)
-      {
-         String tranformAndCodec = getTransformAndCodec(this.level);
-         String[] tokens = tranformAndCodec.split("&");
-         strTransf = tokens[0];
-         strCodec = tokens[1];
-      }
-      else
-      {
-         strTransf = (String) map.remove("transform");
-         strCodec = (String) map.remove("entropy");
-      }
-
-      this.codec = (strCodec == null) ? "ANS0" : strCodec;
       Integer iBlockSize = (Integer) map.remove("block");
 
       if (iBlockSize == null)
       {
-         switch (this.level)
+         switch (level)
          {
              case 6:
                  this.blockSize = 2 * DEFAULT_BLOCK_SIZE;
@@ -139,9 +154,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          this.blockSize = Math.min((bs+15) & -16, MAX_BLOCK_SIZE);
       }
 
-      // Extract transform names. Curate input (EG. NONE+NONE+xxxx => xxxx)
-      TransformFactory bff = new TransformFactory();
-      this.transform = (strTransf == null) ? "BWT+RANK+ZRLT" : bff.getName(bff.getType(strTransf));
       Boolean bChecksum = (Boolean) map.remove("checksum");
       this.checksum = (bChecksum == null) ? false : bChecksum;
       Boolean bReorder = (Boolean) map.remove("fileReorder");
