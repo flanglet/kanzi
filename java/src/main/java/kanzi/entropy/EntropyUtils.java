@@ -160,9 +160,6 @@ public class EntropyUtils
          if (f == 0)
             continue;
 
-         if (f > freqs[idxMax])
-            idxMax = i;
-
          long sf = (long) freqs[i] * scale;
          int scaledFreq;
 
@@ -185,6 +182,9 @@ public class EntropyUtils
          alphabet[alphabetSize++] = i;
          sumScaledFreq += scaledFreq;
          freqs[i] = scaledFreq;
+
+         if (scaledFreq > freqs[idxMax])
+            idxMax = i;
       }
 
       if (alphabetSize == 0)
@@ -199,20 +199,29 @@ public class EntropyUtils
       if (sumScaledFreq != scale)
       {
          final int delta = (int) (sumScaledFreq-scale);
+         final int errThr = freqs[idxMax] >> 4;
 
-         if (Math.abs(delta) * 10 < freqs[idxMax])
+         if (Math.abs(delta) <= errThr)
          {
             // Fast path (small error): just adjust the max frequency (or fallback to the slow path)
-            if (freqs[idxMax] > delta)
-            {
-               freqs[idxMax] -= delta;
-               return alphabetSize;
-            }
+            freqs[idxMax] -= delta;
+            return alphabetSize;
+         }
+
+         if (delta < 0)
+         {
+             freqs[idxMax] += errThr;
+             sumScaledFreq += errThr;
+         }
+         else
+         {
+             freqs[idxMax] -= errThr;
+             sumScaledFreq -= errThr;
          }
 
          // Slow path: spread error across frequencies
-         final int inc = (delta > 0) ? -1 : 1;
          LinkedList<FreqSortData> queue = new LinkedList<>();
+         final int inc = (delta > 0) ? -1 : 1;
 
          for (int i=0; i<alphabetSize; i++)
          {
