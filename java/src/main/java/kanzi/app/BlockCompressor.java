@@ -165,18 +165,29 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       Boolean bAuto = (Boolean) map.remove("autoBlock");
       this.autoBlockSize = (bAuto == null) ? false : bAuto;
       this.verbosity = (Integer) map.remove("verbose");
-      int concurrency = (Integer) map.remove("jobs");
+      int concurrency;
 
-      if (concurrency == 0)
+      if (map.containsKey("jobs"))
       {
-         // Default to half of cores
-         int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
-         concurrency = Math.min(cores, MAX_CONCURRENCY);
+          concurrency = (Integer) map.remove("jobs");
+
+          if (concurrency == 0)
+          {
+             // Use all cores
+             int cores = Runtime.getRuntime().availableProcessors();
+             concurrency = Math.min(cores, MAX_CONCURRENCY);
+          }
+          else if (concurrency > MAX_CONCURRENCY)
+          {
+             printOut("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY, this.verbosity>0);
+             concurrency = MAX_CONCURRENCY;
+          }
       }
-      else if (concurrency > MAX_CONCURRENCY)
+      else
       {
-         printOut("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY, this.verbosity>0);
-         concurrency = MAX_CONCURRENCY;
+          // Default to half of cores
+          int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
+          concurrency = Math.min(cores, MAX_CONCURRENCY);
       }
 
       this.jobs = concurrency;

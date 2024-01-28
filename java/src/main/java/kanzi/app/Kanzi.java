@@ -151,7 +151,7 @@ public class Kanzi
         String transform = null;
         int from = -1;
         int to = -1;
-        int tasks = 0;
+        int tasks = -1;
         int ctx = -1;
         int level = -1;
         char mode = ' ';
@@ -537,7 +537,7 @@ public class Kanzi
            {
                String name = arg.startsWith("--jobs=") ? arg.substring(7).trim() : arg;
 
-               if (tasks != 0)
+               if (tasks != -1)
                {
                   System.err.println("Warning: ignoring duplicate jobs: "+name);
                   ctx = -1;
@@ -548,7 +548,7 @@ public class Kanzi
                {
                   tasks = Integer.parseInt(name);
 
-                  if (tasks < 1)
+                  if (tasks < 0)
                      throw new NumberFormatException();
 
                   ctx = -1;
@@ -696,7 +696,9 @@ public class Kanzi
         if (to >= 0)
            map.put("to", to);
 
-        map.put("jobs", tasks);
+        if (tasks >= 0)
+           map.put("jobs", tasks);
+
         return 0;
     }
 
@@ -782,6 +784,7 @@ public class Kanzi
 
       printOut("   -j, --jobs=<jobs>", true);
       printOut("        maximum number of jobs the program may start concurrently", true);
+      printOut("        If 0 is provided, use all available cores (maximum is 64).", true);
       printOut("        (default is half of available cores, maximum is 64).\n", true);
       printOut("   -v, --verbose=<level>", true);
       printOut("        0=silent, 1=default, 2=display details, 3=display configuration,", true);

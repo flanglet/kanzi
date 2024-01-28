@@ -74,18 +74,28 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       this.verbosity = (Integer) map.remove("verbose");
       this.from = (map.containsKey("from") ? (Integer) map.remove("from") : -1);
       this.to = (map.containsKey("to") ? (Integer) map.remove("to") : -1);
-      int concurrency = (Integer) map.remove("jobs");
+      int concurrency;
+                                                                                                                                                        if (map.containsKey("jobs"))
+      {
+         concurrency = (Integer) map.remove("jobs");
 
-      if (concurrency == 0)
-      {
-         // Default to half of cores
-         int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
-         concurrency = Math.min(cores, MAX_CONCURRENCY);
+         if (concurrency == 0)
+         {
+            // Use all cores
+            int cores = Runtime.getRuntime().availableProcessors();
+            concurrency = Math.min(cores, MAX_CONCURRENCY);
+         }
+         else if (concurrency > MAX_CONCURRENCY)
+         {
+            printOut("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY, this.verbosity>0);
+            concurrency = MAX_CONCURRENCY;
+         }
       }
-      else if (concurrency > MAX_CONCURRENCY)
+      else
       {
-         printOut("Warning: the number of jobs is too high, defaulting to "+MAX_CONCURRENCY, this.verbosity>0);
-         concurrency = MAX_CONCURRENCY;
+          // Default to half of cores
+          int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
+          concurrency = Math.min(cores, MAX_CONCURRENCY);
       }
 
       this.jobs = concurrency;
