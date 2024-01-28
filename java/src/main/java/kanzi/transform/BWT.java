@@ -67,7 +67,7 @@ public class BWT implements ByteTransform
 {
    private static final int MAX_BLOCK_SIZE = 1024*1024*1024; // 1 GB
    private static final int NB_FASTBITS = 17;
-   private static final int MASK_FASTBITS = 1 << NB_FASTBITS;
+   private static final int MASK_FASTBITS = (1 << NB_FASTBITS) - 1;
    private static final int BLOCK_SIZE_THRESHOLD1 = 256;
    private static final int BLOCK_SIZE_THRESHOLD2 = 8 * 1024 * 1024;
 
@@ -346,7 +346,15 @@ public class BWT implements ByteTransform
    {
       // Lazy dynamic memory allocations
       if (this.buffer1.length < count+1)
+      {
          this.buffer1 = new int[Math.max(count+1, 64)];
+      }
+      else
+      {
+         for (int i=0; i<this.buffer1.length; i++)
+            this.buffer1[i] = 0;
+      }
+
 
       if (this.buckets.length < 65536)
          this.buckets = new int[65536];
