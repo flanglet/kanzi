@@ -1062,7 +1062,7 @@ public final class LZCodec implements ByteTransform
             int bestLen = 0;
 
             // Find a match
-            if ((ref != 0) && (LZCodec.differentInts(src, ref+minMatch, srcIdx+minMatch-4) == false))
+            if ((ref != 0) && (LZCodec.differentInts(src, ref+minMatch-4, srcIdx+minMatch-4) == false))
             {
                bestLen = findMatch(src, srcIdx, ref, srcEnd-srcIdx);
             }
