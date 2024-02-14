@@ -238,10 +238,10 @@ public class TestEntropyCodec
             return new HuffmanDecoder(ibs, ctx);
 
          case "ANS0":
-            return new ANSRangeDecoder(ibs, 0, ctx);
+            return new ANSRangeDecoder(ibs, ctx, 0);
 
          case "ANS1":
-            return new ANSRangeDecoder(ibs, 1, ctx);
+            return new ANSRangeDecoder(ibs, ctx, 1);
 
          case "RANGE":
             return new RangeDecoder(ibs);
