@@ -20,21 +20,6 @@ There is a C++ implementation available here: https://github.com/flanglet/kanzi-
 
 There is Go implementation available here: https://github.com/flanglet/kanzi-go
 
-Credits
-
-Matt Mahoney,
-Yann Collet,
-Jan Ondrus,
-Yuta Mori,
-Ilya Muravyov,
-Neal Burns,
-Fabian Giesen,
-Jarek Duda,
-Ilya Grebnov
-
-Disclaimer
-
-Use at your own risk. Always keep a copy of your original files.
 
 ![Build Status](https://github.com/flanglet/kanzi/actions/workflows/ant.yml/badge.svg)
 
@@ -132,3 +117,20 @@ Download at https://mattmahoney.net/dc/enwik8.zip
 |**Kanzi -l 7**          |     **3.742**    |    **1.741**     |  **22,817,376**  |
 |**Kanzi -l 8**          |	   **6.619**    |    **6.633**     |  **21,181,978**  |
 |**Kanzi -l 9**          |	  **17.81**     |   **18.23**      |  **20,035,133**  |
+
+
+Credits
+
+Matt Mahoney,
+Yann Collet,
+Jan Ondrus,
+Yuta Mori,
+Ilya Muravyov,
+Neal Burns,
+Fabian Giesen,
+Jarek Duda,
+Ilya Grebnov
+
+Disclaimer
+
+Use at your own risk. Always keep a copy of your original files.
