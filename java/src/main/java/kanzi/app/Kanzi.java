@@ -141,6 +141,7 @@ public class Kanzi
         boolean overwrite = false;
         boolean checksum = false;
         boolean skip = false;
+        boolean remove = false;
         boolean fileReorder = true;
         boolean noDotFiles = false;
         boolean noLinks = false;
@@ -300,6 +301,16 @@ public class Kanzi
                   printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
 
                checksum = true;
+               ctx = -1;
+               continue;
+           }
+
+           if (arg == "--rm")
+           {
+               if (ctx != -1)
+                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+
+               remove = true;
                ctx = -1;
                continue;
            }
@@ -666,6 +677,9 @@ public class Kanzi
         if (overwrite == true)
            map.put("overwrite", true);
 
+        if (remove == true)
+           map.put("remove", true);
+
         map.put("inputName", inputName);
         map.put("outputName", outputName);
 
@@ -785,7 +799,7 @@ public class Kanzi
       printOut("   -j, --jobs=<jobs>", true);
       printOut("        maximum number of jobs the program may start concurrently", true);
       printOut("        If 0 is provided, use all available cores (maximum is 64).", true);
-      printOut("        (default is half of available cores, maximum is 64).\n", true);
+      printOut("        (default is half of available cores).\n", true);
       printOut("   -v, --verbose=<level>", true);
       printOut("        0=silent, 1=default, 2=display details, 3=display configuration,", true);
       printOut("        4=display block size and timings, 5=display extra information", true);
@@ -796,15 +810,19 @@ public class Kanzi
 
       if (mode == 'd')
       {
+         printOut("   --rm", true);
+         printOut("        remove the input file after successful decompression\n", true);
          printOut("   --from=blockID", true);
-         printOut("        Decompress starting from the provided block (included).", true);
+         printOut("        decompress starting from the provided block (included).", true);
          printOut("        The first block ID is 1.\n", true);
          printOut("   --to=blockID", true);
-         printOut("        Decompress ending at the provided block (excluded).\n", true);
+         printOut("        decompress ending at the provided block (excluded).\n", true);
       }
 
       if (mode != 'd')
       {
+         printOut("   --rm", true);
+         printOut("        remove the input file after successful compression\n", true);
          printOut("", true);
          printOut("EG. java -cp kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
          printOut("EG. java -cp kanzi.jar -c -i foo.txt -f -t BWT+MTFT+ZRLT -b 4m -e FPAQ -j 4\n", true);

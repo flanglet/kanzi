@@ -54,6 +54,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
    private int verbosity;
    private final boolean overwrite;
+   private final boolean removeInput;
    private final String inputName;
    private final String outputName;
    private final int jobs;
@@ -67,6 +68,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    {
       Boolean bForce = (Boolean) map.remove("overwrite");
       this.overwrite = (bForce == null) ? false : bForce;
+      Boolean bRemove = (Boolean) map.remove("remove");
+      this.removeInput = (bRemove == null) ? false : bRemove;
       String iName = (String) map.remove("inputName");
       this.inputName = iName.isEmpty() ? STDIN : iName;
       String oName = (String) map.remove("outputName");
@@ -239,6 +242,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          ctx.put("verbosity", this.verbosity);
          ctx.put("overwrite", this.overwrite);
          ctx.put("pool", this.pool);
+         ctx.put("remove", this.removeInput);
 
          if (this.from >= 0)
             ctx.put("from", this.from);
@@ -648,6 +652,15 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), true);
 
             printOut("", verbosity>1);
+         }
+
+
+         if (((Boolean) this.ctx.get("remove")) == true)
+         {                                                                                                                  // Delete input file
+             if (inputName.equals("STDIN"))
+                 printOut("Warning: ignoring remove option with STDIN", verbosity>0);
+             else if (Files.deleteIfExists(Paths.get(inputName)) == false)
+                 printOut("Warning: input file could not be deleted", verbosity>0);
          }
 
          return new FileDecompressResult(0, read);

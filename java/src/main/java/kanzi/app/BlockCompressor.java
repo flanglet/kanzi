@@ -59,6 +59,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private final boolean overwrite;
    private final boolean checksum;
    private final boolean skipBlocks;
+   private final boolean removeInput;
    private final boolean reoderFiles;
    private final boolean noDotFiles;
    private final boolean noLinks;
@@ -156,6 +157,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
       Boolean bChecksum = (Boolean) map.remove("checksum");
       this.checksum = (bChecksum == null) ? false : bChecksum;
+      Boolean bRemove = (Boolean) map.remove("remove");
+      this.removeInput = (bRemove == null) ? true : bRemove;
       Boolean bReorder = (Boolean) map.remove("fileReorder");
       this.reoderFiles = (bReorder == null) ? true : bReorder;
       Boolean bNoDotFiles = (Boolean) map.remove("noDotFiles");
@@ -344,6 +347,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          ctx.put("pool", this.pool);
          ctx.put("entropy", this.codec);
          ctx.put("transform", this.transform);
+         ctx.put("remove", this.removeInput);
 
          // Run the task(s)
          if (nbFiles == 1)
@@ -819,6 +823,15 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             Event evt = new Event(Event.Type.COMPRESSION_END, -1, this.cos.getWritten());
             Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
             notifyListeners(array, evt);
+         }
+
+         if (((Boolean) this.ctx.get("remove")) == true)
+         {
+             // Delete input file
+             if (inputName.equals("STDIN"))
+                 printOut("Warning: ignoring remove option with STDIN", verbosity>0);
+             else if (Files.deleteIfExists(Paths.get(inputName)) == false)
+                 printOut("Warning: input file could not be deleted", verbosity>0);
          }
 
          return new FileCompressResult(0, read, this.cos.getWritten());
