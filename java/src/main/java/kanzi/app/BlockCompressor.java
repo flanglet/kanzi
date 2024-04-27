@@ -276,13 +276,13 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       if (this.verbosity > 2)
       {
          if (this.autoBlockSize == true)
-            printOut("Block size set to 'auto'", true);
+            printOut("Block size: 'auto'", true);
          else
-            printOut("Block size set to " + this.blockSize + " bytes", true);
+            printOut("Block size: " + this.blockSize + " bytes", true);
 
-         printOut("Verbosity set to " + this.verbosity, true);
-         printOut("Overwrite set to " + this.overwrite, true);
-         printOut("Checksum set to " +  this.checksum, true);
+         printOut("Verbosity: " + this.verbosity, true);
+         printOut("Overwrite: " + this.overwrite, true);
+         printOut("Checksum: " +  this.checksum, true);
          String etransform = (NONE.equals(this.transform)) ? "no" : this.transform;
          printOut("Using " + etransform + " transform (stage 1)", true);
          String ecodec = (NONE.equals(this.codec)) ? "no" : this.codec;
@@ -610,8 +610,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          if (verbosity > 2)
          {
-            printOut("Input file name set to '" + inputName + "'", true);
-            printOut("Output file name set to '" + outputName + "'", true);
+            printOut("Input file name: '" + inputName + "'", true);
+            printOut("Output file name: '" + outputName + "'", true);
          }
 
          boolean overwrite = (Boolean) this.ctx.get("overwrite");

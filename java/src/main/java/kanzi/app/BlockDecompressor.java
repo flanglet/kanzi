@@ -183,8 +183,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
       if (this.verbosity > 2)
       {
-         printOut("Verbosity set to "+this.verbosity, true);
-         printOut("Overwrite set to "+this.overwrite, true);
+         printOut("Verbosity: "+this.verbosity, true);
+         printOut("Overwrite: "+this.overwrite, true);
          printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
          this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.DECODING, System.out));
       }
@@ -443,13 +443,13 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
          if (verbosity > 2)
          {
-            printOut("Input file name set to '" + inputName + "'", true);
-            printOut("Output file name set to '" + outputName + "'", true);
+            printOut("Input file name: '" + inputName + "'", true);
+            printOut("Output file name: '" + outputName + "'", true);
          }
 
          boolean overwrite = (Boolean) this.ctx.get("overwrite");
 
-         long read = 0;
+         long decoded = 0;
          printOut("\nDecompressing "+inputName+" ...", verbosity>1);
          printOut("", verbosity>3);
 
@@ -460,13 +460,26 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             notifyListeners(array, evt);
          }
 
+         boolean checkOutputSize;
+
+         if (System.getProperty("os.name").toLowerCase().contains("windows"))
+         {
+            checkOutputSize = !outputName.equalsIgnoreCase("NUL");
+         }
+         else
+         {
+            checkOutputSize = !outputName.equalsIgnoreCase("/DEV/NULL");
+         }
+
          if (NONE.equalsIgnoreCase(outputName))
          {
             this.os = new NullOutputStream();
+            checkOutputSize = false;
          }
          else if (STDOUT.equalsIgnoreCase(outputName))
          {
             this.os = System.out;
+            checkOutputSize = false;
          }
          else
          {
@@ -558,14 +571,14 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          try
          {
             SliceByteArray sa = new SliceByteArray(new byte[DEFAULT_BUFFER_SIZE], 0);
-            int decoded;
+            int decodedBlock;
 
             // Decode next block
             do
             {
-               decoded = this.cis.read(sa.array, 0, sa.length);
+               decodedBlock = this.cis.read(sa.array, 0, sa.length);
 
-               if (decoded < 0)
+               if (decodedBlock < 0)
                {
                   System.err.println("Reached end of stream");
                   return new FileDecompressResult(Error.ERR_READ_FILE,  this.cis.getRead());
@@ -573,10 +586,10 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
                try
                {
-                  if (decoded > 0)
+                  if (decodedBlock > 0)
                   {
-                     this.os.write(sa.array, 0, decoded);
-                     read += decoded;
+                     this.os.write(sa.array, 0, decodedBlock);
+                     decoded += (long) decodedBlock;
                   }
                }
                catch (Exception e)
@@ -586,7 +599,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                   return new FileDecompressResult(Error.ERR_READ_FILE, this.cis.getRead());
                }
             }
-            while (decoded == sa.array.length);
+            while (decodedBlock == sa.array.length);
          }
          catch (kanzi.io.IOException e)
          {
@@ -624,6 +637,21 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
          long after = System.nanoTime();
          long delta = (after - before) / 1000000L; // convert to ms
+
+         // If the whole input stream has been decoded and the original data size is present,
+         // check that the output size matches the original data size.
+         if ((checkOutputSize == true) && (this.ctx.containsKey("to") == false) && (this.ctx.containsKey("from") == false))
+         {
+             final long outputSize = (Long) this.ctx.getOrDefault("outputSize", 0L);
+
+             if ((outputSize != 0) && (decoded != outputSize))
+             {
+                 String msg = String.format("Corrupted bitstream: invalid output size (expected %d, got %d)", outputSize, decoded);
+                 System.err.println(msg);
+                 return new FileDecompressResult(Error.ERR_INVALID_FILE, decoded);
+             }
+         }
+
          String str;
 
          if (verbosity >= 1)
@@ -639,31 +667,39 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             {
                printOut("Decompressing:          "+str, true);
                printOut("Input size:             "+this.cis.getRead(), true);
-               printOut("Output size:            "+read, true);
+               printOut("Output size:            "+decoded, true);
             }
 
             if (verbosity == 1)
             {
-               str = String.format("Decompressing %s: %d => %d in %s", inputName, this.cis.getRead(), read, str);
+               str = String.format("Decompressing %s: %d => %d in %s", inputName, this.cis.getRead(), decoded, str);
                printOut(str, true);
             }
 
             if ((verbosity > 1) && (delta > 0))
-               printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), true);
+               printOut("Throughput (KB/s): "+(((decoded * 1000L) >> 10) / delta), true);
 
             printOut("", verbosity>1);
          }
 
 
          if (((Boolean) this.ctx.get("remove")) == true)
-         {                                                                                                                  // Delete input file
-             if (inputName.equals("STDIN"))
-                 printOut("Warning: ignoring remove option with STDIN", verbosity>0);
-             else if (Files.deleteIfExists(Paths.get(inputName)) == false)
-                 printOut("Warning: input file could not be deleted", verbosity>0);
+         {
+            try
+            {
+                // Delete input file
+                if (inputName.equals("STDIN"))
+                   printOut("Warning: ignoring remove option with STDIN", verbosity>0);
+                else if (Files.deleteIfExists(Paths.get(inputName)) == false)
+                   printOut("Warning: input file could not be deleted", verbosity>0);
+            }
+            catch (IOException e)
+            {
+               // Ignore
+            }
          }
 
-         return new FileDecompressResult(0, read);
+         return new FileDecompressResult(0, decoded);
       }
 
       public void dispose() throws IOException

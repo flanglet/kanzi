@@ -52,7 +52,7 @@ import kanzi.entropy.EntropyUtils;
 public class CompressedOutputStream extends OutputStream
 {
    private static final int BITSTREAM_TYPE           = 0x4B414E5A; // "KANZ"
-   private static final int BITSTREAM_FORMAT_VERSION = 4;
+   private static final int BITSTREAM_FORMAT_VERSION = 5;
    private static final int COPY_BLOCK_MASK          = 0x80;
    private static final int TRANSFORMS_MASK          = 0x10;
    private static final int MIN_BITSTREAM_BLOCK_SIZE = 1024;
@@ -61,7 +61,6 @@ public class CompressedOutputStream extends OutputStream
    private static final int SMALL_BLOCK_SIZE         = 15;
    private static final byte[] EMPTY_BYTE_ARRAY      = new byte[0];
    private static final int MAX_CONCURRENCY          = 64;
-   private static final int UNKNOWN_NB_BLOCKS        = 65536;
    private static final int CANCEL_TASKS_ID          = -1;
 
    private final int blockSize;
@@ -73,6 +72,7 @@ public class CompressedOutputStream extends OutputStream
    private final SliceByteArray[] buffers; // input & output per block
    private final int entropyType;
    private final long transformType;
+   private final long inputSize;
    private final OutputBitStream obs;
    private final AtomicBoolean initialized;
    private final AtomicBoolean closed;
@@ -136,13 +136,9 @@ public class CompressedOutputStream extends OutputStream
       this.bufferThreshold = bSize;
 
       // If input size has been provided, calculate the number of blocks
-      // in the input data else use 0. A value of 63 means '63 or more blocks'.
-      // This value is written to the bitstream header to let the decoder make
-      // better decisions about memory usage and job allocation in concurrent
-      // decompression scenario.
-      long fileSize = (long) ctx.getOrDefault("fileSize", (long) UNKNOWN_NB_BLOCKS);
-      int nbBlocks = (fileSize == UNKNOWN_NB_BLOCKS) ? UNKNOWN_NB_BLOCKS : (int) ((fileSize+(bSize-1)) / bSize);
-      this.nbInputBlocks = Math.max(Math.min(nbBlocks, MAX_CONCURRENCY-1), 1);
+      this.inputSize = (long) ctx.getOrDefault("fileSize", (long) 0);
+      final int nbBlocks = (this.inputSize == 0) ? 0 : (int) ((this.inputSize+(bSize-1)) / bSize);
+      this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
 
       boolean checksum = (Boolean) ctx.get("checksum");
       this.hasher = (checksum == true) ? new XXHash32(BITSTREAM_TYPE) : null;
@@ -189,19 +185,42 @@ public class CompressedOutputStream extends OutputStream
       if (this.obs.writeBits(this.blockSize >>> 4, 28) != 28)
          throw new kanzi.io.IOException("Cannot write block size to header", Error.ERR_WRITE_FILE);
 
-      if (this.obs.writeBits(this.nbInputBlocks & (MAX_CONCURRENCY-1), 6) != 6)
-         throw new kanzi.io.IOException("Cannot write number of blocks to header", Error.ERR_WRITE_FILE);
+      // this.inputSize not provided or >= 2^48 -> 0, <2^16 -> 1, <2^32 -> 2, <2^48 -> 3
+      int szMask = 0;
+
+      if ((this.inputSize != 0) && (this.inputSize < (1L<<48)))
+      {
+         if (this.inputSize >= (1L<<32))
+            szMask = 3;
+         else
+            szMask = Global.log2((int)(this.inputSize>>4)) + 1;
+
+         if (this.obs.writeBits(szMask, 2) != 2)
+            throw new kanzi.io.IOException("Cannot write size of input to header", Error.ERR_WRITE_FILE);
+
+         if (szMask > 0)
+         {
+             if (this.obs.writeBits(this.inputSize, 16*szMask) != 16*szMask)
+                throw new kanzi.io.IOException("Cannot write size of input to header", Error.ERR_WRITE_FILE);
+         }
+      }
 
       final int HASH = 0x1E35A7BD;
       int cksum = HASH * BITSTREAM_FORMAT_VERSION;
-      cksum ^= (HASH * (int)  this.entropyType);
-      cksum ^= (HASH * (int) (this.transformType >>> 32));
-      cksum ^= (HASH * (int)  this.transformType);
-      cksum ^= (HASH * (int)  this.blockSize);
-      cksum ^= (HASH * (int)  this.nbInputBlocks);
+      cksum ^= (HASH * (int) ~this.entropyType);
+      cksum ^= (HASH * (int) ((~this.transformType) >>> 32));
+      cksum ^= (HASH * (int) ~this.transformType);
+      cksum ^= (HASH * (int) ~this.blockSize);
+
+      if (szMask > 0)
+      {
+         cksum ^= (HASH * (int) ((~this.inputSize) >>> 32));
+         cksum ^= (HASH * (int) ~this.inputSize);
+      }
+
       cksum = (cksum >>> 23) ^ (cksum >>> 3);
 
-      if (this.obs.writeBits(cksum, 4) != 4)
+      if (this.obs.writeBits(cksum, 16) != 16)
          throw new kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);
    }
 
@@ -270,7 +289,9 @@ public class CompressedOutputStream extends OutputStream
             if (this.buffers[this.bufferId].index >= this.bufferThreshold)
             {
                // Current write buffer is full
-               if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs))
+               final int nbTasks = (this.nbInputBlocks == 0) ? this.jobs : Math.min(this.nbInputBlocks, this.jobs);
+
+               if (this.bufferId+1 < nbTasks)
                {
                   this.bufferId++;
                   final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
@@ -324,7 +345,8 @@ public class CompressedOutputStream extends OutputStream
          if (this.buffers[this.bufferId].index >= this.bufferThreshold)
          {
             // Current write buffer is full
-            if (this.bufferId+1 < Math.min(this.nbInputBlocks, this.jobs))
+            final int nbTasks = (this.nbInputBlocks == 0) ? this.jobs : Math.min(this.nbInputBlocks, this.jobs);
+            if (this.bufferId+1 < nbTasks)
             {
                this.bufferId++;
 
@@ -442,12 +464,14 @@ public class CompressedOutputStream extends OutputStream
          int nbTasks = this.jobs;
          int[] jobsPerTask;
 
-         // Assign optimal number of tasks and jobs per task
+         // Assign optimal number of tasks and jobs per task (if the number of blocks is known)
          if (nbTasks > 1)
          {
             // Limit the number of jobs if there are fewer blocks that this.nbInputBlocks
             // It allows more jobs per task and reduces memory usage.
-            nbTasks = Math.min(this.nbInputBlocks, this.jobs);
+            if (this.nbInputBlocks > 0)
+                nbTasks = Math.min(this.nbInputBlocks, nbTasks);
+
             jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], this.jobs, nbTasks);
          }
          else

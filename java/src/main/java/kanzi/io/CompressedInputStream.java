@@ -47,7 +47,7 @@ import kanzi.Listener;
 public class CompressedInputStream extends InputStream
 {
    private static final int BITSTREAM_TYPE           = 0x4B414E5A; // "KANZ"
-   private static final int BITSTREAM_FORMAT_VERSION = 4;
+   private static final int BITSTREAM_FORMAT_VERSION = 5;
    private static final int DEFAULT_BUFFER_SIZE      = 256*1024;
    private static final int EXTRA_BUFFER_SIZE        = 512;
    private static final int COPY_BLOCK_MASK          = 0x80;
@@ -57,7 +57,6 @@ public class CompressedInputStream extends InputStream
    private static final byte[] EMPTY_BYTE_ARRAY      = new byte[0];
    private static final int CANCEL_TASKS_ID          = -1;
    private static final int MAX_CONCURRENCY          = 64;
-   private static final int UNKNOWN_NB_BLOCKS        = 65536;
    private static final int MAX_BLOCK_ID             = Integer.MAX_VALUE;
 
    private int blockSize;
@@ -71,6 +70,7 @@ public class CompressedInputStream extends InputStream
    private final SliceByteArray[] buffers; // input & output per block
    private int entropyType;
    private long transformType;
+   private long outputSize;
    private final InputBitStream ibs;
    private final AtomicBoolean initialized;
    private final AtomicBoolean closed;
@@ -120,6 +120,8 @@ public class CompressedInputStream extends InputStream
       this.listeners = new ArrayList<>(10);
       this.ctx = ctx;
       this.blockSize = 0;
+      this.outputSize = 0;
+      this.nbInputBlocks = 0;
       this.bufferThreshold = 0;
       this.entropyType = EntropyCodecFactory.NONE_TYPE;
       this.transformType = TransformFactory.NONE_TYPE;
@@ -151,6 +153,15 @@ public class CompressedInputStream extends InputStream
 
          if (cksum == true)
              this.hasher = new XXHash32(BITSTREAM_TYPE);
+
+         long oSize = (Long) ctx.getOrDefault("outputSize", 0L);
+
+         if (oSize != 0)
+         {
+             this.outputSize = ((oSize < 0) || (oSize >= (1L<<48))) ? 0 : oSize;
+             int nbBlocks = (int) ((this.outputSize + (long) (this.blockSize-1)) / (long) this.blockSize);
+             this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
+         }
       }
    }
 
@@ -211,22 +222,51 @@ public class CompressedInputStream extends InputStream
 
       this.ctx.put("blockSize", this.blockSize);
       this.bufferThreshold = this.blockSize;
+      int szMask = 0;
 
-      // Read number of blocks in input.
-      this.nbInputBlocks = (int) this.ibs.readBits(6);
-
-      // 0 means 'unknown' and 63 means 63 or more
-      if (this.nbInputBlocks == 0)
-         this.nbInputBlocks = UNKNOWN_NB_BLOCKS;
-
-      // Read checksum
-      final int cksum1 = (int) this.ibs.readBits(4);
-
-      if (bsVersion >= 3)
+      if (bsVersion >= 5)
       {
-         // Verify checksum from bitstream version 3
+         // Read original size
+         // 0 -> not provided, <2^16 -> 1, <2^32 -> 2, <2^48 -> 3
+         szMask = (int) this.ibs.readBits(2);
+
+         if (szMask != 0)
+         {
+            this.outputSize = (long) this.ibs.readBits(16 * szMask);
+            this.ctx.put("outputSize", this.outputSize);
+            final int nbBlocks = (int) ((this.outputSize + (long) (this.blockSize-1)) / (long) this.blockSize);
+            this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
+         }
+
+         // Read and verify checksum
+         final int cksum1 = (int) this.ibs.readBits(16);
          final int HASH = 0x1E35A7BD;
-         int cksum2 = HASH * (int) (bsVersion);
+         int cksum2 = HASH * (int) bsVersion;
+         cksum2 ^= (HASH * (int)  ~this.entropyType);
+         cksum2 ^= (HASH * (int) (~this.transformType >>> 32));
+         cksum2 ^= (HASH * (int)  ~this.transformType);
+         cksum2 ^= (HASH * (int)  ~this.blockSize);
+
+         if (szMask > 0)
+         {
+            cksum2 ^= (HASH * (int) (~this.outputSize >>> 32));
+            cksum2 ^= (HASH * (int)  ~this.outputSize);
+         }
+
+         cksum2 = (cksum2 >>> 23) ^ (cksum2 >>> 3);
+
+         if (cksum1 != (cksum2 & 0xFFFF))
+            throw new kanzi.io.IOException("Invalid bitstream, corrupted header", Error.ERR_CRC_CHECK);
+      }
+      else if (bsVersion >= 3)
+      {
+         final int nbBlocks = (int) this.ibs.readBits(6);
+         this.nbInputBlocks = (nbBlocks == 0) ? 65536 : nbBlocks;
+
+         // Read and verify checksum from bitstream version 3
+         final int cksum1 = (int) this.ibs.readBits(4);
+         final int HASH = 0x1E35A7BD;
+         int cksum2 = HASH * (int) bsVersion;
          cksum2 ^= (HASH * (int)  this.entropyType);
          cksum2 ^= (HASH * (int) (this.transformType >>> 32));
          cksum2 ^= (HASH * (int)  this.transformType);
@@ -237,24 +277,34 @@ public class CompressedInputStream extends InputStream
          if (cksum1 != (cksum2&0x0F))
             throw new kanzi.io.IOException("Invalid bitstream, corrupted header", Error.ERR_CRC_CHECK);
       }
+      else
+      {
+         // Header prior to version 3
+         this.nbInputBlocks = (int) this.ibs.readBits(6);
+         this.ibs.readBits(4); // reserved
+      }
 
       if (this.listeners.size() > 0)
       {
          StringBuilder sb = new StringBuilder(200);
-         sb.append("Checksum set to ").append(this.hasher != null).append("\n");
-         sb.append("Block size set to ").append(this.blockSize).append(" bytes").append("\n");
+         sb.append("Bitstream version: ").append(bsVersion).append("\n");
+         sb.append("Checksum: ").append(this.hasher != null).append("\n");
+         sb.append("Block size: ").append(this.blockSize).append(" bytes\n");
          String w1 = EntropyCodecFactory.getName(this.entropyType);
 
          if ("NONE".equals(w1))
             w1 = "no";
 
-         sb.append("Using ").append(w1).append(" entropy codec (stage 1)").append("\n");
+         sb.append("Using ").append(w1).append(" entropy codec (stage 1)\n");
          String w2 = new TransformFactory().getName(this.transformType);
 
          if ("NONE".equals(w2))
             w2 = "no";
 
-         sb.append("Using ").append(w2).append(" transform (stage 2)").append("\n");
+         sb.append("Using ").append(w2).append(" transform (stage 2)\n");
+
+         if (szMask != 0)
+            sb.append("Original size: ").append(this.outputSize).append(" byte(s)\n");
 
          // Protect against future concurrent modification of the block listeners list
          Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
@@ -432,12 +482,14 @@ public class CompressedInputStream extends InputStream
             int nbTasks = this.jobs;
             int[] jobsPerTask;
 
-            // Assign optimal number of tasks and jobs per task
+            // Assign optimal number of tasks and jobs per task (if the number of blocks is known)
             if (nbTasks > 1)
             {
                // Limit the number of jobs if there are fewer blocks that this.nbInputBlocks
                // It allows more jobs per task and reduces memory usage.
-               nbTasks = Math.min(this.nbInputBlocks, this.jobs);
+               if (this.nbInputBlocks > 0)
+                  nbTasks = Math.min(this.nbInputBlocks, nbTasks);
+
                jobsPerTask = Global.computeJobsPerTask(new int[nbTasks], this.jobs, nbTasks);
             }
             else
