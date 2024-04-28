@@ -305,7 +305,7 @@ public class Kanzi
                continue;
            }
 
-           if (arg == "--rm")
+           if (arg.equals("--rm"))
            {
                if (ctx != -1)
                   printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
