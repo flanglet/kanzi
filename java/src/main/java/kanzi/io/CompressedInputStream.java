@@ -232,7 +232,7 @@ public class CompressedInputStream extends InputStream
 
          if (szMask != 0)
          {
-            this.outputSize = (long) this.ibs.readBits(16 * szMask);
+            this.outputSize = this.ibs.readBits(16*szMask);
             this.ctx.put("outputSize", this.outputSize);
             final int nbBlocks = (int) ((this.outputSize + (long) (this.blockSize-1)) / (long) this.blockSize);
             this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);

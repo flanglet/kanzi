@@ -136,11 +136,11 @@ public class CompressedOutputStream extends OutputStream
       this.bufferThreshold = bSize;
 
       // If input size has been provided, calculate the number of blocks
-      this.inputSize = (long) ctx.getOrDefault("fileSize", (long) 0);
+      this.inputSize = (Long) ctx.getOrDefault("fileSize", 0L);
       final int nbBlocks = (this.inputSize == 0) ? 0 : (int) ((this.inputSize+(bSize-1)) / bSize);
       this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
 
-      boolean checksum = (Boolean) ctx.get("checksum");
+      boolean checksum = (Boolean) ctx.getOrDefault("checksum", false);
       this.hasher = (checksum == true) ? new XXHash32(BITSTREAM_TYPE) : null;
       this.jobs = tasks;
       this.pool = threadPool;
@@ -194,27 +194,27 @@ public class CompressedOutputStream extends OutputStream
             szMask = 3;
          else
             szMask = Global.log2((int)(this.inputSize>>4)) + 1;
+      }
 
-         if (this.obs.writeBits(szMask, 2) != 2)
-            throw new kanzi.io.IOException("Cannot write size of input to header", Error.ERR_WRITE_FILE);
+      if (this.obs.writeBits(szMask, 2) != 2)
+         throw new kanzi.io.IOException("Cannot write size of input to header", Error.ERR_WRITE_FILE);
 
-         if (szMask > 0)
-         {
-             if (this.obs.writeBits(this.inputSize, 16*szMask) != 16*szMask)
-                throw new kanzi.io.IOException("Cannot write size of input to header", Error.ERR_WRITE_FILE);
-         }
+      if (szMask > 0)
+      {
+          if (this.obs.writeBits(this.inputSize, 16*szMask) != 16*szMask)
+             throw new kanzi.io.IOException("Cannot write size of input to header", Error.ERR_WRITE_FILE);
       }
 
       final int HASH = 0x1E35A7BD;
       int cksum = HASH * BITSTREAM_FORMAT_VERSION;
       cksum ^= (HASH * (int) ~this.entropyType);
-      cksum ^= (HASH * (int) ((~this.transformType) >>> 32));
+      cksum ^= (HASH * (int) (~this.transformType >>> 32));
       cksum ^= (HASH * (int) ~this.transformType);
       cksum ^= (HASH * (int) ~this.blockSize);
 
       if (szMask > 0)
       {
-         cksum ^= (HASH * (int) ((~this.inputSize) >>> 32));
+         cksum ^= (HASH * (int) (~this.inputSize >>> 32));
          cksum ^= (HASH * (int) ~this.inputSize);
       }
 
