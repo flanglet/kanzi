@@ -48,7 +48,7 @@ public class Kanzi
    // private static final int ARG_IDX_FROM = 10;
    //private static final int ARG_IDX_TO = 11;
 
-   private static final String KANZI_APP = "2.2";
+   private static final String KANZI_APP = "2.3";
    private static final String APP_HEADER = "Kanzi " + KANZI_APP + " (c) Frederic Langlet";
 
 
@@ -156,7 +156,7 @@ public class Kanzi
         int ctx = -1;
         int level = -1;
         char mode = ' ';
-        boolean showHeader = false;
+        boolean showHeader = true;
 
         for (String arg : args)
         {
@@ -238,7 +238,7 @@ public class Kanzi
         if ((inputName.length() == 0) && (outputName.length() == 0))
             verbose = 0;
         else if ("STDOUT".equalsIgnoreCase(outputName))
-           verbose = 0;
+            verbose = 0;
 
         if (verbose >= 1)
         {
@@ -807,6 +807,10 @@ public class Kanzi
       printOut("        Verbosity is reduced to 0 when the output is 'stdout'\n", true);
       printOut("   -f, --force", true);
       printOut("        overwrite the output file if it already exists\n", true);
+      printOut("   --no-link", true);
+      printOut("        skip links\n", true);
+      printOut("   --no-dot-file", true);
+      printOut("        skip dot files\n", true);
 
       if (mode == 'd')
       {
@@ -819,22 +823,22 @@ public class Kanzi
          printOut("        decompress ending at the provided block (excluded).\n", true);
       }
 
-      if (mode != 'd')
+      if (mode == 'c')
       {
          printOut("   --rm", true);
          printOut("        remove the input file after successful compression\n", true);
          printOut("", true);
-         printOut("EG. java -cp kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
-         printOut("EG. java -cp kanzi.jar -c -i foo.txt -f -t BWT+MTFT+ZRLT -b 4m -e FPAQ -j 4\n", true);
-         printOut("EG. java -cp kanzi.jar --compress --input=foo.txt --force --jobs=4", true);
+         printOut("EG. java -jar kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
+         printOut("EG. java -jar kanzi.jar -c -i foo.txt -f -t BWT+MTFT+ZRLT -b 4m -e FPAQ -j 4\n", true);
+         printOut("EG. java -jar kanzi.jar --compress --input=foo.txt --force --jobs=4", true);
          printOut("    --output=foo.knz --transform=BWT+MTFT+ZRLT --block=4m --entropy=FPAQ\n", true);
       }
 
       if (mode != 'c')
       {
          printOut("", true);
-         printOut("EG. java -cp kanzi.jar -d -i foo.knz -f -v 2 -j 2\n", true);
-         printOut("EG. java -cp kanzi.jar --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
+         printOut("EG. java -jar kanzi.jar -d -i foo.knz -f -v 2 -j 2\n", true);
+         printOut("EG. java -jar kanzi.jar --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
       }
     }
 
