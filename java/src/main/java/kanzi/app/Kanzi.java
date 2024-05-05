@@ -48,7 +48,7 @@ public class Kanzi
    // private static final int ARG_IDX_FROM = 10;
    //private static final int ARG_IDX_TO = 11;
 
-   private static final String KANZI_APP = "2.3";
+   private static final String KANZI_APP = "2.3.0";
    private static final String APP_HEADER = "Kanzi " + KANZI_APP + " (c) Frederic Langlet";
 
 
@@ -336,13 +336,6 @@ public class Kanzi
                   printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
 
                ctx = -1;
-
-               if (mode != 'c')
-               {
-                  printOut("Warning: ignoring option [" + arg + "]. Only applicable in compress mode.", verbose>0);
-                  continue;
-               }
-
                noDotFiles = true;
                continue;
            }
@@ -353,13 +346,6 @@ public class Kanzi
                   printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
 
                ctx = -1;
-
-               if (mode != 'c')
-               {
-                  printOut("Warning: ignoring option [" + arg + "]. Only applicable in compress mode.", verbose>0);
-                  continue;
-               }
-
                noLinks = true;
                continue;
            }

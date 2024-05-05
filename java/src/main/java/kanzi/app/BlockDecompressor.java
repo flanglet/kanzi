@@ -55,6 +55,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    private int verbosity;
    private final boolean overwrite;
    private final boolean removeInput;
+   private final boolean noDotFiles;
+   private final boolean noLinks;
    private final String inputName;
    private final String outputName;
    private final int jobs;
@@ -70,6 +72,10 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       this.overwrite = (bForce == null) ? false : bForce;
       Boolean bRemove = (Boolean) map.remove("remove");
       this.removeInput = (bRemove == null) ? false : bRemove;
+      Boolean bNoDotFiles = (Boolean) map.remove("noDotFiles");
+      this.noDotFiles = (bNoDotFiles == null) ? false : bNoDotFiles;
+      Boolean bNoLinks = (Boolean) map.remove("noLinks");
+      this.noLinks = (bNoLinks == null) ? false : bNoLinks;
       String iName = (String) map.remove("inputName");
       this.inputName = iName.isEmpty() ? STDIN : iName;
       String oName = (String) map.remove("outputName");
@@ -146,7 +152,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             String target = isRecursive ? this.inputName :
                this.inputName.substring(0, this.inputName.length()-1);
 
-            Kanzi.createFileList(target, files, isRecursive, false, false);
+            Kanzi.createFileList(target, files, isRecursive, this.noLinks, this.noDotFiles);
          }
          catch (IOException e)
          {
