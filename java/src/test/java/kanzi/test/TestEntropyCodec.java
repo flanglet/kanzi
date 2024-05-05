@@ -42,8 +42,6 @@ import kanzi.entropy.FPAQDecoder;
 import kanzi.entropy.FPAQEncoder;
 import kanzi.entropy.RangeDecoder;
 import kanzi.entropy.RangeEncoder;
-import kanzi.entropy.RiceGolombDecoder;
-import kanzi.entropy.RiceGolombEncoder;
 import kanzi.entropy.TPAQPredictor;
 import org.junit.Assert;
 import org.junit.Test;
@@ -115,12 +113,6 @@ public class TestEntropyCodec
                 System.exit(1);
 
               testSpeed("EXPGOLOMB", 150);
-              System.out.println("\n\nTestRiceGolombCodec");
-
-              if (testCorrectness("RICEGOLOMB") == false)
-                System.exit(1);
-
-              testSpeed("RICEGOLOMB", 150);
            }
            else
            {
@@ -158,9 +150,6 @@ public class TestEntropyCodec
       System.out.println("\n\nTest ExpGolomb Codec");
       Assert.assertTrue(testCorrectness("EXPGOLOMB"));
       //testSpeed("EXPGOLOMB");
-      System.out.println("\n\nTest RiceGolomb Codec");
-      Assert.assertTrue(testCorrectness("RICEGOLOMB"));
-      //testSpeed("RICEGOLOMB");
    }
 
 
@@ -201,9 +190,6 @@ public class TestEntropyCodec
 
          case "EXPGOLOMB":
             return new ExpGolombEncoder(obs, true);
-
-         case "RICEGOLOMB":
-            return new RiceGolombEncoder(obs, true, 4);
 
          default:
             System.out.println("No such entropy encoder: "+name);
@@ -248,9 +234,6 @@ public class TestEntropyCodec
 
          case "EXPGOLOMB":
             return new ExpGolombDecoder(ibs, true);
-
-         case "RICEGOLOMB":
-            return new RiceGolombDecoder(ibs, true, 4);
 
          default:
             System.out.println("No such entropy decoder: "+name);
