@@ -15,8 +15,10 @@ limitations under the License.
 
 package kanzi.entropy;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import kanzi.OutputBitStream;
 import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
@@ -158,34 +160,36 @@ public class HuffmanEncoder implements EntropyEncoder
       }
 
       // Check (up to) 6 levels; one list per size delta
-      LinkedList<Integer>[] ll = new LinkedList<>[6];
+      List<LinkedList<Integer>> ll = new ArrayList<LinkedList<Integer>>(10);
 
-      for (int i=0; i<ll.length; i++)
-          ll[i] = new LinkedList<>();
+      for (int i=0; i<ll.size(); i++)
+          ll.add(new LinkedList<>());
 
       while (n<count)
       {
           final int idx = HuffmanCommon.MAX_SYMBOL_SIZE_V4 - 1 - sizes[ranks[n]];
 
-          if ((idx>=ll.length) || (debt < (1<<idx)))
+          if ((idx>=ll.size()) || (debt < (1<<idx)))
              break;
 
-          ll[idx].add(ranks[n]);
+          ll.get(idx).add(ranks[n]);
           n++;
       }
 
-      int idx = ll.length-1;
+      int idx = ll.size() - 1;
 
       // Repay bit debt in a "semi optimized" way
       while ((debt>0) && (idx>=0))
       {
-          if ((ll[idx].isEmpty() == true) || (debt < (1<<idx)))
+          LinkedList<Integer> l = ll.get(idx);
+
+          if ((l.isEmpty() == true) || (debt < (1<<idx)))
           {
               idx--;
               continue;
           }
 
-          final int r = ll[idx].removeFirst();
+          final int r = l.removeFirst();
           sizes[r]++;
           debt -= (1<<idx);
       }
@@ -193,15 +197,17 @@ public class HuffmanEncoder implements EntropyEncoder
       idx = 0;
 
       // Adjust if necessary
-      while ((debt>0) && (idx<ll.length))
+      while ((debt>0) && (idx<ll.size()))
       {
-          if (ll[idx].isEmpty() == true)
+          LinkedList<Integer> l = ll.get(idx);
+
+          if (l.isEmpty() == true)
           {
              idx++;
              continue;
           }
 
-          final int r = ll[idx].removeFirst();
+          final int r = l.removeFirst();
           sizes[r]++;
           debt -= (1<<idx);
       }
