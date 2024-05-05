@@ -24,4 +24,10 @@ public class NullOutputStream extends OutputStream
    public void write(int b)
    {
    }
+
+
+   @Override
+   public void write(byte[] b, int offs, int len)
+   {
+   }
 }

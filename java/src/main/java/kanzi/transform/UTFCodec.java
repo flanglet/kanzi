@@ -286,7 +286,7 @@ public class UTFCodec implements ByteTransform
    }
 
 
-   private static boolean validate(byte block[], int start, int end)
+   private static boolean validate(byte[] block, int start, int end)
    {
       int[] freqs0 = new int[256];
       final int[][] freqs = new int[256][256];
@@ -408,7 +408,7 @@ public class UTFCodec implements ByteTransform
    }
 
 
-   public static int unpackV0(int in, byte out[], int idx)
+   public static int unpackV0(int in, byte[] out, int idx)
    {
       int s = (in>>>21) + 1;
 
@@ -444,7 +444,7 @@ public class UTFCodec implements ByteTransform
    }
 
 
-   public static int unpackV1(int in, byte out[], int idx)
+   public static int unpackV1(int in, byte[] out, int idx)
    {
       int s;
 

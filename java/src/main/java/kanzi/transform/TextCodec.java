@@ -259,13 +259,10 @@ public final class TextCodec implements ByteTransform
    // The goal is to detect test data amenable to pre-processing.
    public static int computeStats(byte[] block, final int start, final int end, int[] freqs0, boolean strict)
    {
-      if (strict == false)
-      {
-        // This is going to fail if the block is not the first of the file.
-        // But this is a cheap test, good enough for fast mode.
-        if (Magic.getType(block, start) != Magic.NO_MAGIC)
-            return TextCodec.MASK_NOT_TEXT;
-      }
+      // This is going to fail if the block is not the first of the file.
+      // But this is a cheap test, good enough for fast mode.
+      if ((strict == false) && (Magic.getType(block, start) != Magic.NO_MAGIC))
+         return TextCodec.MASK_NOT_TEXT;
 
       final int[][] freqs = new int[256][256];
 

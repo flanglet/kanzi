@@ -630,9 +630,8 @@ public class EXECodec implements ByteTransform
          final int opcode1 = instr & ARM_B_OPCODE_MASK;
          final int opcode2 = instr & ARM_CB_OPCODE_MASK;
 
-         if ((opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL))
-            jumpsARM64++;
-         else if ((opcode2 == ARM_OPCODE_CBZ) || (opcode2 == ARM_OPCODE_CBNZ))
+         if ((opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL) ||
+             (opcode2 == ARM_OPCODE_CBZ) || (opcode2 == ARM_OPCODE_CBNZ))
             jumpsARM64++;
       }
 

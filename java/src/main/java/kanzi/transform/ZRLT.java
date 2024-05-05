@@ -75,7 +75,7 @@ public final class ZRLT implements ByteTransform
 
                // Encode length
                runLength++;
-               int log2 = (runLength<=256) ? Global.LOG2[runLength-1] : 31-Integer.numberOfLeadingZeros(runLength);
+               int log2 = (runLength<=256) ? Global.LOG2_VALUES[runLength-1] : 31-Integer.numberOfLeadingZeros(runLength);
 
                if (dstIdx >= dstEnd-log2)
                {
@@ -125,7 +125,7 @@ public final class ZRLT implements ByteTransform
 
       input.index = srcIdx;
       output.index = dstIdx;
-      return res & (srcIdx == srcEnd);
+      return res && (srcIdx == srcEnd);
    }
 
 

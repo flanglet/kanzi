@@ -514,6 +514,9 @@ public class BWT implements ByteTransform
       }
       catch (Exception e)
       {
+         if (e instanceof InterruptedException)
+            Thread.currentThread().interrupt();
+
          return false;
       }
 

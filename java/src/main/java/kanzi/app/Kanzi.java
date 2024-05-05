@@ -134,7 +134,7 @@ public class Kanzi
    }
 
 
-    private static int processCommandLine(String args[], Map<String, Object> map)
+    private static int processCommandLine(String[] args, Map<String, Object> map)
     {
         int blockSize = -1;
         int verbose = 1;
@@ -235,9 +235,7 @@ public class Kanzi
         }
 
         // Overwrite verbosity if the output goes to stdout
-        if ((inputName.length() == 0) && (outputName.length() == 0))
-            verbose = 0;
-        else if ("STDOUT".equalsIgnoreCase(outputName))
+        if (((inputName.length() == 0) && (outputName.length() == 0)) || "STDOUT".equalsIgnoreCase(outputName))
             verbose = 0;
 
         if (verbose >= 1)
@@ -652,15 +650,12 @@ public class Kanzi
               printOut("Warning: providing the 'level' option forces the transform. Ignoring ["+ transform + "]", verbose>0);
         }
 
-        if ((from >= 0) || (to >= 0))
+        if (((from >= 0) || (to >= 0)) && (mode != 'd'))
         {
-           if (mode != 'd')
-           {
-               printOut("Warning: ignoring start/end block (only valid for decompression)", verbose>0);
-               from = -1;
-               to = -1;
-           }
-         }
+            printOut("Warning: ignoring start/end block (only valid for decompression)", verbose>0);
+            from = -1;
+            to = -1;
+        }
 
         if (blockSize != -1)
            map.put("block", blockSize);

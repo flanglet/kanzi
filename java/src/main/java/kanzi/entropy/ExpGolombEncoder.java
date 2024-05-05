@@ -21,7 +21,7 @@ import kanzi.OutputBitStream;
 
 public final class ExpGolombEncoder implements EntropyEncoder
 {
-    private static final int[][] CACHE = new int[][]
+    private static final int[][] CACHE_VALUES = new int[][]
     {
        // Unsigned
        new int[]
@@ -76,7 +76,7 @@ public final class ExpGolombEncoder implements EntropyEncoder
           throw new NullPointerException("ExpGolomb codec: Invalid null bitstream parameter");
 
        this.signed = (signed == true) ? 1 : 0;
-       this.cache = CACHE[this.signed];
+       this.cache = CACHE_VALUES[this.signed];
        this.bitstream = bitstream;
     }
 

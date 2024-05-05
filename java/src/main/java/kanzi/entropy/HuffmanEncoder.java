@@ -158,7 +158,7 @@ public class HuffmanEncoder implements EntropyEncoder
       }
 
       // Check (up to) 6 levels; one list per size delta
-      LinkedList<Integer>[] ll = new LinkedList[6];
+      LinkedList<Integer>[] ll = new LinkedList<>[6];
 
       for (int i=0; i<ll.length; i++)
           ll[i] = new LinkedList<>();
@@ -401,7 +401,7 @@ public class HuffmanEncoder implements EntropyEncoder
          }
 
          if (bits > 0)
-             this.buffer[idx++] = (byte) (st<<(8-bits));
+             this.buffer[idx] = (byte) (st<<(8-bits));
 
          // Write number of streams (0->1, 1->4, 2->8, 3->32)
          this.bitstream.writeBits(0, 2);

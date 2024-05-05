@@ -1020,10 +1020,9 @@ public class ROLZCodec implements ByteTransform
                this.minMatch = MIN_MATCH7;
             }
          }
-         else if (bsVersion >= 3)
+         else if ((bsVersion >= 3) && (flags == 1))
          {
-            if (flags == 1)
-               this.minMatch = MIN_MATCH7;
+            this.minMatch = MIN_MATCH7;
          }
 
          final int mm = this.minMatch;

@@ -844,7 +844,7 @@ public final class DivSufSort
                }
 
                if (((check & 4) != 0)
-                   && ((this.ssCompare(pa+getIndex(arr[last-1]), pa+arr[last], depth) == 0)))
+                   && (this.ssCompare(pa+getIndex(arr[last-1]), pa+arr[last], depth) == 0))
                {
                   arr[last] = ~arr[last];
                }
@@ -874,7 +874,7 @@ public final class DivSufSort
                }
 
                if (((check & 4) != 0)
-                   && ((ssCompare(pa+getIndex(arr[last-1]), pa+arr[last], depth) == 0)))
+                   && (ssCompare(pa+getIndex(arr[last-1]), pa+arr[last], depth) == 0))
                {
                   arr[last] = ~arr[last];
                }

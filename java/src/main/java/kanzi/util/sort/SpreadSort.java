@@ -27,7 +27,6 @@ public class SpreadSort implements IntSorter
 {
    private static final int MAX_SPLITS = 11;
    private static final int LOG_MEAN_BIN_SIZE = 2;
-   private static final int LOG_MIN_SPLIT_COUNT = 9;
    private static final int LOG_CONST = 4;
 
 
@@ -48,7 +47,7 @@ public class SpreadSort implements IntSorter
       SliceIntArray sia = new SliceIntArray(array, idx);
       final Bin[] bins = spreadSortCore(sia, count, minMaxCount);
 
-      if (bins == null)
+      if (bins.length == 0)
          return false;
 
       final int maxCount = getMaxCount(roughLog2(minMaxCount[1]-minMaxCount[0]), count);
@@ -117,7 +116,7 @@ public class SpreadSort implements IntSorter
       final int min = minMaxCount[0];
 
       if (max == min)
-         return null;
+         return new Bin[0];
 
       final int logRange = roughLog2(max-min);
       int logDivisor = logRange - roughLog2(count) + LOG_MEAN_BIN_SIZE;
@@ -198,7 +197,7 @@ public class SpreadSort implements IntSorter
 
       // If we have bucket sorted, the array is sorted and we should skip recursion
       if (logDivisor == 0)
-         return null;
+         return new Bin[0];
 
       return bins;
    }

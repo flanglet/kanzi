@@ -376,12 +376,11 @@ public class CompressedOutputStream extends OutputStream
       {
          throw new kanzi.io.IOException(e.getMessage(), Error.ERR_READ_FILE);
       }
-      catch (kanzi.io.IOException e)
-      {
-         throw e;
-      }
       catch (Exception e)
       {
+         if (e instanceof InterruptedException)
+            Thread.currentThread().interrupt();
+
          throw new kanzi.io.IOException(e.getMessage(), Error.ERR_UNKNOWN);
       }
    }
@@ -531,6 +530,9 @@ public class CompressedOutputStream extends OutputStream
       }
       catch (Exception e)
       {
+         if (e instanceof InterruptedException)
+            Thread.currentThread().interrupt();
+
          int errorCode = (e instanceof BitStreamException) ? ((BitStreamException) e).getErrorCode() :
                  Error.ERR_UNKNOWN;
          throw new kanzi.io.IOException(e.getMessage(), errorCode);

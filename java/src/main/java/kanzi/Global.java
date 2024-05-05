@@ -38,7 +38,7 @@ public class Global
    public static final int INFINITE_VALUE = 0;
 
    // array with 256 elements: int(Math.log2(x-1))
-   public static final int[] LOG2 = new int[]
+   public static final int[] LOG2_VALUES = new int[]
    {
       0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4,
       4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5,
@@ -278,7 +278,7 @@ public class Global
       if (x <= 0)
         throw new ArithmeticException("Cannot calculate log of a negative or null value");
 
-      return (x <= 256) ? LOG2[x-1] : 31-Integer.numberOfLeadingZeros(x);
+      return (x <= 256) ? LOG2_VALUES[x-1] : 31-Integer.numberOfLeadingZeros(x);
    }
 
 

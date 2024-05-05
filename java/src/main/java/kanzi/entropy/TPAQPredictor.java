@@ -33,7 +33,7 @@ public class TPAQPredictor implements Predictor
    private static final int MASK_F0F0F000 = 0xF0F0F000;
    private static final int MASK_4F4FFFFF = 0x4F4FFFFF;
    private static final int MASK_FFFF0000 = 0xFFFF0000;
-   private static final int HASH = 0x7FEB352D;
+   private static final int HASH_SEED = 0x7FEB352D;
 
    ///////////////////////// state table ////////////////////////
    // States represent a bit history within some context.
@@ -165,8 +165,8 @@ public class TPAQPredictor implements Predictor
 
    static int hash(int x, int y)
    {
-      final int h = x*HASH ^ y*HASH;
-      return (h>>1) ^ (h>>9) ^ (x>>2) ^ (y>>3) ^ HASH;
+      final int h = x*HASH_SEED ^ y*HASH_SEED;
+      return (h>>1) ^ (h>>9) ^ (x>>2) ^ (y>>3) ^ HASH_SEED;
    }
 
 
@@ -307,7 +307,7 @@ public class TPAQPredictor implements Predictor
         this.pos++;
         this.c8 = (this.c8<<8) | (this.c4>>>24);
         this.c4 = (this.c4<<8) | (this.c0&0xFF);
-        this.hash = (((this.hash*HASH)<<4) + this.c4) & this.hashMask;
+        this.hash = (((this.hash*HASH_SEED)<<4) + this.c4) & this.hashMask;
         this.c0 = 1;
         this.bpos = 8;
         this.binCount += ((this.c4>>7) & 1);
@@ -337,7 +337,7 @@ public class TPAQPredictor implements Predictor
         else
         {
            // Mostly binary
-           this.ctx4 = createContext(HASH+this.matchLen, this.c4^(this.c4&0x000FFFFF));
+           this.ctx4 = createContext(HASH_SEED+this.matchLen, this.c4^(this.c4&0x000FFFFF));
            this.ctx5 = this.ctx0 | (this.c8<<16);
 
            if (this.extra == true)

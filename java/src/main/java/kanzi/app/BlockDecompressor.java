@@ -106,7 +106,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       this.pool = Executors.newFixedThreadPool(this.jobs);
       this.listeners = new ArrayList<>(10);
 
-      if ((this.verbosity > 0) && (map.size() > 0))
+      if ((this.verbosity > 0) && (map.isEmpty() == false))
       {
          for (String k : map.keySet())
             printOut("Warning: Ignoring invalid option [" + k + "]", true); //this.verbosity>0
@@ -288,7 +288,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          }
          else
          {
-            ArrayBlockingQueue<FileDecompressTask> queue = new ArrayBlockingQueue(nbFiles, true);
+            ArrayBlockingQueue<FileDecompressTask> queue = new ArrayBlockingQueue<>(nbFiles, true);
             int[] jobsPerTask = Global.computeJobsPerTask(new int[nbFiles], this.jobs, nbFiles);
             int n = 0;
             Global.sortFilesByPathAndSize(files, true);
@@ -299,7 +299,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                String oName = formattedOutName;
                String iName = file.toString();
                long fileSize = Files.size(file);
-               Map taskCtx = new HashMap(ctx);
+               Map<String, Object> taskCtx = new HashMap<>(ctx);
 
                if (oName == null)
                {
@@ -341,6 +341,10 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                }
             }
          }
+      }
+      catch (InterruptedException e)
+      {
+          Thread.currentThread().interrupt();
       }
       catch (Exception e)
       {
@@ -454,7 +458,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          printOut("\nDecompressing "+inputName+" ...", verbosity>1);
          printOut("", verbosity>3);
 
-         if (this.listeners.size() > 0)
+         if (this.listeners.isEmpty() == false)
          {
             Event evt = new Event(Event.Type.DECOMPRESSION_START, -1, 0);
             Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
@@ -628,7 +632,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                // Ignore
             }
 
-            if (this.listeners.size() > 0)
+            if (this.listeners.isEmpty() == false)
             {
                Event evt = new Event(Event.Type.DECOMPRESSION_END, -1, this.cis.getRead());
                Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
@@ -684,7 +688,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          }
 
 
-         if (((Boolean) this.ctx.get("remove")) == true)
+         if (Boolean.TRUE.equals(this.ctx.get("remove")))
          {
             try
             {

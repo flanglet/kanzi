@@ -395,7 +395,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          }
          else
          {
-            ArrayBlockingQueue<FileCompressTask> queue = new ArrayBlockingQueue(nbFiles, true);
+            ArrayBlockingQueue<FileCompressTask> queue = new ArrayBlockingQueue<>(nbFiles, true);
             int[] jobsPerTask = Global.computeJobsPerTask(new int[nbFiles], this.jobs, nbFiles);
             int n = 0;
 
@@ -408,7 +408,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                String oName = formattedOutName;
                String iName = file.toString();
                long fileSize = Files.size(file);
-               Map taskCtx = new HashMap(ctx);
+               Map<String, Object> taskCtx = new HashMap<>(ctx);
 
                if ((this.autoBlockSize == true) && (this.jobs > 0))
                {
@@ -459,6 +459,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                }
             }
          }
+      }
+      catch (InterruptedException e)
+      {
+          Thread.currentThread().interrupt();
       }
       catch (Exception e)
       {
@@ -716,7 +720,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          SliceByteArray sa = new SliceByteArray(new byte[DEFAULT_BUFFER_SIZE], 0);
          int len;
 
-         if (this.listeners.size() > 0)
+         if (this.listeners.isEmpty() == false)
          {
             Event evt = new Event(Event.Type.COMPRESSION_START, -1, 0);
             Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
@@ -818,14 +822,14 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             printOut("", verbosity>1);
          }
 
-         if (this.listeners.size() > 0)
+         if (this.listeners.isEmpty() == false)
          {
             Event evt = new Event(Event.Type.COMPRESSION_END, -1, this.cos.getWritten());
             Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
             notifyListeners(array, evt);
          }
 
-         if (((Boolean) this.ctx.get("remove")) == true)
+         if (Boolean.TRUE.equals(this.ctx.get("remove")))
          {
              // Delete input file
              if (inputName.equals("STDIN"))

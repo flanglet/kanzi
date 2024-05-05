@@ -28,7 +28,7 @@ public class LyndonWords
 
    public LyndonWords()
    {
-      this.breakpoints = new ArrayList<Integer>();
+      this.breakpoints = new ArrayList<>();
    }
 
 

@@ -374,7 +374,7 @@ public class RLT implements ByteTransform
                break;
             }
 
-            run = (((src[srcIdx]&0xFF))<<8) | (src[srcIdx+1]&0xFF);
+            run = ((src[srcIdx]&0xFF)<<8) | (src[srcIdx+1]&0xFF);
             srcIdx += 2;
             run += RUN_LEN_ENCODE2;
          }

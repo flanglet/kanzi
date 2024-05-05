@@ -65,7 +65,7 @@ public class CompressedInputStream extends InputStream
    private int nbInputBlocks;
    private int jobs;
    private int bufferThreshold;
-   private int available; // decoded not consumed bytes   private XXHash32 hasher;
+   private int available; // decoded not consumed bytes
    private XXHash32 hasher;
    private final SliceByteArray[] buffers; // input & output per block
    private int entropyType;
@@ -284,7 +284,7 @@ public class CompressedInputStream extends InputStream
          this.ibs.readBits(4); // reserved
       }
 
-      if (this.listeners.size() > 0)
+      if (this.listeners.isEmpty() == false)
       {
          StringBuilder sb = new StringBuilder(200);
          sb.append("Bitstream version: ").append(bsVersion).append("\n");
@@ -595,6 +595,9 @@ public class CompressedInputStream extends InputStream
       }
       catch (Exception e)
       {
+         if (e instanceof InterruptedException)
+            Thread.currentThread().interrupt();
+
          int errorCode = (e instanceof BitStreamException) ? ((BitStreamException) e).getErrorCode() :
                  Error.ERR_UNKNOWN;
          throw new kanzi.io.IOException(e.getMessage(), errorCode);

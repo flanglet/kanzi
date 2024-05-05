@@ -23,11 +23,11 @@ import kanzi.Memory;
 
 public class XXHash64
 {
-  private final static long PRIME64_1 = 0x9E3779B185EBCA87L;
-  private final static long PRIME64_2 = 0xC2B2AE3D27D4EB4FL;
-  private final static long PRIME64_3 = 0x165667B19E3779F9L;
-  private final static long PRIME64_4 = 0x85EBCA77C2b2AE63L;
-  private final static long PRIME64_5 = 0x27D4EB2F165667C5L;
+  private static final long PRIME64_1 = 0x9E3779B185EBCA87L;
+  private static final long PRIME64_2 = 0xC2B2AE3D27D4EB4FL;
+  private static final long PRIME64_3 = 0x165667B19E3779F9L;
+  private static final long PRIME64_4 = 0x85EBCA77C2b2AE63L;
+  private static final long PRIME64_5 = 0x27D4EB2F165667C5L;
 
 
   private long seed;
