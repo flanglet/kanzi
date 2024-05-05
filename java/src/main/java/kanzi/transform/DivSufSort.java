@@ -1938,7 +1938,7 @@ public final class DivSufSort
          last -= (d - c);
       }
 
-      return (((long) first) << 32) | (((long) last) & 0xFFFFFFFFL);
+      return (((long) first) << 32) | (last & 0xFFFFFFFFL);
    }
 
 

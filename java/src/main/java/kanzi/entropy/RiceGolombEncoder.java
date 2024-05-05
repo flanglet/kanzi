@@ -68,7 +68,7 @@ public final class RiceGolombEncoder implements EntropyEncoder
        {
           // Add 0 for positive and 1 for negative sign
           n++;
-          emit = (emit << 1) | (((int) val) >>> 31);
+          emit = (emit << 1) | (val >>> 31);
        }
 
        this.bitstream.writeBits(emit, n);

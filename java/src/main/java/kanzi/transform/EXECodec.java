@@ -185,7 +185,7 @@ public class EXECodec implements ByteTransform
          final int offset = LittleEndian.readInt32(src, srcIdx+1);
 
          // False positive ?
-         if (((sgn != 0) && (sgn != 0xFF)) || (offset == (int) 0xFF000000))
+         if (((sgn != 0) && (sgn != 0xFF)) || (offset == 0xFF000000))
          {
             dst[dstIdx++] = X86_ESCAPE;
             dst[dstIdx++] = src[srcIdx++];
@@ -695,8 +695,8 @@ public class EXECodec implements ByteTransform
                if (src[start+4] == 2)
                {
                   // 64 bits
-                  int nbEntries = (int) LittleEndian.readInt16(src, start+0x3C);
-                  int szEntry = (int) LittleEndian.readInt16(src, start+0x3A);
+                  int nbEntries = LittleEndian.readInt16(src, start+0x3C);
+                  int szEntry = LittleEndian.readInt16(src, start+0x3A);
                   int posSection = (int) LittleEndian.readLong64(src, start+0x28);
 
                   for (int i=0; i<nbEntries; i++)
@@ -718,8 +718,8 @@ public class EXECodec implements ByteTransform
                else
                {
                   // 32 bits
-                  int nbEntries = (int) LittleEndian.readInt16(src, start+0x30);
-                  int szEntry = (int) LittleEndian.readInt16(src, start+0x2E);
+                  int nbEntries = LittleEndian.readInt16(src, start+0x30);
+                  int szEntry = LittleEndian.readInt16(src, start+0x2E);
                   int posSection = LittleEndian.readInt32(src, start+0x20);
 
                   for (int i=0; i<nbEntries; i++)
@@ -744,8 +744,8 @@ public class EXECodec implements ByteTransform
                if (src[start+4] == 2)
                {
                   // 64 bits
-                  int nbEntries = (int) BigEndian.readInt16(src, start+0x3C);
-                  int szEntry = (int) BigEndian.readInt16(src, start+0x3A);
+                  int nbEntries = BigEndian.readInt16(src, start+0x3C);
+                  int szEntry = BigEndian.readInt16(src, start+0x3A);
                   int posSection = (int) BigEndian.readLong64(src, start+0x28);
 
                   for (int i=0; i<nbEntries; i++)
@@ -767,8 +767,8 @@ public class EXECodec implements ByteTransform
                else
                {
                   // 32 bits
-                  int nbEntries = (int) BigEndian.readInt16(src, start+0x30);
-                  int szEntry = (int) BigEndian.readInt16(src, start+0x2E);
+                  int nbEntries = BigEndian.readInt16(src, start+0x30);
+                  int szEntry = BigEndian.readInt16(src, start+0x2E);
                   int posSection = BigEndian.readInt32(src, start+0x20);
 
                   for (int i=0; i<nbEntries; i++)

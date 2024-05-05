@@ -159,7 +159,7 @@ public class CompressedInputStream extends InputStream
          if (oSize != 0)
          {
              this.outputSize = ((oSize < 0) || (oSize >= (1L<<48))) ? 0 : oSize;
-             int nbBlocks = (int) ((this.outputSize + (long) (this.blockSize-1)) / (long) this.blockSize);
+             int nbBlocks = (int) ((this.outputSize + this.blockSize - 1) / (long) this.blockSize);
              this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
          }
       }
@@ -234,7 +234,7 @@ public class CompressedInputStream extends InputStream
          {
             this.outputSize = this.ibs.readBits(16*szMask);
             this.ctx.put("outputSize", this.outputSize);
-            final int nbBlocks = (int) ((this.outputSize + (long) (this.blockSize-1)) / (long) this.blockSize);
+            final int nbBlocks = (int) ((this.outputSize + this.blockSize - 1) / this.blockSize);
             this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
          }
 
@@ -242,10 +242,10 @@ public class CompressedInputStream extends InputStream
          final int cksum1 = (int) this.ibs.readBits(16);
          final int HASH = 0x1E35A7BD;
          int cksum2 = HASH * (int) bsVersion;
-         cksum2 ^= (HASH * (int)  ~this.entropyType);
+         cksum2 ^= (HASH * ~this.entropyType);
          cksum2 ^= (HASH * (int) (~this.transformType >>> 32));
          cksum2 ^= (HASH * (int)  ~this.transformType);
-         cksum2 ^= (HASH * (int)  ~this.blockSize);
+         cksum2 ^= (HASH * ~this.blockSize);
 
          if (szMask > 0)
          {
@@ -266,12 +266,12 @@ public class CompressedInputStream extends InputStream
          // Read and verify checksum from bitstream version 3
          final int cksum1 = (int) this.ibs.readBits(4);
          final int HASH = 0x1E35A7BD;
-         int cksum2 = HASH * (int) bsVersion;
-         cksum2 ^= (HASH * (int)  this.entropyType);
+         int cksum2 = HASH * bsVersion;
+         cksum2 ^= (HASH * this.entropyType);
          cksum2 ^= (HASH * (int) (this.transformType >>> 32));
          cksum2 ^= (HASH * (int)  this.transformType);
-         cksum2 ^= (HASH * (int)  this.blockSize);
-         cksum2 ^= (HASH * (int)  this.nbInputBlocks);
+         cksum2 ^= (HASH * this.blockSize);
+         cksum2 ^= (HASH * this.nbInputBlocks);
          cksum2 = (cksum2 >>> 23) ^ (cksum2 >>> 3);
 
          if (cksum1 != (cksum2&0x0F))
@@ -753,7 +753,7 @@ public class CompressedInputStream extends InputStream
 
          for (int n=0; read>0; )
          {
-            final int chkSize = (read < (long) (1<<30)) ? (int) read : 1<<30;
+            final int chkSize = (read < (1L<<30)) ? (int) read : 1<<30;
             this.ibs.readBits(data.array, n, chkSize);
             n += ((chkSize+7) >> 3);
             read -= chkSize;

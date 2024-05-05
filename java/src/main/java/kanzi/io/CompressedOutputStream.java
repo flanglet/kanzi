@@ -207,10 +207,10 @@ public class CompressedOutputStream extends OutputStream
 
       final int HASH = 0x1E35A7BD;
       int cksum = HASH * BITSTREAM_FORMAT_VERSION;
-      cksum ^= (HASH * (int) ~this.entropyType);
+      cksum ^= (HASH * ~this.entropyType);
       cksum ^= (HASH * (int) (~this.transformType >>> 32));
       cksum ^= (HASH * (int) ~this.transformType);
-      cksum ^= (HASH * (int) ~this.blockSize);
+      cksum ^= (HASH * ~this.blockSize);
 
       if (szMask > 0)
       {

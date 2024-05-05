@@ -119,7 +119,7 @@ public final class DefaultOutputBitStream implements OutputBitStream
          // Fill up this.current
          while ((this.availBits != 64) && (remaining >= 8))
          {
-            this.writeBits((long) bits[start], 8);
+            this.writeBits(bits[start], 8);
             start++;
             remaining -= 8;
          }
@@ -170,13 +170,13 @@ public final class DefaultOutputBitStream implements OutputBitStream
       // Last bytes
       while (remaining >= 8)
       {
-         this.writeBits((long) (bits[start]&0xFF), 8);
+         this.writeBits(bits[start]&0xFF, 8);
          start++;
          remaining -= 8;
       }
 
       if (remaining > 0)
-         this.writeBits((long) (bits[start]>>>(8-remaining)), remaining);
+         this.writeBits(bits[start]>>>(8-remaining), remaining);
 
       return count;
    }

@@ -1265,7 +1265,7 @@ public class ROLZCodec implements ByteTransform
          this.current  = 0;
 
          for (int i=0; i<8; i++)
-            this.current = (this.current<<8) | (long) (this.sba.array[this.sba.index+i] &0xFF);
+            this.current = (this.current<<8) | (this.sba.array[this.sba.index+i] &0xFFL);
 
          this.sba.index += 8;
          this.pIdx = LITERAL_CTX;

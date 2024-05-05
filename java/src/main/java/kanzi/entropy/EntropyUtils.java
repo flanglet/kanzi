@@ -198,7 +198,7 @@ public class EntropyUtils
 
       if (sumScaledFreq != scale)
       {
-         final int delta = (int) (sumScaledFreq-scale);
+         final int delta = sumScaledFreq - scale;
          final int errThr = freqs[idxMax] >> 4;
 
          if (Math.abs(delta) <= errThr)

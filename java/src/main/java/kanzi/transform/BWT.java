@@ -222,7 +222,7 @@ public class BWT implements ByteTransform
       final byte[] output = dst.array;
       final int srcIdx = src.index;
       final int dstIdx = dst.index;
-      final int[] buckets_ = this.buckets;
+      final int[] b = this.buckets;
       final int[] data = this.buffer1;
 
       // Build array of packed index + value (assumes block size < 1<<24)
@@ -235,23 +235,23 @@ public class BWT implements ByteTransform
 
       for (int i=0, sum=0; i<256; i++)
       {
-         final int tmp = buckets_[i];
-         buckets_[i] = sum;
+         final int tmp = b[i];
+         b[i] = sum;
          sum += tmp;
       }
 
       for (int i=0; i<pIdx; i++)
       {
          final int val = input[srcIdx+i] & 0xFF;
-         data[buckets_[val]] = ((i-1)<<8) | val;
-         buckets_[val]++;
+         data[b[val]] = ((i-1)<<8) | val;
+         b[val]++;
       }
 
       for (int i=pIdx; i<count; i++)
       {
          final int val = input[srcIdx+i] & 0xFF;
-         data[buckets_[val]] = (i<<8) | val;
-         buckets_[val]++;
+         data[b[val]] = (i<<8) | val;
+         b[val]++;
       }
 
       if (count < BLOCK_SIZE_THRESHOLD1)
@@ -375,7 +375,7 @@ public class BWT implements ByteTransform
          return false;
 
       Global.computeHistogramOrder0(input, srcIdx, srcIdx+count, this.freqs, false);
-      final int[] buckets_ = this.buckets;
+      final int[] b = this.buckets;
       final int[] freqs_ = this.freqs;
 
       for (int sum=1, c=0; c<256; c++)
@@ -390,12 +390,12 @@ public class BWT implements ByteTransform
             final int hi = (sum < pIdx) ? sum : pIdx;
 
             for (int i=f; i<hi; i++)
-               buckets_[c256|(input[srcIdx+i]&0xFF)]++;
+               b[c256|(input[srcIdx+i]&0xFF)]++;
 
             final int lo = (f-1 > pIdx) ? f-1: pIdx;
 
             for (int i=lo; i<sum-1; i++)
-               buckets_[c256|(input[srcIdx+i]&0xFF)]++;
+               b[c256|(input[srcIdx+i]&0xFF)]++;
          }
       }
 
@@ -414,8 +414,8 @@ public class BWT implements ByteTransform
          for (int d=0; d<256; d++)
          {
             final int s = sum;
-            sum += buckets_[(d<<8)|c];
-            buckets_[(d<<8)|c] = s;
+            sum += b[(d<<8)|c];
+            b[(d<<8)|c] = s;
 
             if (s != sum)
             {
@@ -436,14 +436,14 @@ public class BWT implements ByteTransform
          if (p < pIdx)
          {
             final int idx = (c<<8) | (input[srcIdx+p]&0xFF);
-            data[buckets_[idx]] = i;
-            buckets_[idx]++;
+            data[b[idx]] = i;
+            b[idx]++;
          }
          else if (p > pIdx)
          {
             final int idx = (c<<8) | (input[srcIdx2+p]&0xFF);
-            data[buckets_[idx]] = i;
-            buckets_[idx]++;
+            data[b[idx]] = i;
+            b[idx]++;
          }
       }
 
@@ -456,14 +456,14 @@ public class BWT implements ByteTransform
          if (p < pIdx)
          {
             final int idx = (c<<8) | (input[srcIdx+p]&0xFF);
-            data[buckets_[idx]] = i + 1;
-            buckets_[idx]++;
+            data[b[idx]] = i + 1;
+            b[idx]++;
          }
          else if (p > pIdx)
          {
             final int idx = (c<<8) | (input[srcIdx2+p]&0xFF);
-            data[buckets_[idx]] = i + 1;
-            buckets_[idx]++;
+            data[b[idx]] = i + 1;
+            b[idx]++;
          }
       }
 
@@ -473,9 +473,9 @@ public class BWT implements ByteTransform
 
          for (int d=0; d<c; d++)
          {
-            final int tmp = buckets_[(d<<8)|c];
-            buckets_[(d<<8)|c] = buckets_[c256|d];
-            buckets_[c256|d] = tmp;
+            final int tmp = b[(d<<8)|c];
+            b[(d<<8)|c] = b[c256|d];
+            b[c256|d] = tmp;
          }
       }
 
@@ -563,7 +563,7 @@ public class BWT implements ByteTransform
       public Integer call() throws Exception
       {
          final int[] data = BWT.this.buffer1;
-         final int[] buckets = BWT.this.buckets;
+         final int[] b = BWT.this.buckets;
          final short[] fastBits = BWT.this.buffer2;
          int start = this.dstIdx;
          int shift = 0;
@@ -591,16 +591,16 @@ public class BWT implements ByteTransform
                   int s2 = fastBits[p2>>shift] & 0xFFFF;
                   int s3 = fastBits[p3>>shift] & 0xFFFF;
 
-                  while (buckets[s0] <= p0)
+                  while (b[s0] <= p0)
                      s0++;
 
-                  while (buckets[s1] <= p1)
+                  while (b[s1] <= p1)
                      s1++;
 
-                  while (buckets[s2] <= p2)
+                  while (b[s2] <= p2)
                      s2++;
 
-                  while (buckets[s3] <= p3)
+                  while (b[s3] <= p3)
                      s3++;
 
                   this.output[i-1] = (byte) (s0>>>8);
@@ -630,7 +630,7 @@ public class BWT implements ByteTransform
             {
                int s = fastBits[p>>shift] & 0xFFFF;
 
-               while (buckets[s] <= p)
+               while (b[s] <= p)
                   s++;
 
                this.output[i-1] = (byte) (s>>>8);

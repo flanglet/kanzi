@@ -148,7 +148,7 @@ public class InfoPrinter implements Listener
             if (this.type == Type.ENCODING)
             {
                if (bi.stage0Size != 0)
-                  msg.append(String.format(" (%d%%)", (stage2Size*100L/(long) bi.stage0Size)));
+                  msg.append(String.format(" (%d%%)", (stage2Size*100L/bi.stage0Size)));
             }
 
             // Optionally add hash

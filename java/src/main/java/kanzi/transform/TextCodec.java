@@ -984,7 +984,7 @@ public final class TextCodec implements ByteTransform
                // Emit word
                if (cur != ESCAPE_TOKEN2)
                {
-                  dst[dstIdx++] = (byte) buf[e.pos];
+                  dst[dstIdx++] = buf[e.pos];
                }
                else
                {
