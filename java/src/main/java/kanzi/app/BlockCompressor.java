@@ -158,7 +158,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       Boolean bChecksum = (Boolean) map.remove("checksum");
       this.checksum = (bChecksum == null) ? false : bChecksum;
       Boolean bRemove = (Boolean) map.remove("remove");
-      this.removeInput = (bRemove == null) ? true : bRemove;
+      this.removeInput = (bRemove == null) ? false : bRemove;
       Boolean bReorder = (Boolean) map.remove("fileReorder");
       this.reoderFiles = (bReorder == null) ? true : bReorder;
       Boolean bNoDotFiles = (Boolean) map.remove("noDotFiles");

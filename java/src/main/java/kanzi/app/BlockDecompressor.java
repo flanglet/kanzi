@@ -78,7 +78,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       this.from = (map.containsKey("from") ? (Integer) map.remove("from") : -1);
       this.to = (map.containsKey("to") ? (Integer) map.remove("to") : -1);
       int concurrency;
-                                                                                                                                                        if (map.containsKey("jobs"))
+
+      if (map.containsKey("jobs"))
       {
          concurrency = (Integer) map.remove("jobs");
 
