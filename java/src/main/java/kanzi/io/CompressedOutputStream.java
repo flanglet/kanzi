@@ -193,7 +193,7 @@ public class CompressedOutputStream extends OutputStream
          if (this.inputSize >= (1L<<32))
             szMask = 3;
          else
-            szMask = Global.log2((int)(this.inputSize>>4)) + 1;
+            szMask = (Global.log2((int) this.inputSize)>>4) + 1;
       }
 
       if (this.obs.writeBits(szMask, 2) != 2)
