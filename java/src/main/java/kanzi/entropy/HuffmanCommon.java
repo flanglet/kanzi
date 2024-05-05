@@ -64,13 +64,8 @@ public final class HuffmanCommon
       for (int i=0; i<count; i++)
       {
          final int s = symbols[i];
-
-         if (sizes[s] > curLen)
-         {
-            code <<= (sizes[s]-curLen);
-            curLen = sizes[s];
-         }
-
+         code <<= (sizes[s]-curLen);
+         curLen = sizes[s];
          codes[s] = code;
          code++;
       }

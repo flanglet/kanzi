@@ -16,6 +16,7 @@ limitations under the License.
 package kanzi.entropy;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import kanzi.OutputBitStream;
 import kanzi.BitStreamException;
 import kanzi.EntropyEncoder;
@@ -95,50 +96,32 @@ public class HuffmanEncoder implements EntropyEncoder
       }
       else
       {
-          int retries = 0;
           int[] ranks = new int[256];
 
-          while (true)
-          {
-              for (int i=0; i<count; i++)
-                  ranks[i] = (freqs[this.alphabet[i]] << 8) | this.alphabet[i];
+          for (int i=0; i<count; i++)
+              ranks[i] = (freqs[this.alphabet[i]] << 8) | this.alphabet[i];
 
-              int maxCodeLen = this.computeCodeLengths(sizes, ranks, count);
+          int maxCodeLen = this.computeCodeLengths(sizes, ranks, count);
+
+          if (maxCodeLen == 0)
+              throw new BitStreamException("Could not generate Huffman codes: invalid code length 0", Error.ERR_PROCESS_BLOCK);
+
+          if (maxCodeLen > HuffmanCommon.MAX_SYMBOL_SIZE_V4)
+          {
+              maxCodeLen = this.limitCodeLengths(alphabet, freqs, sizes, ranks, count);
 
               if (maxCodeLen == 0)
                   throw new BitStreamException("Could not generate Huffman codes: invalid code length 0", Error.ERR_PROCESS_BLOCK);
 
-              if (maxCodeLen <= HuffmanCommon.MAX_SYMBOL_SIZE_V4)
+              if (maxCodeLen > HuffmanCommon.MAX_SYMBOL_SIZE_V4)
               {
-                 // Usual case
-                 HuffmanCommon.generateCanonicalCodes(sizes, this.codes, ranks, count, HuffmanCommon.MAX_SYMBOL_SIZE_V4);
-                 break;
+                  throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
+                     HuffmanCommon.MAX_SYMBOL_SIZE_V4 + " bits) exceeded");
               }
-
-              // Sometimes, codes exceed the budget for the max code length => normalize
-              // frequencies (boost the smallest frequencies) and try once more.
-              if (retries > 2)
-                 throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
-                    HuffmanCommon.MAX_SYMBOL_SIZE_V4 + " bits) exceeded");
-
-              retries++;
-              int[] f = new int[count];
-              int[] symbols = new int[count];
-              int totalFreq = 0;
-
-              for (int i=0; i<count; i++)
-              {
-                 f[i] = freqs[this.alphabet[i]];
-                 totalFreq += f[i];
-              }
-
-              // Normalize to a smaller scale
-              EntropyUtils.normalizeFrequencies(f, symbols, totalFreq,
-                   HuffmanCommon.MAX_CHUNK_SIZE>>(retries+1));
-
-              for (int i=0; i<count; i++)
-                 freqs[this.alphabet[i]] = f[i];
           }
+
+
+          HuffmanCommon.generateCanonicalCodes(sizes, this.codes, ranks, count, HuffmanCommon.MAX_SYMBOL_SIZE_V4);
       }
 
       // Transmit code lengths only, frequencies and codes do not matter
@@ -161,6 +144,97 @@ public class HuffmanEncoder implements EntropyEncoder
    }
 
 
+   private int limitCodeLengths(int[] alphabet, int[] freqs, short[] sizes, int[] ranks, int count)
+   {
+      int n = 0;
+      int debt = 0;
+
+      // Fold over-the-limit sizes, skip at-the-limit sizes => incur bit debt
+      while (sizes[ranks[n]] >= HuffmanCommon.MAX_SYMBOL_SIZE_V4)
+      {
+          debt += (sizes[ranks[n]] - HuffmanCommon.MAX_SYMBOL_SIZE_V4);
+          sizes[ranks[n]] = HuffmanCommon.MAX_SYMBOL_SIZE_V4;
+          n++;
+      }
+
+      // Check (up to) 6 levels; one list per size delta
+      LinkedList<Integer>[] ll = new LinkedList[6];
+
+      for (int i=0; i<ll.length; i++)
+          ll[i] = new LinkedList<>();
+
+      while (n<count)
+      {
+          final int idx = HuffmanCommon.MAX_SYMBOL_SIZE_V4 - 1 - sizes[ranks[n]];
+
+          if ((idx>=ll.length) || (debt < (1<<idx)))
+             break;
+
+          ll[idx].add(ranks[n]);
+          n++;
+      }
+
+      int idx = ll.length-1;
+
+      // Repay bit debt in a "semi optimized" way
+      while ((debt>0) && (idx>=0))
+      {
+          if ((ll[idx].isEmpty() == true) || (debt < (1<<idx)))
+          {
+              idx--;
+              continue;
+          }
+
+          final int r = ll[idx].removeFirst();
+          sizes[r]++;
+          debt -= (1<<idx);
+      }
+
+      idx = 0;
+
+      // Adjust if necessary
+      while ((debt>0) && (idx<ll.length))
+      {
+          if (ll[idx].isEmpty() == true)
+          {
+             idx++;
+             continue;
+          }
+
+          final int r = ll[idx].removeFirst();
+          sizes[r]++;
+          debt -= (1<<idx);
+      }
+
+      if (debt>0)
+      {
+          // Fallback to slow (more accurate) path if fast path failed to repay the debt
+          int[] f = new int[count];
+          int[] symbols = new int[count];
+          int totalFreq = 0;
+
+          for (int i=0; i<count; i++)
+          {
+             f[i] = freqs[this.alphabet[i]];
+             totalFreq += f[i];
+          }
+
+          // Renormalize to a smaller scale
+          EntropyUtils.normalizeFrequencies(f, symbols, totalFreq, HuffmanCommon.MAX_CHUNK_SIZE >> 3);
+
+          for (int i=0; i<count; i++)
+          {
+              freqs[alphabet[i]] = f[i];
+              ranks[i] = (f[i] << 8) | alphabet[i];
+          }
+
+          return this.computeCodeLengths(sizes, ranks, count);
+      }
+
+      return HuffmanCommon.MAX_SYMBOL_SIZE_V4;
+   }
+
+
    private int computeCodeLengths(short[] sizes, int[] ranks, int count)
    {
       // Sort ranks by increasing frequencies (first key) and increasing value (second key)
@@ -179,13 +253,10 @@ public class HuffmanEncoder implements EntropyEncoder
       // See [In-Place Calculation of Minimum-Redundancy Codes]
       // by Alistair Moffat & Jyrki Katajainen
       computeInPlaceSizesPhase1(freqs, count);
-      int maxCodeLen = computeInPlaceSizesPhase2(freqs, count);
+      final int maxCodeLen = computeInPlaceSizesPhase2(freqs, count);
 
-      if (maxCodeLen <= HuffmanCommon.MAX_SYMBOL_SIZE_V4)
-      {
-         for (int i=0; i<count; i++)
-            sizes[ranks[i]] = (short) freqs[i];
-      }
+      for (int i=0; i<count; i++)
+         sizes[ranks[i]] = (short) freqs[i];
 
       return maxCodeLen;
    }
