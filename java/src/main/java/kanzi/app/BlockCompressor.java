@@ -794,7 +794,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
             if (verbosity > 1)
             {
-               printOut("Compressing:       "+str, true);
+               printOut("Compression time:  "+str, true);
                printOut("Input size:        "+read, true);
                printOut("Output size:       "+this.cos.getWritten(), true);
 

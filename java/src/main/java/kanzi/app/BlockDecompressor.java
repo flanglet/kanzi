@@ -676,9 +676,9 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
             if (verbosity > 1)
             {
-               printOut("Decompressing:          "+str, true);
-               printOut("Input size:             "+this.cis.getRead(), true);
-               printOut("Output size:            "+decoded, true);
+               printOut("Decompression time: "+str, true);
+               printOut("Input size:         "+this.cis.getRead(), true);
+               printOut("Output size:        "+decoded, true);
             }
 
             if (verbosity == 1)
@@ -688,7 +688,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             }
 
             if ((verbosity > 1) && (delta > 0))
-               printOut("Throughput (KB/s): "+(((decoded * 1000L) >> 10) / delta), true);
+               printOut("Throughput (KB/s):  "+(((decoded * 1000L) >> 10) / delta), true);
 
             printOut("", verbosity>1);
          }
