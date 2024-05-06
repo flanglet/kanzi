@@ -763,7 +763,7 @@ public final class TextCodec implements ByteTransform
             // Emit last symbols
             final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, srcEnd, dstEnd);
 
-            if (dIdx < 0)
+            if (dIdx > dstEnd)
                res = false;
             else
                dstIdx = dIdx;
@@ -1302,7 +1302,7 @@ public final class TextCodec implements ByteTransform
          {
             final int dIdx = this.emitSymbols(src, emitAnchor, dst, dstIdx, srcEnd, dstEnd);
 
-            if (dIdx < 0)
+            if (dIdx > dstEnd)
                res = false;
             else
                dstIdx = dIdx;
