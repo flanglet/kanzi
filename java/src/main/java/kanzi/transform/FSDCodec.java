@@ -168,11 +168,11 @@ public class FSDCodec implements ByteTransform
       final byte mode = (largeDeltas > (count5>>5)) ? XOR_CODING : DELTA_CODING;
       int srcIdx = input.index;
       int dstIdx = output.index;
+      final int srcEnd = srcIdx + count;
+      final int dstEnd = dstIdx + this.getMaxEncodedLength(count);
       dst[dstIdx] = mode;
       dst[dstIdx+1] = (byte) dist;
       dstIdx += 2;
-      final int srcEnd = srcIdx + count;
-      final int dstEnd = dstIdx + this.getMaxEncodedLength(count);
 
       // Emit first bytes
       for (int i=0; i<dist; i++)
