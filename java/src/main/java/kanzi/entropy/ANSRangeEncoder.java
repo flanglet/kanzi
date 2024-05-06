@@ -259,13 +259,12 @@ public class ANSRangeEncoder implements EntropyEncoder
 
    private int encodeSymbol(int[] idx, int st, Symbol sym)
    {
-      if (st >= sym.xMax)
-      {
-         this.buffer[idx[0]--] = (byte) st;
-         st >>= 8;
-         this.buffer[idx[0]--] = (byte) (st);
-         st >>= 8;
-      }
+      final int x = (st >= sym.xMax) ? 1 : 0;
+      this.buffer[idx[0]] = (byte) st;
+      idx[0] -= x;
+      this.buffer[idx[0]] = (byte) (st>>8);
+      idx[0] -= x;
+      st >>= (-x & 16);
 
       // Compute next ANS state
       // C(s,x) = M floor(x/q_s) + mod(x,q_s) + b_s where b_s = q_0 + ... + q_{s-1}
