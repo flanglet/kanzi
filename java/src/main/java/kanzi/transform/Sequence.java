@@ -33,8 +33,8 @@ public class Sequence implements ByteTransform
       if (transforms == null)
          throw new NullPointerException("Invalid null transforms parameter");
 
-      if ((transforms.length == 0) || (transforms.length > 8))
-         throw new NullPointerException("Only 1 to 8 transforms allowed");
+      if ((transforms.length < 1) || (transforms.length > 8))
+         throw new IllegalArgumentException("Only 1 to 8 transforms allowed");
 
       this.transforms = transforms;
    }

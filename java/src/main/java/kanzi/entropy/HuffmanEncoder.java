@@ -160,9 +160,9 @@ public class HuffmanEncoder implements EntropyEncoder
       }
 
       // Check (up to) 6 levels; one list per size delta
-      List<LinkedList<Integer>> ll = new ArrayList<LinkedList<Integer>>(10);
+      List<LinkedList<Integer>> ll = new ArrayList<>(10);
 
-      for (int i=0; i<ll.size(); i++)
+      for (int i=0; i<6; i++)
           ll.add(new LinkedList<>());
 
       while (n<count)
