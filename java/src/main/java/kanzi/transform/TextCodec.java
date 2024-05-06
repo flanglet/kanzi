@@ -543,7 +543,7 @@ public final class TextCodec implements ByteTransform
       private void reset(int count)
       {
          // Select an appropriate initial dictionary size
-         final int log = (count < 1024) ? 9 : Math.max(Math.min(Global.log2(count / 128), 18), 13);
+         final int log = (count < 1024) ? 13 : Math.max(Math.min(Global.log2(count / 128), 18), 13);
          this.dictSize = 1 << log;
 
          // Allocate lazily (only if text input detected)
@@ -567,7 +567,7 @@ public final class TextCodec implements ByteTransform
             this.dictList[STATIC_DICT_WORDS+1] = new DictEntry(new byte[] { ESCAPE_TOKEN1 }, 0, 0, STATIC_DICT_WORDS+1, 1);
          }
 
-         for (int i=0; i<STATIC_DICT_WORDS; i++)
+         for (int i=0; i<this.staticDictSize; i++)
          {
             DictEntry e = this.dictList[i];
             this.dictMap[e.hash&this.hashMask] = e;
@@ -799,7 +799,7 @@ public final class TextCodec implements ByteTransform
          for (int i=srcIdx; i<srcEnd; i++)
          {
             if (dstIdx >= dstEnd)
-               return -1;
+               return dstEnd + 1;
 
             final byte cur = src[i];
 
@@ -859,21 +859,19 @@ public final class TextCodec implements ByteTransform
       @Override
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
+         this.reset(output.length);
          final int count = input.length;
-         int srcIdx = input.index;
-         int dstIdx = output.index;
          final byte[] src = input.array;
          final byte[] dst = output.array;
-
-         this.reset(output.length);
+         int srcIdx = input.index;
+         int dstIdx = output.index;
+         final boolean _isCRLF = (src[srcIdx++] & MASK_CRLF) != 0;
+         this.isCRLF = _isCRLF;
          final int srcEnd = input.index + count;
-         final int dstEnd = dst.length - 1;
-
+         final int dstEnd = dst.length;
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
-         final boolean _isCRLF = (src[srcIdx++] & MASK_CRLF) != 0;
-         this.isCRLF = _isCRLF;
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
@@ -949,7 +947,7 @@ public final class TextCodec implements ByteTransform
                // Read word index (varint 5 bits + 7 bits + 7 bits)
                int idx = src[srcIdx++] & 0xFF;
 
-               if ((idx&0x80) != 0)
+               if (idx >= 128)
                {
                   idx &= 0x7F;
                   int idx2 = src[srcIdx++];
@@ -1086,7 +1084,7 @@ public final class TextCodec implements ByteTransform
       private void reset(int count)
       {
          // Select an appropriate initial dictionary size
-         final int log = (count < 1024) ? 9 : Math.max(Math.min(Global.log2(count / 128), 18), 13);
+         final int log = (count < 1024) ? 13 : Math.max(Math.min(Global.log2(count / 128), 18), 13);
          this.dictSize = 1 << log;
 
          // Allocate lazily (only if text input detected)
@@ -1440,20 +1438,19 @@ public final class TextCodec implements ByteTransform
       @Override
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
+         this.reset(output.length);
          final int count = input.length;
-         int srcIdx = input.index;
-         int dstIdx = output.index;
          final byte[] src = input.array;
          final byte[] dst = output.array;
-
-         this.reset(output.length);
+         int srcIdx = input.index;
+         int dstIdx = output.index;
+         final boolean _isCRLF = (src[srcIdx++] & MASK_CRLF) != 0;
+         this.isCRLF = _isCRLF;
          final int srcEnd = input.index + count;
-         final int dstEnd = dst.length - 1;
+         final int dstEnd = dst.length;
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
-         final boolean _isCRLF = (src[srcIdx++] & MASK_CRLF) != 0;
-         this.isCRLF = _isCRLF;
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
