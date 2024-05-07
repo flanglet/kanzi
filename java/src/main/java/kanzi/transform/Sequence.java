@@ -103,7 +103,7 @@ public class Sequence implements ByteTransform
 
       if (saIdx != 1)
       {
-         if (sa[1].index+count > sa[1].length)
+         if (sa[1].index+count > sa[1].array.length)
             this.skipFlags = SKIP_MASK;
          else
             System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
@@ -176,7 +176,7 @@ public class Sequence implements ByteTransform
 
       if ((res == true) && (saIdx != 1))
       {
-         if (sa[1].index+count > sa[1].length)
+         if (sa[1].index+count > sa[1].array.length)
             res = false;
          else
             System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);

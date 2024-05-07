@@ -118,7 +118,7 @@ public class EXECodec implements ByteTransform
 
       this.codeStart = input.index;
       this.codeEnd = input.index + count - 8;
-      byte mode = detectType(input.array, input.index, count-8);
+      byte mode = detectType(input.array, input.index, count-4);
 
       if ((mode & NOT_EXE) != 0)
          return false;

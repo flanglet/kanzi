@@ -225,7 +225,7 @@ public class EntropyUtils
 
          for (int i=0; i<alphabetSize; i++)
          {
-            if (freqs[alphabet[i]] >= 2) // Do not distort small frequencies
+            if (freqs[alphabet[i]] > 2) // Do not distort small frequencies
                queue.add(new FreqSortData(freqs, alphabet[i]));
          }
 
