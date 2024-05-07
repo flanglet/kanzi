@@ -110,10 +110,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          }
       }
 
-      Boolean bForce = (Boolean) map.remove("overwrite");
-      this.overwrite = (bForce == null) ? false : bForce;
-      Boolean bSkip = (Boolean) map.remove("skipBlocks");
-      this.skipBlocks = (bSkip == null) ? false : bSkip;
+      this.overwrite = Boolean.TRUE.equals(map.remove("overwrite"));
+      this.skipBlocks = Boolean.TRUE.equals(map.remove("skipBlocks"));
       String iName = (String) map.remove("inputName");
       this.inputName = iName.isEmpty() ? STDIN : iName;
       String oName = (String) map.remove("outputName");
@@ -155,18 +153,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          this.blockSize = Math.min((bs+15) & -16, MAX_BLOCK_SIZE);
       }
 
-      Boolean bChecksum = (Boolean) map.remove("checksum");
-      this.checksum = (bChecksum == null) ? false : bChecksum;
-      Boolean bRemove = (Boolean) map.remove("remove");
-      this.removeInput = (bRemove == null) ? false : bRemove;
-      Boolean bReorder = (Boolean) map.remove("fileReorder");
-      this.reoderFiles = (bReorder == null) ? true : bReorder;
-      Boolean bNoDotFiles = (Boolean) map.remove("noDotFiles");
-      this.noDotFiles = (bNoDotFiles == null) ? false : bNoDotFiles;
-      Boolean bNoLinks = (Boolean) map.remove("noLinks");
-      this.noLinks = (bNoLinks == null) ? false : bNoLinks;
-      Boolean bAuto = (Boolean) map.remove("autoBlock");
-      this.autoBlockSize = (bAuto == null) ? false : bAuto;
+      this.checksum = Boolean.TRUE.equals(map.remove("checksum"));
+      this.removeInput = Boolean.TRUE.equals(map.remove("remove"));
+      this.reoderFiles = Boolean.TRUE.equals(map.remove("fileReorder"));
+      this.noDotFiles = Boolean.TRUE.equals(map.remove("noDotFiles"));
+      this.noLinks = Boolean.TRUE.equals(map.remove("noLinks"));
+      this.autoBlockSize = Boolean.TRUE.equals(map.remove("autoBlock"));
       this.verbosity = (Integer) map.remove("verbose");
       int concurrency;
 

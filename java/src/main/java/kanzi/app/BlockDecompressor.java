@@ -68,14 +68,10 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
    public BlockDecompressor(Map<String, Object> map)
    {
-      Boolean bForce = (Boolean) map.remove("overwrite");
-      this.overwrite = (bForce == null) ? false : bForce;
-      Boolean bRemove = (Boolean) map.remove("remove");
-      this.removeInput = (bRemove == null) ? false : bRemove;
-      Boolean bNoDotFiles = (Boolean) map.remove("noDotFiles");
-      this.noDotFiles = (bNoDotFiles == null) ? false : bNoDotFiles;
-      Boolean bNoLinks = (Boolean) map.remove("noLinks");
-      this.noLinks = (bNoLinks == null) ? false : bNoLinks;
+      this.overwrite = Boolean.TRUE.equals(map.remove("overwrite"));
+      this.removeInput = Boolean.TRUE.equals(map.remove("remove"));
+      this.noDotFiles = Boolean.TRUE.equals(map.remove("noDotFiles"));
+      this.noLinks = Boolean.TRUE.equals(map.remove("noLinks"));
       String iName = (String) map.remove("inputName");
       this.inputName = iName.isEmpty() ? STDIN : iName;
       String oName = (String) map.remove("outputName");
