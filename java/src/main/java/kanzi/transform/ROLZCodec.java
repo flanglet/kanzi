@@ -438,8 +438,13 @@ public class ROLZCodec implements ByteTransform
             // Emit last chunk literals
             srcIdx = sizeChunk;
             final int litLen = srcIdx - (firstLitIdx - startChunk);
-            final int mode = (litLen < 31) ? (litLen << 3) : 0xF8;
-            tkBuf.array[tkBuf.index++] = (byte) mode;
+
+            if (tkBuf.index != 0)
+            {
+               // At least one match to emit
+               final int mode = (litLen >= 31) ? 0xF8 : (litLen << 3);
+               tkBuf.array[tkBuf.index++] = (byte) mode;
+            }
 
             if (litLen >= 31)
                emitLength(lenBuf, litLen - 31);
@@ -609,6 +614,7 @@ public class ROLZCodec implements ByteTransform
             final int endChunk = Math.min(startChunk+sizeChunk, dstEnd);
             sizeChunk = endChunk - startChunk;
             int dstIdx = output.index;
+            boolean onlyLiterals = false;
 
             // Scope to deallocate resources early
             {
@@ -643,8 +649,18 @@ public class ROLZCodec implements ByteTransform
                mDec.decode(mIdxBuf.array, 0, mIdxLen);
                mDec.dispose();
 
+               onlyLiterals = tkLen == 0;
                srcIdx += (int) ((ibs.read()+7)>>>3);
                ibs.close();
+            }
+
+            if (onlyLiterals == true)
+            {
+               // Shortcut when no match
+               System.arraycopy(litBuf.array, 0, output.array, output.index, sizeChunk);
+               startChunk = endChunk;
+               output.index += sizeChunk;
+               continue;
             }
 
             final int n = (bsVersion < 3) ? 2 : Math.min(dstEnd-dstIdx, 8);
