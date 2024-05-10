@@ -373,10 +373,18 @@ public class ANSRangeEncoder implements EntropyEncoder
       else
       {
          final int quarter = (end-start) >> 2;
-         Global.computeHistogramOrder1(block, start+0*quarter, start+1*quarter, this.freqs, true);
-         Global.computeHistogramOrder1(block, start+1*quarter, start+2*quarter, this.freqs, true);
-         Global.computeHistogramOrder1(block, start+2*quarter, start+3*quarter, this.freqs, true);
-         Global.computeHistogramOrder1(block, start+3*quarter, start+4*quarter, this.freqs, true);
+
+         if (quarter == 0)
+         {
+            Global.computeHistogramOrder1(block, start, end, this.freqs, true);
+         }
+         else
+         {
+            Global.computeHistogramOrder1(block, start+0*quarter, start+1*quarter, this.freqs, true);
+            Global.computeHistogramOrder1(block, start+1*quarter, start+2*quarter, this.freqs, true);
+            Global.computeHistogramOrder1(block, start+2*quarter, start+3*quarter, this.freqs, true);
+            Global.computeHistogramOrder1(block, start+3*quarter, start+4*quarter, this.freqs, true);
+         }
       }
 
       return this.updateFrequencies(this.freqs, lr);
