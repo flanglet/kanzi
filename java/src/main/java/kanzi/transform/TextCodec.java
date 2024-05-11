@@ -977,7 +977,7 @@ public final class TextCodec implements ByteTransform
                   dst[dstIdx++] = ' ';
 
                // Sanity check
-               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
+               if ((e.pos < 0) || (length<0) || (dstIdx+length >= dstEnd))
                {
                   res = false;
                   break;
@@ -1569,7 +1569,7 @@ public final class TextCodec implements ByteTransform
                   dst[dstIdx++] = ' ';
 
                // Sanity check
-               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
+               if ((e.pos < 0) || (length<0) || (dstIdx+length >= dstEnd))
                {
                   res = false;
                   break;
