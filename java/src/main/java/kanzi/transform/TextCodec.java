@@ -872,6 +872,7 @@ public final class TextCodec implements ByteTransform
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
+         boolean res = true;
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
@@ -961,20 +962,26 @@ public final class TextCodec implements ByteTransform
                   idx = (idx<<7) | idx2;
 
                   if (idx >= this.dictSize)
+                  {
+                     res = false;
                      break;
+                  }
                }
 
                final DictEntry e = this.dictList[idx];
                final int length = e.data >>> 24;
                final byte[] buf = e.buf;
 
-               // Sanity check
-               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
-                  break;
-
                // Add space if only delimiter between 2 words (not an escaped delimiter)
                if ((wordRun == true) && (length > 1))
                   dst[dstIdx++] = ' ';
+
+               // Sanity check
+               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
+               {
+                  res = false;
+                  break;
+               }
 
                // Emit word
                if (cur != ESCAPE_TOKEN2)
@@ -1008,8 +1015,15 @@ public final class TextCodec implements ByteTransform
                wordRun = false;
                delimAnchor = srcIdx-1;
 
-               if ((_isCRLF == true) && (cur == LF))
+               if ((_isCRLF == true) && (cur == LF)){
                   dst[dstIdx++] = CR;
+
+                  if (dstIdx >= dstEnd)
+                  {
+                     res = false;
+                     break;
+                  }
+               }
 
                dst[dstIdx++] = cur;
             }
@@ -1017,7 +1031,7 @@ public final class TextCodec implements ByteTransform
 
          output.index = dstIdx;
          input.index = srcIdx;
-         return srcIdx == srcEnd;
+         return (res == true) && (srcIdx == srcEnd);
       }
 
 
@@ -1451,6 +1465,7 @@ public final class TextCodec implements ByteTransform
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
+         boolean res = false;
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
@@ -1539,20 +1554,26 @@ public final class TextCodec implements ByteTransform
                   idx = (idx<<7) | idx2;
 
                   if (idx >= this.dictSize)
+                  {
+                     res = false;
                      break;
+                  }
                }
 
                final DictEntry e = this.dictList[idx];
                final int length = e.data >>> 24;
                final byte[] buf = e.buf;
 
-               // Sanity check
-               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
-                  break;
-
                // Add space if only delimiter between 2 words (not an escaped delimiter)
                if ((wordRun == true) && (length > 1))
                   dst[dstIdx++] = ' ';
+
+               // Sanity check
+               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
+               {
+                  res = false;
+                  break;
+               }
 
                // Flip case of first character
                dst[dstIdx++] = (byte) (buf[e.pos]^(cur & 0x20));
@@ -1583,7 +1604,15 @@ public final class TextCodec implements ByteTransform
                else
                {
                   if ((_isCRLF == true) && (cur == LF))
+                  {
                      dst[dstIdx++] = CR;
+
+                     if (dstIdx >= dstEnd)
+                     {
+                        res = false;
+                        break;
+                     }
+                  }
 
                   dst[dstIdx++] = cur;
                }
@@ -1595,7 +1624,7 @@ public final class TextCodec implements ByteTransform
 
          output.index = dstIdx;
          input.index = srcIdx;
-         return srcIdx == srcEnd;
+         return (res == true) && (srcIdx == srcEnd);
       }
 
 
