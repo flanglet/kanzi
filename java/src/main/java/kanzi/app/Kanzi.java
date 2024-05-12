@@ -157,6 +157,7 @@ public class Kanzi
         int level = -1;
         char mode = ' ';
         boolean showHeader = true;
+        boolean showHelp = true;
 
         for (String arg : args)
         {
@@ -230,8 +231,19 @@ public class Kanzi
            {
                inputName =  arg.trim();
            }
+           else if (arg.equals("--help") || arg.equals("-h"))
+           {
+               showHelp = true;
+           }
+
 
            ctx = -1;
+        }
+
+        if ((showHelp == true) || (args.length == 0))
+        {
+            printHelp(mode, showHeader);
+            return 0;
         }
 
         // Overwrite verbosity if the output goes to stdout
@@ -248,21 +260,9 @@ public class Kanzi
         outputName = "";
         ctx = -1;
 
-        if (args.length == 0)
-        {
-           printHelp(mode, showHeader);
-           return 0;
-        }
-
         for (String arg : args)
         {
            arg = arg.trim();
-
-           if (arg.equals("--help") || arg.equals("-h"))
-           {
-               printHelp(mode, showHeader);
-               return 0;
-           }
 
            if (arg.equals("--compress") || arg.equals("-c") || arg.equals("--decompress") || arg.equals("-d"))
            {
