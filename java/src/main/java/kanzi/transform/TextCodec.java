@@ -969,7 +969,7 @@ public final class TextCodec implements ByteTransform
                }
 
                final DictEntry e = this.dictList[idx];
-               final int length = e.data >>> 24;
+               final int length = (e.data >>> 24) & 0xFF;
                final byte[] buf = e.buf;
 
                // Add space if only delimiter between 2 words (not an escaped delimiter)
@@ -977,7 +977,7 @@ public final class TextCodec implements ByteTransform
                   dst[dstIdx++] = ' ';
 
                // Sanity check
-               if ((e.pos < 0) || (length<0) || (dstIdx+length >= dstEnd))
+               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
                {
                   res = false;
                   break;
@@ -1465,7 +1465,7 @@ public final class TextCodec implements ByteTransform
          int delimAnchor = isText(src[srcIdx]) ? srcIdx-1 : srcIdx; // previous delimiter
          int words = this.staticDictSize;
          boolean wordRun = false;
-         boolean res = false;
+         boolean res = true;
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
@@ -1561,7 +1561,7 @@ public final class TextCodec implements ByteTransform
                }
 
                final DictEntry e = this.dictList[idx];
-               final int length = e.data >>> 24;
+               final int length = (e.data >>> 24) & 0xFF;
                final byte[] buf = e.buf;
 
                // Add space if only delimiter between 2 words (not an escaped delimiter)
@@ -1569,7 +1569,7 @@ public final class TextCodec implements ByteTransform
                   dst[dstIdx++] = ' ';
 
                // Sanity check
-               if ((e.pos < 0) || (length<0) || (dstIdx+length >= dstEnd))
+               if ((e.pos < 0) || (dstIdx+length >= dstEnd))
                {
                   res = false;
                   break;

@@ -1675,7 +1675,7 @@ public final class DivSufSort
       {
          a++;
 
-         for (; (a < b) && (arr[pa+arr[a]]+d >= arr[pb+arr[a]]); )
+         while((a < b) && (arr[pa+arr[a]]+d >= arr[pb+arr[a]]))
          {
             arr[a] = ~arr[a];
             a++;
@@ -1683,7 +1683,7 @@ public final class DivSufSort
 
          b--;
 
-         for (; (b > a) && (arr[pa+arr[b]]+d < arr[pb+arr[b]]); )
+         while ((b > a) && (arr[pa+arr[b]]+d < arr[pb+arr[b]]))
             b--;
 
          if (b <= a)
