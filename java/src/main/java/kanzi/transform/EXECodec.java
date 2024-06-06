@@ -246,7 +246,7 @@ public class EXECodec implements ByteTransform
         final int instr = LittleEndian.readInt32(src, srcIdx);
         final int opcode1 = instr & ARM_B_OPCODE_MASK;
         //final int opcode2 = instr & ARM_CB_OPCODE_MASK;
-        boolean isBL = (opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL); // inconditional jump
+        boolean isBL = (opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL); // unconditional jump
         boolean isCB = false; // disable for now ... isCB = (opcode2 == ARM_OPCODE_CBZ) || (opcode2 == ARM_OPCODE_CBNZ); // conditional jump
 
         if ((isBL == false) && (isCB == false))
@@ -266,7 +266,7 @@ public class EXECodec implements ByteTransform
         if (isBL == true)
         {
             // opcode(6) + sgn(1) + offset(25)
-            // Absolute target address = srcIdx +/- (offet*4)
+            // Absolute target address = srcIdx +/- (offset*4)
             final int offset = instr & ARM_B_ADDR_MASK;
             final int sgn = instr & ARM_B_ADDR_SGN_MASK;
             addr = srcIdx + 4 * ((sgn == 0) ? offset : ARM_B_OPCODE_MASK | offset);
@@ -279,7 +279,7 @@ public class EXECodec implements ByteTransform
         else // isCB == true
         {
             // opcode(8) + sgn(1) + offset(18) + register(5)
-            // Absolute target address = srcIdx +/- (offet*4)
+            // Absolute target address = srcIdx +/- (offset*4)
             final int offset = (instr & ARM_CB_ADDR_MASK) >> ARM_CB_REG_BITS;
             final int sgn = instr & ARM_CB_ADDR_SGN_MASK;
             addr = srcIdx + 4 * ((sgn == 0) ? offset : 0xFFFC0000 | offset);
@@ -503,7 +503,7 @@ public class EXECodec implements ByteTransform
          final int instr = LittleEndian.readInt32(src, srcIdx);
          final int opcode1 = instr & ARM_B_OPCODE_MASK;
          //const int opcode2 = instr & ARM_CB_OPCODE_MASK;
-         boolean isBL = (opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL); // inconditional jump
+         boolean isBL = (opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL); // unconditional jump
          boolean isCB = false; // disable for now ... isCB =(opcode2 == ARM_OPCODE_CBZ) || (opcode2 == ARM_OPCODE_CBNZ); // conditional jump
 
          if ((isBL == false) && (isCB == false))

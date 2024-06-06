@@ -436,7 +436,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                workers.add(new FileCompressWorker(queue));
 
             // Invoke the tasks concurrently and wait for results
-            // Using workers instead of tasks direclty, allows for early exit on failure
+            // Using workers instead of tasks directly, allows for early exit on failure
             for (Future<FileCompressResult> result : this.pool.invokeAll(workers))
             {
                FileCompressResult fcr = result.get();

@@ -93,7 +93,7 @@ public class FSDCodec implements ByteTransform
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int count10 = count / 10;
-      final int count5 = 2 * count10; // count5=count/5 doest not guarantee count5=2*count10 !
+      final int count5 = 2 * count10; // count5=count/5 does not guarantee count5=2*count10 !
       final int[][] histo = new int[7][256];
       int start0 = input.index + 0*count5;
       int start1 = input.index + 2*count5;
