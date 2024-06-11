@@ -133,6 +133,9 @@ public class SpreadSort implements IntSorter
       final int divMax = max >> logDivisor;
       final int binCount = divMax - divMin + 1;
 
+      if (binCount <= 0)
+         return new Bin[0];
+
       // Allocate the bins and determine their sizes
       final Bin[] bins = new Bin[binCount];
 
