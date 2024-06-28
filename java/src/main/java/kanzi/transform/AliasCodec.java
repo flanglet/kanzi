@@ -27,35 +27,27 @@ public class AliasCodec implements ByteTransform
 {
    private static final int MIN_BLOCK_SIZE = 1024;
    private final Map<String, Object> ctx;
-   private final int order; // 0 or 1
+   private final boolean onlyDNA;
 
 
    public AliasCodec()
    {
       this.ctx = null;
-      this.order = 1;
+      this.onlyDNA = false;
    }
 
 
-   public AliasCodec(int order)
+   public AliasCodec(boolean onlyDNA)
    {
-      if ((order != 0) && (order != 1))
-         throw new IllegalArgumentException("Alias Codec: The 'order' parameter must be 0 or 1");
-
       this.ctx = null;
-      this.order = order;
+      this.onlyDNA = onlyDNA;
    }
 
 
    public AliasCodec(Map<String, Object> ctx)
    {
       this.ctx = ctx;
-      final int o = (int) this.ctx.getOrDefault("alias", 1);
-
-      if ((o != 0) && (o != 1))
-         throw new IllegalArgumentException("Alias Codec: 'order' must be 0 or 1");
-
-      this.order = o;
+      this.onlyDNA = (Boolean) this.ctx.getOrDefault("packOnlyDNA", false);
    }
 
 
@@ -76,14 +68,19 @@ public class AliasCodec implements ByteTransform
       if (output.length - output.index < getMaxEncodedLength(count))
          return false;
 
+      Global.DataType dt = Global.DataType.UNDEFINED;
+
       if (this.ctx != null)
       {
-          Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
+          dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
 
           if ((dt == Global.DataType.MULTIMEDIA) || (dt == Global.DataType.UTF8))
              return false;
 
           if ((dt == Global.DataType.EXE) || (dt == Global.DataType.BIN))
+             return false;
+
+          if ((this.onlyDNA == true) && (dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.DNA))
              return false;
       }
 
@@ -106,6 +103,17 @@ public class AliasCodec implements ByteTransform
 
       if (n0 < 16)
           return false;
+
+      if (dt == Global.DataType.UNDEFINED)
+      {
+          dt = Global.detectSimpleType(count, freqs0);
+
+          if ((this.ctx != null) && (dt != Global.DataType.UNDEFINED))
+              this.ctx.put("dataType", dt);
+
+          if ((dt != Global.DataType.DNA) && (this.onlyDNA == true))
+              return false;
+      }
 
       if (n0 >= 240)
       {
@@ -173,9 +181,6 @@ public class AliasCodec implements ByteTransform
        }
        else
        {
-          if (this.order == 0)
-             return false;
-
           // Digram encoding
           TreeSet<Alias> t = new TreeSet<>();
 

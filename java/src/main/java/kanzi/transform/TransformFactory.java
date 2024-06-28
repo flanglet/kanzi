@@ -44,8 +44,8 @@ public class TransformFactory
    public static final short MM_TYPE      = 15; // Multimedia (FSD) codec
    public static final short LZX_TYPE     = 16; // Lempel Ziv Extra
    public static final short UTF_TYPE     = 17; // UTF codec
-   public static final short PACK_TYPE   = 18; // Alias codec
-   public static final short RESERVED2    = 19; // Reserved
+   public static final short PACK_TYPE    = 18; // Alias codec
+   public static final short DNA_TYPE     = 19; // DNA Alias codec
    public static final short RESERVED3    = 20; // Reserved
    public static final short RESERVED4    = 21; // Reserved
    public static final short RESERVED5    = 22; // Reserved
@@ -141,6 +141,9 @@ public class TransformFactory
 
          case "PACK":
             return PACK_TYPE;
+
+         case "DNA":
+            return DNA_TYPE;
 
          case "NONE":
             return NONE_TYPE;
@@ -251,6 +254,10 @@ public class TransformFactory
          case PACK_TYPE:
             return new AliasCodec(ctx);
 
+         case DNA_TYPE:
+            ctx.put("packOnlyDNA", true);
+            return new AliasCodec(ctx);
+
          case NONE_TYPE:
             return new NullTransform(ctx);
 
@@ -340,6 +347,9 @@ public class TransformFactory
 
          case PACK_TYPE:
             return "PACK";
+
+         case DNA_TYPE:
+            return "DNA";
 
          case NONE_TYPE:
             return "NONE";

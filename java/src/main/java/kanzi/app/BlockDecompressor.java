@@ -679,7 +679,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
             if (verbosity == 1)
             {
-               str = String.format("Decompressing %s: %d => %d in %s", inputName, this.cis.getRead(), decoded, str);
+               str = String.format("Decompressed %s: %d => %d in %s", inputName, this.cis.getRead(), decoded, str);
                printOut(str, true);
             }
 

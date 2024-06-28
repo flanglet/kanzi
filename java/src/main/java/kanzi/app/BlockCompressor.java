@@ -797,12 +797,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             {
                if (read == 0)
                {
-                   str = String.format("Compressing %s: %d => %d in %s", inputName, read, this.cos.getWritten(), str);
+                   str = String.format("Compressed %s: %d => %d in %s", inputName, read, this.cos.getWritten(), str);
                }
                else
                {
                    float f = this.cos.getWritten() / (float) read;
-                   str = String.format("Compressing %s: %d => %d (%.2f%%) in %s", inputName, read, this.cos.getWritten(), 100*f, str);
+                   str = String.format("Compressed %s: %d => %d (%.2f%%) in %s", inputName, read, this.cos.getWritten(), 100*f, str);
                }
 
                printOut(str, true);
