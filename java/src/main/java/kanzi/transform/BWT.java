@@ -228,7 +228,7 @@ public class BWT implements ByteTransform
       // Build array of packed index + value (assumes block size < 1<<24)
       int pIdx = this.getPrimaryIndex(0);
 
-      if ((pIdx < 0) || (pIdx > count))
+      if ((pIdx <= 0) || (pIdx > count))
          return false;
 
       Global.computeHistogramOrder0(input, srcIdx, srcIdx+count, this.buckets, false);
@@ -240,7 +240,11 @@ public class BWT implements ByteTransform
          sum += tmp;
       }
 
-      for (int i=0; i<pIdx; i++)
+      final int val0 = input[srcIdx] & 0xFF;
+      data[b[val0]] = 0xFF00 | val0;
+      b[val0]++;
+
+      for (int i=1; i<pIdx; i++)
       {
          final int val = input[srcIdx+i] & 0xFF;
          data[b[val]] = ((i-1)<<8) | val;
@@ -254,7 +258,7 @@ public class BWT implements ByteTransform
          b[val]++;
       }
 
-      if (count < BLOCK_SIZE_THRESHOLD1)
+      if (getBWTChunks(count) != 8)
       {
          for (int i=0, t=pIdx-1; i<count; i++)
          {
@@ -274,9 +278,19 @@ public class BWT implements ByteTransform
          int t5 = this.getPrimaryIndex(5) - 1;
          int t6 = this.getPrimaryIndex(6) - 1;
          int t7 = this.getPrimaryIndex(7) - 1;
+
+         if ((t0<0) || (t1<0) || (t2<0) || (t3<0) || (t4<0) || (t5<0) || (t6<0) || (t7<0))
+            return false;
+
+         if ((t0 >= count) || (t1 >= count) || (t2 >= count) || (t3 >= count) ||
+             (t4 >= count) || (t5 >= count) || (t6 >= count) || (t7 >= count))
+            return false;
+
+          // Last interval [7*chunk:count] smaller when 8*ckSize != count
+         final int end = count - ckSize * 7;
          int n = 0;
 
-         while (true)
+         while (n < end)
          {
             final int ptr0 = data[t0];
             output[dstIdx+n] = (byte) ptr0;
@@ -303,9 +317,6 @@ public class BWT implements ByteTransform
             output[dstIdx+n+ckSize*7] = (byte) ptr7;
             t7 = ptr7 >>> 8;
             n++;
-
-            if (ptr7 < 0)
-               break;
          }
 
          while (n < ckSize)
