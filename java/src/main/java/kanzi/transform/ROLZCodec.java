@@ -167,12 +167,12 @@ public class ROLZCodec implements ByteTransform
       private static final int LOG_POS_CHECKS = 4;
 
       private int logPosChecks;
-      private final int maskChecks;
-      private final int posChecks;
-      private final int[] matches;
+      private int maskChecks;
+      private int posChecks;
       private final int[] counters;
-      private final Map<String, Object> ctx;
+      private int[] matches;
       private int minMatch;
+      private final Map<String, Object> ctx;
 
 
       public ROLZCodec1()
@@ -203,7 +203,7 @@ public class ROLZCodec implements ByteTransform
          this.posChecks = 1 << logPosChecks;
          this.maskChecks = this.posChecks - 1;
          this.counters = new int[1<<16];
-         this.matches = new int[HASH_SIZE<<this.logPosChecks];
+         this.matches = new int[0];
          this.ctx = ctx;
       }
 
@@ -332,6 +332,9 @@ public class ROLZCodec implements ByteTransform
          flags |= (this.logPosChecks << 4);
          dst[output.index+4] = flags;
          int dstIdx = output.index + 5;
+
+         if (this.matches.length == 0)
+            this.matches = new int[HASH_SIZE<<this.logPosChecks];
 
          // Main loop
          while (startChunk < srcEnd)
@@ -560,9 +563,19 @@ public class ROLZCodec implements ByteTransform
 
          final byte flags = src[input.index+4];
          final int litOrder = flags & 0x01;
-         this.logPosChecks = (flags & 0xFF) >> 4;
          this.minMatch = MIN_MATCH3;
          int delta = 2;
+
+         this.logPosChecks = (flags & 0xFF) >> 4;
+
+         if ((this.logPosChecks < 2) || (this.logPosChecks > 8))
+            return false;
+
+         if (this.matches.length < (HASH_SIZE<<this.logPosChecks))
+            this.matches = new int[HASH_SIZE<<this.logPosChecks];
+
+         this.posChecks = 1 << this.logPosChecks;
+         this.maskChecks = this.posChecks - 1;
 
          final int bsVersion = (this.ctx == null) ? 3 : (Integer) this.ctx.getOrDefault("bsVersion", 3);
 
