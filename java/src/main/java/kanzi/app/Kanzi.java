@@ -157,7 +157,7 @@ public class Kanzi
         int level = -1;
         char mode = ' ';
         boolean showHeader = true;
-        boolean showHelp = true;
+        boolean showHelp = false;
 
         for (String arg : args)
         {
