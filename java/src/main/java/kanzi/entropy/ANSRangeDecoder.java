@@ -15,6 +15,7 @@ limitations under the License.
 
 package kanzi.entropy;
 
+import java.util.Arrays;
 import java.util.Map;
 import kanzi.BitStreamException;
 import kanzi.EntropyDecoder;
@@ -324,15 +325,15 @@ public class ANSRangeDecoder implements EntropyDecoder
       int st2 = (int) this.bitstream.readBits(32);
       int st3 = (int) this.bitstream.readBits(32);
 
-      // Read encoded data from bitstream
-      if (sz != 0)
-      {
-         // Add some padding
-         if (this.buffer.length < sz)
-            this.buffer = new byte[sz+(sz>>3)];
+      final int minBufSize = Math.min(sz+(sz>>3), end-start);
 
-         this.bitstream.readBits(this.buffer, 0, 8*sz);
-      }
+      if (this.buffer.length < minBufSize)
+         this.buffer = new byte[minBufSize];
+
+      Arrays.fill(this.buffer, (byte) 0);
+
+      // Read compressed data from bitstream
+      this.bitstream.readBits(this.buffer, 0, 8*sz);
 
       int n = 0;
       final int mask = (1<<this.logRange) - 1;
