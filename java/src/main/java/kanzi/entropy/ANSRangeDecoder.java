@@ -196,9 +196,14 @@ public class ANSRangeDecoder implements EntropyDecoder
          else
          {
             if (this.bsVersion == 1)
+            {
                this.decodeChunkV1(block, startChunk, endChunk);
+            }
             else
-               this.decodeChunkV2(block, startChunk, endChunk);
+            {
+               if (this.decodeChunkV2(block, startChunk, endChunk) == false)
+                  break;
+            }
          }
 
          startChunk = endChunk;
@@ -314,16 +319,22 @@ public class ANSRangeDecoder implements EntropyDecoder
    }
 
 
-   protected void decodeChunkV2(byte[] block, final int start, final int end)
+   protected boolean decodeChunkV2(byte[] block, final int start, final int end)
    {
       // Read chunk size
-      final int sz = EntropyUtils.readVarInt(this.bitstream) & (MAX_CHUNK_SIZE-1);
+      final int sz = EntropyUtils.readVarInt(this.bitstream);
+
+      if (sz >= MAX_CHUNK_SIZE)
+         return false;
 
       // Read initial ANS states
       int st0 = (int) this.bitstream.readBits(32);
       int st1 = (int) this.bitstream.readBits(32);
       int st2 = (int) this.bitstream.readBits(32);
       int st3 = (int) this.bitstream.readBits(32);
+
+      if (sz == 0)
+         return start == end;
 
       final int minBufSize = Math.min(sz+(sz>>3), end-start);
 
@@ -395,6 +406,8 @@ public class ANSRangeDecoder implements EntropyDecoder
 
       for (int i=end4; i<end; i++)
          block[i] = this.buffer[n++];
+
+      return true;
    }
 
 
