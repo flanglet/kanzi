@@ -186,6 +186,10 @@ public class SRT implements ByteTransform
       for (int i=0, bucketPos=0; i<nbSymbols; i++)
       {
          final int c = _symbols[i] & 0xFF;
+
+         if ((srcIdx+bucketPos < 0) || (srcIdx+bucketPos >= input.length))
+             return false;
+
          _r2s[src[srcIdx+bucketPos]&0xFF] = c;
          _buckets[c] = bucketPos + 1;
          bucketPos += _freqs[c];
