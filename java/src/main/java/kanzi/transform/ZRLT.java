@@ -173,7 +173,7 @@ mainLoop:
 
               if (runLength > 0)
               {
-                 if (dstIdx+runLength > dstEnd)
+                 if (dstIdx+runLength >= dstEnd)
                      break;
 
                  while (runLength > 0)
