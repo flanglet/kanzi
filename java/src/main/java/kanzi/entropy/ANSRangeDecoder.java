@@ -333,10 +333,10 @@ public class ANSRangeDecoder implements EntropyDecoder
       int st2 = (int) this.bitstream.readBits(32);
       int st3 = (int) this.bitstream.readBits(32);
 
-      if (sz == 0)
-         return start == end;
+      if (start == end)
+         return true;
 
-      final int minBufSize = Math.min(sz+(sz>>3), end-start);
+      final int minBufSize = Math.max(2*(end-start), 256); // protect against corrupted bitstream
 
       if (this.buffer.length < minBufSize)
          this.buffer = new byte[minBufSize];
