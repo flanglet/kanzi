@@ -202,7 +202,7 @@ mainLoop:
            srcIdx++;
            dstIdx++;
 
-           if (srcIdx >= srcEnd)
+           if ((srcIdx >= srcEnd) || (dstIdx >= dstEnd))
               break;
         }
 

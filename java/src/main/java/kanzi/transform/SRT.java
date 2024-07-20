@@ -172,6 +172,10 @@ public class SRT implements ByteTransform
       final int headerSize = decodeHeader(input.array, input.index, _freqs);
       input.index += headerSize;
       final int count = input.length - headerSize;
+
+      if (count > output.length - output.index)
+         return false;
+
       final byte[] src = input.array;
       final int srcIdx = input.index;
       final byte[] _symbols = this.symbols;
