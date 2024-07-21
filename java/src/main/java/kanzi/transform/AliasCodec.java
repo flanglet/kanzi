@@ -413,8 +413,8 @@ public class AliasCodec implements ByteTransform
 
    static class Alias implements Comparable<Alias>
    {
-        public int val;
-        public int freq;
+        public final int val;
+        public final int freq;
 
         public Alias(int val, int freq)
         {

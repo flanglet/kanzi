@@ -1437,7 +1437,7 @@ public final class DivSufSort
 
                   if (x == v)
                   {
-                     this.swapInSA(b, a);
+                     this.swapInSA(a, b);
                      a++;
                   }
                }
@@ -1479,7 +1479,7 @@ public final class DivSufSort
 
                   if (x == v)
                   {
-                     this.swapInSA(b, a);
+                     this.swapInSA(a, b);
                      a++;
                   }
                }

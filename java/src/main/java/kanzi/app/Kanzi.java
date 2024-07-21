@@ -236,7 +236,6 @@ public class Kanzi
                showHelp = true;
            }
 
-
            ctx = -1;
         }
 
@@ -250,11 +249,8 @@ public class Kanzi
         if (((inputName.length() == 0) && (outputName.length() == 0)) || "STDOUT".equalsIgnoreCase(outputName))
             verbose = 0;
 
-        if (verbose >= 1)
-        {
+        if ((verbose >= 1) && (showHeader == ture))
             printOut("\n" + APP_HEADER +"\n", true);
-            showHeader = false;
-        }
 
         inputName = "";
         outputName = "";
