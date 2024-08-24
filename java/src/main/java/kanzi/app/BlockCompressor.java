@@ -536,7 +536,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
            return "PACK+LZ&NONE";
 
         case 2 :
-           return "PACK+LZ&HUFFMAN";
+           return "DNA+LZ&HUFFMAN";
 
         case 3 :
            return "TEXT+UTF+PACK+MM+LZX&HUFFMAN";
@@ -554,10 +554,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
            return "LZP+TEXT+UTF+BWT+LZP&CM";
 
         case 8 :
-           return "EXE+RLT+TEXT+UTF&TPAQ";
+           return "EXE+RLT+TEXT+UTF+DNA&TPAQ";
 
         case 9 :
-           return "EXE+RLT+TEXT+UTF&TPAQX";
+           return "EXE+RLT+TEXT+UTF+DNA&TPAQX";
 
         default :
            return "Unknown&Unknown";
