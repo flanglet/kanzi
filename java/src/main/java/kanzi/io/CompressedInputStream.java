@@ -47,7 +47,7 @@ import kanzi.Listener;
 public class CompressedInputStream extends InputStream
 {
    private static final int BITSTREAM_TYPE           = 0x4B414E5A; // "KANZ"
-   private static final int BITSTREAM_FORMAT_VERSION = 5;
+   private static final int BITSTREAM_FORMAT_VERSION = 6;
    private static final int DEFAULT_BUFFER_SIZE      = 256*1024;
    private static final int EXTRA_BUFFER_SIZE        = 512;
    private static final int COPY_BLOCK_MASK          = 0x80;
@@ -239,9 +239,18 @@ public class CompressedInputStream extends InputStream
          }
 
          // Read and verify checksum
-         final int cksum1 = (int) this.ibs.readBits(16);
+         int crcSize = 24;
+         int seed = 0x01030507 * bsVersion;
+
+         if (bsVersion == 5)
+         {
+             crcSize = 16;
+             seed = (int) bsVersion;
+         }
+
+         final int cksum1 = (int) this.ibs.readBits(crcSize);
          final int HASH = 0x1E35A7BD;
-         int cksum2 = HASH * (int) bsVersion;
+         int cksum2 = HASH * seed;
          cksum2 ^= (HASH * ~this.entropyType);
          cksum2 ^= (HASH * (int) (~this.transformType >>> 32));
          cksum2 ^= (HASH * (int)  ~this.transformType);
@@ -255,7 +264,7 @@ public class CompressedInputStream extends InputStream
 
          cksum2 = (cksum2 >>> 23) ^ (cksum2 >>> 3);
 
-         if (cksum1 != (cksum2 & 0xFFFF))
+         if (cksum1 != (cksum2 & ((1 << crcSize) - 1)))
             throw new kanzi.io.IOException("Invalid bitstream, corrupted header", Error.ERR_CRC_CHECK);
       }
       else if (bsVersion >= 3)

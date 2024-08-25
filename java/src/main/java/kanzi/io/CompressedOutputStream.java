@@ -52,7 +52,7 @@ import kanzi.entropy.EntropyUtils;
 public class CompressedOutputStream extends OutputStream
 {
    private static final int BITSTREAM_TYPE           = 0x4B414E5A; // "KANZ"
-   private static final int BITSTREAM_FORMAT_VERSION = 5;
+   private static final int BITSTREAM_FORMAT_VERSION = 6;
    private static final int COPY_BLOCK_MASK          = 0x80;
    private static final int TRANSFORMS_MASK          = 0x10;
    private static final int MIN_BITSTREAM_BLOCK_SIZE = 1024;
@@ -205,8 +205,9 @@ public class CompressedOutputStream extends OutputStream
              throw new kanzi.io.IOException("Cannot write size of input to header", Error.ERR_WRITE_FILE);
       }
 
+      final int seed = 0x01030507 * BITSTREAM_FORMAT_VERSION;
       final int HASH = 0x1E35A7BD;
-      int cksum = HASH * BITSTREAM_FORMAT_VERSION;
+      int cksum = HASH * seed;
       cksum ^= (HASH * ~this.entropyType);
       cksum ^= (HASH * (int) (~this.transformType >>> 32));
       cksum ^= (HASH * (int) ~this.transformType);
@@ -220,7 +221,7 @@ public class CompressedOutputStream extends OutputStream
 
       cksum = (cksum >>> 23) ^ (cksum >>> 3);
 
-      if (this.obs.writeBits(cksum, 16) != 16)
+      if (this.obs.writeBits(cksum, 24) != 24)
          throw new kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);
    }
 
