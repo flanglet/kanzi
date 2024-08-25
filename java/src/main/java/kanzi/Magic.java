@@ -34,6 +34,7 @@ public class Magic
    public static final int CAB_MAGIC = 0x4D534346;
    public static final int FLAC_MAGIC = 0x664C6143;
    public static final int XZ_MAGIC = 0xFD377A58; // FD 37 7A 58 5A 00
+   public static final int RAR_MAGIC = 0x52617221; // 52 61 72 21 1A 07 00
    public static final int KNZ_MAGIC = 0x4B414E5A;
 	
    public static final int BZIP2_MAGIC = 0x425A68;
@@ -52,7 +53,7 @@ public class Magic
       GIF_MAGIC, PDF_MAGIC, ZIP_MAGIC, LZMA_MAGIC, PNG_MAGIC,
       ELF_MAGIC, MAC_MAGIC32, MAC_CIGAM32, MAC_MAGIC64, MAC_CIGAM64,
       ZSTD_MAGIC, BROTLI_MAGIC, CAB_MAGIC, RIFF_MAGIC, FLAC_MAGIC,
-      XZ_MAGIC, KNZ_MAGIC
+      XZ_MAGIC, KNZ_MAGIC, RAR_MAGIC
    };
 
    private static final int[] KEYS16 =
@@ -119,6 +120,7 @@ public class Magic
          case MP3_ID3_MAGIC:
          case XZ_MAGIC:
          case KNZ_MAGIC:
+         case RAR_MAGIC:
             return true;
 
          default:
