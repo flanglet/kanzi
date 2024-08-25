@@ -163,6 +163,14 @@ public class Global
       65536
    };
 
+   private static final String[] WIN_RESERVED =
+   {
+      // Sorted list
+      "AUX", "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6",
+      "COM7", "COM8", "COM9", "COM¹", "COM²", "COM³", "CON", "LPT0", "LPT1", "LPT2",
+      "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "NUL", "PRN"
+   };
+
    private static final byte[] BASE64_SYMBOLS =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
 
@@ -550,5 +558,25 @@ public class Global
          return DataType.SMALL_ALPHABET;
 
       return DataType.UNDEFINED;
+   }
+
+
+   public static boolean isReservedName(String fileName)
+   {
+      if (!System.getProperty("os.name").toLowerCase().contains("windows"))
+         return false;
+
+      for (int i=0; i<WIN_RESERVED.length; i++)
+      {
+         final int res = fileName.compareTo(WIN_RESERVED[i]);
+
+         if (res == 0)
+            return true;
+
+         if (res < 0)
+            break;
+      }
+
+      return false;
    }
 }

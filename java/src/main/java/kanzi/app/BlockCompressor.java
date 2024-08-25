@@ -113,8 +113,16 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       this.overwrite = Boolean.TRUE.equals(map.remove("overwrite"));
       this.skipBlocks = Boolean.TRUE.equals(map.remove("skipBlocks"));
       String iName = (String) map.remove("inputName");
+
+      if (Global.isReservedName(iName))
+          throw new IllegalArgumentException("'"+iName+"' is a reserved name");
+
       this.inputName = iName.isEmpty() ? STDIN : iName;
       String oName = (String) map.remove("outputName");
+
+      if (Global.isReservedName(oName))
+          throw new IllegalArgumentException("'"+oName+"' is a reserved name");
+
       this.outputName = (oName.isEmpty() && STDIN.equalsIgnoreCase(iName)) ? STDOUT : oName;
       Integer iBlockSize = (Integer) map.remove("block");
 

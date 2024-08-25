@@ -73,8 +73,16 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       this.noDotFiles = Boolean.TRUE.equals(map.remove("noDotFiles"));
       this.noLinks = Boolean.TRUE.equals(map.remove("noLinks"));
       String iName = (String) map.remove("inputName");
+
+      if (Global.isReservedName(iName))
+          throw new IllegalArgumentException("'"+iName+"' is a reserved name");
+
       this.inputName = iName.isEmpty() ? STDIN : iName;
       String oName = (String) map.remove("outputName");
+
+      if (Global.isReservedName(oName))
+          throw new IllegalArgumentException("'"+oName+"' is a reserved name");
+
       this.outputName = (oName.isEmpty() && STDIN.equalsIgnoreCase(iName)) ? STDOUT : oName;
       this.verbosity = (Integer) map.remove("verbose");
       this.from = (map.containsKey("from") ? (Integer) map.remove("from") : -1);
