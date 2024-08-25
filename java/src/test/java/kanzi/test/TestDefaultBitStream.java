@@ -509,13 +509,13 @@ public class TestDefaultBitStream
             read += ibs.read();
          }
 
-         System.out.println(written+ " bits written ("+(written/1024/1024/8)+" MB)");
-         System.out.println(read+ " bits read ("+(read/1024/1024/8)+" MB)");
+         System.out.println(written+ " bits written ("+(written/1024/1024/8)+" MiB)");
+         System.out.println(read+ " bits read ("+(read/1024/1024/8)+" MiB)");
          System.out.println();
          System.out.println("Write [ms]        : "+(delta1/1000000L));
-         System.out.println("Throughput [MB/s] : "+((written/1024*1000/8192)/(delta1/1000000L)));
+         System.out.println("Throughput [MiB/s] : "+((written/1024*1000/8192)/(delta1/1000000L)));
          System.out.println("Read [ms]         : "+(delta2/1000000L));
-         System.out.println("Throughput [MB/s] : "+((read/1024*1000/8192)/(delta2/1000000L)));
+         System.out.println("Throughput [MiB/s] : "+((read/1024*1000/8192)/(delta2/1000000L)));
       }
       catch (Exception e)
       {
@@ -576,13 +576,13 @@ public class TestDefaultBitStream
             read += ibs.read();
          }
 
-         System.out.println(written+ " bits written ("+(written/1024/1024/8)+" MB)");
-         System.out.println(read+ " bits read ("+(read/1024/1024/8)+" MB)");
+         System.out.println(written+ " bits written ("+(written/1024/1024/8)+" MiB)");
+         System.out.println(read+ " bits read ("+(read/1024/1024/8)+" MiB)");
          System.out.println();
          System.out.println("Write [ms]        : "+(delta1/1000000L));
-         System.out.println("Throughput [MB/s] : "+((written/1024*1000/8192)/(delta1/1000000L)));
+         System.out.println("Throughput [MiB/s] : "+((written/1024*1000/8192)/(delta1/1000000L)));
          System.out.println("Read [ms]         : "+(delta2/1000000L));
-         System.out.println("Throughput [MB/s] : "+((read/1024*1000/8192)/(delta2/1000000L)));
+         System.out.println("Throughput [MiB/s] : "+((read/1024*1000/8192)/(delta2/1000000L)));
       }
       catch (Exception e)
       {

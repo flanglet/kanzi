@@ -744,7 +744,7 @@ public class Kanzi
       if (mode == 'c')
       {
          printOut("   -b, --block=<size>", true);
-         printOut("        Size of blocks (default 4|8|16|32 MB based on level, max 1 GB, min 1 KB).", true);
+         printOut("        Size of blocks (default 4|8|16|32 MiB based on level, max 1 GiB, min 1 KiB).", true);
          printOut("        'auto' means that the compressor derives the best value'", true);
          printOut("        based on input size (when available) and number of jobs.\n", true);
          printOut("   -l, --level=<compression>", true);
@@ -752,14 +752,14 @@ public class Kanzi
          printOut("        Providing this option forces entropy and transform.", true);
          printOut("        0=None&None (store)", true);
          printOut("        1=PACK+LZ&NONE", true);
-         printOut("        2=PACK+LZ&HUFFMAN", true);
+         printOut("        2=DNA+LZ&HUFFMAN", true);
          printOut("        3=TEXT+UTF+PACK+MM+LZX&HUFFMAN", true);
          printOut("        4=TEXT+UTF+EXE+PACK+MM+ROLZ&NONE", true);
          printOut("        5=TEXT+UTF+BWT+RANK+ZRLT&ANS0", true);
          printOut("        6=TEXT+UTF+BWT+SRT+ZRLT&FPAQ", true);
          printOut("        7=LZP+TEXT+UTF+BWT+LZP&CM", true);
-         printOut("        8=EXE+RLT+TEXT+UTF&TPAQ", true);
-         printOut("        9=EXE+RLT+TEXT+UTF&TPAQX\n", true);
+         printOut("        8=EXE+RLT+TEXT+UTF+DNA&TPAQ", true);
+         printOut("        9=EXE+RLT+TEXT+UTF+DNA&TPAQX\n", true);
          printOut("   -e, --entropy=<codec>", true);
          printOut("        Entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
          printOut("        (default is ANS0)\n", true);

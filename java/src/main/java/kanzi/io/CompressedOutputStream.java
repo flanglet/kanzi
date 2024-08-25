@@ -116,7 +116,7 @@ public class CompressedOutputStream extends OutputStream
       final int bSize = (Integer) ctx.get("blockSize");
 
       if (bSize > MAX_BITSTREAM_BLOCK_SIZE)
-         throw new IllegalArgumentException("The block size must be at most "+(MAX_BITSTREAM_BLOCK_SIZE>>20)+ " MB");
+         throw new IllegalArgumentException("The block size must be at most "+(MAX_BITSTREAM_BLOCK_SIZE>>20)+ " MiB");
 
       if (bSize < MIN_BITSTREAM_BLOCK_SIZE)
          throw new IllegalArgumentException("The block size must be at least "+MIN_BITSTREAM_BLOCK_SIZE);

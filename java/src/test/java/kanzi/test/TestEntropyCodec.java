@@ -445,9 +445,9 @@ public class TestEntropyCodec
 
           final long prod = (long) iter * (long) size;
           System.out.println("Encode [ms]       : " + delta1/1000000L);
-          System.out.println("Throughput [KB/s] : " + prod * 1000000L / delta1 * 1000L / 1024L);
+          System.out.println("Throughput [KiB/s] : " + prod * 1000000L / delta1 * 1000L / 1024L);
           System.out.println("Decode [ms]       : " + delta2/1000000L);
-          System.out.println("Throughput [KB/s] : " + prod * 1000000L / delta2 * 1000L / 1024L);
+          System.out.println("Throughput [KiB/s] : " + prod * 1000000L / delta2 * 1000L / 1024L);
       }
   }
 }

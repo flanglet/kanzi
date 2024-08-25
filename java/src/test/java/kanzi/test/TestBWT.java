@@ -244,9 +244,9 @@ public class TestBWT
 
          final long prod = (long) iter * (long) size;
          System.out.println("Forward transform [ms] : " + delta1 / 1000000);
-         System.out.println("Throughput [KB/s]      : " + prod * 1000000L / delta1 * 1000L / 1024);
+         System.out.println("Throughput [KiB/s]      : " + prod * 1000000L / delta1 * 1000L / 1024);
          System.out.println("Inverse transform [ms] : " + delta2 / 1000000);
-         System.out.println("Throughput [KB/s]      : " + prod * 1000000L / delta2 * 1000L / 1024);
+         System.out.println("Throughput [KiB/s]      : " + prod * 1000000L / delta2 * 1000L / 1024);
       }
    }
 }

@@ -144,11 +144,11 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          if (bs < MIN_BLOCK_SIZE)
             throw new IllegalArgumentException("Minimum block size is "+(MIN_BLOCK_SIZE/1024)+
-               " KB ("+MIN_BLOCK_SIZE+" bytes), got "+bs+" bytes");
+               " KiB ("+MIN_BLOCK_SIZE+" bytes), got "+bs+" bytes");
 
          if (bs > MAX_BLOCK_SIZE)
             throw new IllegalArgumentException("Maximum block size is "+(MAX_BLOCK_SIZE/(1024*1024*1024))+
-               " GB ("+MAX_BLOCK_SIZE+" bytes), got "+bs+" bytes");
+               " GiB ("+MAX_BLOCK_SIZE+" bytes), got "+bs+" bytes");
 
          this.blockSize = Math.min((bs+15) & -16, MAX_BLOCK_SIZE);
       }
@@ -809,7 +809,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             }
 
             if ((verbosity > 1) && (delta != 0) && (read != 0))
-               printOut("Throughput (KB/s): "+(((read * 1000L) >> 10) / delta), true);
+               printOut("Throughput (KiB/s): "+(((read * 1000L) >> 10) / delta), true);
 
             printOut("", verbosity>1);
          }

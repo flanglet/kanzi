@@ -684,7 +684,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             }
 
             if ((verbosity > 1) && (delta > 0))
-               printOut("Throughput (KB/s):  "+(((decoded * 1000L) >> 10) / delta), true);
+               printOut("Throughput (KiB/s):  "+(((decoded * 1000L) >> 10) / delta), true);
 
             printOut("", verbosity>1);
          }

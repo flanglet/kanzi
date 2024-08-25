@@ -519,9 +519,9 @@ public class TestTransforms
 
          final long prod = (long) iter * (long) size;
          System.out.println(name + " encoding [ms]: " + delta1 / 1000000);
-         System.out.println("Throughput [MB/s]: " + prod * 1000000L / delta1 * 1000L / (1024*1024));
+         System.out.println("Throughput [MiB/s]: " + prod * 1000000L / delta1 * 1000L / (1024*1024));
          System.out.println(name + " decoding [ms]: " + delta2 / 1000000);
-         System.out.println("Throughput [MB/s]: " + prod * 1000000L / delta2 * 1000L / (1024*1024));
+         System.out.println("Throughput [MiB/s]: " + prod * 1000000L / delta2 * 1000L / (1024*1024));
       }
    }
 }
