@@ -110,20 +110,29 @@ public class HuffmanEncoder implements EntropyEncoder
 
           if (maxCodeLen > HuffmanCommon.MAX_SYMBOL_SIZE_V4)
           {
+              // Attempt to limit codes max width
               maxCodeLen = this.limitCodeLengths(alphabet, freqs, sizes, ranks, count);
 
               if (maxCodeLen == 0)
                   throw new BitStreamException("Could not generate Huffman codes: invalid code length 0", Error.ERR_PROCESS_BLOCK);
-
-              if (maxCodeLen > HuffmanCommon.MAX_SYMBOL_SIZE_V4)
-              {
-                  throw new IllegalArgumentException("Could not generate Huffman codes: max code length (" +
-                     HuffmanCommon.MAX_SYMBOL_SIZE_V4 + " bits) exceeded");
-              }
           }
 
+          if (maxCodeLen > HuffmanCommon.MAX_SYMBOL_SIZE_V4)
+          {
+             // Unlikely branch when no codes could be found that fit within MAX_SYMBOL_SIZE_V4 width
+             int n = 0;
 
-          HuffmanCommon.generateCanonicalCodes(sizes, this.codes, ranks, count, HuffmanCommon.MAX_SYMBOL_SIZE_V4);
+             for (int i = 0; i < count; i++)
+             {
+                this.codes[alphabet[i]] = n;
+                sizes[alphabet[i]] = 8;
+                n++;
+             }
+          }
+          else
+          {
+             HuffmanCommon.generateCanonicalCodes(sizes, this.codes, ranks, count, HuffmanCommon.MAX_SYMBOL_SIZE_V4);
+          }
       }
 
       // Transmit code lengths only, frequencies and codes do not matter
