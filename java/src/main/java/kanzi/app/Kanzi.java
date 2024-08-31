@@ -148,6 +148,7 @@ public class Kanzi
         boolean autoBlockSize = false;
         String inputName = "";
         String outputName = "";
+        String verboseLevel = null;
         String codec = null;
         String transform = null;
         int from = -1;
@@ -208,19 +209,27 @@ public class Kanzi
 
            if (arg.startsWith("--verbose=") || (ctx == ARG_IDX_VERBOSE))
            {
-               String verboseLevel = arg.startsWith("--verbose=") ? arg.substring(10).trim() : arg;
-
-               try
+               if (verboseLevel == null)
                {
-                   verbose = Integer.parseInt(verboseLevel);
-
-                   if ((verbose < 0) || (verbose > 5))
-                      throw new NumberFormatException();
+                   String msg = (ctx == ARG_IDX_VERBOSE) ? CMD_LINE_ARGS[ctx] : "--verbose";
+                   printWarning(msg, " (duplicate verbosity).", verbose);
                }
-               catch (NumberFormatException e)
+               else
                {
-                  System.err.println("Invalid verbosity level provided on command line: "+arg);
-                  return kanzi.Error.ERR_INVALID_PARAM;
+                  verboseLevel = arg.startsWith("--verbose=") ? arg.substring(10).trim() : arg;
+
+                  try
+                  {
+                      verbose = Integer.parseInt(verboseLevel);
+
+                      if ((verbose < 0) || (verbose > 5))
+                         throw new NumberFormatException();
+                  }
+                  catch (NumberFormatException e)
+                  {
+                     System.err.println("Invalid verbosity level provided on command line: "+arg);
+                     return kanzi.Error.ERR_INVALID_PARAM;
+                  }
                }
            }
            else if (ctx == ARG_IDX_OUTPUT)
@@ -263,7 +272,9 @@ public class Kanzi
            if (arg.equals("--compress") || arg.equals("-c") || arg.equals("--decompress") || arg.equals("-d"))
            {
                if (ctx != -1)
-                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+               {
+                  printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
+               }
 
                ctx = -1;
                continue;
@@ -272,7 +283,7 @@ public class Kanzi
            if (arg.equals("--force") || arg.equals("-f"))
            {
                if (ctx != -1)
-                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+                  printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
 
                overwrite = true;
                ctx = -1;
@@ -282,7 +293,7 @@ public class Kanzi
            if (arg.equals("--skip") || arg.equals("-s"))
            {
                if (ctx != -1)
-                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+                  printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
 
                skip = true;
                ctx = -1;
@@ -292,7 +303,7 @@ public class Kanzi
            if (arg.equals("--checksum") || arg.equals("-x"))
            {
                if (ctx != -1)
-                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+                  printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
 
                checksum = true;
                ctx = -1;
@@ -302,7 +313,7 @@ public class Kanzi
            if (arg.equals("--rm"))
            {
                if (ctx != -1)
-                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+                  printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
 
                remove = true;
                ctx = -1;
@@ -312,13 +323,13 @@ public class Kanzi
            if (arg.equals("--no-file-reorder"))
            {
                if (ctx != -1)
-                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+                  printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
 
                ctx = -1;
 
                if (mode != 'c')
                {
-                  printOut("Warning: ignoring option [" + arg + "]. Only applicable in compress mode.", verbose>0);
+                  printWarning(arg, " Only applicable in compress mode.", verbose);
                   continue;
                }
 
@@ -329,7 +340,7 @@ public class Kanzi
            if (arg.equals("--no-dot-file"))
            {
                if (ctx != -1)
-                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+                  printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
 
                ctx = -1;
                noDotFiles = true;
@@ -339,7 +350,7 @@ public class Kanzi
            if (arg.equals("--no-link"))
            {
                if (ctx != -1)
-                  printOut("Warning: ignoring option [" + CMD_LINE_ARGS[ctx] + "] with no value.", verbose>0);
+                  printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
 
                ctx = -1;
                noLinks = true;
@@ -371,9 +382,14 @@ public class Kanzi
                String name = arg.startsWith("--output=") ? arg.substring(9).trim() : arg;
 
                if (!outputName.isEmpty())
-                  System.err.println("Warning: ignoring duplicate output name: "+name);
+               {
+                  String msg = (ctx == ARG_IDX_OUTPUT) ? CMD_LINE_ARGS[ctx] : "--output";
+                  printWarning(msg, " (duplicate output name).", verbose);
+               }
                else
+               {
                   outputName = name;
+               }
 
                ctx = -1;
                continue;
@@ -384,9 +400,14 @@ public class Kanzi
                String name = arg.startsWith("--input=") ? arg.substring(8).trim() : arg;
 
                if (!inputName.isEmpty())
-                  System.err.println("Warning: ignoring duplicate input name: "+name);
+               {
+                  String msg = (ctx == ARG_IDX_INPUT) ? CMD_LINE_ARGS[ctx] : "--input";
+                  printWarning(msg, " (duplicate input name).", verbose);
+               }
                else
+               {
                   inputName = name;
+               }
 
                ctx = -1;
                continue;
@@ -398,9 +419,14 @@ public class Kanzi
                  arg.toUpperCase();
 
                if (codec != null)
-                  System.err.println("Warning: ignoring duplicate entropy: "+name);
+               {
+                  String msg = (ctx == ARG_IDX_ENTROPY) ? CMD_LINE_ARGS[ctx] : "--entropy";
+                  printWarning(msg, " (duplicate entropy).", verbose);
+               }
                else
+               {
                   codec = name;
+               }
 
                if (codec.length() == 0)
                {
@@ -418,9 +444,14 @@ public class Kanzi
                  arg.toUpperCase();
 
                if (transform != null)
-                  System.err.println("Warning: ignoring duplicate transform: "+name);
+               {
+                  String msg = (ctx == ARG_IDX_TRANSFORM) ? CMD_LINE_ARGS[ctx] : "--transform";
+                  printWarning(msg, " (duplicate transform).", verbose);
+               }
                else
+               {
                   transform = name;
+               }
 
                while ((transform.length()>0) && (transform.charAt(0) == '+'))
                   transform = transform.substring(1);
@@ -445,7 +476,8 @@ public class Kanzi
 
                if (level != -1)
                {
-                  System.err.println("Warning: ignoring duplicate level: "+name);
+                  String msg = (ctx == ARG_IDX_LEVEL) ? CMD_LINE_ARGS[ctx] : "--level";
+                  printWarning(msg, " (duplicate level).", verbose);
                   ctx = -1;
                   continue;
                }
@@ -477,7 +509,8 @@ public class Kanzi
 
                if ((blockSize != -1) || (autoBlockSize == true))
                {
-                  System.err.println("Warning: ignoring duplicate block size: "+name);
+                  String msg = (ctx == ARG_IDX_BLOCK) ? CMD_LINE_ARGS[ctx] : "--block";
+                  printWarning(msg, " (duplicate block size).", verbose);
                   ctx = -1;
                   continue;
                }
@@ -530,7 +563,8 @@ public class Kanzi
 
                if (tasks != -1)
                {
-                  System.err.println("Warning: ignoring duplicate jobs: "+name);
+                  String msg = (ctx == ARG_IDX_JOBS) ? CMD_LINE_ARGS[ctx] : "--jobs";
+                  printWarning(msg, " (duplicate jobs).", verbose);
                   ctx = -1;
                   continue;
                }
@@ -558,7 +592,7 @@ public class Kanzi
 
                if (from != -1)
                {
-                  System.err.println("Warning: ignoring duplicate start block: "+name);
+                  printWarning("--from", " (duplicate start block).", verbose);
                   ctx = -1;
                   continue;
                }
@@ -589,7 +623,7 @@ public class Kanzi
 
                if (to != -1)
                {
-                  System.err.println("Warning: ignoring duplicate end block: "+name);
+                  printWarning("--to", " (duplicate end block).", verbose);
                   ctx = -1;
                   continue;
                }
@@ -612,7 +646,7 @@ public class Kanzi
 
            if (!arg.startsWith("--verbose=") && (ctx == -1) && !arg.startsWith("--output="))
            {
-               printOut("Warning: ignoring unknown option ["+ arg + "]", verbose>0);
+               printWarning(arg, " (unknown option).", verbose);
            }
 
            ctx = -1;
@@ -620,21 +654,17 @@ public class Kanzi
 
         if (ctx != -1)
         {
-           printOut("Warning: ignoring option with missing value ["+ CMD_LINE_ARGS[ctx] + "]", verbose>0);
-        }
-
-        if (level >= 0)
-        {
-           if (codec != null)
-              printOut("Warning: providing the 'level' option forces the entropy codec. Ignoring ["+ codec + "]", verbose>0);
-
-           if (transform != null)
-              printOut("Warning: providing the 'level' option forces the transform. Ignoring ["+ transform + "]", verbose>0);
+           printWarning(CMD_LINE_ARGS[ctx], " (missing value).", verbose);
         }
 
         if (((from >= 0) || (to >= 0)) && (mode != 'd'))
         {
-            printOut("Warning: ignoring start/end block (only valid for decompression)", verbose>0);
+            if (from >= 0)
+               printWarning("--from", "(only valid for decompression).", verbose);
+
+            if (to >= 0)
+               printWarning("--to", "(only valid for decompression).", verbose);
+
             from = -1;
             to = -1;
         }
@@ -815,6 +845,13 @@ public class Kanzi
     }
 
 
+    private static void printWarning(String val, String reason, int verbose)
+    {
+         String msg = String.format("Warning: Ignoring option [%s] %s", val, reason);
+         printOut(msg, verbose>0);
+    }
+
+
     private static void printOut(String msg, boolean print)
     {
        if ((print == true) && (msg != null))
@@ -900,3 +937,4 @@ public class Kanzi
        }
     }
 }
+
