@@ -17,38 +17,38 @@ package kanzi.transform;
 
 import java.util.Map;
 import kanzi.ByteTransform;
+import kanzi.Global;
 import kanzi.SliceByteArray;
 
 
 // Utility class to en/de-code a BWT data block and its associated primary index(es)
 
-// BWT stream format: Header (m bytes) Data (n bytes)
-// Header: For each primary index,
-//   mode (8 bits) + primary index (8,16 or 24 bits)
-//   mode: bits 7-6 contain the size in bits of the primary index :
-//             00: primary index size <=  6 bits (fits in mode byte)
-//             01: primary index size <= 14 bits (1 extra byte)
-//             10: primary index size <= 22 bits (2 extra bytes)
-//             11: primary index size  > 22 bits (3 extra bytes)
-//         bits 5-0 contain 6 most significant bits of primary index
-//   primary index: remaining bits (up to 3 bytes)
+// BWT stream format: Header (mode + primary index(es)) | Data (n bytes)
+//   mode (8 bits): xxxyyyzz
+//   xxx: ignored
+//   yyy: log(chunks)
+//   zz: primary index size - 1 (in bytes)
+//   primary indexes (chunks * (8|16|24|32 bits))
 
 public class BWTBlockCodec implements ByteTransform
 {
    private static final int BWT_MAX_HEADER_SIZE = 8 * 4;
 
    private final BWT bwt;
+   private final int bsVersion;
 
 
    public BWTBlockCodec()
    {
       this.bwt = new BWT();
+      this.bsVersion = 6;
    }
 
 
    public BWTBlockCodec(Map<String, Object> ctx)
    {
       this.bwt = new BWT(ctx);
+      this.bsVersion = (ctx == null) ? 6 : (int) ctx.getOrDefault("bsVersion", 6);
    }
 
 
@@ -68,71 +68,44 @@ public class BWTBlockCodec implements ByteTransform
       if (output.length - output.index < getMaxEncodedLength(blockSize))
          return false;
 
-      final int savedOIdx = output.index;
+      int logBlockSize = Global.log2(blockSize);
+
+      if ((blockSize & (blockSize - 1)) != 0)
+         logBlockSize++;
+
+      final int pIndexSize = (logBlockSize + 7) >> 3;
+
+      if ((pIndexSize <= 0) || (pIndexSize >= 5))
+         return false;
+
       final int chunks = BWT.getBWTChunks(blockSize);
-      int log = 1;
+      final int logNbChunks = Global.log2(chunks);
 
-      while (1<<log <= blockSize)
-         log++;
+      if (logNbChunks > 7)
+          return false;
 
-      // Estimate header size based on block size
-      final int headerSizeBytes1 = chunks * ((2+log+7) >>> 3);
-      output.index += headerSizeBytes1;
-      output.length -= headerSizeBytes1;
+      int idx0 = output.index;
+      output.index += (1 + chunks * pIndexSize);
 
       // Apply forward transform
       if (this.bwt.forward(input, output) == false)
-         return false;
+          return false;
 
-      int headerSizeBytes2 = 0;
+      final byte mode = (byte) ((logNbChunks << 2) | (pIndexSize - 1));
 
-      for (int i=0; i<chunks; i++)
-      {
-         final int primaryIndex = this.bwt.getPrimaryIndex(i);
-         int pIndexSizeBits = 6;
+      // Emit header
+      for (int i=0, idx=idx0+1; i<chunks; i++) {
+          final int primaryIndex = this.bwt.getPrimaryIndex(i) - 1;
+          int shift = (pIndexSize - 1) << 3;
 
-         while ((1<<pIndexSizeBits) <= primaryIndex)
-            pIndexSizeBits++;
-
-         // Compute block size based on primary index
-         headerSizeBytes2 += ((2+pIndexSizeBits+7) >>> 3);
+          while (shift >= 0)
+          {
+              output.array[idx++] = (byte) (primaryIndex>>shift);
+              shift -= 8;
+          }
       }
 
-      if (headerSizeBytes2 != headerSizeBytes1)
-      {
-         // Adjust space for header
-         System.arraycopy(output.array, savedOIdx+headerSizeBytes1,
-            output.array, savedOIdx+headerSizeBytes2, blockSize);
-
-         output.index = output.index - headerSizeBytes1 + headerSizeBytes2;
-      }
-
-      int idx = savedOIdx;
-
-      for (int i=0; i<chunks; i++)
-      {
-         final int primaryIndex = this.bwt.getPrimaryIndex(i);
-         int pIndexSizeBits = 6;
-
-         while ((1<<pIndexSizeBits) <= primaryIndex)
-            pIndexSizeBits++;
-
-         // Compute primary index size
-         final int pIndexSizeBytes = (2+pIndexSizeBits+7) >>> 3;
-
-         // Write block header (mode + primary index). See top of file for format
-         int shift = (pIndexSizeBytes - 1) << 3;
-         int blockMode = (pIndexSizeBits + 1) >>> 3;
-         blockMode = (blockMode << 6) | ((primaryIndex >>> shift) & 0x3F);
-         output.array[idx++] = (byte) blockMode;
-
-         while (shift >= 8)
-         {
-            shift -= 8;
-            output.array[idx++] = (byte) (primaryIndex >> shift);
-         }
-      }
-
+      output.array[idx0] = mode;
       return true;
    }
 
@@ -147,30 +120,72 @@ public class BWTBlockCodec implements ByteTransform
          return false;
 
       int blockSize = input.length;
-      final int chunks = BWT.getBWTChunks(blockSize);
 
-      for (int i=0; i<chunks; i++)
+      if (this.bsVersion > 5)
       {
-         // Read block header (mode + primary index). See top of file for format
-         final int blockMode = input.array[input.index++] & 0xFF;
-         final int pIndexSizeBytes = 1 + ((blockMode >>> 6) & 0x03);
+          // Number of chunks and primary index size in bitstream since bsVersion 6
+          byte mode = input.array[input.index++];
+          final int logNbChunks = (mode >> 2) & 0x07;
+          final int pIndexSize = (mode & 0x03) + 1;
 
-         if (input.length < pIndexSizeBytes)
-             return false;
+          if (pIndexSize == 0)
+              return false;
 
-         input.length -= pIndexSizeBytes;
-         int shift = (pIndexSizeBytes - 1) << 3;
-         int primaryIndex = (blockMode & 0x3F) << shift;
+          final int chunks = 1 << logNbChunks;
 
-         // Extract BWT primary index
-         for (int n=1; n<pIndexSizeBytes; n++)
+          if (chunks != BWT.getBWTChunks(blockSize))
+              return false;
+
+          final int headerSize = 1 + chunks*pIndexSize;
+
+          if ((input.length < headerSize) || (blockSize < headerSize))
+              return false;
+
+          // Read header
+          for (int i=0; i<chunks; i++)
+          {
+              int shift = (pIndexSize - 1) << 3;
+              int primaryIndex = 0;
+
+              // Extract BWT primary index
+              while (shift >= 0) {
+                  primaryIndex = (primaryIndex << 8) | (input.array[input.index++] & 0xFF);
+                  shift -= 8;
+              }
+
+              if (this.bwt.setPrimaryIndex(i, primaryIndex + 1) == false)
+                  return false;
+          }
+
+          blockSize -= headerSize;
+      }
+      else
+      {
+         final int chunks = BWT.getBWTChunks(blockSize);
+
+         for (int i=0; i<chunks; i++)
          {
-            shift -= 8;
-            primaryIndex |= ((input.array[input.index++] & 0xFF) << shift);
-         }
+            // Read block header (mode + primary index). See top of file for format
+            final int blockMode = input.array[input.index++] & 0xFF;
+            final int pIndexSizeBytes = 1 + ((blockMode >>> 6) & 0x03);
 
-         if (this.bwt.setPrimaryIndex(i, primaryIndex) == false)
-            return false;
+            if (input.length < pIndexSizeBytes)
+                return false;
+
+            input.length -= pIndexSizeBytes;
+            int shift = (pIndexSizeBytes - 1) << 3;
+            int primaryIndex = (blockMode & 0x3F) << shift;
+
+            // Extract BWT primary index
+            for (int n=1; n<pIndexSizeBytes; n++)
+            {
+               shift -= 8;
+               primaryIndex |= ((input.array[input.index++] & 0xFF) << shift);
+            }
+
+            if (this.bwt.setPrimaryIndex(i, primaryIndex) == false)
+               return false;
+         }
       }
 
       // Apply inverse Transform

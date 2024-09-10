@@ -118,7 +118,7 @@ public final class LZCodec implements ByteTransform
          this.tkBuf = new byte[0];
          this.extra = false;
          this.ctx = null;
-         this.bsVersion = 4;
+         this.bsVersion = 6;
       }
 
 
@@ -131,7 +131,7 @@ public final class LZCodec implements ByteTransform
          this.extra = (ctx == null) ? false :
             (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE) == TransformFactory.LZX_TYPE;
          this.ctx = ctx;
-         this.bsVersion = (ctx == null) ? 4 : (int) ctx.getOrDefault("bsVersion", 4);
+         this.bsVersion = (ctx == null) ? 6 : (int) ctx.getOrDefault("bsVersion", 6);
       }
 
 
@@ -1003,10 +1003,10 @@ public final class LZCodec implements ByteTransform
       public LZPCodec(Map<String, Object> ctx)
       {
          this.hashes = new int[0];
-         int bsVersion = 4;
+         int bsVersion = 6;
 
          if (ctx != null)
-           bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
+           bsVersion = (Integer) ctx.getOrDefault("bsVersion", 6);
 
          this.isBsVersion3 = bsVersion < 4;
       }

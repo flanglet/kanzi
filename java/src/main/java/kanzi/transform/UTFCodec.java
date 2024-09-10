@@ -44,10 +44,10 @@ public class UTFCodec implements ByteTransform
    public UTFCodec(Map<String, Object> ctx)
    {
       this.ctx = ctx;
-      int bsVersion = 4;
+      int bsVersion = 6;
 
       if (ctx != null)
-        bsVersion = (Integer) ctx.getOrDefault("bsVersion", 4);
+        bsVersion = (Integer) ctx.getOrDefault("bsVersion", 6);
 
       this.isBsVersion3 = bsVersion < 4;
    }
