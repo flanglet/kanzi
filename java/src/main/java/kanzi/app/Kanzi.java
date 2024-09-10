@@ -48,8 +48,11 @@ public class Kanzi
    // private static final int ARG_IDX_FROM = 10;
    //private static final int ARG_IDX_TO = 11;
 
-   private static final String KANZI_APP = "2.3.0";
-   private static final String APP_HEADER = "Kanzi " + KANZI_APP + " (c) Frederic Langlet";
+   private static final String KANZI_VERSION = "2.3.0";
+   private static final String APP_HEADER = "Kanzi " + KANZI_VERSION + " (c) Frederic Langlet";
+   private static final String APP_SUB_HEADER = "Fast lossless data compressor.";
+   private static final String APP_USAGE = "Usage: java -jar kanzi.jar [-c|-d] [flags and files in any order]";
+
 
 
    public static void main(String[] args)
@@ -259,7 +262,12 @@ public class Kanzi
             verbose = 0;
 
         if ((verbose >= 1) && (showHeader == true))
-            printOut("\n" + APP_HEADER +"\n", true);
+        {
+            printOut("", true);
+            printOut(APP_HEADER +"\n", true);
+            printOut(APP_SUB_HEADER, true);
+            printOut(APP_USAGE, true);
+        }
 
         inputName = "";
         outputName = "";
@@ -729,7 +737,9 @@ public class Kanzi
       if (showHeader == true)
       {
          printOut("", true);
-         printOut(APP_HEADER, true);
+         printOut(APP_HEADER+"\n", true);
+         printOut(APP_SUB_HEADER, true);
+         printOut(APP_USAGE, true);
       }
 
       printOut("", true);
@@ -748,10 +758,11 @@ public class Kanzi
       }
 
       printOut("   -i, --input=<inputName>", true);
-      printOut("        Mandatory name of the input file or directory or 'stdin'", true);
+      printOut("        Name of the input file or directory or 'stdin'.", true);
       printOut("        When the source is a directory, all files in it will be processed.", true);
       printOut("        Provide " + File.separator + ". at the end of the directory name to avoid recursion", true);
-      printOut("        (EG: myDir" + File.separator + ". => no recursion)\n", true);
+      printOut("        (EG: myDir" + File.separator + ". => no recursion)", true);
+      printOut("        If this option is not provided, kanzi reads data from stdin.\n", true);
       printOut("   -o, --output=<outputName>", true);
 
       if (mode == 'c')
