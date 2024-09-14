@@ -167,6 +167,9 @@ public class CompressedOutputStream extends OutputStream
 
    protected void writeHeader() throws IOException
    {
+      if ((this.headless == true) || (this.initialized.getAndSet(true) == true))
+         return;
+
       if (this.obs.writeBits(BITSTREAM_TYPE, 32) != 32)
          throw new kanzi.io.IOException("Cannot write bitstream type to header", Error.ERR_WRITE_FILE);
 
@@ -451,8 +454,7 @@ public class CompressedOutputStream extends OutputStream
 
    private void processBlock() throws IOException
    {
-      if ((this.headless == false) && (this.initialized.getAndSet(true) == false))
-         this.writeHeader();
+      this.writeHeader();
 
       if (this.buffers[0].index == 0)
          return;

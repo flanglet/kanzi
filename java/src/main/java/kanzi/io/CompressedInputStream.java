@@ -168,6 +168,9 @@ public class CompressedInputStream extends InputStream
 
    protected void readHeader() throws IOException
    {
+      if ((this.headless == true) || (this.initialized.getAndSet(true) == true))
+          return;
+
       // Read stream type
       final int type = (int) this.ibs.readBits(32);
 
@@ -472,8 +475,7 @@ public class CompressedInputStream extends InputStream
 
    private int processBlock() throws IOException
    {
-      if ((this.headless == false) && (this.initialized.getAndSet(true)== false))
-         this.readHeader();
+      this.readHeader();
 
       try
       {
