@@ -212,7 +212,7 @@ public class Kanzi
 
            if (arg.startsWith("--verbose=") || (ctx == ARG_IDX_VERBOSE))
            {
-               if (verboseLevel == null)
+               if (verboseLevel != null)
                {
                    String msg = (ctx == ARG_IDX_VERBOSE) ? CMD_LINE_ARGS[ctx] : "--verbose";
                    printWarning(msg, " (duplicate verbosity).", verbose);
