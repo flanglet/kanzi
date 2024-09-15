@@ -118,7 +118,7 @@ public class TestCompressedStream
          ctx1.put("transform", "NONE");
          ctx1.put("entropy", "HUFFMAN");
          ctx1.put("blockSize", blockSize);
-         ctx1.put("checksum", false);
+         ctx1.put("checksum", 0);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
          cos.write(block, 0, length);
          cos.close();
@@ -159,9 +159,9 @@ public class TestCompressedStream
       try
       {
          final int blockSize = (length / (1 + new Random().nextInt(3))) & -16;
-         boolean check = new Random().nextInt(2) == 0;
-         int jobs = 1 + new Random().nextInt(3);
-         System.out.println("Test - " + jobs + " job(s) " + ((check == true) ? "checksum" : ""));
+         int checksum = new Random().nextInt(3) * 32;
+         int jobs = 1 + new Random().nextInt(4);
+         System.out.println("Test - " + jobs + " job(s) " + ((checksum == 0) ? "checksum" : ""));
          byte[] buf = new byte[length];
          System.arraycopy(block, 0, buf, 0, length);
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2*block.length);
@@ -170,7 +170,7 @@ public class TestCompressedStream
          ctx1.put("transform", "LZX");
          ctx1.put("entropy", "FPAQ");
          ctx1.put("blockSize", blockSize);
-         ctx1.put("checksum", check);
+         ctx1.put("checksum", checksum);
          ctx1.put("pool", pool);
          ctx1.put("jobs", jobs);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
@@ -225,7 +225,7 @@ public class TestCompressedStream
          ctx1.put("transform", "LZP+ZRLT");
          ctx1.put("entropy", "ANS0");
          ctx1.put("blockSize", blockSize);
-         ctx1.put("checksum", false);
+         ctx1.put("checksum", 0);
          ctx1.put("pool", pool);
          ctx1.put("jobs", 1);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
@@ -275,7 +275,7 @@ public class TestCompressedStream
          ctx1.put("transform", "NONE");
          ctx1.put("entropy", "HUFFMAN");
          ctx1.put("blockSize", length);
-         ctx1.put("checksum", false);
+         ctx1.put("checksum", 0);
          ctx1.put("pool", pool);
          ctx1.put("jobs", 1);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
@@ -306,7 +306,7 @@ public class TestCompressedStream
          ctx1.put("transform", "NONE");
          ctx1.put("entropy", "HUFFMAN");
          ctx1.put("blockSize", 4 * 1024 * 1024);
-         ctx1.put("checksum", false);
+         ctx1.put("checksum", 0);
          ctx1.put("pool", pool);
          ctx1.put("jobs", 1);
          CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
