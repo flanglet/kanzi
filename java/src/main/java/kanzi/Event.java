@@ -30,18 +30,25 @@ public class Event
       AFTER_HEADER_DECODING
    }
 
+   public enum HashType
+   {
+      NO_HASH,
+      SIZE_32,
+      SIZE_64
+   }
+
    private final int id;
    private final long size;
-   private final int hash;
+   private final long hash;
    private final Type type;
-   private final boolean hashing;
+   private final HashType hashType;
    private final long time;
    private final String msg;
 
 
    public Event(Type type, int id, long size)
    {
-      this(type, id, size, 0, false);
+      this(type, id, size, 0, HashType.NO_HASH);
    }
 
 
@@ -56,25 +63,25 @@ public class Event
       this.id = id;
       this.size = 0L;
       this.hash = 0;
-      this.hashing = false;
+      this.hashType = HashType.NO_HASH;
       this.type = type;
       this.time = (time > 0) ? time : System.nanoTime();
       this.msg = msg;
    }
 
 
-   public Event(Type type, int id, long size, int hash, boolean hashing)
+   public Event(Type type, int id, long size, long hash, HashType hashType)
    {
-      this(type, id, size, hash, hashing, 0);
+      this(type, id, size, hash, hashType, 0);
    }
 
 
-   public Event(Type type, int id, long size, int hash, boolean hashing, long time)
+   public Event(Type type, int id, long size, long hash, HashType hashType, long time)
    {
       this.id = id;
       this.size = size;
       this.hash = hash;
-      this.hashing = hashing;
+      this.hashType = hashType;
       this.type = type;
       this.time = (time > 0) ? time : System.nanoTime();
       this.msg = null;
@@ -99,9 +106,15 @@ public class Event
    }
 
 
-   public Integer getHash()
+   public long getHash()
    {
-      return (this.hashing == false) ? null : this.hash;
+      return (this.hashType == HashType.NO_HASH) ? 0 : this.hash;
+   }
+
+
+   public HashType getHashType()
+   {
+      return this.hashType;
    }
 
 
@@ -126,8 +139,10 @@ public class Event
       sb.append(", \"size\":").append(this.getSize());
       sb.append(", \"time\":").append(this.getTime());
 
-      if (this.hashing == true)
-         sb.append(", \"hash\":").append(Integer.toHexString(this.getHash()));
+      if (this.hashType == HashType.SIZE_32)
+         sb.append(", \"hash\":").append(Integer.toHexString((int) this.getHash()));
+      else if (this.hashType == HashType.SIZE_64)
+         sb.append(", \"hash\":").append(Long.toHexString(this.getHash()));
 
       sb.append(" }");
       return sb.toString();

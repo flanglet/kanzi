@@ -149,8 +149,10 @@ public class InfoPrinter implements Listener
                msg.append(String.format(" (%d%%)", (stage2Size*100L/bi.stage0Size)));
 
             // Optionally add hash
-            if (evt.getHash() != null)
-               msg.append(String.format("  [%s]", Integer.toHexString(evt.getHash())));
+            if (evt.getHashType() == Event.HashType.SIZE_32)
+               msg.append(String.format("  [%s]", Integer.toHexString((int) evt.getHash())));
+            else if (evt.getHashType() == Event.HashType.SIZE_64)
+               msg.append(String.format("  [%s]", Long.toHexString(evt.getHash())));
 
             this.ps.println(msg.toString());
          }

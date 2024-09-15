@@ -39,6 +39,7 @@ import kanzi.bitstream.DefaultInputBitStream;
 import kanzi.entropy.EntropyCodecFactory;
 import kanzi.transform.Sequence;
 import kanzi.util.hash.XXHash32;
+import kanzi.util.hash.XXHash64;
 import kanzi.Listener;
 
 
@@ -66,7 +67,8 @@ public class CompressedInputStream extends InputStream
    private int jobs;
    private int bufferThreshold;
    private int available; // decoded not consumed bytes
-   private XXHash32 hasher;
+   private XXHash32 hasher32;
+   private XXHash64 hasher64;
    private final SliceByteArray[] buffers; // input & output per block
    private int entropyType;
    private long transformType;
@@ -149,10 +151,23 @@ public class CompressedInputStream extends InputStream
              throw new IllegalArgumentException("Invalid or missing block size: " + this.blockSize);
 
          this.bufferThreshold = this.blockSize;
-         boolean cksum = (Boolean) ctx.getOrDefault("checksum", false);
+         int checksum = (Integer) ctx.getOrDefault("checksum", 0);
 
-         if (cksum == true)
-             this.hasher = new XXHash32(BITSTREAM_TYPE);
+         if (checksum == 32)
+         {
+            this.hasher32 = new XXHash32(BITSTREAM_TYPE);
+            this.hasher64 = null;
+         }
+         else if (checksum == 64)
+         {
+            this.hasher32 = null;
+            this.hasher64 = new XXHash64(BITSTREAM_TYPE);
+         }
+         else
+         {
+            this.hasher32 = null;
+            this.hasher64 = null;
+         }
 
          long oSize = (Long) ctx.getOrDefault("outputSize", 0L);
 
@@ -189,8 +204,23 @@ public class CompressedInputStream extends InputStream
       this.ctx.put("bsVersion", bsVersion);
 
       // Read block checksum
-      if (this.ibs.readBit() == 1)
-         this.hasher = new XXHash32(BITSTREAM_TYPE);
+      if (bsVersion >= 6)
+      {
+         int chkSize = (int) this.ibs.readBits(2);
+
+         if (chkSize == 1)
+             this.hasher32 = new XXHash32(BITSTREAM_TYPE);
+         else if (chkSize == 2)
+             this.hasher64 = new XXHash64(BITSTREAM_TYPE);
+         else if (chkSize == 3)
+             throw new kanzi.io.IOException("Invalid bitstream, incorrect block checksum size: " + chkSize,
+                 Error.ERR_INVALID_FILE);
+      }
+      else
+      {
+         if (this.ibs.readBit() == 1)
+            this.hasher32 = new XXHash32(BITSTREAM_TYPE);
+      }
 
       // Read entropy codec
       try
@@ -268,7 +298,15 @@ public class CompressedInputStream extends InputStream
          cksum2 = (cksum2 >>> 23) ^ (cksum2 >>> 3);
 
          if (cksum1 != (cksum2 & ((1 << crcSize) - 1)))
-            throw new kanzi.io.IOException("Invalid bitstream, corrupted header", Error.ERR_CRC_CHECK);
+            throw new kanzi.io.IOException("Invalid bitstream, checksum mismatch", Error.ERR_CRC_CHECK);
+
+         if (bsVersion >= 6)
+         {
+            long padding = this.ibs.readBits(15);
+
+            if (padding != 0)
+               throw new kanzi.io.IOException("Invalid bitstream, corrupted header", Error.ERR_INVALID_FILE);
+         }
       }
       else if (bsVersion >= 3)
       {
@@ -300,7 +338,14 @@ public class CompressedInputStream extends InputStream
       {
          StringBuilder sb = new StringBuilder(200);
          sb.append("Bitstream version: ").append(bsVersion).append("\n");
-         sb.append("Checksum: ").append(this.hasher != null).append("\n");
+         String cksum = "NONE";
+
+         if (this.hasher32 != null)
+             cksum = "32 bits";
+         else if (this.hasher64 != null)
+             cksum = "64 bits";
+
+         sb.append("Checksum: ").append(cksum).append("\n");
          sb.append("Block size: ").append(this.blockSize).append(" bytes\n");
          String w1 = EntropyCodecFactory.getName(this.entropyType);
 
@@ -527,7 +572,7 @@ public class CompressedInputStream extends InputStream
                Callable<Status> task = new DecodingTask(this.buffers[taskId],
                        this.buffers[this.jobs+taskId], blkSize, this.transformType,
                        this.entropyType, firstBlockId+taskId+1,
-                       this.ibs, this.hasher, this.blockId,
+                       this.ibs, this.hasher32, this.hasher64, this.blockId,
                        blockListeners, map);
                tasks.add(task);
             }
@@ -584,9 +629,16 @@ public class CompressedInputStream extends InputStream
 
                if (blockListeners.length > 0)
                {
+                  Event.HashType hashType = Event.HashType.NO_HASH;
+
+                  if (this.hasher32 != null)
+                     hashType = Event.HashType.SIZE_32;
+                  else if (this.hasher64 != null)
+                     hashType = Event.HashType.SIZE_64;
+
                   // Notify after transform ... in block order !
                   Event evt = new Event(Event.Type.AFTER_TRANSFORM, res.blockId,
-                          res.decoded, res.checksum, this.hasher != null, res.completionTime);
+                          res.decoded, res.checksum, hashType, res.completionTime);
 
                   notifyListeners(blockListeners, evt);
                }
@@ -680,7 +732,8 @@ public class CompressedInputStream extends InputStream
       private final int entropyType;
       private final int blockId;
       private final InputBitStream ibs;
-      private final XXHash32 hasher;
+      private final XXHash32 hasher32;
+      private final XXHash64 hasher64;
       private final AtomicInteger processedBlockId;
       private final Listener[] listeners;
       private final Map<String, Object> ctx;
@@ -688,7 +741,7 @@ public class CompressedInputStream extends InputStream
 
       DecodingTask(SliceByteArray iBuffer, SliceByteArray oBuffer, int blockSize,
               long transformType, int entropyType, int blockId,
-              InputBitStream ibs, XXHash32 hasher,
+              InputBitStream ibs, XXHash32 hasher32, XXHash64 hasher64,
               AtomicInteger processedBlockId, Listener[] listeners,
               Map<String, Object> ctx)
       {
@@ -699,7 +752,8 @@ public class CompressedInputStream extends InputStream
          this.entropyType = entropyType;
          this.blockId = blockId;
          this.ibs = ibs;
-         this.hasher = hasher;
+         this.hasher32 = hasher32;
+         this.hasher64 = hasher64;
          this.processedBlockId = processedBlockId;
          this.listeners = listeners;
          this.ctx = ctx;
@@ -786,7 +840,7 @@ public class CompressedInputStream extends InputStream
 
          ByteArrayInputStream bais = new ByteArrayInputStream(data.array, 0, r);
          DefaultInputBitStream is = new DefaultInputBitStream(bais, 16384);
-         int checksum1 = 0;
+         long checksum1 = 0;
          EntropyDecoder ed = null;
 
          try
@@ -828,15 +882,25 @@ public class CompressedInputStream extends InputStream
                     "Invalid compressed block length: " + preTransformLength);
             }
 
+            Event.HashType hashType = Event.HashType.NO_HASH;
+
             // Extract checksum from bit stream (if any)
-            if (this.hasher != null)
-               checksum1 = (int) is.readBits(32);
+            if (this.hasher32 != null)
+            {
+               checksum1 = is.readBits(32) & 0x00000000FFFFFFFFL;
+               hashType = Event.HashType.SIZE_32;
+            }
+            else if (this.hasher64 != null)
+            {
+               checksum1 = is.readBits(64);
+               hashType = Event.HashType.SIZE_64;
+            }
 
             if (this.listeners.length > 0)
             {
                // Notify before entropy (block size in bitstream is unknown)
                Event evt = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId,
-                       -1, checksum1, this.hasher != null);
+                       -1, checksum1, hashType);
 
                notifyListeners(this.listeners, evt);
             }
@@ -875,7 +939,7 @@ public class CompressedInputStream extends InputStream
             {
                // Notify after entropy (block size set to size in bitstream)
                Event evt = new Event(Event.Type.AFTER_ENTROPY, currentBlockId,
-                       (int) (is.read()>>3), checksum1, this.hasher != null);
+                       (int) (is.read()>>3), checksum1, hashType);
 
                notifyListeners(this.listeners, evt);
             }
@@ -884,7 +948,7 @@ public class CompressedInputStream extends InputStream
             {
                // Notify before transform (block size after entropy decoding)
                Event evt = new Event(Event.Type.BEFORE_TRANSFORM, currentBlockId,
-                       preTransformLength, checksum1, this.hasher != null);
+                       preTransformLength, checksum1, hashType);
 
                notifyListeners(this.listeners, evt);
             }
@@ -904,14 +968,23 @@ public class CompressedInputStream extends InputStream
             final int decoded = data.index - savedIdx;
 
             // Verify checksum
-            if (this.hasher != null)
+            if (this.hasher32 != null)
             {
-               final int checksum2 = this.hasher.hash(data.array, savedIdx, decoded);
+               final int checksum2 = this.hasher32.hash(data.array, savedIdx, decoded);
+
+               if (checksum2 != (int) checksum1)
+                  return new Status(data, currentBlockId, decoded, checksum1, Error.ERR_CRC_CHECK,
+                          "Corrupted bitstream: expected checksum " + Integer.toHexString((int) checksum1) +
+                          ", found " + Integer.toHexString(checksum2));
+            }
+            else if (this.hasher64 != null)
+            {
+               final long checksum2 = this.hasher64.hash(data.array, savedIdx, decoded);
 
                if (checksum2 != checksum1)
                   return new Status(data, currentBlockId, decoded, checksum1, Error.ERR_CRC_CHECK,
-                          "Corrupted bitstream: expected checksum " + Integer.toHexString(checksum1) +
-                          ", found " + Integer.toHexString(checksum2));
+                          "Corrupted bitstream: expected checksum " + Long.toHexString(checksum1) +
+                          ", found " + Long.toHexString(checksum2));
             }
 
             return new Status(data, currentBlockId, decoded, checksum1, 0, null);
@@ -943,15 +1016,15 @@ public class CompressedInputStream extends InputStream
       final boolean skipped;
       final int error; // 0 = OK
       final String msg;
-      final int checksum;
+      final long checksum;
       final long completionTime;
 
-      Status(SliceByteArray data, int blockId, int decoded, int checksum, int error, String msg)
+      Status(SliceByteArray data, int blockId, int decoded, long checksum, int error, String msg)
       {
          this(data, blockId, decoded, checksum, error, msg, false);
       }
 
-      Status(SliceByteArray data, int blockId, int decoded, int checksum, int error, String msg, boolean skipped)
+      Status(SliceByteArray data, int blockId, int decoded, long checksum, int error, String msg, boolean skipped)
       {
          this.data = data.array;
          this.blockId = blockId;

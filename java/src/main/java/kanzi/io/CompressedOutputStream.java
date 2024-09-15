@@ -39,6 +39,7 @@ import kanzi.bitstream.DefaultOutputBitStream;
 import kanzi.entropy.EntropyCodecFactory;
 import kanzi.transform.Sequence;
 import kanzi.util.hash.XXHash32;
+import kanzi.util.hash.XXHash64;
 import kanzi.Listener;
 import kanzi.Magic;
 import kanzi.entropy.EntropyUtils;
@@ -68,7 +69,8 @@ public class CompressedOutputStream extends OutputStream
    private final int nbInputBlocks;
    private final int jobs;
    private int bufferThreshold;
-   private final XXHash32 hasher;
+   private final XXHash32 hasher32;
+   private final XXHash64 hasher64;
    private final SliceByteArray[] buffers; // input & output per block
    private final int entropyType;
    private final long transformType;
@@ -140,8 +142,24 @@ public class CompressedOutputStream extends OutputStream
       final int nbBlocks = (this.inputSize == 0) ? 0 : (int) ((this.inputSize+(bSize-1)) / bSize);
       this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
 
-      boolean checksum = (Boolean) ctx.getOrDefault("checksum", false);
-      this.hasher = (checksum == true) ? new XXHash32(BITSTREAM_TYPE) : null;
+      int checksum = (Integer) ctx.getOrDefault("checksum", 0);
+
+      if (checksum == 32)
+      {
+         this.hasher32 = new XXHash32(BITSTREAM_TYPE);
+         this.hasher64 = null;
+      }
+      else if (checksum == 64)
+      {
+         this.hasher32 = null;
+         this.hasher64 = new XXHash64(BITSTREAM_TYPE);
+      }
+      else
+      {
+         this.hasher32 = null;
+         this.hasher64 = null;
+      }
+
       this.jobs = tasks;
       this.pool = threadPool;
       this.closed = new AtomicBoolean(false);
@@ -176,8 +194,15 @@ public class CompressedOutputStream extends OutputStream
       if (this.obs.writeBits(BITSTREAM_FORMAT_VERSION, 4) != 4)
          throw new kanzi.io.IOException("Cannot write bitstream version to header", Error.ERR_WRITE_FILE);
 
-      if (this.obs.writeBits((this.hasher != null) ? 1 : 0, 1) != 1)
-         throw new kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);
+      int chkSize = 0;
+
+      if (this.hasher32 != null)
+         chkSize = 1;
+      else if (this.hasher64 != null)
+         chkSize = 2;
+
+      if (this.obs.writeBits(chkSize, 2) != 2)
+         throw new kanzi.io.IOException("Cannot write checksum type to header", Error.ERR_WRITE_FILE);
 
       if (this.obs.writeBits(this.entropyType, 5) != 5)
          throw new kanzi.io.IOException("Cannot write entropy type to header", Error.ERR_WRITE_FILE);
@@ -226,6 +251,9 @@ public class CompressedOutputStream extends OutputStream
 
       if (this.obs.writeBits(cksum, 24) != 24)
          throw new kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);
+
+      if (this.obs.writeBits(0, 15) != 15)
+         throw new kanzi.io.IOException("Cannot write padding to header", Error.ERR_WRITE_FILE);
    }
 
 
@@ -499,7 +527,7 @@ public class CompressedOutputStream extends OutputStream
             Callable<Status> task = new EncodingTask(this.buffers[taskId],
                     this.buffers[this.jobs+taskId], dataLength, this.transformType,
                     this.entropyType, firstBlockId+taskId+1,
-                    this.obs, this.hasher, this.blockId,
+                    this.obs, this.hasher32, this.hasher64, this.blockId,
                     blockListeners, map);
             tasks.add(task);
          }
@@ -577,7 +605,8 @@ public class CompressedOutputStream extends OutputStream
       private final int entropyType;
       private final int blockId;
       private final OutputBitStream obs;
-      private final XXHash32 hasher;
+      private final XXHash32 hasher32;
+      private final XXHash64 hasher64;
       private final AtomicInteger processedBlockId;
       private final Listener[] listeners;
       private final Map<String, Object> ctx;
@@ -585,7 +614,7 @@ public class CompressedOutputStream extends OutputStream
 
       EncodingTask(SliceByteArray iBuffer, SliceByteArray oBuffer, int length,
               long transformType, int entropyType, int blockId,
-              OutputBitStream obs, XXHash32 hasher,
+              OutputBitStream obs, XXHash32 hasher32, XXHash64 hasher64,
               AtomicInteger processedBlockId, Listener[] listeners,
               Map<String, Object> ctx)
       {
@@ -596,7 +625,8 @@ public class CompressedOutputStream extends OutputStream
          this.entropyType = entropyType;
          this.blockId = blockId;
          this.obs = obs;
-         this.hasher = hasher;
+         this.hasher32 = hasher32;
+         this.hasher64 = hasher64;
          this.processedBlockId = processedBlockId;
          this.listeners = listeners;
          this.ctx = ctx;
@@ -636,17 +666,26 @@ public class CompressedOutputStream extends OutputStream
 
             byte mode = 0;
             int postTransformLength;
-            int checksum = 0;
+            long checksum = 0;
+            Event.HashType hashType = Event.HashType.NO_HASH;
 
             // Compute block checksum
-            if (this.hasher != null)
-               checksum = this.hasher.hash(data.array, data.index, blockLength);
+            if (this.hasher32 != null)
+            {
+               checksum = this.hasher32.hash(data.array, data.index, blockLength) & 0x00000000FFFFFFFFL;
+               hashType = Event.HashType.SIZE_32;
+            }
+            else if (this.hasher64 != null)
+            {
+               checksum = this.hasher64.hash(data.array, data.index, blockLength);
+               hashType = Event.HashType.SIZE_64;
+            }
 
             if (this.listeners.length > 0)
             {
                // Notify before transform
                Event evt = new Event(Event.Type.BEFORE_TRANSFORM, currentBlockId,
-                       blockLength, checksum, this.hasher != null);
+                       blockLength, checksum, hashType);
 
                notifyListeners(this.listeners, evt);
             }
@@ -735,7 +774,7 @@ public class CompressedOutputStream extends OutputStream
             {
                // Notify after transform
                Event evt = new Event(Event.Type.AFTER_TRANSFORM, currentBlockId,
-                       postTransformLength, checksum, this.hasher != null);
+                       postTransformLength, checksum, hashType);
 
                notifyListeners(this.listeners, evt);
             }
@@ -771,14 +810,16 @@ public class CompressedOutputStream extends OutputStream
             os.writeBits(postTransformLength, 8*dataSize);
 
             // Write checksum
-            if (this.hasher != null)
+            if (this.hasher32 != null)
                os.writeBits(checksum, 32);
+            else if (this.hasher64 != null)
+               os.writeBits(checksum, 64);
 
             if (this.listeners.length > 0)
             {
                // Notify before entropy
                Event evt = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId,
-                       postTransformLength, checksum, this.hasher != null);
+                       postTransformLength, checksum, hashType);
 
                notifyListeners(this.listeners, evt);
             }
@@ -825,7 +866,7 @@ public class CompressedOutputStream extends OutputStream
             {
                // Notify after entropy
                Event evt = new Event(Event.Type.AFTER_ENTROPY,
-                       currentBlockId, (written+7) >> 3, checksum, this.hasher != null);
+                       currentBlockId, (written+7) >> 3, checksum, hashType);
 
                notifyListeners(this.listeners, evt);
             }

@@ -57,7 +57,6 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
    private int verbosity;
    private final boolean overwrite;
-   private final boolean checksum;
    private final boolean skipBlocks;
    private final boolean removeInput;
    private final boolean reoderFiles;
@@ -69,6 +68,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private final String codec;
    private final String transform;
    private int blockSize;
+   private final int checksum;
    private final int jobs;
    private final List<Listener> listeners;
    private final ExecutorService pool;
@@ -161,12 +161,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          this.blockSize = Math.min((bs+15) & -16, MAX_BLOCK_SIZE);
       }
 
-      this.checksum = Boolean.TRUE.equals(map.remove("checksum"));
-      this.removeInput = Boolean.TRUE.equals(map.remove("remove"));
-      this.reoderFiles = Boolean.TRUE.equals(map.remove("fileReorder"));
-      this.noDotFiles = Boolean.TRUE.equals(map.remove("noDotFiles"));
-      this.noLinks = Boolean.TRUE.equals(map.remove("noLinks"));
-      this.autoBlockSize = Boolean.TRUE.equals(map.remove("autoBlock"));
+      this.checksum = map.containsKey("checksum") ? (Integer) (map.remove("checksum")) : 0;
+      this.removeInput = map.containsKey("remove") ? Boolean.TRUE.equals(map.remove("remove")) : false;
+      this.reoderFiles = map.containsKey("fileReorder") ? Boolean.TRUE.equals(map.remove("fileReorder")) : true;
+      this.noDotFiles = map.containsKey("noDotFiles") ? Boolean.TRUE.equals(map.remove("noDotFiles")) : false;
+      this.noLinks = map.containsKey("noLinks") ? Boolean.TRUE.equals(map.remove("noLinks")) : false;
+      this.autoBlockSize = map.containsKey("autoBlock") ? Boolean.TRUE.equals(map.remove("autoBlock")) : false;
       this.verbosity = (Integer) map.remove("verbose");
       int concurrency;
 
@@ -282,7 +282,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          printOut("Verbosity: " + this.verbosity, true);
          printOut("Overwrite: " + this.overwrite, true);
-         printOut("Checksum: " +  this.checksum, true);
+         String chksum = ((this.checksum == 32) || (this.checksum == 64)) ? this.checksum+" bits" : "NONE";
+         printOut("Checksum: " + chksum, true);
          String etransform = (NONE.equals(this.transform)) ? "no" : this.transform;
          printOut("Using " + etransform + " transform (stage 1)", true);
          String ecodec = (NONE.equals(this.codec)) ? "no" : this.codec;

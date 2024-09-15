@@ -45,8 +45,9 @@ public class Kanzi
    private static final int ARG_IDX_JOBS = 7;
    private static final int ARG_IDX_VERBOSE = 8;
    private static final int ARG_IDX_LEVEL = 9;
-   // private static final int ARG_IDX_FROM = 10;
-   //private static final int ARG_IDX_TO = 11;
+   private static final int ARG_IDX_CHECKSUM = 10;
+   // private static final int ARG_IDX_FROM = 11;
+   //private static final int ARG_IDX_TO = 12;
 
    private static final String KANZI_VERSION = "2.3.0";
    private static final String APP_HEADER = "Kanzi " + KANZI_VERSION + " (c) Frederic Langlet";
@@ -142,7 +143,6 @@ public class Kanzi
         int blockSize = -1;
         int verbose = 1;
         boolean overwrite = false;
-        boolean checksum = false;
         boolean skip = false;
         boolean remove = false;
         boolean fileReorder = true;
@@ -154,6 +154,7 @@ public class Kanzi
         String verboseLevel = null;
         String codec = null;
         String transform = null;
+        int checksum = 0;
         int from = -1;
         int to = -1;
         int tasks = -1;
@@ -308,12 +309,12 @@ public class Kanzi
                continue;
            }
 
-           if (arg.equals("--checksum") || arg.equals("-x"))
+           if (arg.equals("-x32") || arg.equals("-x64") || arg.equals("-x"))
            {
                if (ctx != -1)
                   printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
 
-               checksum = true;
+               checksum = (arg.equals("-x64")) ? 64 : 32;
                ctx = -1;
                continue;
            }
@@ -503,6 +504,38 @@ public class Kanzi
                if ((level < 0) || (level > 9))
                {
                   System.err.println("Invalid compression level provided on command line: "+arg);
+                  return kanzi.Error.ERR_INVALID_PARAM;
+               }
+
+               ctx = -1;
+               continue;
+           }
+
+           if (arg.startsWith("--checksum="))
+           {
+               String name = arg.startsWith("--checksum=") ? arg.substring(11).trim().toUpperCase() :
+                 arg.toUpperCase();
+
+               if (checksum != 0)
+               {
+                  printWarning("--checksum", " (duplicate checksum).", verbose);
+                  ctx = -1;
+                  continue;
+               }
+
+               try
+               {
+                  checksum = Integer.parseInt(name);
+               }
+               catch (NumberFormatException e)
+               {
+                  System.err.println("Invalid block checksum size provided on command line: "+arg);
+                  return kanzi.Error.ERR_INVALID_PARAM;
+               }
+
+               if ((checksum != 32) && (checksum != 64))
+               {
+                  System.err.println("Invalid block checksum size provided on command line: "+arg);
                   return kanzi.Error.ERR_INVALID_PARAM;
                }
 
@@ -704,8 +737,8 @@ public class Kanzi
         if (transform != null)
            map.put("transform", transform);
 
-        if (checksum == true)
-           map.put("checksum", true);
+        if (checksum != 0)
+           map.put("checksum", checksum);
 
         if (fileReorder == false)
            map.put("fileReorder", false);
@@ -808,8 +841,9 @@ public class Kanzi
          printOut("        Transform [None|BWT|BWTS|LZ|LZX|LZP|ROLZ|ROLZX|RLT|ZRLT]", true);
          printOut("                  [MTFT|RANK|SRT|TEXT|MM|EXE|UTF|PACK]", true);
          printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
-         printOut("   -x, --checksum", true);
-         printOut("        Enable block checksum\n", true);
+         printOut("   -x, -x32, -x64, --checksum=", true);
+         printOut("        Enable block checksum (32 or 64 bits).", true);
+         printOut("        -x is requivqlent to -x32\n", true);
          printOut("   -s, --skip", true);
          printOut("        Copy blocks with high entropy instead of compressing them.\n", true);
       }
