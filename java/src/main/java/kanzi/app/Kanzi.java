@@ -841,9 +841,9 @@ public class Kanzi
          printOut("        Transform [None|BWT|BWTS|LZ|LZX|LZP|ROLZ|ROLZX|RLT|ZRLT]", true);
          printOut("                  [MTFT|RANK|SRT|TEXT|MM|EXE|UTF|PACK]", true);
          printOut("        EG: BWT+RANK or BWTS+MTFT (default is BWT+RANK+ZRLT)\n", true);
-         printOut("   -x, -x32, -x64, --checksum=", true);
+         printOut("   -x, -x32, -x64, --checksum=<size>", true);
          printOut("        Enable block checksum (32 or 64 bits).", true);
-         printOut("        -x is requivqlent to -x32\n", true);
+         printOut("        -x is equivalent to -x32\n", true);
          printOut("   -s, --skip", true);
          printOut("        Copy blocks with high entropy instead of compressing them.\n", true);
       }
