@@ -157,9 +157,11 @@ public final class DefaultInputBitStream implements InputBitStream
          // Copy internal buffer to bits array
          while ((remaining>>3) > this.maxPosition+1-this.position)
          {
-            System.arraycopy(this.buffer, this.position, bits, start, this.maxPosition+1-this.position);
-            start += (this.maxPosition+1-this.position);
-            remaining -= ((this.maxPosition+1-this.position)<<3);
+            final int sz = this.maxPosition+1-this.position;
+            System.arraycopy(this.buffer, this.position, bits, start, sz);
+            start += sz;
+            remaining -= (sz<<3);
+            this.position = this.maxPosition+1;
             this.readFromInputStream(this.buffer.length);
          }
 
