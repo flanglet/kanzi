@@ -283,7 +283,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          printOut("Verbosity: " + this.verbosity, true);
          printOut("Overwrite: " + this.overwrite, true);
          String chksum = ((this.checksum == 32) || (this.checksum == 64)) ? this.checksum+" bits" : "NONE";
-         printOut("Checksum: " + chksum, true);
+         printOut("Block checksum: " + chksum, true);
          String etransform = (NONE.equals(this.transform)) ? "no" : this.transform;
          printOut("Using " + etransform + " transform (stage 1)", true);
          String ecodec = (NONE.equals(this.codec)) ? "no" : this.codec;
@@ -723,7 +723,8 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          if (this.listeners.isEmpty() == false)
          {
-            Event evt = new Event(Event.Type.COMPRESSION_START, -1, 0);
+            long inputSize = (Long) this.ctx.getOrDefault("fileSize", 0L);
+            Event evt = new Event(Event.Type.COMPRESSION_START, 0, inputSize);
             Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
             notifyListeners(array, evt);
          }
