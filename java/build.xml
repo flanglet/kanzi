@@ -4,8 +4,7 @@
    <property name="Implementation-Version" value="2.3.0"/>
    <property name="src.dir" value="src/main/java"/>
    <property name="build.dir" value="target"/>
-   <property name="ant.build.javac.target" value="11"/>
-   <property name="ant.build.javac.source" value="11"/>
+   <property name="ant.build.javac.release" value="11"/>
    
    <target name="build_compress" depends="compile_compress">
      <jar destfile="${build.dir}/kanzi.jar" manifest="MANIFEST.MF" basedir="${build.dir}/classes" />
