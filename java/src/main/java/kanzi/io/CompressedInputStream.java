@@ -302,10 +302,8 @@ public class CompressedInputStream extends InputStream
 
          if (bsVersion >= 6)
          {
-            long padding = this.ibs.readBits(15);
-
-            if (padding != 0)
-               throw new kanzi.io.IOException("Invalid bitstream, corrupted header", Error.ERR_INVALID_FILE);
+            // Padding
+            this.ibs.readBits(15);
          }
       }
       else if (bsVersion >= 3)
@@ -345,7 +343,7 @@ public class CompressedInputStream extends InputStream
          else if (this.hasher64 != null)
              cksum = "64 bits";
 
-         sb.append("Checksum: ").append(cksum).append("\n");
+         sb.append("Block checksum: ").append(cksum).append("\n");
          sb.append("Block size: ").append(this.blockSize).append(" bytes\n");
          String w1 = EntropyCodecFactory.getName(this.entropyType);
 
