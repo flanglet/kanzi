@@ -137,9 +137,9 @@ public class UTFCodec implements ByteTransform
          i += s;
       }
 
-      final int dstEnd = count - (count/10);
+      final int maxTarget = count - (count/10);
 
-      if ((res == false) || (n == 0) || ((3*n+6) >= dstEnd))
+      if ((res == false) || (n == 0) || ((3*n+6) >= maxTarget))
          return false;
 
       for (int i=0; i<n; i++)
@@ -167,7 +167,7 @@ public class UTFCodec implements ByteTransform
          aliasMap[s] = (i<128) ? i : 0x10080 | ((i << 1) & 0xFF00) | (i & 0x7F);
       }
 
-      if (estimate >= dstEnd)
+      if (estimate >= maxTarget)
          return false;
 
       // Emit first (possibly) invalid symbols (due to block truncation)
@@ -190,12 +190,12 @@ public class UTFCodec implements ByteTransform
       dst[1] = (byte) (srcIdx-srcEnd);
 
       // Emit last (possibly) invalid symbols (due to block truncation)
-      while ((srcIdx < srcEnd+4) && (dstIdx < dstEnd))
+      while ((srcIdx < srcEnd+4) && (dstIdx < maxTarget))
          dst[dstIdx++] = src[srcIdx++];
 
       input.index += srcIdx;
       output.index += dstIdx;
-      return dstIdx < dstEnd;
+      return dstIdx < maxTarget;
    }
 
 
@@ -216,12 +216,12 @@ public class UTFCodec implements ByteTransform
       final byte[] dst = output.array;
       int srcIdx = input.index;
       int dstIdx = output.index;
-      final int start = src[0] & 0xFF;
-      final int adjust = src[1] & 0xFF; // adjust end of regular processing
+      final int start = src[0] & 0x03;
+      final int adjust = src[1] & 0x03; // adjust end of regular processing
       final int n = ((src[2]&0xFF) << 8) + (src[3]&0xFF);
 
       // Protect against invalid map size value
-      if ((n >= 32768) || (3*n >= count))
+      if ((n == 0) || (n >= 32768) || (3*n >= count))
          return false;
 
       // Fill map with invalid value
@@ -238,12 +238,16 @@ public class UTFCodec implements ByteTransform
 
       boolean res = true;
       final int srcEnd = count - 4 + adjust;
+      final int dstEnd = output.length - 4;
+
+      if (dstEnd < 0)
+         return false;
 
       for (int i=0; i<start; i++)
          dst[dstIdx++] = src[srcIdx++];
 
       // Emit data
-      while (srcIdx < srcEnd)
+      while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
       {
          int alias = src[srcIdx++] & 0xFF;
 
@@ -253,13 +257,9 @@ public class UTFCodec implements ByteTransform
          int s;
 
          if (this.isBsVersion3 == true)
-         {
             s = unpackV0(m[alias], dst, dstIdx);
-         }
          else
-         {
             s = unpackV1(m[alias], dst, dstIdx);
-         }
 
          if (s == 0)
          {
@@ -270,8 +270,18 @@ public class UTFCodec implements ByteTransform
          dstIdx += s;
       }
 
-      for (int i=srcEnd; i<count; i++)
-         dst[dstIdx++] = src[srcIdx++];
+      if (res == true)
+      {
+         if (dstIdx >= dstEnd-count+srcEnd)
+         {
+            res = false;
+         }
+         else
+         {
+            for (int i=srcEnd; i<count; i++)
+               dst[dstIdx++] = src[srcIdx++];
+         }
+      }
 
       input.index += srcIdx;
       output.index += dstIdx;
