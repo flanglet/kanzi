@@ -119,7 +119,7 @@ public class BWTBlockCodec implements ByteTransform
       if (input.array == output.array)
          return false;
 
-      int blockSize = input.length;
+      final int blockSize = input.length;
 
       if (this.bsVersion > 5)
       {
@@ -157,7 +157,7 @@ public class BWTBlockCodec implements ByteTransform
                   return false;
           }
 
-          blockSize -= headerSize;
+          input.length = blockSize - headerSize;
       }
       else
       {
