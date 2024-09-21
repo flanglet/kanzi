@@ -27,7 +27,8 @@ public class Event
       AFTER_ENTROPY,
       COMPRESSION_END,
       DECOMPRESSION_END,
-      AFTER_HEADER_DECODING
+      AFTER_HEADER_DECODING,
+      BLOCK_INFO
    }
 
    public enum HashType

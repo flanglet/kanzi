@@ -797,6 +797,7 @@ public class CompressedInputStream extends InputStream
          }
 
          // Read shared bitstream sequentially (each task is gated by _processedBlockId)
+         final long blockOffset = this.ibs.read();
          final int lr = (int) this.ibs.readBits(5) + 3;
          long read = this.ibs.readBits(lr);
 
@@ -830,8 +831,8 @@ public class CompressedInputStream extends InputStream
          this.processedBlockId.incrementAndGet();
 
          // Check if the block must be skipped
-         int from = (int) this.ctx.getOrDefault("from", 0);
-         int to = (int) this.ctx.getOrDefault("to", MAX_BLOCK_ID);
+         final int from = (int) this.ctx.getOrDefault("from", 0);
+         final int to = (int) this.ctx.getOrDefault("to", MAX_BLOCK_ID);
 
          if ((this.blockId < from) || (this.blockId >= to))
             return new Status(data, currentBlockId, 0, 0, 0, "Success", true);
@@ -896,11 +897,22 @@ public class CompressedInputStream extends InputStream
 
             if (this.listeners.length > 0)
             {
-               // Notify before entropy (block size in bitstream is unknown)
-               Event evt = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId,
-                       -1, checksum1, hashType);
+               int sf = skipFlags & 0xFF;
 
-               notifyListeners(this.listeners, evt);
+               if ((mode & TRANSFORMS_MASK) == 0)
+                   sf >>>= 4;
+
+               String bsf = String.format("%8s", Integer.toBinaryString(sf)).replace(" ","0");
+               String msg = String.format("{ \"type\":\"%s\", \"id\": %d, \"offset\":%d, \"skipFlags\":%s }",
+			"BLOCK_INFO", currentBlockId, blockOffset, bsf);
+               Event evt1 = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId, msg);
+               notifyListeners(this.listeners, evt1);
+
+               // Notify before entropy
+               Event evt2 = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId,
+                        r, checksum1, hashType);
+
+               notifyListeners(this.listeners, evt2);
             }
 
             final int bufferSize = Math.max(this.blockSize, preTransformLength+EXTRA_BUFFER_SIZE);
@@ -936,19 +948,16 @@ public class CompressedInputStream extends InputStream
             if (this.listeners.length > 0)
             {
                // Notify after entropy (block size set to size in bitstream)
-               Event evt = new Event(Event.Type.AFTER_ENTROPY, currentBlockId,
-                       (int) (is.read()>>3), checksum1, hashType);
-
-               notifyListeners(this.listeners, evt);
-            }
-
-            if (this.listeners.length > 0)
-            {
-               // Notify before transform (block size after entropy decoding)
-               Event evt = new Event(Event.Type.BEFORE_TRANSFORM, currentBlockId,
+               Event evt1 = new Event(Event.Type.AFTER_ENTROPY, currentBlockId,
                        preTransformLength, checksum1, hashType);
 
-               notifyListeners(this.listeners, evt);
+               notifyListeners(this.listeners, evt1);
+
+               // Notify before transform (block size after entropy decoding)
+               Event evt2 = new Event(Event.Type.BEFORE_TRANSFORM, currentBlockId,
+                       preTransformLength, checksum1, hashType);
+
+               notifyListeners(this.listeners, evt2);
             }
 
             Sequence transform = new TransformFactory().newFunction(this.ctx,
