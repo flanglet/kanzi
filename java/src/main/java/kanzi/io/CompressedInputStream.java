@@ -897,12 +897,7 @@ public class CompressedInputStream extends InputStream
 
             if (this.listeners.length > 0)
             {
-               int sf = skipFlags & 0xFF;
-
-               if ((mode & TRANSFORMS_MASK) == 0)
-                   sf >>>= 4;
-
-               String bsf = String.format("%8s", Integer.toBinaryString(sf)).replace(" ","0");
+               String bsf = String.format("%8s", Integer.toBinaryString(skipFlags)).replace(" ","0");
                String msg = String.format("{ \"type\":\"%s\", \"id\": %d, \"offset\":%d, \"skipFlags\":%s }",
 			"BLOCK_INFO", currentBlockId, blockOffset, bsf);
                Event evt1 = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId, msg);
