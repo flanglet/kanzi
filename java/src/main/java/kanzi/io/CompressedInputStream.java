@@ -897,11 +897,16 @@ public class CompressedInputStream extends InputStream
 
             if (this.listeners.length > 0)
             {
-               String bsf = String.format("%8s", Integer.toBinaryString(skipFlags)).replace(" ","0");
-               String msg = String.format("{ \"type\":\"%s\", \"id\": %d, \"offset\":%d, \"skipFlags\":%s }",
-			"BLOCK_INFO", currentBlockId, blockOffset, bsf);
-               Event evt1 = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId, msg);
-               notifyListeners(this.listeners, evt1);
+               int v = (Integer) this.ctx.getOrDefault("verbosity", 0);
+
+               if (v >= 5)
+               {
+                  String bsf = String.format("%8s", Integer.toBinaryString(skipFlags&0xFF)).replace(" ","0");
+                  String msg = String.format("{ \"type\":\"%s\", \"id\": %d, \"offset\":%d, \"skipFlags\":%s }", 
+                         "BLOCK_INFO", currentBlockId, blockOffset, bsf);
+                  Event evt1 = new Event(Event.Type.BLOCK_INFO, currentBlockId, msg);
+                  notifyListeners(this.listeners, evt1);
+               }
 
                // Notify before entropy
                Event evt2 = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId,

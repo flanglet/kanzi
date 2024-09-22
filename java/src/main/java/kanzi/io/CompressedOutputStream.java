@@ -686,7 +686,6 @@ public class CompressedOutputStream extends OutputStream
                // Notify before transform
                Event evt = new Event(Event.Type.BEFORE_TRANSFORM, currentBlockId,
                        blockLength, checksum, hashType);
-
                notifyListeners(this.listeners, evt);
             }
 
@@ -775,7 +774,6 @@ public class CompressedOutputStream extends OutputStream
                // Notify after transform
                Event evt = new Event(Event.Type.AFTER_TRANSFORM, currentBlockId,
                        postTransformLength, checksum, hashType);
-
                notifyListeners(this.listeners, evt);
             }
 
@@ -794,6 +792,7 @@ public class CompressedOutputStream extends OutputStream
             this.data.index = 0;
             CustomByteArrayOutputStream baos = new CustomByteArrayOutputStream(this.data.array, this.data.length);
             DefaultOutputBitStream os = new DefaultOutputBitStream(baos, 16384);
+            int skipFlags = transform.getSkipFlags() & 0xFF;
 
             if (((mode & COPY_BLOCK_MASK) != 0) || (transform.getNbFunctions() <= 4))
             {
@@ -804,7 +803,7 @@ public class CompressedOutputStream extends OutputStream
             {
                mode |= TRANSFORMS_MASK;
                os.writeBits(mode, 8);
-               os.writeBits(transform.getSkipFlags()&0xFF, 8);
+               os.writeBits(skipFlags, 8);
             }
 
             os.writeBits(postTransformLength, 8*dataSize);
@@ -820,7 +819,6 @@ public class CompressedOutputStream extends OutputStream
                // Notify before entropy
                Event evt = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId,
                        postTransformLength, checksum, hashType);
-
                notifyListeners(this.listeners, evt);
             }
 
@@ -865,10 +863,24 @@ public class CompressedOutputStream extends OutputStream
             if (this.listeners.length > 0)
             {
                // Notify after entropy
-               Event evt = new Event(Event.Type.AFTER_ENTROPY,
+               Event evt1 = new Event(Event.Type.AFTER_ENTROPY,
                        currentBlockId, (written+7) >> 3, checksum, hashType);
+               notifyListeners(this.listeners, evt1);
 
-               notifyListeners(this.listeners, evt);
+               if (this.listeners.length > 0)
+               {
+                  int v = (Integer) this.ctx.getOrDefault("verbosity", 0);
+
+                  if (v >= 5)
+                  {
+                     final long blockOffset = this.obs.written();
+                     String bsf = String.format("%8s", Integer.toBinaryString(skipFlags)).replace(" ","0");
+                     String msg = String.format("{ \"type\":\"%s\", \"id\": %d, \"offset\":%d, \"skipFlags\":%s }",
+                           "BLOCK_INFO", currentBlockId, blockOffset, bsf);
+                     Event evt2 = new Event(Event.Type.BLOCK_INFO, currentBlockId, msg);
+                     notifyListeners(this.listeners, evt2);
+                  }
+               }
             }
 
             // Emit block size in bits (max size pre-entropy is 1 GB = 1 << 30 bytes)
