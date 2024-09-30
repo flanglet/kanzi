@@ -28,6 +28,26 @@ import kanzi.util.sort.QuickSort;
 public class UTFCodec implements ByteTransform
 {
    private static final int[] SIZES = { 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 2, 2, 3, 4 };
+
+   private static final int[] LEN_SEQ = {
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+      2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+      3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+      4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+   };
+
    private static final int MIN_BLOCK_SIZE = 1024;
 
    private final Map<String, Object> ctx;
@@ -89,9 +109,18 @@ public class UTFCodec implements ByteTransform
       final int srcEnd = input.index + count - 4;
       int start = 0;
 
-      // First (possibly) invalid symbols (due to block truncation)
-      while ((start < 4) && (SIZES[(src[srcIdx+start]>>>4)&0x0F] == 0))
-         start++;
+      if (((src[srcIdx+start]&0xFF) == 0xEF) && ((src[srcIdx+start+1]&0xFF) == 0xBB) &&
+          ((src[srcIdx+start+2]&0xFF) == 0xBF))
+      {
+         // Byte Order Mark (BOM) 0xEFBBBF
+         start = 3;
+      }
+      else
+      {
+         // First (possibly) invalid symbols (due to block truncation)
+         while ((start < 4) && (LEN_SEQ[src[srcIdx+start]&0xFF] == 0))
+            start++;
+      }
 
       if ((mustValidate == true) && (validate(src, srcIdx+start, srcEnd)) == false)
          return false;
@@ -112,12 +141,15 @@ public class UTFCodec implements ByteTransform
       for (int i=srcIdx+start; i<srcEnd; )
       {
          final int s = pack(src, i, val);
+         res = s != 0;
 
-         if (s == 0)
-         {
-            res = false;
-            break;
-         }
+         // Validation of longer sequences
+         // Third byte in [0x80..0xBF]
+         res &= ((s != 3) || (((src[i+2]&0xFF) >= 0x80) && ((src[i+2]&0xFF) <= 0xBF)));
+         // Combine third and fourth bytes
+         int val2 = ((src[i+2]&0xFF) << 8) | (src[i+3]&0xFF);
+         // Third and fourth bytes in [0x80..0xBF]
+         res &= ((s != 4) || ((val2 & 0xC0C0) == 0x8080));
 
          if (aliasMap[val[0]] == 0)
          {
@@ -125,13 +157,12 @@ public class UTFCodec implements ByteTransform
             SymbolData sb = new SymbolData();
             sb.sym = val[0];
             symb[n] = sb;
-
-            if (++n >= 32768)
-            {
-               res = false;
-               break;
-            }
+            n++;
+            res &= (n < 32768);
          }
+
+         if (res == false)
+            break;
 
          aliasMap[val[0]]++;
          i += s;
@@ -172,7 +203,7 @@ public class UTFCodec implements ByteTransform
 
       // Emit first (possibly) invalid symbols (due to block truncation)
       for (int i=0; i<start; i++)
-         dst[dstIdx++] = src[i];
+         dst[dstIdx++] = src[srcIdx+i];
 
       srcIdx += start;
 
@@ -182,7 +213,7 @@ public class UTFCodec implements ByteTransform
          srcIdx += pack(src, srcIdx, val);
          int alias = aliasMap[val[0]];
          dst[dstIdx++] = (byte) (alias);
-         dst[dstIdx++] = (byte) (alias>>>8);
+         dst[dstIdx] = (byte) (alias>>>8);
          dstIdx += (alias>>>16);
       }
 
@@ -296,13 +327,16 @@ public class UTFCodec implements ByteTransform
    }
 
 
+   // A quick partial validation
+   // A more complete validation is done during processing for the remaining cases
+   // (rules for 3 and 4 byte sequences)
    private static boolean validate(byte[] block, int start, int end)
    {
       int[] freqs0 = new int[256];
-      final int[][] freqs = new int[256][256];
+      final int[][] freqs1 = new int[256][256];
 
       for (int i=0; i<256; i++)
-         freqs[i] = new int[256];
+         freqs1[i] = new int[256];
 
       int prv = 0;
       final int count = end - start;
@@ -319,10 +353,10 @@ public class UTFCodec implements ByteTransform
          freqs0[cur1]++;
          freqs0[cur2]++;
          freqs0[cur3]++;
-         freqs[prv][cur0]++;
-         freqs[cur0][cur1]++;
-         freqs[cur1][cur2]++;
-         freqs[cur2][cur3]++;
+         freqs1[prv][cur0]++;
+         freqs1[cur0][cur1]++;
+         freqs1[cur1][cur2]++;
+         freqs1[cur2][cur3]++;
          prv = cur3;
       }
 
@@ -330,12 +364,12 @@ public class UTFCodec implements ByteTransform
       {
          final int cur = block[i] & 0xFF;
          freqs0[cur]++;
-         freqs[prv][cur]++;
+         freqs1[prv][cur]++;
          prv = cur;
       }
 
-      // Check UTF-8
-      // See Unicode 14 Standard - UTF-8 Table 3.7
+      // Valid UTF-8 sequences
+      // See Unicode 16 Standard - UTF-8 Table 3.7
       // U+0000..U+007F          00..7F
       // U+0080..U+07FF          C2..DF 80..BF
       // U+0800..U+0FFF          E0 A0..BF 80..BF
@@ -346,42 +380,64 @@ public class UTFCodec implements ByteTransform
       // U+40000..U+FFFFF        F1..F3 80..BF 80..BF 80..BF
       // U+100000..U+10FFFF      F4 80..8F 80..BF 80..BF
 
-      if ((freqs0[0xC0] > 0) || (freqs0[0xC1] > 0))
-         return false;
+      // Check rules for 1 byte
+      int sum = freqs0[0xC0] + freqs0[0xC1];
+      int sum2 = 0;
 
       for (int i = 0xF5; i <= 0xFF; i++)
-      {
-         if (freqs0[i] > 0)
-            return false;
-      }
+          sum += freqs0[i];
 
-      int sum = 0;
+      if (sum != 0)
+          return false;
 
+      // Check rules for first 2 bytes
       for (int i = 0; i < 256; i++)
       {
          // Exclude < 0xE0A0 || > 0xE0BF
-         if (((i < 0xA0) || (i > 0xBF)) && (freqs[0xE0][i] > 0))
-            return false;
+         if ((i < 0xA0) || (i > 0xBF))
+             sum += freqs1[0xE0][i];
 
          // Exclude < 0xED80 || > 0xEDE9F
-         if (((i < 0x80) || (i > 0x9F)) && (freqs[0xED][i] > 0))
-            return false;
+         if ((i < 0x80) || (i > 0x9F))
+             sum += freqs1[0xED][i];
 
          // Exclude < 0xF090 || > 0xF0BF
-         if (((i < 0x90) || (i > 0xBF)) && (freqs[0xF0][i] > 0))
-            return false;
+         if ((i < 0x90) || (i > 0xBF))
+             sum += freqs1[0xF0][i];
 
-         // Exclude < 0xF480 || > 0xF4BF
-         if (((i < 0x80) || (i > 0xBF)) && (freqs[0xF4][i] > 0))
-            return false;
+         // Exclude < 0xF480 || > 0xF48F
+         if ((i < 0x80) || (i > 0x8F))
+             sum += freqs1[0xF4][i];
 
-         // Count non-primary bytes
-         if ((i >= 0x80) && (i <= 0xBF))
-            sum += freqs0[i];
+         if ((i < 0x80) || (i > 0xBF)) {
+            // Exclude < 0x??80 || > 0x??BF with ?? in [C2..DF]
+            for (int j = 0xC2; j <= 0xDF; j++)
+               sum += freqs1[j][i];
+
+            // Exclude < 0x??80 || > 0x??BF with ?? in [E1..EC]
+            for (int j = 0xE1; j <= 0xEC; j++)
+               sum += freqs1[j][i];
+
+            // Exclude < 0x??80 || > 0x??BF with ?? in [F1..F3]
+            sum += freqs1[0xF1][i];
+            sum += freqs1[0xF2][i];
+            sum += freqs1[0xF3][i];
+            // Exclude < 0xEE80 || > 0xEEBF
+            sum += freqs1[0xEE][i];
+            // Exclude < 0xEF80 || > 0xEFBF
+            sum += freqs1[0xEF][i];
+        }
+        else
+        {
+            // Count non-primary bytes
+            sum2 += freqs0[i];
+        }
+
+        if (sum != 0)
+            return false;
       }
 
-      // Ad-hoc threshold
-      return sum >= (count / 4);
+      return sum2 >= (count / 8);
    }
 
 
