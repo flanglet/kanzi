@@ -262,12 +262,10 @@ public class Kanzi
         if (((inputName.length() == 0) && (outputName.length() == 0)) || "STDOUT".equalsIgnoreCase(outputName))
             verbose = 0;
 
-        if ((verbose >= 1) && (showHeader == true))
+        if (showHeader == true)
         {
-            printOut("", true);
-            printOut(APP_HEADER +"\n", true);
-            printOut(APP_SUB_HEADER, true);
-            printOut(APP_USAGE, true);
+            printOut("\n"+APP_HEADER +"\n", verbose>=1);
+            printOut(APP_SUB_HEADER, verbose>1);
         }
 
         inputName = "";
