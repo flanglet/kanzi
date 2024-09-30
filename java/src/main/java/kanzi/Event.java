@@ -141,9 +141,9 @@ public class Event
       sb.append(", \"time\":").append(this.getTime());
 
       if (this.hashType == HashType.SIZE_32)
-         sb.append(", \"hash\":").append(Integer.toHexString((int) this.getHash()));
+         sb.append(", \"hash\":\"").append(Integer.toHexString((int) this.getHash())).append("\"");
       else if (this.hashType == HashType.SIZE_64)
-         sb.append(", \"hash\":").append(Long.toHexString(this.getHash()));
+         sb.append(", \"hash\":\"").append(Long.toHexString(this.getHash())).append("\"");
 
       sb.append(" }");
       return sb.toString();
