@@ -435,7 +435,7 @@ public class Kanzi
                   codec = name;
                }
 
-               if (codec.length() == 0)
+               if (codec.isEmpty())
                {
                   System.err.println("Invalid empty entropy provided on command line");
                   return kanzi.Error.ERR_INVALID_PARAM;
@@ -460,13 +460,13 @@ public class Kanzi
                   transform = name;
                }
 
-               while ((transform.length()>0) && (transform.charAt(0) == '+'))
+               while ((!transform.isEmpty()) && (transform.charAt(0) == '+'))
                   transform = transform.substring(1);
 
-               while ((transform.length()>0) && (transform.charAt(transform.length()-1) == '+'))
+               while ((!transform.isEmpty()) && (transform.charAt(transform.length()-1) == '+'))
                   transform = transform.substring(0, transform.length()-1);
 
-               if (transform.length() == 0)
+               if (transform.isEmpty())
                {
                   System.err.println("Invalid empty transform provided on command line");
                   return kanzi.Error.ERR_INVALID_PARAM;
@@ -696,29 +696,75 @@ public class Kanzi
            printWarning(CMD_LINE_ARGS[ctx], " (missing value).", verbose);
         }
 
-        if (((from >= 0) || (to >= 0)) && (mode != 'd'))
+        if (mode != 'd')
         {
             if (from >= 0)
-               printWarning("--from", "(only valid for decompression).", verbose);
+               printWarning("from", "(only valid for decompression).", verbose);
 
             if (to >= 0)
-               printWarning("--to", "(only valid for decompression).", verbose);
+               printWarning("to", "(only valid for decompression).", verbose);
+        }
+        else
+        {
+           if (from >= 0)
+              map.put("from", from);
 
-            from = -1;
-            to = -1;
+           if (to >= 0)
+              map.put("to", to);
         }
 
-        if (blockSize != -1)
-           map.put("block", blockSize);
+        if (mode != 'c')
+        {
+           if (blockSize != -1)
+               printWarning("blockSize", "(only valid for compression).", verbose);
 
-        if (autoBlockSize == true)
-            map.put("autoBlock", true);
+           if (level != -1)
+               printWarning("level", "(only valid for compression).", verbose);
+
+           if (codec != null)
+               printWarning("entropy", "(only valid for compression).", verbose);
+
+           if (transform != null)
+               printWarning("transform", "(only valid for compression).", verbose);
+
+           if (checksum != 0)
+               printWarning("checksum", "(only valid for compression).", verbose);
+
+           if (skip == true)
+               printWarning("skip", "(only valid for compression).", verbose);
+
+           if (fileReorder == false)
+               printWarning("fileReorder", "(only valid for compression).", verbose);
+        }
+        else
+        {
+           if (blockSize != -1)
+              map.put("block", blockSize);
+
+           if (autoBlockSize == true)
+               map.put("autoBlock", true);
+
+           if (level != -1)
+              map.put("level", level);
+
+           if (codec != null)
+              map.put("entropy", codec);
+
+           if (transform != null)
+              map.put("transform", transform);
+
+           if (checksum != 0)
+              map.put("checksum", checksum);
+
+           if (skip == true)
+              map.put("skipBlocks", true);
+
+           if (fileReorder == false)
+              map.put("fileReorder", false);
+        }
 
         map.put("verbose", verbose);
         map.put("mode", mode);
-
-        if ((mode == 'c') && (level != -1))
-           map.put("level", level);
 
         if (overwrite == true)
            map.put("overwrite", true);
@@ -729,32 +775,11 @@ public class Kanzi
         map.put("inputName", inputName);
         map.put("outputName", outputName);
 
-        if (codec != null)
-           map.put("entropy", codec);
-
-        if (transform != null)
-           map.put("transform", transform);
-
-        if (checksum != 0)
-           map.put("checksum", checksum);
-
-        if (fileReorder == false)
-           map.put("fileReorder", false);
-
         if (noDotFiles == true)
            map.put("noDotFiles", true);
 
         if (noLinks == true)
            map.put("noLinks", true);
-
-        if (skip == true)
-           map.put("skipBlocks", true);
-
-        if (from >= 0)
-           map.put("from", from);
-
-        if (to >= 0)
-           map.put("to", to);
 
         if (tasks >= 0)
            map.put("jobs", tasks);
