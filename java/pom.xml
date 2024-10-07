@@ -62,7 +62,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jdkVersion>1.8</jdkVersion>
+        <jdkVersion>11</jdkVersion>
         <releaseProfile>release</releaseProfile>
         <sonar.organization>flanglet</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -114,8 +114,7 @@
                 <version>3.6.1</version>
                 <configuration>
                     <encoding>${project.build.sourceEncoding}</encoding>
-                    <source>${jdkVersion}</source>
-                    <target>${jdkVersion}</target>
+                    <release>${jdkVersion}</release>
                     <optimize>true</optimize>
                     <showDeprecation>true</showDeprecation>
                     <showWarnings>true</showWarnings>
