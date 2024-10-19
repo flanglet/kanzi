@@ -358,14 +358,38 @@ public class UTFCodec implements ByteTransform
          freqs1[cur1][cur2]++;
          freqs1[cur2][cur3]++;
          prv = cur3;
+
+         if ((i & 0xFFF) == 0)
+         {
+            // Early check rules for 1 byte
+            int sum = freqs0[0xC0] + freqs0[0xC1];
+
+            for (int j = 0xF5; j <= 0xFF; j++)
+                sum += freqs0[j];
+
+            if (sum != 0)
+                return false;
+         }
       }
 
-      for (int i=end4; i<end; i++)
+      if (end4 != end)
       {
-         final int cur = block[i] & 0xFF;
-         freqs0[cur]++;
-         freqs1[prv][cur]++;
-         prv = cur;
+         for (int i=end4; i<end; i++)
+         {
+            final int cur = block[i] & 0xFF;
+            freqs0[cur]++;
+            freqs1[prv][cur]++;
+            prv = cur;
+         }
+
+         // Check rules for 1 byte
+         int sum = freqs0[0xC0] + freqs0[0xC1];
+
+         for (int i = 0xF5; i <= 0xFF; i++)
+             sum += freqs0[i];
+
+         if (sum != 0)
+             return false;
       }
 
       // Valid UTF-8 sequences
@@ -379,53 +403,45 @@ public class UTFCodec implements ByteTransform
       // U+10000..U+3FFFF        F0 90..BF 80..BF 80..BF
       // U+40000..U+FFFFF        F1..F3 80..BF 80..BF 80..BF
       // U+100000..U+10FFFF      F4 80..8F 80..BF 80..BF
-
-      // Check rules for 1 byte
-      int sum = freqs0[0xC0] + freqs0[0xC1];
+      int sum1 = 0;
       int sum2 = 0;
-
-      for (int i = 0xF5; i <= 0xFF; i++)
-          sum += freqs0[i];
-
-      if (sum != 0)
-          return false;
 
       // Check rules for first 2 bytes
       for (int i = 0; i < 256; i++)
       {
          // Exclude < 0xE0A0 || > 0xE0BF
          if ((i < 0xA0) || (i > 0xBF))
-             sum += freqs1[0xE0][i];
+             sum1 += freqs1[0xE0][i];
 
          // Exclude < 0xED80 || > 0xEDE9F
          if ((i < 0x80) || (i > 0x9F))
-             sum += freqs1[0xED][i];
+             sum1 += freqs1[0xED][i];
 
          // Exclude < 0xF090 || > 0xF0BF
          if ((i < 0x90) || (i > 0xBF))
-             sum += freqs1[0xF0][i];
+             sum1 += freqs1[0xF0][i];
 
          // Exclude < 0xF480 || > 0xF48F
          if ((i < 0x80) || (i > 0x8F))
-             sum += freqs1[0xF4][i];
+             sum1 += freqs1[0xF4][i];
 
          if ((i < 0x80) || (i > 0xBF)) {
             // Exclude < 0x??80 || > 0x??BF with ?? in [C2..DF]
             for (int j = 0xC2; j <= 0xDF; j++)
-               sum += freqs1[j][i];
+               sum1 += freqs1[j][i];
 
             // Exclude < 0x??80 || > 0x??BF with ?? in [E1..EC]
             for (int j = 0xE1; j <= 0xEC; j++)
-               sum += freqs1[j][i];
+               sum1 += freqs1[j][i];
 
             // Exclude < 0x??80 || > 0x??BF with ?? in [F1..F3]
-            sum += freqs1[0xF1][i];
-            sum += freqs1[0xF2][i];
-            sum += freqs1[0xF3][i];
+            sum1 += freqs1[0xF1][i];
+            sum1 += freqs1[0xF2][i];
+            sum1 += freqs1[0xF3][i];
             // Exclude < 0xEE80 || > 0xEEBF
-            sum += freqs1[0xEE][i];
+            sum1 += freqs1[0xEE][i];
             // Exclude < 0xEF80 || > 0xEFBF
-            sum += freqs1[0xEF][i];
+            sum1 += freqs1[0xEF][i];
         }
         else
         {
@@ -433,7 +449,7 @@ public class UTFCodec implements ByteTransform
             sum2 += freqs0[i];
         }
 
-        if (sum != 0)
+        if (sum1 != 0)
             return false;
       }
 
