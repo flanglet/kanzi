@@ -28,19 +28,19 @@
         <url>https://github.com/flanglet/kanzi</url>
         <connection>scm:git:https://github.com/flanglet/kanzi</connection>
         <developerConnection>scm:git:git@github.com:flanglet/kanzi</developerConnection>
-        <tag>HEAD</tag>
+        <tag>2.3.0</tag>
     </scm>
 
     <distributionManagement>
         <repository>
             <id>ossrh</id>
             <name>Nexus Release Repository</name>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
         <snapshotRepository>
             <id>ossrh</id>
             <name>Sonatype Nexus Snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
             <uniqueVersion>false</uniqueVersion>
         </snapshotRepository>
     </distributionManagement>
@@ -135,7 +135,7 @@
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
                             <autoReleaseAfterClose>true</autoReleaseAfterClose>
                         </configuration>
                     </plugin>
