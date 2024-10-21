@@ -288,7 +288,7 @@ public class CompressedOutputStream extends OutputStream
      * <p>
      * If <code>off</code> is negative, or <code>len</code> is negative, or
      * <code>off+len</code> is greater than the length of the array
-     * <code>array</code>, then an <tt>IndexOutOfBoundsException</tt> is thrown.
+     * <code>array</code>, then an IndexOutOfBoundsException is thrown.
      *
      * @param      data the data.
      * @param      off   the start offset in the data.
