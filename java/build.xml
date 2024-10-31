@@ -18,16 +18,16 @@
 	        destdir="${build.dir}/classes" 
 	        classpath="${build.dir}/classes" 
 	        debug="on">        
-		 <include name="kanzi/*.java"/>
-		 <include name="kanzi/app/**"/>
-		 <include name="kanzi/bitstream/**"/>
-		 <include name="kanzi/entropy/**"/>
-		 <include name="kanzi/function/**"/>
-		 <include name="kanzi/io/**"/>
-		 <include name="kanzi/transform/**"/>
-		 <include name="kanzi/util/*.java"/>
-		 <include name="kanzi/util/hash/**"/>
-		 <include name="kanzi/util/sort/**"/>
+		 <include name="io/github/flanglet/kanzi/*.java"/>
+		 <include name="io/github/flanglet/kanzi/app/**"/>
+		 <include name="io/github/flanglet/kanzi/bitstream/**"/>
+		 <include name="io/github/flanglet/kanzi/entropy/**"/>
+		 <include name="io/github/flanglet/kanzi/function/**"/>
+		 <include name="io/github/flanglet/kanzi/io/**"/>
+		 <include name="io/github/flanglet/kanzi/transform/**"/>
+		 <include name="io/github/flanglet/kanzi/util/*.java"/>
+		 <include name="io/github/flanglet/kanzi/util/hash/**"/>
+		 <include name="io/github/flanglet/kanzi/util/sort/**"/>
 	  </javac>
    </target>
    

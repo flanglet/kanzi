@@ -1,4 +1,4 @@
 manifest-Version: 1.0
 Built-By: flanglet
-Main-Class: kanzi.app.Kanzi
+Main-Class: io.github.flanglet.kanzi.app.Kanzi
 
