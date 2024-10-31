@@ -410,9 +410,6 @@ public class CompressedOutputStream extends OutputStream
       }
       catch (Exception e)
       {
-         if (e instanceof InterruptedException)
-            Thread.currentThread().interrupt();
-
          throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), Error.ERR_UNKNOWN);
       }
    }

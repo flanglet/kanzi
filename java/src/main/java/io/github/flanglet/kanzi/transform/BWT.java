@@ -523,11 +523,13 @@ public class BWT implements ByteTransform
                result.get();
          }
       }
+      catch (InterruptedException e)
+      {
+         Thread.currentThread().interrupt();
+         return false;
+      }
       catch (Exception e)
       {
-         if (e instanceof InterruptedException)
-            Thread.currentThread().interrupt();
-
          return false;
       }
 
