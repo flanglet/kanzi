@@ -85,16 +85,15 @@ public class CMEncoder implements EntropyEncoder
          final int endChunk = startChunk + chunkSize;
          int run = 0;
          this.predictor = this.preds[0];
-         int prv = 0;
 
          for (int i=startChunk; i<endChunk; i++)
-         {            
-            if ((block[i] == 0) & (run < 254))
+         {
+            if ((block[i] == 0) && (run < 254))
             {
                run++;
                continue;
             }
-            
+
             if (run > 0)
             {
                this.encodeBit(0, this.predictor.get());
@@ -106,7 +105,7 @@ public class CMEncoder implements EntropyEncoder
                this.encodeBit(0, this.predictor.get());
                this.encodeBit(0, this.predictor.get());
                this.predictor = this.preds[1];
-               
+
                this.encodeBit((run >> 7) & 1, this.predictor.get());
                this.encodeBit((run >> 6) & 1, this.predictor.get());
                this.encodeBit((run >> 5) & 1, this.predictor.get());
@@ -114,12 +113,12 @@ public class CMEncoder implements EntropyEncoder
                this.encodeBit((run >> 3) & 1, this.predictor.get());
                this.encodeBit((run >> 2) & 1, this.predictor.get());
                this.encodeBit((run >> 1) & 1, this.predictor.get());
-               this.encodeBit(run & 1, this.predictor.get()); 
+               this.encodeBit(run & 1, this.predictor.get());
                run = 0;
             }
-            
+
             this.predictor = this.preds[0];
-            int val = (block[i] & 0xFF);           
+            int val = (block[i] & 0xFF);
             this.encodeBit((val >> 7) & 1, this.predictor.get());
             this.encodeBit((val >> 6) & 1, this.predictor.get());
             this.encodeBit((val >> 5) & 1, this.predictor.get());

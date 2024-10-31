@@ -45,9 +45,9 @@ public class Kanzi
    private static final int ARG_IDX_JOBS = 7;
    private static final int ARG_IDX_VERBOSE = 8;
    private static final int ARG_IDX_LEVEL = 9;
-   private static final int ARG_IDX_CHECKSUM = 10;
+   // private static final int ARG_IDX_CHECKSUM = 10;
    // private static final int ARG_IDX_FROM = 11;
-   //private static final int ARG_IDX_TO = 12;
+   // private static final int ARG_IDX_TO = 12;
 
    private static final String KANZI_VERSION = "2.3.0";
    private static final String APP_HEADER = "Kanzi " + KANZI_VERSION + " (c) Frederic Langlet";

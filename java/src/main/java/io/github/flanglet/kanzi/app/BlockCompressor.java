@@ -440,7 +440,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
             List<FileCompressWorker> workers = new ArrayList<>(this.jobs);
 
-		  	   // Create one worker per job and run it. A worker calls several tasks sequentially.
+            // Create one worker per job and run it. A worker calls several tasks sequentially.
             for (int i=0; i<this.jobs; i++)
                workers.add(new FileCompressWorker(queue));
 
