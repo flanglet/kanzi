@@ -605,7 +605,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                   if (decodedBlock > 0)
                   {
                      this.os.write(sa.array, 0, decodedBlock);
-                     decoded += (long) decodedBlock;
+                     decoded += decodedBlock;
                   }
                }
                catch (Exception e)

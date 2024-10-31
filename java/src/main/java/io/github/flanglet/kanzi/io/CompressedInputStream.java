@@ -174,7 +174,7 @@ public class CompressedInputStream extends InputStream
          if (oSize != 0)
          {
              this.outputSize = ((oSize < 0) || (oSize >= (1L<<48))) ? 0 : oSize;
-             int nbBlocks = (int) ((this.outputSize + this.blockSize - 1) / (long) this.blockSize);
+             int nbBlocks = (int) ((this.outputSize + this.blockSize - 1) / this.blockSize);
              this.nbInputBlocks = Math.min(nbBlocks, MAX_CONCURRENCY-1);
          }
       }
@@ -278,7 +278,7 @@ public class CompressedInputStream extends InputStream
          if (bsVersion == 5)
          {
              crcSize = 16;
-             seed = (int) bsVersion;
+             seed = bsVersion;
          }
 
          final int cksum1 = (int) this.ibs.readBits(crcSize);
