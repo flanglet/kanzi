@@ -37,6 +37,7 @@ import java.util.concurrent.Future;
 import io.github.flanglet.kanzi.Event;
 import io.github.flanglet.kanzi.SliceByteArray;
 import io.github.flanglet.kanzi.io.CompressedOutputStream;
+import io.github.flanglet.kanzi.io.IOUtil;
 import io.github.flanglet.kanzi.Error;
 import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.io.NullOutputStream;
@@ -237,7 +238,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
             String target = isRecursive ? this.inputName :
                this.inputName.substring(0, this.inputName.length()-1);
 
-            Kanzi.createFileList(target, files, isRecursive, this.noLinks, this.noDotFiles);
+            IOUtil.createFileList(target, files, isRecursive, this.noLinks, this.noDotFiles);
          }
          catch (IOException e)
          {
