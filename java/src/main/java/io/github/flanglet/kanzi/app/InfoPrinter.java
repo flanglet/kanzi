@@ -21,11 +21,23 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import io.github.flanglet.kanzi.Listener;
 
-// An implementation of Listener to display block information (verbose option
-// of the BlockCompressor/BlockDecompressor)
+/**
+ * The {@code InfoPrinter} class implements the {@code Listener} interface
+ * and provides functionality to process events and print information
+ * about encoding or decoding processes.
+ */
 public class InfoPrinter implements Listener
 {
-   public enum Type { ENCODING, DECODING }
+  /**
+   * Enum representing the type of information to be printed.
+   */
+   public enum Type
+   {
+      /** Represents encoding information. */
+      ENCODING,
+      /** Represents decoding information. */
+      DECODING
+   }
 
    private final PrintStream ps;
    private final Map<Integer, BlockInfo> map;
@@ -34,6 +46,14 @@ public class InfoPrinter implements Listener
    private final int level;
 
 
+   /**
+    * Constructs an {@code InfoPrinter} with the specified information level,
+    * type, and output stream.
+    *
+    * @param infoLevel the level of information to be printed
+    * @param type the type of information (encoding or decoding)
+    * @param ps the {@code PrintStream} to which information will be printed
+    */
    public InfoPrinter(int infoLevel, Type type, PrintStream ps)
    {
       if (ps == null)
@@ -65,6 +85,12 @@ public class InfoPrinter implements Listener
    }
 
 
+   /**
+    * Processes an event and takes action based on the event type
+    * and the thresholds defined for the {@code InfoPrinter}.
+    *
+    * @param evt the {@code Event} to be processed
+    */
    @Override
    public void processEvent(Event evt)
    {
@@ -168,6 +194,9 @@ public class InfoPrinter implements Listener
    }
 
 
+   /**
+    * Inner class representing information about a specific block.
+    */
    static class BlockInfo
    {
       long time0;

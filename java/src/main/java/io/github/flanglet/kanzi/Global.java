@@ -24,22 +24,35 @@ import java.util.Comparator;
 import java.util.List;
 
 
-public class Global
-{
-   public enum DataType
-   {
-      UNDEFINED, TEXT, MULTIMEDIA, EXE, NUMERIC, BASE64, DNA, BIN, UTF8, SMALL_ALPHABET
-   }
+/**
+ * The {@code Global} class provides utility methods and constants for
+ * various operations, including logarithmic calculations and squashing functions.
+ */
+public class Global {
 
-   private Global()
-   {
-   }
+  public enum DataType {
+        UNDEFINED,
+        TEXT,
+        MULTIMEDIA,
+        EXE,
+        NUMERIC,
+        BASE64,
+        DNA,
+        BIN,
+        UTF8,
+        SMALL_ALPHABET
+  }
 
-   public static final int INFINITE_VALUE = 0;
+  /**
+   * Private constructor to prevent instantiation.
+   */
+  private Global() {
+  }
 
-   // array with 256 elements: int(Math.log2(x-1))
-   public static final int[] LOG2_VALUES = new int[]
-   {
+  public static final int INFINITE_VALUE = 0;
+
+  // Array with 256 elements: int(Math.log2(x-1))
+  public static final int[] LOG2_VALUES = new int[]{
       0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4,
       4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5,
       5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
@@ -56,11 +69,10 @@ public class Global
       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
       7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8
-   };
+  };
 
-   // array with 256 elements: 4096*Math.log2(x)
-   private static final int[] LOG2_4096 =
-   {
+  // Array with 256 elements: 4096*Math.log2(x)
+  private static final int[] LOG2_4096 = new int[]{
           0,     0,  4096,  6492,  8192,  9511, 10588, 11499, 12288, 12984,
       13607, 14170, 14684, 15157, 15595, 16003, 16384, 16742, 17080, 17400,
       17703, 17991, 18266, 18529, 18780, 19021, 19253, 19476, 19691, 19898,
@@ -87,127 +99,150 @@ public class Global
       32135, 32161, 32186, 32212, 32237, 32262, 32287, 32312, 32337, 32362,
       32387, 32411, 32436, 32460, 32484, 32508, 32533, 32557, 32580, 32604,
       32628, 32651, 32675, 32698, 32722, 32745, 32768
-   };
+  };
 
-   //  65536/(1 + exp(-alpha*x)) with alpha ~= 0.54
-   private static final int[] INV_EXP =
-   {
+  // 65536/(1 + exp(-alpha*x)) with alpha ~= 0.54
+  private static final int[] INV_EXP = new int[]{
           0,     8,    22,    47,    88,   160,   283,   492,
         848,  1451,  2459,  4117,  6766, 10819, 16608, 24127,
       32768, 41409, 48928, 54717, 58770, 61419, 63077, 64085,
       64688, 65044, 65253, 65376, 65448, 65489, 65514, 65528,
       65536
-   };
+  };
 
-   private static final String[] WIN_RESERVED =
-   {
-      // Sorted list
-      "AUX", "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6",
-      "COM7", "COM8", "COM9", "COM¹", "COM²", "COM³", "CON", "LPT0", "LPT1", "LPT2",
-      "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "NUL", "PRN"
-   };
+  private static final String[] WIN_RESERVED = new String[]{
+        "AUX", "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6",
+        "COM7", "COM8", "COM9", "COM¹", "COM²", "COM³", "CON", "LPT0", "LPT1", "LPT2",
+        "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "NUL", "PRN"
+  };
 
-   private static final byte[] BASE64_SYMBOLS =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
+  private static final byte[] BASE64_SYMBOLS =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
 
-   private static final byte[] NUMERIC_SYMBOLS = "0123456789+-*/=,.:; ".getBytes();
+  private static final byte[] NUMERIC_SYMBOLS = "0123456789+-*/=,.:; ".getBytes();
 
-   private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(); // either T or U and N for unknown
+  private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(); // either T or U and N for unknown
 
-   private static final int[] SQUASH = initSquash();
+  private static final int[] SQUASH = initSquash();
 
-   private static int[] initSquash()
-   {
+  private static int[] initSquash() {
       final int[] res = new int[4096];
 
-      for (int x=-2047; x<=2047; x++)
-      {
-         final int w = x & 127;
-         final int y = (x >> 7) + 16;
-         res[x+2047] = (INV_EXP[y]*(128-w) + INV_EXP[y+1]*w) >> 11;
+      for (int x = -2047; x <= 2047; x++) {
+          final int w = x & 127;
+          final int y = (x >> 7) + 16;
+          res[x + 2047] = (INV_EXP[y] * (128 - w) + INV_EXP[y + 1] * w) >> 11;
       }
 
       res[4095] = 4095;
       return res;
-   }
+  }
 
 
-   // return p = 1/(1 + exp(-d)), d scaled by 8 bits, p scaled by 12 bits
-   public static int squash(int d)
-   {
+  /**
+   * Return p = 1/(1 + exp(-d)), d scaled by 8 bits, p scaled by 12 bits.
+   *
+   * @param d the value to squash
+   * @return the squashed value
+   */
+  public static int squash(int d) {
       if (d >= 2048)
-         return 4095;
+          return 4095;
 
-      return SQUASH[positiveOrNull(d+2047)];
-   }
+      return SQUASH[positiveOrNull(d + 2047)];
+  }
 
+  // Inverse of squash. d = ln(p/(1-p)), d scaled by 8 bits, p by 12 bits.
+  public static final int[] STRETCH = initStretch();
 
-   // Inverse of squash. d = ln(p/(1-p)), d scaled by 8 bits, p by 12 bits.
-   // d has range -2047 to 2047 representing -8 to 8.  p has range 0 to 4095.
-   public static final int[] STRETCH = initStretch();
-
-   private static int[] initStretch()
-   {
+  private static int[] initStretch() {
       final int[] res = new int[4096];
       int pi = 0;
 
-      for (int x=-2047; (x<=2047) && (pi<4096); x++)
-      {
-         final int i = squash(x);
+      for (int x = -2047; (x <= 2047) && (pi < 4096); x++) {
+          final int i = squash(x);
 
-         while (pi <= i)
-           res[pi++] = x;
+          while (pi <= i)
+              res[pi++] = x;
       }
 
       res[4095] = 2047;
       return res;
-   }
+  }
 
-
-   public static int log2(int x) throws ArithmeticException
-   {
+  /**
+   * Return the base 2 logarithm of a value.
+   *
+   * @param x the value to calculate the logarithm of
+   * @return the base 2 logarithm
+   * @throws ArithmeticException if the value is negative or zero
+   */
+  public static int log2(int x) throws ArithmeticException {
       if (x <= 0)
-        throw new ArithmeticException("Cannot calculate log of a negative or null value");
+          throw new ArithmeticException("Cannot calculate log of a negative or null value");
 
-      return (x <= 256) ? LOG2_VALUES[x-1] : 31-Integer.numberOfLeadingZeros(x);
-   }
+      return (x <= 256) ? LOG2_VALUES[x - 1] : 31 - Integer.numberOfLeadingZeros(x);
+  }
 
 
-   // Return 1024 * log2(x)
-   // Max error is less than 0.1%
-   public static int log2_1024(int x) throws ArithmeticException
-   {
+  /**
+   * Return 1024 * log2(x). Max error is less than 0.1%.
+   *
+   * @param x the value to calculate the logarithm of
+   * @return 1024 * log2(x)
+   * @throws ArithmeticException if the value is negative or zero
+   */
+  public static int log2_1024(int x) throws ArithmeticException {
       if (x <= 0)
-        throw new ArithmeticException("Cannot calculate log of a negative or null value");
+          throw new ArithmeticException("Cannot calculate log of a negative or null value");
 
       if (x < 256)
-        return (LOG2_4096[x]+2) >> 2;
+          return (LOG2_4096[x] + 2) >> 2;
 
       final int log = 31 - Integer.numberOfLeadingZeros(x);
 
-      if ((x & (x-1)) == 0)
-         return log << 10;
+      if ((x & (x - 1)) == 0)
+          return log << 10;
 
-      return ((log-7)*1024) + ((LOG2_4096[x>>(log-7)]+2) >> 2);
-   }
+      return ((log - 7) * 1024) + ((LOG2_4096[x >> (log - 7)] + 2) >> 2);
+  }
 
-
-   // Limitation: fails for Integer.MIN_VALUE
-   public static int positiveOrNull(int x)
-   {
+  /**
+   * Return the positive value or zero.
+   *
+   * @param x the value to process
+   * @return the positive value or zero
+   */
+  public static int positiveOrNull(int x) {
       return x & ~(x >> 31);
-   }
+  }
+
+  /**
+   * Check if a value is a power of 2.
+   *
+   * @param x the value to check
+   * @return {@code true} if the value is a power of 2, {@code false} otherwise
+   */
+  public static boolean isPowerOf2(int x) {
+      return (x & (x - 1)) == 0;
+  }
 
 
-   public static boolean isPowerOf2(int x)
-   {
-      return (x & (x-1)) == 0;
-   }
-
-
-   // If withTotal is true, the last spot in the frequencies array is for the total
-   public static void computeHistogramOrder0(byte[] block, int start, int end, int[] freqs, boolean withTotal)
-   {
+  /**
+   * Computes the histogram of byte frequencies from a specified block of data.
+   *
+   * <p>This method counts the occurrences of each byte value (0-255) in the
+   * specified range of the input byte array. If {@code withTotal} is true,
+   * the last element of the frequency array will contain the total count of bytes
+   * processed.</p>
+   *
+   * @param block the byte array containing data
+   * @param start the starting index of the block to process
+   * @param end the ending index of the block to process
+   * @param freqs the array to store the frequency counts (should have a length of at least 257 if {@code withTotal} is true)
+   * @param withTotal if true, the last element of {@code freqs} will hold the total byte count
+   */
+   public static void computeHistogramOrder0(byte[] block, int start, int end, int[] freqs, boolean withTotal) {
       for (int i=0; i<256; i+=8)
       {
          freqs[i]   = 0;
@@ -259,7 +294,19 @@ public class Global
    }
 
 
-   // If withTotal is true, the last spot in each frequencies order 0 array is for the total
+  /**
+   * Computes the histogram of byte frequencies in the context of an order 1 model.
+   *
+   * <p>This method counts the occurrences of each byte value (0-255) while considering
+   * the previous byte in the sequence. If {@code withTotal} is true, the last element
+   * of each frequency array will contain the total count of bytes processed.</p>
+   *
+   * @param block the byte array containing data
+   * @param start the starting index of the block to process
+   * @param end the ending index of the block to process
+   * @param freqs the 2D array to store the frequency counts for each byte value
+   * @param withTotal if true, the last element of each frequency array will hold the total byte count
+   */
    public static void computeHistogramOrder1(byte[] block, int start, int end, int[][] freqs, boolean withTotal)
    {
       final int quarter = (end-start) >> 2;
@@ -361,10 +408,17 @@ public class Global
    }
 
 
-   // Return the first order entropy in the [0..1024] range
-   // Fills in the histogram with order 0 frequencies. Incoming array size must be 256
-   public static int computeFirstOrderEntropy1024(int length, int[] histo)
-   {
+  /**
+   * Computes the first-order entropy of the given histogram data.
+   *
+   * <p>This method calculates the entropy based on the provided histogram of byte frequencies.
+   * The histogram should represent frequencies for byte values 0-255.</p>
+   *
+   * @param length the total number of bytes processed
+   * @param histo the histogram array of size 256 containing byte frequencies
+   * @return the calculated first-order entropy scaled to the range [0..1024]
+   */
+   public static int computeFirstOrderEntropy1024(int length, int[] histo) {
       if (length == 0)
          return 0;
 
@@ -384,8 +438,19 @@ public class Global
    }
 
 
-   public static int[] computeJobsPerTask(int[] jobsPerTask, int jobs, int tasks)
-   {
+  /**
+   * Computes the distribution of jobs per task.
+   *
+   * <p>This method divides a specified number of jobs across a given number of tasks,
+   * ensuring that jobs are distributed as evenly as possible.</p>
+   *
+   * @param jobsPerTask the array to hold the number of jobs assigned to each task
+   * @param jobs the total number of jobs to distribute
+   * @param tasks the total number of tasks
+   * @return the updated jobsPerTask array
+   * @throws IllegalArgumentException if the number of tasks or jobs is less than or equal to zero
+   */
+   public static int[] computeJobsPerTask(int[] jobsPerTask, int jobs, int tasks) {
       if (tasks <= 0)
          throw new IllegalArgumentException("Invalid number of tasks provided: "+tasks);
 
@@ -411,6 +476,15 @@ public class Global
    }
 
 
+  /**
+   * Sorts a list of files by their path and size.
+   *
+   * <p>If {@code sortBySize} is true, the files will be sorted primarily by their
+   * parent directory paths and then by their sizes in descending order.</p>
+   *
+   * @param files the list of file paths to sort
+   * @param sortBySize if true, sort by file size; otherwise sort by path
+   */
    public static void sortFilesByPathAndSize(List<Path> files, final boolean sortBySize)
    {
       Comparator<Path> c = new Comparator<Path>()
@@ -443,8 +517,17 @@ public class Global
    }
 
 
-   public static DataType detectSimpleType(int count, int[] freqs0)
-   {
+  /**
+   * Detects the data type based on byte frequency analysis.
+   *
+   * <p>This method identifies the type of data represented by the byte frequencies.
+   * Possible types include DNA, numeric, Base64, binary, and small alphabet.</p>
+   *
+   * @param count the total count of bytes processed
+   * @param freqs0 the frequency array for byte values (0-255)
+   * @return the detected {@link DataType}
+   */
+   public static DataType detectSimpleType(int count, int[] freqs0) {
       if (count == 0)
          return DataType.UNDEFINED;
 
@@ -497,8 +580,16 @@ public class Global
    }
 
 
-   public static boolean isReservedName(String fileName)
-   {
+   /**
+    * Checks if a given file name is a reserved name on Windows systems.
+    *
+    * <p>This method checks if the provided file name is one of the reserved names
+    * on Windows operating systems.</p>
+    *
+    * @param fileName the file name to check
+    * @return true if the file name is reserved; false otherwise
+    */
+    public static boolean isReservedName(String fileName) {
       if (!System.getProperty("os.name").toLowerCase().contains("windows"))
          return false;
 

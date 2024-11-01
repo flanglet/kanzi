@@ -15,137 +15,196 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
-public class Event
-{
-   public enum Type
-   {
-      COMPRESSION_START,
-      DECOMPRESSION_START,
-      BEFORE_TRANSFORM,
-      AFTER_TRANSFORM,
-      BEFORE_ENTROPY,
-      AFTER_ENTROPY,
-      COMPRESSION_END,
-      DECOMPRESSION_END,
-      AFTER_HEADER_DECODING,
-      BLOCK_INFO
-   }
+/**
+ * This class represents events that occur during compression and
+ * decompression processes. Each event includes attributes such as type,
+ * size, hash, and timestamp.
+ */
+public class Event {
 
-   public enum HashType
-   {
-      NO_HASH,
-      SIZE_32,
-      SIZE_64
-   }
+    /**
+     * Enum representing the types of events that can occur.
+     */
+    public enum Type {
+        COMPRESSION_START,
+        DECOMPRESSION_START,
+        BEFORE_TRANSFORM,
+        AFTER_TRANSFORM,
+        BEFORE_ENTROPY,
+        AFTER_ENTROPY,
+        COMPRESSION_END,
+        DECOMPRESSION_END,
+        AFTER_HEADER_DECODING,
+        BLOCK_INFO
+    }
 
-   private final int id;
-   private final long size;
-   private final long hash;
-   private final Type type;
-   private final HashType hashType;
-   private final long time;
-   private final String msg;
+    /**
+     * Enum representing the types of hash used in the events.
+     */
+    public enum HashType {
+        NO_HASH,
+        SIZE_32,
+        SIZE_64
+    }
 
+    private final int id;
+    private final long size;
+    private final long hash;
+    private final Type type;
+    private final HashType hashType;
+    private final long time;
+    private final String msg;
 
-   public Event(Type type, int id, long size)
-   {
-      this(type, id, size, 0, HashType.NO_HASH);
-   }
+    /**
+     * Constructs an Event with the specified type, id, and size, with no hash.
+     *
+     * @param type the type of event
+     * @param id the event id
+     * @param size the size of the event
+     */
+    public Event(Type type, int id, long size) {
+        this(type, id, size, 0, HashType.NO_HASH);
+    }
 
+    /**
+     * Constructs an Event with the specified type, id, and message.
+     *
+     * @param type the type of event
+     * @param id the event id
+     * @param msg the event message
+     */
+    public Event(Type type, int id, String msg) {
+        this(type, id, msg, 0);
+    }
 
-   public Event(Type type, int id, String msg)
-   {
-      this(type, id, msg, 0);
-   }
+    /**
+     * Constructs an Event with the specified type, id, message, and time.
+     *
+     * @param type the type of event
+     * @param id the event id
+     * @param msg the event message
+     * @param time the event timestamp
+     */
+    public Event(Type type, int id, String msg, long time) {
+        this.id = id;
+        this.size = 0L;
+        this.hash = 0;
+        this.hashType = HashType.NO_HASH;
+        this.type = type;
+        this.time = (time > 0) ? time : System.nanoTime();
+        this.msg = msg;
+    }
 
+    /**
+     * Constructs an Event with the specified type, id, size, hash, and hash type.
+     *
+     * @param type the type of event
+     * @param id the event id
+     * @param size the size of the event
+     * @param hash the hash of the event
+     * @param hashType the type of hash used
+     */
+    public Event(Type type, int id, long size, long hash, HashType hashType) {
+        this(type, id, size, hash, hashType, 0);
+    }
 
-   public Event(Type type, int id, String msg, long time)
-   {
-      this.id = id;
-      this.size = 0L;
-      this.hash = 0;
-      this.hashType = HashType.NO_HASH;
-      this.type = type;
-      this.time = (time > 0) ? time : System.nanoTime();
-      this.msg = msg;
-   }
+    /**
+     * Constructs an Event with the specified type, id, size, hash, hash type, and time.
+     *
+     * @param type the type of event
+     * @param id the event id
+     * @param size the size of the event
+     * @param hash the hash of the event
+     * @param hashType the type of hash used
+     * @param time the event timestamp
+     */
+    public Event(Type type, int id, long size, long hash, HashType hashType, long time) {
+        this.id = id;
+        this.size = size;
+        this.hash = hash;
+        this.hashType = hashType;
+        this.type = type;
+        this.time = (time > 0) ? time : System.nanoTime();
+        this.msg = null;
+    }
 
+    /**
+     * Returns the event id.
+     *
+     * @return the event id
+     */
+    public int getId() {
+        return this.id;
+    }
 
-   public Event(Type type, int id, long size, long hash, HashType hashType)
-   {
-      this(type, id, size, hash, hashType, 0);
-   }
+    /**
+     * Returns the size of the event.
+     *
+     * @return the event size
+     */
+    public long getSize() {
+        return this.size;
+    }
 
+    /**
+     * Returns the timestamp of the event.
+     *
+     * @return the event timestamp
+     */
+    public long getTime() {
+        return this.time;
+    }
 
-   public Event(Type type, int id, long size, long hash, HashType hashType, long time)
-   {
-      this.id = id;
-      this.size = size;
-      this.hash = hash;
-      this.hashType = hashType;
-      this.type = type;
-      this.time = (time > 0) ? time : System.nanoTime();
-      this.msg = null;
-   }
+    /**
+     * Returns the hash of the event, or 0 if no hash is used.
+     *
+     * @return the event hash
+     */
+    public long getHash() {
+        return (this.hashType == HashType.NO_HASH) ? 0 : this.hash;
+    }
 
+    /**
+     * Returns the type of hash used in the event.
+     *
+     * @return the event hash type
+     */
+    public HashType getHashType() {
+        return this.hashType;
+    }
 
-   public int getId()
-   {
-      return this.id;
-   }
+    /**
+     * Returns the type of the event.
+     *
+     * @return the event type
+     */
+    public Type getType() {
+        return this.type;
+    }
 
-
-   public long getSize()
-   {
-      return this.size;
-   }
-
-
-   public long getTime()
-   {
-      return this.time;
-   }
-
-
-   public long getHash()
-   {
-      return (this.hashType == HashType.NO_HASH) ? 0 : this.hash;
-   }
-
-
-   public HashType getHashType()
-   {
-      return this.hashType;
-   }
-
-
-   public Type getType()
-   {
-      return this.type;
-   }
-
-
-   @Override
-   public String toString()
-   {
-      if (this.msg != null)
-         return this.msg;
-
-      StringBuilder sb = new StringBuilder(200);
-      sb.append("{ \"type\":\"").append(this.getType()).append("\"");
-
-      if (this.id >= 0)
-         sb.append(", \"id\":").append(this.getId());
-
-      sb.append(", \"size\":").append(this.getSize());
-      sb.append(", \"time\":").append(this.getTime());
-
-      if (this.hashType == HashType.SIZE_32)
-         sb.append(", \"hash\":\"").append(Integer.toHexString((int) this.getHash())).append("\"");
-      else if (this.hashType == HashType.SIZE_64)
-         sb.append(", \"hash\":\"").append(Long.toHexString(this.getHash())).append("\"");
-
-      sb.append(" }");
-      return sb.toString();
-   }
+    /**
+     * Returns a string representation of the event.
+     *
+     * @return a string representation of the event
+     */
+    @Override
+    public String toString() {
+        if (this.msg != null) {
+            return this.msg;
+        }
+        StringBuilder sb = new StringBuilder(200);
+        sb.append("{ \"type\":\"").append(this.getType()).append("\"");
+        if (this.id >= 0) {
+            sb.append(", \"id\":").append(this.getId());
+        }
+        sb.append(", \"size\":").append(this.getSize());
+        sb.append(", \"time\":").append(this.getTime());
+        if (this.hashType == HashType.SIZE_32) {
+            sb.append(", \"hash\":\"").append(Integer.toHexString((int) this.getHash())).append("\"");
+        } else if (this.hashType == HashType.SIZE_64) {
+            sb.append(", \"hash\":\"").append(Long.toHexString(this.getHash())).append("\"");
+        }
+        sb.append(" }");
+        return sb.toString();
+    }
 }

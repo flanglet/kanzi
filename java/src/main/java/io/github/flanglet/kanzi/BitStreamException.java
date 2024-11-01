@@ -15,49 +15,91 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
+/**
+ * This class represents exceptions specific to bit stream operations.
+ * It provides different error codes to identify various error conditions.
+ */
+public class BitStreamException extends RuntimeException {
 
-public class BitStreamException extends RuntimeException
-{
     private static final long serialVersionUID = 7279737120722476336L;
 
+    /**
+     * Error code for undefined errors.
+     */
     public static final int UNDEFINED = 0;
-    public static final int INPUT_OUTPUT   = 1;
-    public static final int END_OF_STREAM  = 2;
+
+    /**
+     * Error code for input/output errors.
+     */
+    public static final int INPUT_OUTPUT = 1;
+
+    /**
+     * Error code for end-of-stream errors.
+     */
+    public static final int END_OF_STREAM = 2;
+
+    /**
+     * Error code for invalid stream errors.
+     */
     public static final int INVALID_STREAM = 3;
-    public static final int STREAM_CLOSED  = 4;
+
+    /**
+     * Error code for stream closed errors.
+     */
+    public static final int STREAM_CLOSED = 4;
 
     private final int code;
 
-
-    protected BitStreamException()
-    {
+    /**
+     * Constructs a {@code BitStreamException} with an undefined error code.
+     */
+    protected BitStreamException() {
         this.code = UNDEFINED;
     }
 
-
-    public BitStreamException(String message, int code)
-    {
+    /**
+     * Constructs a {@code BitStreamException} with the specified detail message
+     * and error code.
+     *
+     * @param message the detail message
+     * @param code the error code
+     */
+    public BitStreamException(String message, int code) {
         super(message);
         this.code = code;
     }
 
-
-    public BitStreamException(String message, Throwable cause, int code)
-    {
+    /**
+     * Constructs a {@code BitStreamException} with the specified detail message,
+     * cause, and error code.
+     *
+     * @param message the detail message
+     * @param cause the cause
+     * @param code the error code
+     */
+    public BitStreamException(String message, Throwable cause, int code) {
         super(message, cause);
         this.code = code;
     }
 
-
-    public BitStreamException(Throwable cause, int code)
-    {
+    /**
+     * Constructs a {@code BitStreamException} with the specified cause
+     * and error code.
+     *
+     * @param cause the cause
+     * @param code the error code
+     */
+    public BitStreamException(Throwable cause, int code) {
         super(cause);
         this.code = code;
     }
 
-
-    public int getErrorCode()
-    {
+    /**
+     * Returns the error code of this exception.
+     *
+     * @return the error code
+     */
+    public int getErrorCode() {
         return this.code;
     }
 }

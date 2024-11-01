@@ -21,13 +21,24 @@ import java.util.Map;
 
 
 
+/**
+ * The {@code Kanzi} class is a command-line application for compressing
+ * and decompressing data using a fast lossless algorithm.
+ *
+ * <p>It provides functionalities for processing command line arguments
+ * and executing compression and decompression based on those arguments.</p>
+ */
 public class Kanzi
 {
+   /**
+     * An array of command line argument options.
+     */
    private static final String[] CMD_LINE_ARGS = new String[]
    {
       "-c", "-d", "-i", "-o", "-b", "-t", "-e", "-j", "-v", "-l", "-s", "-x", "-f", "-h"
    };
 
+   // Argument index constants for easier reference
    //private static final int ARG_IDX_COMPRESS = 0;
    //private static final int ARG_IDX_DECOMPRESS = 1;
    private static final int ARG_IDX_INPUT = 2;
@@ -49,6 +60,11 @@ public class Kanzi
 
 
 
+   /**
+    * The main method that serves as the entry point for the Kanzi application.
+    *
+    * @param args command line arguments passed to the application
+    */
    public static void main(String[] args)
    {
       Map<String, Object> map = new HashMap<>();
@@ -131,6 +147,13 @@ public class Kanzi
    }
 
 
+    /**
+     * Processes the command line arguments and populates the provided map with options.
+     *
+     * @param args the command line arguments
+     * @param map a map to store processed options and their values
+     * @return an integer indicating the status of the processing
+     */
     private static int processCommandLine(String[] args, Map<String, Object> map)
     {
         int blockSize = -1;
@@ -781,6 +804,12 @@ public class Kanzi
     }
 
 
+    /**
+     * Prints help information for using the Kanzi application.
+     *
+     * @param mode the mode of operation (compress or decompress)
+     * @param showHeader whether to show the application header
+     */
     private static void printHelp(char mode, boolean showHeader)
     {
       if (showHeader == true)
@@ -906,6 +935,13 @@ public class Kanzi
     }
 
 
+    /**
+     * Prints a warning message to the console.
+     *
+     * @param val the value associated with the warning
+     * @param reason the reason for the warning
+     * @param verbose verbosity level controlling the output
+     */
     private static void printWarning(String val, String reason, int verbose)
     {
          String msg = String.format("Warning: Ignoring option [%s] %s", val, reason);
@@ -913,6 +949,12 @@ public class Kanzi
     }
 
 
+    /**
+     * Prints a message to the console if the print flag is true.
+     *
+     * @param msg the message to print
+     * @param print flag indicating whether to print the message
+     */
     private static void printOut(String msg, boolean print)
     {
        if ((print == true) && (msg != null))

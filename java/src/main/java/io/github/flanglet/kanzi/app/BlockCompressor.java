@@ -45,6 +45,15 @@ import io.github.flanglet.kanzi.Listener;
 import io.github.flanglet.kanzi.transform.TransformFactory;
 
 
+/**
+ * The {@code BlockCompressor} class implements a multithreaded block
+ * compression algorithm. It is designed to handle compression tasks
+ * in a concurrent manner, allowing for efficient data processing.
+ *
+ * <p>This class implements the {@code Runnable} and {@code Callable}
+ * interfaces, enabling it to be executed in a separate thread and
+ * return a status code upon completion.</p>
+ */
 public class BlockCompressor implements Runnable, Callable<Integer>
 {
    private static final int DEFAULT_BUFFER_SIZE = 65536;
@@ -75,6 +84,11 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    private final ExecutorService pool;
 
 
+   /**
+    * Constructs a {@code BlockCompressor} with the specified parameters.
+    *
+    * @param map a map containing configuration options for the compressor
+    */
    public BlockCompressor(Map<String, Object> map)
    {
       int level = - 1;
@@ -206,6 +220,10 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    }
 
 
+   /**
+    * Cleans up resources used by the {@code BlockCompressor}.
+    * Shuts down the thread pool if it exists.
+    */
    public void dispose()
    {
       if (this.pool != null)
@@ -213,6 +231,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    }
 
 
+   /**
+    * Executes the compression process by calling the {@code call} method.
+    */
    @Override
    public void run()
    {
@@ -220,7 +241,11 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    }
 
 
-   // Return status (success = 0, error < 0)
+   /**
+    * Performs the compression task and returns a status code.
+    *
+    * @return an integer indicating the status of the compression (success = 0, error = negative value )
+    */
    @Override
    public Integer call()
    {
@@ -500,6 +525,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
     }
 
 
+   /**
+    * Prints a message to the console if the print flag is true.
+    *
+    * @param msg the message to print
+    * @param print flag indicating whether to print the message
+    */
    private static void printOut(String msg, boolean print)
    {
       if ((print == true) && (msg != null))
@@ -507,18 +538,36 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    }
 
 
+   /**
+    * Adds a listener to the list of listeners.
+    *
+    * @param bl the listener to add
+    * @return true if the listener was added successfully, false otherwise
+    */
    public final boolean addListener(Listener bl)
    {
       return (bl != null) ? this.listeners.add(bl) : false;
    }
 
 
+   /**
+    * Removes a listener from the list of listeners.
+    *
+    * @param bl the listener to remove
+    * @return true if the listener was removed successfully, false otherwise
+    */
    public final boolean removeListener(Listener bl)
    {
       return (bl != null) ? this.listeners.remove(bl) : false;
    }
 
 
+   /**
+    * Notifies all registered listeners of an event.
+    *
+    * @param listeners the array of listeners to notify
+    * @param evt the event to be processed by the listeners
+    */
    static void notifyListeners(Listener[] listeners, Event evt)
    {
       for (Listener bl : listeners)
@@ -535,6 +584,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    }
 
 
+   /**
+    * Returns the transformation and codec settings based on the specified level.
+    *
+    * @param level the level of compression
+    * @return a string representing the transformation and codec settings
+    */
    private static String getTransformAndCodec(int level)
    {
       switch (level)
@@ -576,6 +631,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
 
 
+   /**
+    * Represents the result of a file compression task.
+    */
    static class FileCompressResult
    {
       final int code;
@@ -583,6 +641,13 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       final long written;
 
 
+      /**
+       * Constructs a {@code FileCompressResult} with the specified values.
+       *
+       * @param code the status code of the compression task
+       * @param read the amount of data read
+       * @param written the amount of data written
+       */
       public FileCompressResult(int code, long read, long written)
       {
          this.code = code;
@@ -592,6 +657,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    }
 
 
+   /**
+    * Represents a task that compresses a file.
+    */
    static class FileCompressTask implements Callable<FileCompressResult>
    {
       private final Map<String, Object> ctx;
@@ -600,6 +668,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       private final List<Listener> listeners;
 
 
+     /**
+      * Constructs a {@code FileCompressTask} with the specified context and listeners.
+      *
+      * @param ctx the context for the compression task
+      * @param listeners the list of listeners to notify during processing
+      */
       public FileCompressTask(Map<String, Object> ctx, List<Listener> listeners)
       {
          this.ctx = ctx;
@@ -607,6 +681,12 @@ public class BlockCompressor implements Runnable, Callable<Integer>
       }
 
 
+      /**
+       * Executes the compression task and returns the result.
+       *
+       * @return a {@code FileCompressResult} representing the outcome of the task
+       * @throws Exception if an error occurs during compression
+       */
       @Override
       public FileCompressResult call() throws Exception
       {
@@ -844,7 +924,11 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          return new FileCompressResult(0, read, this.cos.getWritten());
       }
 
-
+     /**
+      * Cleans up resources used by the compression task.
+      *
+      * @throws IOException if an error occurs while closing resources
+      */
       public void dispose() throws IOException
       {
          if (this.is != null)
@@ -856,16 +940,30 @@ public class BlockCompressor implements Runnable, Callable<Integer>
    }
 
 
+  /**
+   * Represents a worker that processes file compression tasks.
+   */
    static class FileCompressWorker implements Callable<FileCompressResult>
    {
       private final ArrayBlockingQueue<FileCompressTask> queue;
 
 
+     /**
+      * Constructs a {@code FileCompressWorker} with the specified task queue.
+      *
+      * @param queue the queue of tasks to be processed
+      */
       public FileCompressWorker(ArrayBlockingQueue<FileCompressTask> queue)
       {
          this.queue = queue;
       }
 
+     /**
+      * Executes the worker's task of compressing files.
+      *
+      * @return a {@code FileCompressResult} representing the outcome of the tasks
+      * @throws Exception if an error occurs during processing
+      */
       @Override
       public FileCompressResult call() throws Exception
       {

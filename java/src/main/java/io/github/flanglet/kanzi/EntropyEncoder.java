@@ -12,20 +12,35 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package io.github.flanglet.kanzi;
 
+/**
+ * This interface defines methods for encoding data into a bitstream.
+ */
+public interface EntropyEncoder {
 
-public interface EntropyEncoder
-{
-    // Encode the array provided into the bitstream. Return the number of bytes
-    // written to the bitstream
+    /**
+     * Encodes the provided array into the bitstream and returns the
+     * number of bytes written to the bitstream.
+     *
+     * @param array the array containing the data to be encoded
+     * @param blkptr the starting index in the array
+     * @param len the length of data to encode
+     * @return the number of bytes written to the bitstream
+     */
     public int encode(byte[] array, int blkptr, int len);
 
-    // Return the underlying bitstream
+    /**
+     * Returns the underlying bitstream associated with this entropy encoder.
+     *
+     * @return the underlying {@code OutputBitStream}
+     */
     public OutputBitStream getBitStream();
 
-    // Must be called before getting rid of the entropy coder
-    // Trying to encode after a call to dispose gives undefined behavior
+    /**
+     * Releases any resources associated with this entropy encoder.
+     * This method should be called before disposing of the entropy encoder.
+     * Trying to encode after a call to dispose gives undefined behavior.
+     */
     public void dispose();
 }

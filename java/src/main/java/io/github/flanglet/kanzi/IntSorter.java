@@ -15,8 +15,19 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
+/**
+ * This interface defines a method for sorting a sub-array of integers.
+ */
+public interface IntSorter {
 
-public interface IntSorter
-{
+   /**
+    * Sorts a sub-array of integers.
+    *
+    * @param array the array containing the sub-array to be sorted
+    * @param idx the starting index of the sub-array
+    * @param len the length of the sub-array
+    * @return {@code true} if the sub-array was successfully sorted,
+    *         {@code false} otherwise
+    */
     public boolean sort(int[] array, int idx, int len);
 }

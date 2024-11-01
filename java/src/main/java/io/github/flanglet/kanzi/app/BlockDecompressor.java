@@ -45,6 +45,15 @@ import io.github.flanglet.kanzi.Listener;
 
 
 
+/**
+ * The {@code BlockDecompressor} class implements a multithreaded block
+ * decompression algorithm. It is designed to handle decompression tasks
+ * efficiently using concurrency, allowing for fast data processing.
+ *
+ * <p>This class implements the {@code Runnable} and {@code Callable}
+ * interfaces, enabling it to be executed in a separate thread and
+ * return a status code upon completion.</p>
+ */
 public class BlockDecompressor implements Runnable, Callable<Integer>
 {
    private static final int DEFAULT_BUFFER_SIZE = 65536;
@@ -67,6 +76,11 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    private final List<Listener> listeners;
 
 
+  /**
+   * Constructs a {@code BlockDecompressor} with the specified parameters.
+   *
+   * @param map a map containing configuration options for the decompressor
+   */
    public BlockDecompressor(Map<String, Object> map)
    {
       this.overwrite = Boolean.TRUE.equals(map.remove("overwrite"));
@@ -125,6 +139,10 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    }
 
 
+  /**
+   * Cleans up resources used by the {@code BlockDecompressor}.
+   * Shuts down the thread pool if it exists.
+   */
    public void dispose()
    {
       if (this.pool != null)
@@ -132,6 +150,9 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    }
 
 
+  /**
+   * Executes the decompression process by calling the {@code call} method.
+   */
    @Override
    public void run()
    {
@@ -139,6 +160,11 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    }
 
 
+  /**
+   * Performs the decompression task and returns a status code.
+   *
+   * @return an integer indicating the status of the decompression (success = 0, error = negative value)
+   */
    @Override
    public Integer call()
    {
@@ -385,6 +411,12 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    }
 
 
+   /**
+    * Prints a message to the console if the print flag is true.
+    *
+    * @param msg the message to print
+    * @param print flag indicating whether to print the message
+    */
     private static void printOut(String msg, boolean print)
     {
        if ((print == true) && (msg != null))
@@ -392,18 +424,36 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
     }
 
 
+   /**
+    * Adds a listener to the list of listeners.
+    *
+    * @param bl the listener to add
+    * @return true if the listener was added successfully, false otherwise
+    */
     public final boolean addListener(Listener bl)
     {
        return (bl != null) ? this.listeners.add(bl) : false;
     }
 
 
+   /**
+    * Removes a listener from the list of listeners.
+    *
+    * @param bl the listener to remove
+    * @return true if the listener was removed successfully, false otherwise
+    */
     public final boolean removeListener(Listener bl)
     {
        return (bl != null) ? this.listeners.remove(bl) : false;
     }
 
 
+   /**
+    * Notifies all registered listeners of an event.
+    *
+    * @param listeners the array of listeners to notify
+    * @param evt the event to be processed by the listeners
+    */
     static void notifyListeners(Listener[] listeners, Event evt)
     {
        for (Listener bl : listeners)
@@ -421,12 +471,20 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
 
 
+  /**
+   * Represents the result of a file decompression task.
+   */
    static class FileDecompressResult
    {
-       final int code;
-       final long read;
+      final int code;
+      final long read;
 
-
+     /**
+      * Constructs a {@code FileDecompressResult} with the specified values.
+      *
+      * @param code the status code of the decompression task
+      * @param read the amount of data read
+      */
       public FileDecompressResult(int code, long read)
       {
          this.code = code;
@@ -435,6 +493,9 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    }
 
 
+  /**
+   * Represents a task that decompresses a file.
+   */
    static class FileDecompressTask implements Callable<FileDecompressResult>
    {
       private final Map<String, Object> ctx;
@@ -443,6 +504,12 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       private final List<Listener> listeners;
 
 
+     /**
+      * Constructs a {@code FileDecompressTask} with the specified context and listeners.
+      *
+      * @param ctx the context for the decompression task
+      * @param listeners the list of listeners to notify during processing
+      */
       public FileDecompressTask(Map<String, Object> ctx, List<Listener> listeners)
       {
          this.ctx = ctx;
@@ -450,6 +517,13 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
       }
 
 
+ 
+     /**
+      * Executes the decompression task and returns the result.
+      *
+      * @return a {@code FileDecompressResult} representing the outcome of the task
+      * @throws Exception if an error occurs during decompression
+      */
       @Override
       public FileDecompressResult call() throws Exception
       {
@@ -718,6 +792,12 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          return new FileDecompressResult(0, decoded);
       }
 
+
+     /**
+      * Cleans up resources used by the decompression task.
+      *
+      * @throws IOException if an error occurs while closing resources
+      */
       public void dispose() throws IOException
       {
          if (this.cis != null)
@@ -729,16 +809,31 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
    }
 
 
-
+  /**
+   * Represents a worker that processes file decompression tasks.
+   */
    static class FileDecompressWorker implements Callable<FileDecompressResult>
    {
       private final ArrayBlockingQueue<FileDecompressTask> queue;
 
+
+     /**
+      * Constructs a {@code FileDecompressWorker} with the specified task queue.
+      *
+      * @param queue the queue of tasks to be processed
+      */
       public FileDecompressWorker(ArrayBlockingQueue<FileDecompressTask> queue)
       {
          this.queue = queue;
       }
 
+
+     /**
+      * Executes the worker's task of decompressing files.
+      *
+      * @return a {@code FileDecompressResult} representing the outcome of the tasks
+      * @throws Exception if an error occurs during processing
+      */
       @Override
       public FileDecompressResult call() throws Exception
       {

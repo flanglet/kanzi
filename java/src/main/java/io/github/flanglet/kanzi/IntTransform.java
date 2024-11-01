@@ -15,21 +15,38 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
+/**
+ * This interface defines methods for transforming integer arrays in forward and
+ * inverse directions, and for obtaining the maximum encoded length.
+ */
+public interface IntTransform {
 
-public interface IntTransform
-{
-   // Read src.length ints from src.array[src.index], process them and
-   // write them to dst.array[dst.index]. The index of each slice is updated
-   // with the number of ints respectively read from and written to.
-   public boolean forward(SliceIntArray src, SliceIntArray dst);
+    /**
+     * Processes the source array and writes the transformed data to the
+     * destination array in the forward direction.
+     *
+     * @param src the source {@code SliceIntArray} containing the data to be processed
+     * @param dst the destination {@code SliceIntArray} where the processed data will be written
+     * @return {@code true} if the transformation was successful, {@code false} otherwise
+     */
+    public boolean forward(SliceIntArray src, SliceIntArray dst);
 
+    /**
+     * Processes the source array and writes the transformed data to the
+     * destination array in the inverse direction.
+     *
+     * @param src the source {@code SliceIntArray} containing the data to be processed
+     * @param dst the destination {@code SliceIntArray} where the processed data will be written
+     * @return {@code true} if the transformation was successful, {@code false} otherwise
+     */
+    public boolean inverse(SliceIntArray src, SliceIntArray dst);
 
-   // Read src.length ints from src.array[src.index], process them and
-   // write them to dst.array[dst.index]. The index of each slice is updated
-   // with the number of ints respectively read from and written to.
-   public boolean inverse(SliceIntArray src, SliceIntArray dst);
-
-
-   // Return the max size required for the output buffer
-   public int getMaxEncodedLength(int srcLength);
+    /**
+     * Returns the maximum size required for the output buffer given the
+     * length of the source data.
+     *
+     * @param srcLength the length of the source data
+     * @return the maximum size required for the output buffer
+     */
+    public int getMaxEncodedLength(int srcLength);
 }

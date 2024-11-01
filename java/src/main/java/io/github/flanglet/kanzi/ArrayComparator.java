@@ -15,10 +15,19 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
+/**
+ * This interface defines a method for comparing sub-arrays within an array.
+ */
+public interface ArrayComparator {
 
-public interface ArrayComparator
-{
-    // Given an array (not provided here), return how the
-    // sub-array starting at lidx compares to that starting at ridx
+    /**
+     * Compares two sub-arrays starting at the specified indices.
+     *
+     * @param lidx the starting index of the left sub-array
+     * @param ridx the starting index of the right sub-array
+     * @return a negative integer, zero, or a positive integer as the
+     *         left sub-array is less than, equal to, or greater than
+     *         the right sub-array
+     */
     public int compare(int lidx, int ridx);
 }

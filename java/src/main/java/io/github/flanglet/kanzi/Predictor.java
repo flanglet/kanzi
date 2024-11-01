@@ -12,18 +12,32 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package io.github.flanglet.kanzi;
 
+/**
+ * The {@code Predictor} interface is used by a binary entropy coder to
+ * predict the probabilities of 0 and 1 symbols in the input signal.
+ *
+ * <p>Implementations of this interface should maintain a probability model
+ * that can be updated based on input bits and can provide a split value
+ * representing the predicted probability of the next bit being 1.</p>
+ */
+public interface Predictor {
 
-// Interface used by the binary entropy coder to predict probabilities of 0 and 1
-// symbols in the input signal
-public interface Predictor
-{
-    // Update the probability model
+    /**
+     * Updates the probability model based on the provided bit.
+     *
+     * @param bit the bit to update the model with (0 or 1)
+     */
     public void update(int bit);
 
-
-    // Return the split value representing the probability of 1 in the [0..4095] range.
-    // E.G. 410 represents roughly a probability of 10% for 1
+    /**
+     * Returns a split value representing the probability of the next bit being 1.
+     * The returned value is in the range of [0..4095], where a value of
+     * 410 roughly corresponds to a probability of 10% for the next bit being 1.
+     *
+     * @return the split value representing the probability of 1
+     */
     public int get();
 }

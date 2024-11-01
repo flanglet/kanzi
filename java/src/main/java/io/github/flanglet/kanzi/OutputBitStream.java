@@ -15,25 +15,52 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
+/**
+ * The {@code OutputBitStream} interface defines methods for writing bits
+ * to a bit stream.
+ */
+public interface OutputBitStream {
 
-public interface OutputBitStream
-{
-   // Write the least significant bit of the input integer
-   // Throws if the stream is closed.
-   public void writeBit(int bit) throws BitStreamException;
+    /**
+     * Writes the least significant bit of the input integer to the bit stream.
+     *
+     * @param bit the bit to write (0 or 1)
+     * @throws BitStreamException if the stream is closed or if an error occurs
+     */
+    public void writeBit(int bit) throws BitStreamException;
 
-   // Length is the number of bits in [1..64]. Return the number of bits written.
-   // Throws if the stream is closed.
-   public int writeBits(long bits, int length) throws BitStreamException;
+    /**
+     * Writes a specified number of bits from the input long value to the bit stream.
+     *
+     * @param bits the long value containing the bits to write
+     * @param length the number of bits to write (must be between 1 and 64)
+     * @return the number of bits written
+     * @throws BitStreamException if the stream is closed or if an error occurs
+     */
+    public int writeBits(long bits, int length) throws BitStreamException;
 
-   // Write bits ouf of the byte array at index 'start'.
-   // Length is the number of bits.
-   // Return the number of bits written.
-   // Throws if the stream is closed.
-   public int writeBits(byte[] bits, int start, int nbBits) throws BitStreamException;
+    /**
+     * Writes bits from a byte array to the bit stream starting at the specified index.
+     *
+     * @param bits the byte array containing the bits to write
+     * @param start the starting index in the byte array
+     * @param nbBits the number of bits to write
+     * @return the number of bits written
+     * @throws BitStreamException if the stream is closed or if an error occurs
+     */
+    public int writeBits(byte[] bits, int start, int nbBits) throws BitStreamException;
 
-   public void close() throws BitStreamException;
+    /**
+     * Closes the bit stream and releases any resources associated with it.
+     *
+     * @throws BitStreamException if an error occurs while closing the stream
+     */
+    public void close() throws BitStreamException;
 
-   // Number of bits written
-   public long written();
+    /**
+     * Returns the total number of bits that have been written to the stream.
+     *
+     * @return the number of bits written
+     */
+    public long written();
 }

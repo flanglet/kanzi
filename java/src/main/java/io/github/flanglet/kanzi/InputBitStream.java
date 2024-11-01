@@ -15,27 +15,59 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
+/**
+ * The {@code InputBitStream} interface defines methods for reading bits
+ * to a bit stream.
+ */
+public interface InputBitStream {
 
-public interface InputBitStream
-{
-   // Return 1 or 0
-   public int readBit() throws BitStreamException;
+    /**
+     * Reads a single bit from the bitstream.
+     *
+     * @return the bit read (0 or 1)
+     * @throws BitStreamException if an error occurs or the stream is closed
+     */
+    public int readBit() throws BitStreamException;
 
-   // Length is the number of bits in [1..64]. Return the bits read as a long
-   // Throws if the stream is closed.
-   public long readBits(int length) throws BitStreamException;
+    /**
+     * Reads a specified number of bits from the bitstream and returns them as a long.
+     *
+     * @param length the number of bits to read (between 1 and 64)
+     * @return the bits read as a long
+     * @throws BitStreamException if an error occurs or the stream is closed
+     */
+    public long readBits(int length) throws BitStreamException;
 
-   // Read bits and put them in the byte array at index 'start'.
-   // Length is the number of bits
-   // Return the number of bits read.
-   // Throws if the stream is closed.
-   public int readBits(byte[] bits, int start, int length) throws BitStreamException;
+    /**
+     * Reads bits from the bitstream and stores them in the specified byte array.
+     *
+     * @param bits the byte array to store the read bits
+     * @param start the starting index in the array
+     * @param length the number of bits to read
+     * @return the number of bits read
+     * @throws BitStreamException if an error occurs or the stream is closed
+     */
+    public int readBits(byte[] bits, int start, int length) throws BitStreamException;
 
-   public void close() throws BitStreamException;
+    /**
+     * Closes the bitstream and releases any associated resources.
+     *
+     * @throws BitStreamException if an error occurs while closing the stream
+     */
+    public void close() throws BitStreamException;
 
-   // Number of bits read
-   public long read();
+    /**
+     * Returns the total number of bits read from the bitstream.
+     *
+     * @return the total number of bits read
+     */
+    public long read();
 
-   // Return false when the bitstream is closed or the End-Of-Stream has been reached
-   public boolean hasMoreToRead();
+    /**
+     * Checks if there are more bits to read in the bitstream.
+     *
+     * @return {@code false} if the bitstream is closed or the end of the stream
+     *         has been reached, {@code true} otherwise
+     */
+    public boolean hasMoreToRead();
 }
