@@ -24,83 +24,83 @@ import java.nio.file.Paths;
 import java.util.List;
 
 
-public class IOUtil
-{
+/**
+ * Utility class for performing I/O operations related to file management.
+ */
+public class IOUtil {
+
+    /**
+     * Creates a list of files from the specified target path. The method can
+     * traverse directories recursively and can ignore symbolic links and
+     * dot files based on the provided flags.
+     *
+     * @param target          the target path from which to list files
+     * @param files           the list to populate with found file paths
+     * @param isRecursive     flag indicating whether to search directories recursively
+     * @param ignoreLinks     flag indicating whether to ignore symbolic links
+     * @param ignoreDotFiles  flag indicating whether to ignore dot files (files starting with a dot)
+     * @throws IOException if an I/O error occurs or the target path is invalid
+     */
     public static void createFileList(String target, List<Path> files, boolean isRecursive,
-       boolean ignoreLinks, boolean ignoreDotFiles) throws IOException
-    {
-       if (target == null)
-          return;
+                                       boolean ignoreLinks, boolean ignoreDotFiles) throws IOException {
+        if (target == null)
+            return;
 
-       Path root = Paths.get(target);
+        Path root = Paths.get(target);
 
-       if (Files.exists(root) == false)
-          throw new IOException("Cannot access input file '"+root+"'");
+        if (!Files.exists(root))
+            throw new IOException("Cannot access input file '" + root + "'");
 
-       if ((Files.isRegularFile(root) == true) && (Files.isHidden(root) == true))
-          throw new IOException("Cannot access input file '"+root+"'");
+        if (Files.isRegularFile(root) && Files.isHidden(root))
+            throw new IOException("Cannot access input file '" + root + "'");
 
-       if (Files.isRegularFile(root) == true)
-       {
-          if ((ignoreLinks == false) ||(Files.isSymbolicLink(root) == false))
-              files.add(root);
+        if (Files.isRegularFile(root)) {
+            if (!ignoreLinks || !Files.isSymbolicLink(root))
+                files.add(root);
+            return;
+        }
 
-          return;
-       }
+        // If not a regular file and not a directory (possibly a link?), fail
+        if (!Files.isDirectory(root))
+            throw new IOException("Invalid file type '" + root + "'");
 
-       // If not a regular file and not a directory (a link ?), fail
-       if (Files.isDirectory(root) == false)
-          throw new IOException("Invalid file type '"+root+"'");
+        if (ignoreDotFiles) {
+            String name = root.toString();
+            int idx = name.lastIndexOf(File.separator);
 
-       if (ignoreDotFiles == true)
-       {
-          String name = root.toString();
-          int idx = name.lastIndexOf(File.separator);
+            if (idx > 0) {
+                name = name.substring(idx + 1);
+                if (name.charAt(0) == '.')
+                    return;
+            }
+        }
 
-          if (idx > 0)
-          {
-             name = name.substring(idx+1);
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) {
+            for (Path entry : stream) {
+                if (!Files.exists(entry))
+                    continue;
 
-             if (name.charAt(0) == '.')
-                return;
-          }
-       }
+                if (Files.isRegularFile(entry)) {
+                    if (ignoreDotFiles) {
+                        String name = entry.toString();
+                        int idx = name.lastIndexOf(File.separator);
 
-       try (DirectoryStream<Path> stream = Files.newDirectoryStream(root))
-       {
-          for (Path entry: stream)
-          {
-             if (Files.exists(entry) == false)
-                continue;
+                        if (idx > 0) {
+                            name = name.substring(idx + 1);
+                            if (name.charAt(0) == '.')
+                                continue;
+                        }
+                    }
 
-             if (Files.isRegularFile(entry) == true)
-             {
-                if (ignoreDotFiles == true)
-                {
-                   String name = entry.toString();
-                   int idx = name.lastIndexOf(File.separator);
-
-                   if (idx > 0)
-                   {
-                      name = name.substring(idx+1);
-
-                      if (name.charAt(0) == '.')
-                         continue;
-                   }
+                    if (!ignoreLinks || !Files.isSymbolicLink(entry))
+                        files.add(entry);
+                } else if (isRecursive && Files.isDirectory(entry)) {
+                    createFileList(entry.toString(), files, isRecursive, ignoreLinks, ignoreDotFiles);
                 }
-
-                if ((ignoreLinks == false) ||(Files.isSymbolicLink(entry) == false))
-                   files.add(entry);
-             }
-             else if ((isRecursive == true) && (Files.isDirectory(entry) == true))
-             {
-                createFileList(entry.toString(), files, isRecursive, ignoreLinks, ignoreDotFiles);
-             }
-          }
-       }
-       catch (DirectoryIteratorException e)
-       {
-         throw e.getCause();
-       }
+            }
+        } catch (DirectoryIteratorException e) {
+            throw e.getCause();
+        }
     }
 }
+

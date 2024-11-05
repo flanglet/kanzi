@@ -18,16 +18,35 @@ package io.github.flanglet.kanzi.io;
 import java.io.OutputStream;
 
 
-public class NullOutputStream extends OutputStream
-{
-   @Override
-   public void write(int b)
-   {
-   }
+/**
+ * An output stream that discards all data written to it.
+ * This is useful for situations where you need an output stream
+ * but do not want to actually output any data.
+ */
+public class NullOutputStream extends OutputStream {
 
+    /**
+     * Writes the specified byte to this output stream.
+     * This implementation does not perform any action.
+     *
+     * @param b the byte to be written
+     */
+    @Override
+    public void write(int b) {
+        // No operation performed
+    }
 
-   @Override
-   public void write(byte[] b, int offs, int len)
-   {
-   }
+    /**
+     * Writes len bytes from the specified byte array starting at
+     * offset offs to this output stream. This implementation does
+     * not perform any action.
+     *
+     * @param b    the byte array containing the data to be written
+     * @param offs the start offset in the data
+     * @param len  the number of bytes to write
+     */
+    @Override
+    public void write(byte[] b, int offs, int len) {
+        // No operation performed
+    }
 }
