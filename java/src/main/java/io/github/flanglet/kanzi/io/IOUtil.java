@@ -42,7 +42,7 @@ public class IOUtil {
      * @throws IOException if an I/O error occurs or the target path is invalid
      */
     public static void createFileList(String target, List<Path> files, boolean isRecursive,
-                                       boolean ignoreLinks, boolean ignoreDotFiles) throws IOException {
+                                      boolean ignoreLinks, boolean ignoreDotFiles) throws IOException {
         if (target == null)
             return;
 
