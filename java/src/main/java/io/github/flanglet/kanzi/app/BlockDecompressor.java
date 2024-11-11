@@ -291,7 +291,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          // Run the task(s)
          if (nbFiles == 1)
          {
-            String oName = (formattedOutName == null) ? "" : formattedOutName;
+            String oName = formattedOutName;
             String iName = STDIN;
 
             if (isStdIn == true)
@@ -338,7 +338,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                long fileSize = Files.size(file);
                Map<String, Object> taskCtx = new HashMap<>(ctx);
 
-               if (oName == null)
+               if (oName.isEmpty()
                {
                   oName = iName + ".bak";
                }

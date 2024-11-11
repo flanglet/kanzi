@@ -393,8 +393,8 @@ public class CompressedOutputStream extends OutputStream {
      * Subclasses of <code>OutputStream</code> must provide an
      * implementation for this method.
      *
-     * @param      b   the <code>byte</code>..
-     * @throws java.io.IOException
+     * @param  b   the <code>byte</code>
+     * @throws IOException if an I/O error occurs.
      */
     @Override
     public void write(int b) throws IOException {
@@ -463,7 +463,6 @@ public class CompressedOutputStream extends OutputStream {
      * associated with this stream. The general contract of <code>close</code>
      * is that it closes the output stream. A closed stream cannot perform
      * output operations and cannot be reopened.
-     * <p>
      *
      * @exception  IOException  if an I/O error occurs.
      */

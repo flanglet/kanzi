@@ -379,7 +379,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
          // Run the task(s)
          if (nbFiles == 1)
          {
-            String oName = (formattedOutName == null) ? "" : formattedOutName;
+            String oName = formattedOutName;
             String iName = STDIN;
 
             if (isStdIn == true)
@@ -444,9 +444,9 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                    this.blockSize = (int) Math.max(Math.min(bl, MAX_BLOCK_SIZE), MIN_BLOCK_SIZE);
                }
 
-               if (oName == null)
+               if (oName.isEmpty()
                {
-                  oName = iName + ".knz";
+                  oName = iName + ".bak";
                }
                else if ((inputIsDir == true) && (specialOutput == false))
                {
