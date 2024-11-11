@@ -26,15 +26,54 @@ public class Event {
      * Enum representing the types of events that can occur.
      */
     public enum Type {
+        /**
+         * Beginning of compression
+         */
         COMPRESSION_START,
+
+        /**
+         * Beginning of decompression
+         */
         DECOMPRESSION_START,
+
+        /**
+         * Beginning of transform
+         */
         BEFORE_TRANSFORM,
+
+        /**
+         * End of transform
+         */
         AFTER_TRANSFORM,
+
+        /**
+         * Beginning of entropy
+         */
         BEFORE_ENTROPY,
+
+        /**
+         * End of entropy
+         */
         AFTER_ENTROPY,
+
+        /**
+         * End of compression
+         */
         COMPRESSION_END,
+
+        /**
+         * End of dcompression
+         */
         DECOMPRESSION_END,
+
+        /**
+         * End of header decoding
+         */
         AFTER_HEADER_DECODING,
+
+        /**
+         * Block informartion
+         */
         BLOCK_INFO
     }
 
@@ -42,8 +81,19 @@ public class Event {
      * Enum representing the types of hash used in the events.
      */
     public enum HashType {
+        /**
+         * No hash
+         */
         NO_HASH,
+
+        /**
+         * 32 bit hash
+         */
+
         SIZE_32,
+        /**
+         * 64 bit hash
+         */
         SIZE_64
     }
 

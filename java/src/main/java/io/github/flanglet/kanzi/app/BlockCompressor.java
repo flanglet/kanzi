@@ -444,7 +444,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                    this.blockSize = (int) Math.max(Math.min(bl, MAX_BLOCK_SIZE), MIN_BLOCK_SIZE);
                }
 
-               if (oName.isEmpty()
+               if (oName.isEmpty())
                {
                   oName = iName + ".bak";
                }

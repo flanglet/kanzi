@@ -98,12 +98,12 @@ public class BWT implements ByteTransform
    // Number of jobs provided in the context
    public BWT(Map<String, Object> ctx)
    {
-      final int tasks = (Integer) ctx.get("jobs");
+      final int tasks = (ctx == null) ? 1 : (Integer) ctx.get("jobs");
 
       if (tasks <= 0)
-         throw new IllegalArgumentException("The number of jobs must be in positive");
+         throw new IllegalArgumentException("The number of jobs must be positive");
 
-      ExecutorService threadPool = (ExecutorService) ctx.get("pool");
+      ExecutorService threadPool = (ctx == null) ? null : (ExecutorService) ctx.get("pool");
 
       if ((tasks > 1) && (threadPool == null))
          throw new IllegalArgumentException("The thread pool cannot be null when the number of jobs is "+tasks);

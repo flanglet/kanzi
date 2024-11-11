@@ -338,7 +338,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                long fileSize = Files.size(file);
                Map<String, Object> taskCtx = new HashMap<>(ctx);
 
-               if (oName.isEmpty()
+               if (oName.isEmpty())
                {
                   oName = iName + ".bak";
                }

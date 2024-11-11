@@ -2041,6 +2041,9 @@ public final class DivSufSort
                // tandem repeat copy
                StackElement se = this.trStack.pop();
 
+               if (se == null)
+                  return;
+
                if (se.d == 0)
                {
                   this.trCopy(isa, first, se.b, se.c, last, isad - isa);
