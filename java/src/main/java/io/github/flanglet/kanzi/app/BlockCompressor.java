@@ -273,7 +273,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
 
          if (files.isEmpty())
          {
-            System.err.println("Cannot access input file '"+this.inputName+"'");
+            System.err.println("Cannot find any file to compress");
             return Error.ERR_OPEN_FILE;
          }
 

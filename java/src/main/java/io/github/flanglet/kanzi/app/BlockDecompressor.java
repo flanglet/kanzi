@@ -193,7 +193,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
          if (files.isEmpty())
          {
-            System.err.println("Cannot open input file '"+this.inputName+"'");
+            System.err.println("Cannot find any file to decompress");
             return Error.ERR_OPEN_FILE;
          }
 
