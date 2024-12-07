@@ -229,15 +229,9 @@ public class EntropyUtils
                queue.add(new FreqSortData(freqs, alphabet[i]));
          }
 
-         if (queue.isEmpty())
-         {
-             freqs[idxMax] -= delta;
-             return alphabetSize;
-         }
-
          Collections.sort(queue);
 
-         while (sumScaledFreq != scale)
+         while (queue.size() != 0)
          {
             // Remove next symbol
             FreqSortData fsd = queue.removeFirst();
@@ -250,6 +244,24 @@ public class EntropyUtils
             freqs[fsd.symbol] += inc;
             sumScaledFreq += inc;
             queue.addLast(fsd);
+
+            if (sumScaledFreq == scale)
+               break;
+         }
+
+         if (sumScaledFreq != scale)
+         {
+            for (int i=0; i<alphabetSize; i++)
+            {
+               if (freqs[alphabet[i]] != -inc)
+               {
+                  freqs[alphabet[i]] += inc;
+                  sumScaledFreq += inc;
+
+                  if (sumScaledFreq == scale)
+                     break;
+               }
+            }
          }
       }
 
