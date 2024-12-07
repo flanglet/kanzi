@@ -15,7 +15,26 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
-public interface Listener
-{
-   public void processEvent(Event evt);
+/**
+ * The {@code Listener} interface defines a contract for objects that need to 
+ * handle and process events.
+ * <p>
+ * Classes that implement this interface are expected to provide an implementation 
+ * of the {@code processEvent} method, which will be invoked when an event occurs.
+ * </p>
+ *
+ */
+public interface Listener {
+
+    /**
+     * Processes the given event.
+     * <p>
+     * This method will be called whenever an event occurs that the listener is 
+     * interested in. Implementations of this method should define how to handle 
+     * the event.
+     * </p>
+     *
+     * @param evt The event to be processed. Cannot be {@code null}.
+     */
+    public void processEvent(Event evt);
 }

@@ -26,6 +26,10 @@ There is Go implementation available here: https://github.com/flanglet/kanzi-go
 
 ![Build Status](https://github.com/flanglet/kanzi/actions/workflows/ant.yml/badge.svg)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=flanglet_kanzi&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=flanglet_kanzi)
+<a href="https://scan.coverity.com/projects/flanglet-kanzi">
+  <img alt="Coverity Scan Build Status"
+       src="https://img.shields.io/coverity/scan/16859.svg"/>
+</a>
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 

@@ -193,7 +193,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
 
          if (files.isEmpty())
          {
-            System.err.println("Cannot open input file '"+this.inputName+"'");
+            System.err.println("Cannot find any file to decompress");
             return Error.ERR_OPEN_FILE;
          }
 
@@ -291,7 +291,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
          // Run the task(s)
          if (nbFiles == 1)
          {
-            String oName = (formattedOutName == null) ? "" : formattedOutName;
+            String oName = formattedOutName;
             String iName = STDIN;
 
             if (isStdIn == true)
@@ -304,14 +304,20 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                 iName = files.get(0).toString();
                 long fileSize = Files.size(files.get(0));
                 ctx.put("fileSize", fileSize);
+                String tmpName = iName;
+
+                if ((tmpName.length() >= 4) && (tmpName.substring(tmpName.length()-4).equalsIgnoreCase(".KNZ")))
+                    tmpName = tmpName.substring(0, tmpName.length()-4);
+                else
+                    tmpName = tmpName + ".bak";
 
                 if (oName.isEmpty())
                 {
-                   oName = iName + ".bak";
+                    oName = tmpName;
                 }
                 else if ((inputIsDir == true) && (specialOutput == false))
                 {
-                   oName = formattedOutName + iName.substring(formattedInName.length()+1) + ".bak";
+                    oName = formattedOutName + tmpName.substring(formattedInName.length()+1);
                 }
             }
 
@@ -337,14 +343,20 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                String iName = file.toString();
                long fileSize = Files.size(file);
                Map<String, Object> taskCtx = new HashMap<>(ctx);
+               String tmpName = iName;
 
-               if (oName == null)
+               if ((tmpName.length() >= 4) && (tmpName.substring(tmpName.length()-4).equalsIgnoreCase(".KNZ")))
+                   tmpName = tmpName.substring(0, tmpName.length()-4);
+               else
+                   tmpName = tmpName + ".bak";
+
+               if (oName.isEmpty())
                {
-                  oName = iName + ".bak";
+                   oName = tmpName;
                }
                else if ((inputIsDir == true) && (NONE.equalsIgnoreCase(oName) == false))
                {
-                  oName = formattedOutName + iName.substring(formattedInName.length()) + ".bak";
+                   oName = formattedOutName + tmpName.substring(formattedInName.length());
                }
 
                taskCtx.put("fileSize", fileSize);
@@ -354,12 +366,12 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                FileDecompressTask task = new FileDecompressTask(taskCtx, this.listeners);
 
                if (queue.offer(task) == false)
-                  throw new RuntimeException("Could not create a decompression task");
+                   throw new RuntimeException("Could not create a decompression task");
             }
 
             List<FileDecompressWorker> workers = new ArrayList<>(this.jobs);
 
-		  	   // Create one worker per job and run it. A worker calls several tasks sequentially.
+            // Create one worker per job and run it. A worker calls several tasks sequentially.
             for (int i=0; i<this.jobs; i++)
                workers.add(new FileDecompressWorker(queue));
 

@@ -17,7 +17,7 @@ package io.github.flanglet.kanzi;
 
 /**
  * The {@code InputBitStream} interface defines methods for reading bits
- * to a bit stream.
+ * from a bit stream.
  */
 public interface InputBitStream {
 

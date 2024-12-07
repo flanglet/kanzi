@@ -237,7 +237,7 @@ public final class DefaultOutputBitStream implements OutputBitStream {
         try {
             if (this.position > 0) {
                 this.os.write(this.buffer, 0, this.position);
-                this.written += (this.position << 3);
+                this.written += (((long) this.position) << 3);
                 this.position = 0;
             }
         } catch (IOException e) {

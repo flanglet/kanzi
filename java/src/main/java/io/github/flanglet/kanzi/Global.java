@@ -30,6 +30,9 @@ import java.util.List;
  */
 public class Global {
 
+  /**
+   *  Enum representing the types of data that can be specially processed.
+   */
   public enum DataType {
         UNDEFINED,
         TEXT,
@@ -49,9 +52,10 @@ public class Global {
   private Global() {
   }
 
-  public static final int INFINITE_VALUE = 0;
 
-  // Array with 256 elements: int(Math.log2(x-1))
+  /**
+   *  Array with 256 elements: int(Math.log2(x-1))
+   */
   public static final int[] LOG2_VALUES = new int[]{
       0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4,
       4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5,
@@ -152,7 +156,11 @@ public class Global {
       return SQUASH[positiveOrNull(d + 2047)];
   }
 
-  // Inverse of squash. d = ln(p/(1-p)), d scaled by 8 bits, p by 12 bits.
+  /**
+   * Global variable initialized with the inverse of squash:
+   * d = ln(p/(1-p)), d scaled by 8 bits, p by 12 bits.
+   *
+   */
   public static final int[] STRETCH = initStretch();
 
   private static int[] initStretch() {
