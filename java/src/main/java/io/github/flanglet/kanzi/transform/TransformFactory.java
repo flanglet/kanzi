@@ -1,361 +1,380 @@
 /*
-Copyright 2011-2024 Frederic Langlet
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-you may obtain a copy of the License at
-
-                http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Copyright 2011-2024 Frederic Langlet
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *                 http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package io.github.flanglet.kanzi.transform;
 
 import java.util.Map;
 import io.github.flanglet.kanzi.ByteTransform;
 
+/**
+ * Factory class to create instances of ByteTransform based on their type.
+ * Supports up to 64 different transform types.
+ */
+public class TransformFactory {
+    private static final int ONE_SHIFT = 6; // bits per transform
+    private static final int MAX_SHIFT = (8 - 1) * ONE_SHIFT; // 8 transforms
+    private static final int MASK = (1 << ONE_SHIFT) - 1;
+
+    // Up to 64 transforms can be declared (6 bit index)
+    public static final short NONE_TYPE = 0;  // copy
+    public static final short BWT_TYPE = 1;  // Burrows Wheeler
+    public static final short BWTS_TYPE = 2;  // Burrows Wheeler Scott
+    public static final short LZ_TYPE = 3;  // Lempel Ziv
+    public static final short SNAPPY_TYPE = 4;  // Snappy (obsolete)
+    public static final short RLT_TYPE = 5;  // Run Length
+    public static final short ZRLT_TYPE = 6;  // Zero Run Length
+    public static final short MTFT_TYPE = 7;  // Move To Front
+    public static final short RANK_TYPE = 8;  // Rank
+    public static final short EXE_TYPE = 9;  // EXE codec
+    public static final short DICT_TYPE = 10; // Text codec
+    public static final short ROLZ_TYPE = 11; // ROLZ codec
+    public static final short ROLZX_TYPE = 12; // ROLZ Extra codec
+    public static final short SRT_TYPE = 13; // Sorted Rank
+    public static final short LZP_TYPE = 14; // Lempel Ziv Predict
+    public static final short MM_TYPE = 15; // Multimedia (FSD) codec
+    public static final short LZX_TYPE = 16; // Lempel Ziv Extra
+    public static final short UTF_TYPE = 17; // UTF codec
+    public static final short PACK_TYPE = 18; // Alias codec
+    public static final short DNA_TYPE = 19; // DNA Alias codec
+    public static final short RESERVED3 = 20; // Reserved
+    public static final short RESERVED4 = 21; // Reserved
+    public static final short RESERVED5 = 22; // Reserved
+
+    /**
+     * Get the type of a transform based on its name.
+     *
+     * @param name the name of the transform
+     * @return the type of the transform
+     */
+    public long getType(String name) {
+        if (name.indexOf('+') < 0)
+            return this.getTypeToken(name) << MAX_SHIFT;
+
+        String[] tokens = name.split("\\+");
+
+        if (tokens.length == 0)
+            throw new IllegalArgumentException("Unknown transform type: " + name);
+
+        if (tokens.length > 8)
+            throw new IllegalArgumentException("Only 8 transforms allowed: " + name);
+
+        long res = 0;
+        int shift = MAX_SHIFT;
+
+        for (String token : tokens) {
+            final long typeTk = this.getTypeToken(token);
+
+            // Skip null transform
+            if (typeTk != NONE_TYPE) {
+                res |= (typeTk << shift);
+                shift -= ONE_SHIFT;
+            }
+        }
+
+        return res;
+    }
+
+    /**
+     * Get the type token of a transform based on its name.
+     *
+     * @param name the name of the transform
+     * @return the type token of the transform
+     */
+    private long getTypeToken(String name) {
+        // Strings in switch not supported in JDK 6
+        name = String.valueOf(name).toUpperCase();
+
+        switch (name) {
+            case "TEXT":
+                return DICT_TYPE;
+
+            case "BWT":
+                return BWT_TYPE;
+
+            case "BWTS":
+                return BWTS_TYPE;
+
+            case "LZ":
+                return LZ_TYPE;
+
+            case "LZX":
+                return LZX_TYPE;
+
+            case "LZP":
+                return LZP_TYPE;
+
+            case "ROLZ":
+                return ROLZ_TYPE;
+
+            case "ROLZX":
+                return ROLZX_TYPE;
+
+            case "SRT":
+                return SRT_TYPE;
+
+            case "RANK":
+                return RANK_TYPE;
 
-public class TransformFactory
-{
-   private static final int ONE_SHIFT = 6; // bits per transform
-   private static final int MAX_SHIFT = (8-1) * ONE_SHIFT; // 8 transforms
-   private static final int MASK = (1<<ONE_SHIFT) - 1;
-
-   // Up to 64 transforms can be declared (6 bit index)
-   public static final short NONE_TYPE    = 0;  // copy
-   public static final short BWT_TYPE     = 1;  // Burrows Wheeler
-   public static final short BWTS_TYPE    = 2;  // Burrows Wheeler Scott
-   public static final short LZ_TYPE      = 3;  // Lempel Ziv
-   public static final short SNAPPY_TYPE  = 4;  // Snappy (obsolete)
-   public static final short RLT_TYPE     = 5;  // Run Length
-   public static final short ZRLT_TYPE    = 6;  // Zero Run Length
-   public static final short MTFT_TYPE    = 7;  // Move To Front
-   public static final short RANK_TYPE    = 8;  // Rank
-   public static final short EXE_TYPE     = 9;  // EXE codec
-   public static final short DICT_TYPE    = 10; // Text codec
-   public static final short ROLZ_TYPE    = 11; // ROLZ codec
-   public static final short ROLZX_TYPE   = 12; // ROLZ Extra codec
-   public static final short SRT_TYPE     = 13; // Sorted Rank
-   public static final short LZP_TYPE     = 14; // Lempel Ziv Predict
-   public static final short MM_TYPE      = 15; // Multimedia (FSD) codec
-   public static final short LZX_TYPE     = 16; // Lempel Ziv Extra
-   public static final short UTF_TYPE     = 17; // UTF codec
-   public static final short PACK_TYPE    = 18; // Alias codec
-   public static final short DNA_TYPE     = 19; // DNA Alias codec
-   public static final short RESERVED3    = 20; // Reserved
-   public static final short RESERVED4    = 21; // Reserved
-   public static final short RESERVED5    = 22; // Reserved
+            case "MTFT":
+                return MTFT_TYPE;
+
+            case "ZRLT":
+                return ZRLT_TYPE;
+
+            case "UTF":
+                return UTF_TYPE;
+
+            case "RLT":
+                return RLT_TYPE;
 
+            case "EXE":
+                return EXE_TYPE;
 
-   // The returned type contains 8 transform values
-   public long getType(String name)
-   {
-      if (name.indexOf('+') < 0)
-         return this.getTypeToken(name) << MAX_SHIFT;
+            case "MM":
+                return MM_TYPE;
 
-      String[] tokens = name.split("\\+");
+            case "PACK":
+                return PACK_TYPE;
 
-      if (tokens.length == 0)
-         throw new IllegalArgumentException("Unknown transform type: " + name);
+            case "DNA":
+                return DNA_TYPE;
 
-      if (tokens.length > 8)
-         throw new IllegalArgumentException("Only 8 transforms allowed: " + name);
-
-      long res = 0;
-      int shift = MAX_SHIFT;
-
-      for (String token: tokens)
-      {
-         final long typeTk = this.getTypeToken(token);
-
-         // Skip null transform
-         if (typeTk != NONE_TYPE)
-         {
-            res |= (typeTk << shift);
-            shift -= ONE_SHIFT;
-         }
-      }
-
-      return res;
-   }
+            case "NONE":
+                return NONE_TYPE;
 
+            default:
+                throw new IllegalArgumentException("Unknown transform type: '" + name + "'");
+        }
+    }
 
-   private long getTypeToken(String name)
-   {
-      // Strings in switch not supported in JDK 6
-      name = String.valueOf(name).toUpperCase();
+    /**
+     * Create a sequence of ByteTransform instances based on the function type.
+     *
+     * @param ctx the context map
+     * @param functionType the type of the function
+     * @return the sequence of ByteTransform instances
+     */
+    public Sequence newFunction(Map<String, Object> ctx, long functionType) {
+        int nbtr = 0;
 
-      switch (name)
-      {
-         case "TEXT":
-            return DICT_TYPE;
+        // Several transforms
+        for (int i = 0; i < 8; i++) {
+            if (((functionType >>> (MAX_SHIFT - ONE_SHIFT * i)) & MASK) != NONE_TYPE)
+                nbtr++;
+        }
 
-         case "BWT":
-            return BWT_TYPE;
-
-         case "BWTS":
-            return BWTS_TYPE;
-
-         case "LZ":
-            return LZ_TYPE;
+        // Only null transforms? Keep first.
+        if (nbtr == 0)
+            nbtr = 1;
 
-         case "LZX":
-            return LZX_TYPE;
+        ByteTransform[] transforms = new ByteTransform[nbtr];
+        nbtr = 0;
 
-         case "LZP":
-            return LZP_TYPE;
+        for (int i = 0; i < transforms.length; i++) {
+            final int t = (int) ((functionType >>> (MAX_SHIFT - ONE_SHIFT * i)) & MASK);
 
-         case "ROLZ":
-            return ROLZ_TYPE;
+            if ((t != NONE_TYPE) || (i == 0))
+                transforms[nbtr++] = newFunctionToken(ctx, t);
+        }
 
-         case "ROLZX":
-            return ROLZX_TYPE;
+        return new Sequence(transforms);
+    }
 
-         case "SRT":
-            return SRT_TYPE;
+    /**
+     * Create a ByteTransform instance based on the function type token.
+     *
+     * @param ctx the context map
+     * @param functionType the type token of the function
+     * @return the ByteTransform instance
+     */
+    private static ByteTransform newFunctionToken(Map<String, Object> ctx, int functionType) {
+        switch (functionType) {
+            case DICT_TYPE:
+                String entropyType = (String) ctx.getOrDefault("entropy", "NONE");
+                entropyType = entropyType.toUpperCase();
+                int textCodecType = 1;
 
-         case "RANK":
-            return RANK_TYPE;
+                // Select text encoding based on entropy codec.
+                if (entropyType.equals("NONE") || entropyType.equals("ANS0") ||
+                    entropyType.equals("HUFFMAN") || entropyType.equals("RANGE"))
+                    textCodecType = 2;
 
-         case "MTFT":
-            return MTFT_TYPE;
+                ctx.put("textcodec", textCodecType);
+                return new TextCodec(ctx);
 
-         case "ZRLT":
-            return ZRLT_TYPE;
+            case ROLZ_TYPE:
+                return new ROLZCodec(ctx);
 
-         case "UTF":
-            return UTF_TYPE;
+            case ROLZX_TYPE:
+                return new ROLZCodec(ctx);
 
-         case "RLT":
-            return RLT_TYPE;
+            case BWT_TYPE:
+                return new BWTBlockCodec(ctx);
 
-         case "EXE":
-            return EXE_TYPE;
+            case BWTS_TYPE:
+                return new BWTS(ctx);
 
-         case "MM":
-            return MM_TYPE;
+            case RANK_TYPE:
+                ctx.put("sbrt", SBRT.MODE_RANK);
+                return new SBRT(ctx);
 
-         case "PACK":
-            return PACK_TYPE;
+            case SRT_TYPE:
+                return new SRT(ctx);
 
-         case "DNA":
-            return DNA_TYPE;
+            case MTFT_TYPE:
+                ctx.put("sbrt", SBRT.MODE_MTF);
+                return new SBRT(ctx);
 
-         case "NONE":
-            return NONE_TYPE;
+            case ZRLT_TYPE:
+                return new ZRLT(ctx);
 
-         default:
-            throw new IllegalArgumentException("Unknown transform type: '" + name + "'");
-      }
-   }
+            case UTF_TYPE:
+                return new UTFCodec(ctx);
 
+            case RLT_TYPE:
+                return new RLT(ctx);
 
-   public Sequence newFunction(Map<String, Object> ctx, long functionType)
-   {
-      int nbtr = 0;
+            case LZ_TYPE:
+                ctx.put("lz", LZ_TYPE);
+                return new LZCodec(ctx);
 
-      // Several transforms
-      for (int i=0; i<8; i++)
-      {
-         if (((functionType >>> (MAX_SHIFT-ONE_SHIFT*i)) & MASK) != NONE_TYPE)
-            nbtr++;
-      }
+            case LZX_TYPE:
+                ctx.put("lz", LZX_TYPE);
+                return new LZCodec(ctx);
 
-      // Only null transforms ? Keep first.
-      if (nbtr == 0)
-         nbtr = 1;
+            case LZP_TYPE:
+                ctx.put("lz", LZP_TYPE);
+                return new LZCodec(ctx);
 
-      ByteTransform[] transforms = new ByteTransform[nbtr];
-      nbtr = 0;
+            case EXE_TYPE:
+                return new EXECodec(ctx);
 
-      for (int i=0; i<transforms.length; i++)
-      {
-         final int t = (int) ((functionType >>> (MAX_SHIFT-ONE_SHIFT*i)) & MASK);
+            case MM_TYPE:
+                return new FSDCodec(ctx);
 
-         if ((t != NONE_TYPE) || (i == 0))
-            transforms[nbtr++] = newFunctionToken(ctx, t);
-      }
+            case PACK_TYPE:
+                return new AliasCodec(ctx);
 
-      return new Sequence(transforms);
-   }
+            case DNA_TYPE:
+                ctx.put("packOnlyDNA", true);
+                return new AliasCodec(ctx);
 
+            case NONE_TYPE:
+                return new NullTransform(ctx);
 
-   private static ByteTransform newFunctionToken(Map<String, Object> ctx, int functionType)
-   {
-      switch (functionType)
-      {
-         case DICT_TYPE:
-            String entropyType = (String) ctx.getOrDefault("entropy", "NONE");
-            entropyType = entropyType.toUpperCase();
-            int textCodecType  = 1;
+            default:
+                throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");
+        }
+    }
 
-            // Select text encoding based on entropy codec.
-            if (entropyType.equals("NONE") || entropyType.equals("ANS0") ||
-                entropyType.equals("HUFFMAN") || entropyType.equals("RANGE"))
-               textCodecType = 2;
+    /**
+     * Get the name of a transform based on its type.
+     *
+     * @param functionType the type of the transform
+     * @return the name of the transform
+     */
+    public String getName(long functionType) {
+        StringBuilder sb = new StringBuilder();
 
-            ctx.put("textcodec", textCodecType);
-            return new TextCodec(ctx);
+        for (int i = 0; i < 8; i++) {
+            final int t = (int) (functionType >>> (MAX_SHIFT - ONE_SHIFT * i)) & MASK;
 
-         case ROLZ_TYPE:
-            return new ROLZCodec(ctx);
+            if (t == NONE_TYPE)
+                continue;
 
-         case ROLZX_TYPE:
-            return new ROLZCodec(ctx);
+            String name = getNameToken(t);
 
-         case BWT_TYPE:
-            return new BWTBlockCodec(ctx);
+            if (sb.length() != 0)
+                sb.append('+');
 
-         case BWTS_TYPE:
-            return new BWTS(ctx);
+            sb.append(name);
+        }
 
-         case RANK_TYPE:
-            ctx.put("sbrt", SBRT.MODE_RANK);
-            return new SBRT(ctx);
+        if (sb.length() == 0)
+            sb.append(getNameToken(NONE_TYPE));
 
-         case SRT_TYPE:
-            return new SRT(ctx);
+        return sb.toString();
+    }
 
-         case MTFT_TYPE:
-            ctx.put("sbrt", SBRT.MODE_MTF);
-            return new SBRT(ctx);
+    /**
+     * Get the name token of a transform based on its type.
+     *
+     * @param functionType the type of the transform
+     * @return the name token of the transform
+     */
+    private static String getNameToken(int functionType) {
+        switch (functionType) {
+            case DICT_TYPE:
+                return "TEXT";
 
-         case ZRLT_TYPE:
-            return new ZRLT(ctx);
+            case ROLZ_TYPE:
+                return "ROLZ";
 
-         case UTF_TYPE:
-            return new UTFCodec(ctx);
+            case ROLZX_TYPE:
+                return "ROLZX";
 
-         case RLT_TYPE:
-            return new RLT(ctx);
+            case BWT_TYPE:
+                return "BWT";
 
-         case LZ_TYPE:
-            ctx.put("lz", LZ_TYPE);
-            return new LZCodec(ctx);
+            case BWTS_TYPE:
+                return "BWTS";
 
-         case LZX_TYPE:
-            ctx.put("lz", LZX_TYPE);
-            return new LZCodec(ctx);
+            case SRT_TYPE:
+                return "SRT";
 
-         case LZP_TYPE:
-            ctx.put("lz", LZP_TYPE);
-            return new LZCodec(ctx);
+            case UTF_TYPE:
+                return "UTF";
 
-         case EXE_TYPE:
-            return new EXECodec(ctx);
+            case RANK_TYPE:
+                return "RANK";
 
-         case MM_TYPE:
-            return new FSDCodec(ctx);
+            case MTFT_TYPE:
+                return "MTFT";
 
-         case PACK_TYPE:
-            return new AliasCodec(ctx);
+            case ZRLT_TYPE:
+                return "ZRLT";
 
-         case DNA_TYPE:
-            ctx.put("packOnlyDNA", true);
-            return new AliasCodec(ctx);
+            case RLT_TYPE:
+                return "RLT";
 
-         case NONE_TYPE:
-            return new NullTransform(ctx);
+            case EXE_TYPE:
+                return "EXE";
 
-         default:
-            throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");
-      }
-   }
+            case LZ_TYPE:
+                return "LZ";
 
+            case LZX_TYPE:
+                return "LZX";
 
-   public String getName(long functionType)
-   {
-      StringBuilder sb = new StringBuilder();
+            case LZP_TYPE:
+                return "LZP";
 
-      for (int i=0; i<8; i++)
-      {
-         final int t = (int) (functionType >>> (MAX_SHIFT-ONE_SHIFT*i)) & MASK;
+            case MM_TYPE:
+                return "MM";
 
-         if (t == NONE_TYPE)
-            continue;
+            case PACK_TYPE:
+                return "PACK";
 
-         String name = getNameToken(t);
+            case DNA_TYPE:
+                return "DNA";
 
-         if (sb.length() != 0)
-            sb.append('+');
+            case NONE_TYPE:
+                return "NONE";
 
-         sb.append(name);
-      }
-
-      if (sb.length() == 0)
-         sb.append(getNameToken(NONE_TYPE));
-
-      return sb.toString();
-   }
-
-
-   private static String getNameToken(int functionType)
-   {
-      switch (functionType)
-      {
-         case DICT_TYPE:
-            return "TEXT";
-
-         case ROLZ_TYPE:
-            return "ROLZ";
-
-         case ROLZX_TYPE:
-            return "ROLZX";
-
-         case BWT_TYPE:
-            return "BWT";
-
-         case BWTS_TYPE:
-            return "BWTS";
-
-         case SRT_TYPE:
-            return "SRT";
-
-         case UTF_TYPE:
-            return "UTF";
-
-         case RANK_TYPE:
-            return "RANK";
-
-         case MTFT_TYPE:
-            return "MTFT";
-
-         case ZRLT_TYPE:
-            return "ZRLT";
-
-         case RLT_TYPE:
-            return "RLT";
-
-         case EXE_TYPE:
-            return "EXE";
-
-         case LZ_TYPE:
-            return "LZ";
-
-         case LZX_TYPE:
-            return "LZX";
-
-         case LZP_TYPE:
-            return "LZP";
-
-         case MM_TYPE:
-            return "MM";
-
-         case PACK_TYPE:
-            return "PACK";
-
-         case DNA_TYPE:
-            return "DNA";
-
-         case NONE_TYPE:
-            return "NONE";
-
-         default:
-            throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");
-      }
-   }
+            default:
+                throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");
+        }
+    }
 }

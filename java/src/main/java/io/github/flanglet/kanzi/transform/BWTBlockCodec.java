@@ -21,177 +21,188 @@ import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 
-// Utility class to en/de-code a BWT data block and its associated primary index(es)
+/**
+ * Utility class to encode and decode a BWT data block and its associated primary index(es).
+ * <p>
+ * BWT stream format: Header (mode + primary index(es)) | Data (n bytes)
+ * <ul>
+ *   <li>mode (8 bits): xxxyyyzz</li>
+ *   <li>xxx: ignored</li>
+ *   <li>yyy: log(chunks)</li>
+ *   <li>zz: primary index size - 1 (in bytes)</li>
+ *   <li>primary indexes (chunks * (8|16|24|32 bits))</li>
+ * </ul>
+ */
+public class BWTBlockCodec implements ByteTransform {
+    private static final int BWT_MAX_HEADER_SIZE = 8 * 4;
 
-// BWT stream format: Header (mode + primary index(es)) | Data (n bytes)
-//   mode (8 bits): xxxyyyzz
-//   xxx: ignored
-//   yyy: log(chunks)
-//   zz: primary index size - 1 (in bytes)
-//   primary indexes (chunks * (8|16|24|32 bits))
+    private final BWT bwt;
+    private final int bsVersion;
 
-public class BWTBlockCodec implements ByteTransform
-{
-   private static final int BWT_MAX_HEADER_SIZE = 8 * 4;
+    /**
+     * Default constructor.
+     */
+    public BWTBlockCodec() {
+        this.bwt = new BWT();
+        this.bsVersion = 6;
+    }
 
-   private final BWT bwt;
-   private final int bsVersion;
+    /**
+     * Constructor with a context map.
+     *
+     * @param ctx the context map
+     */
+    public BWTBlockCodec(Map<String, Object> ctx) {
+        this.bwt = new BWT(ctx);
+        this.bsVersion = (ctx == null) ? 6 : (int) ctx.getOrDefault("bsVersion", 6);
+    }
 
+    /**
+     * Performs the forward transform, encoding the input data.
+     *
+     * @param input  the input byte array
+     * @param output the output byte array
+     * @return true if the transform was successful, false otherwise
+     */
+    @Override
+    public boolean forward(SliceByteArray input, SliceByteArray output) {
+        if (input.length == 0)
+            return true;
 
-   public BWTBlockCodec()
-   {
-      this.bwt = new BWT();
-      this.bsVersion = 6;
-   }
+        if (input.array == output.array)
+            return false;
 
+        final int blockSize = input.length;
 
-   public BWTBlockCodec(Map<String, Object> ctx)
-   {
-      this.bwt = new BWT(ctx);
-      this.bsVersion = (ctx == null) ? 6 : (int) ctx.getOrDefault("bsVersion", 6);
-   }
+        if (output.length - output.index < getMaxEncodedLength(blockSize))
+            return false;
 
+        int logBlockSize = Global.log2(blockSize);
 
-   // Return true if the compression chain succeeded. In this case, the input data
-   // may be modified. If the compression failed, the input data is returned unmodified.
-   @Override
-   public boolean forward(SliceByteArray input, SliceByteArray output)
-   {
-      if (input.length == 0)
-         return true;
+        if ((blockSize & (blockSize - 1)) != 0)
+            logBlockSize++;
 
-      if (input.array == output.array)
-         return false;
+        final int pIndexSize = (logBlockSize + 7) >> 3;
 
-      final int blockSize = input.length;
+        if ((pIndexSize <= 0) || (pIndexSize >= 5))
+            return false;
 
-      if (output.length - output.index < getMaxEncodedLength(blockSize))
-         return false;
+        final int chunks = BWT.getBWTChunks(blockSize);
+        final int logNbChunks = Global.log2(chunks);
 
-      int logBlockSize = Global.log2(blockSize);
+        if (logNbChunks > 7)
+            return false;
 
-      if ((blockSize & (blockSize - 1)) != 0)
-         logBlockSize++;
+        int idx0 = output.index;
+        output.index += (1 + chunks * pIndexSize);
 
-      final int pIndexSize = (logBlockSize + 7) >> 3;
+        // Apply forward transform
+        if (!this.bwt.forward(input, output))
+            return false;
 
-      if ((pIndexSize <= 0) || (pIndexSize >= 5))
-         return false;
+        final byte mode = (byte) ((logNbChunks << 2) | (pIndexSize - 1));
 
-      final int chunks = BWT.getBWTChunks(blockSize);
-      final int logNbChunks = Global.log2(chunks);
+        // Emit header
+        for (int i = 0, idx = idx0 + 1; i < chunks; i++) {
+            final int primaryIndex = this.bwt.getPrimaryIndex(i) - 1;
+            int shift = (pIndexSize - 1) << 3;
 
-      if (logNbChunks > 7)
-          return false;
+            while (shift >= 0) {
+                output.array[idx++] = (byte) (primaryIndex >> shift);
+                shift -= 8;
+            }
+        }
 
-      int idx0 = output.index;
-      output.index += (1 + chunks * pIndexSize);
+        output.array[idx0] = mode;
+        return true;
+    }
 
-      // Apply forward transform
-      if (this.bwt.forward(input, output) == false)
-          return false;
+    /**
+     * Performs the inverse transform, decoding the input data.
+     *
+     * @param input  the input byte array
+     * @param output the output byte array
+     * @return true if the transform was successful, false otherwise
+     */
+    @Override
+    public boolean inverse(SliceByteArray input, SliceByteArray output) {
+        if (input.length == 0)
+            return true;
 
-      final byte mode = (byte) ((logNbChunks << 2) | (pIndexSize - 1));
+        if (input.array == output.array)
+            return false;
 
-      // Emit header
-      for (int i=0, idx=idx0+1; i<chunks; i++) {
-          final int primaryIndex = this.bwt.getPrimaryIndex(i) - 1;
-          int shift = (pIndexSize - 1) << 3;
+        final int blockSize = input.length;
 
-          while (shift >= 0)
-          {
-              output.array[idx++] = (byte) (primaryIndex>>shift);
-              shift -= 8;
-          }
-      }
+        if (this.bsVersion > 5) {
+            // Number of chunks and primary index size in bitstream since bsVersion 6
+            byte mode = input.array[input.index++];
+            final int logNbChunks = (mode >> 2) & 0x07;
+            final int pIndexSize = (mode & 0x03) + 1;
+            final int chunks = 1 << logNbChunks;
 
-      output.array[idx0] = mode;
-      return true;
-   }
-
-
-   @Override
-   public boolean inverse(SliceByteArray input, SliceByteArray output)
-   {
-      if (input.length == 0)
-         return true;
-
-      if (input.array == output.array)
-         return false;
-
-      final int blockSize = input.length;
-
-      if (this.bsVersion > 5)
-      {
-          // Number of chunks and primary index size in bitstream since bsVersion 6
-          byte mode = input.array[input.index++];
-          final int logNbChunks = (mode >> 2) & 0x07;
-          final int pIndexSize = (mode & 0x03) + 1;
-          final int chunks = 1 << logNbChunks;
-
-          if (chunks != BWT.getBWTChunks(blockSize))
-              return false;
-
-          final int headerSize = 1 + chunks*pIndexSize;
-
-          if (blockSize < headerSize)
-              return false;
-
-          // Read header
-          for (int i=0; i<chunks; i++)
-          {
-              int shift = (pIndexSize - 1) << 3;
-              int primaryIndex = 0;
-
-              // Extract BWT primary index
-              while (shift >= 0) {
-                  primaryIndex = (primaryIndex << 8) | (input.array[input.index++] & 0xFF);
-                  shift -= 8;
-              }
-
-              if (this.bwt.setPrimaryIndex(i, primaryIndex + 1) == false)
-                  return false;
-          }
-
-          input.length = blockSize - headerSize;
-      }
-      else
-      {
-         final int chunks = BWT.getBWTChunks(blockSize);
-
-         for (int i=0; i<chunks; i++)
-         {
-            // Read block header (mode + primary index). See top of file for format
-            final int blockMode = input.array[input.index++] & 0xFF;
-            final int pIndexSizeBytes = 1 + ((blockMode >>> 6) & 0x03);
-
-            if (input.length < pIndexSizeBytes)
+            if (chunks != BWT.getBWTChunks(blockSize))
                 return false;
 
-            input.length -= pIndexSizeBytes;
-            int shift = (pIndexSizeBytes - 1) << 3;
-            int primaryIndex = (blockMode & 0x3F) << shift;
+            final int headerSize = 1 + chunks * pIndexSize;
 
-            // Extract BWT primary index
-            for (int n=1; n<pIndexSizeBytes; n++)
-            {
-               shift -= 8;
-               primaryIndex |= ((input.array[input.index++] & 0xFF) << shift);
+            if (blockSize < headerSize)
+                return false;
+
+            // Read header
+            for (int i = 0; i < chunks; i++) {
+                int shift = (pIndexSize - 1) << 3;
+                int primaryIndex = 0;
+
+                // Extract BWT primary index
+                while (shift >= 0) {
+                    primaryIndex = (primaryIndex << 8) | (input.array[input.index++] & 0xFF);
+                    shift -= 8;
+                }
+
+                if (!this.bwt.setPrimaryIndex(i, primaryIndex + 1))
+                    return false;
             }
 
-            if (this.bwt.setPrimaryIndex(i, primaryIndex) == false)
-               return false;
-         }
-      }
+            input.length = blockSize - headerSize;
+        } else {
+            final int chunks = BWT.getBWTChunks(blockSize);
 
-      // Apply inverse Transform
-      return this.bwt.inverse(input, output);
-   }
+            for (int i = 0; i < chunks; i++) {
+                // Read block header (mode + primary index). See top of file for format
+                final int blockMode = input.array[input.index++] & 0xFF;
+                final int pIndexSizeBytes = 1 + ((blockMode >>> 6) & 0x03);
 
+                if (input.length < pIndexSizeBytes)
+                    return false;
 
-   @Override
-   public int getMaxEncodedLength(int srcLen)
-   {
-      return srcLen + BWT_MAX_HEADER_SIZE;
-   }
+                input.length -= pIndexSizeBytes;
+                int shift = (pIndexSizeBytes - 1) << 3;
+                int primaryIndex = (blockMode & 0x3F) << shift;
+
+                // Extract BWT primary index
+                for (int n = 1; n < pIndexSizeBytes; n++) {
+                    shift -= 8;
+                    primaryIndex |= ((input.array[input.index++] & 0xFF) << shift);
+                }
+
+                if (!this.bwt.setPrimaryIndex(i, primaryIndex))
+                    return false;
+            }
+        }
+
+        // Apply inverse transform
+        return this.bwt.inverse(input, output);
+    }
+
+    /**
+     * Returns the maximum encoded length, which includes the header size.
+     *
+     * @param srcLen the source length
+     * @return the maximum encoded length
+     */
+    @Override
+    public int getMaxEncodedLength(int srcLen) {
+        return srcLen + BWT_MAX_HEADER_SIZE;
+    }
 }
