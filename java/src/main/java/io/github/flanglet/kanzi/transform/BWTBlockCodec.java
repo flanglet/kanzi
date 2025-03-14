@@ -140,13 +140,12 @@ public class BWTBlockCodec implements ByteTransform {
             final int logNbChunks = (mode >> 2) & 0x07;
             final int pIndexSize = (mode & 0x03) + 1;
             final int chunks = 1 << logNbChunks;
-
-            if (chunks != BWT.getBWTChunks(blockSize))
-                return false;
-
             final int headerSize = 1 + chunks * pIndexSize;
 
             if (blockSize < headerSize)
+                return false;
+
+            if (chunks != BWT.getBWTChunks(blockSize-headerSize))
                 return false;
 
             // Read header
