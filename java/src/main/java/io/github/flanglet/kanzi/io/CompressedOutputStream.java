@@ -261,6 +261,9 @@ public class CompressedOutputStream extends OutputStream {
               throw new io.github.flanglet.kanzi.io.IOException("Cannot write size of input to header", Error.ERR_WRITE_FILE);
        }
 
+       if (this.obs.writeBits(0, 15) != 15)
+          throw new io.github.flanglet.kanzi.io.IOException("Cannot write padding to header", Error.ERR_WRITE_FILE);
+
        final int seed = 0x01030507 * BITSTREAM_FORMAT_VERSION;
        final int HASH = 0x1E35A7BD;
        int cksum = HASH * seed;
@@ -278,9 +281,6 @@ public class CompressedOutputStream extends OutputStream {
 
        if (this.obs.writeBits(cksum, 24) != 24)
           throw new io.github.flanglet.kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);
-
-       if (this.obs.writeBits(0, 15) != 15)
-          throw new io.github.flanglet.kanzi.io.IOException("Cannot write padding to header", Error.ERR_WRITE_FILE);
     }
 
     /**

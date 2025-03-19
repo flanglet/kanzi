@@ -427,6 +427,11 @@ public class CompressedInputStream extends InputStream
                seed = bsVersion;
            }
 
+           if (bsVersion >= 6) {
+              // Padding
+              this.ibs.readBits(15);
+           }
+
            final int cksum1 = (int) this.ibs.readBits(crcSize);
            final int HASH = 0x1E35A7BD;
            int cksum2 = HASH * seed;
@@ -444,11 +449,6 @@ public class CompressedInputStream extends InputStream
 
            if (cksum1 != (cksum2 & ((1 << crcSize) - 1)))
               throw new io.github.flanglet.kanzi.io.IOException("Invalid bitstream, checksum mismatch", Error.ERR_CRC_CHECK);
-
-           if (bsVersion >= 6) {
-              // Padding
-              this.ibs.readBits(15);
-           }
         }
         else if (bsVersion >= 3) {
            final int nbBlocks = (int) this.ibs.readBits(6);
