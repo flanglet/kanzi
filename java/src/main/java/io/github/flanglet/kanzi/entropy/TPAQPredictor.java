@@ -262,12 +262,16 @@ public class TPAQPredictor implements Predictor
             mixersSize = (absz >= 1024*1024) ? 1 << 11 : 1 << 8;
 
          bufferSize = Math.min(BUFFER_SIZE, rbsz);
-         hashSize = Math.min(hashSize, 16*absz);
+         final int mxsz = absz < (1<<26) ? absz*16 : 1 << 30;
+         hashSize = Math.min(HASH_SIZE, mxsz);
       }
 
       mixersSize <<= (2*extraMem);
       statesSize <<= (2*extraMem);
       hashSize <<= (2*extraMem);
+
+      // Cap hash size
+      hashSize = (int) Math.min(hashSize, 1024*1024*1024L);
 
       this.pr = 2048;
       this.c0 = 1;
