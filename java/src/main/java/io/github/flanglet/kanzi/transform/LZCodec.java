@@ -89,11 +89,11 @@ public final class LZCodec implements ByteTransform
    {
       private static final int HASH_SEED          = 0x1E35A7BD;
       private static final int HASH_LOG1          = 17;
-      private static final int HASH_SHIFT1        = 40 - HASH_LOG1;
-      private static final int HASH_MASK1         = (1<<HASH_LOG1) - 1;
+      private static final int HASH_RSHIFT1       = 64 - HASH_LOG1;
+      private static final int HASH_LSHIFT1       = 24;
       private static final int HASH_LOG2          = 21;
-      private static final int HASH_SHIFT2        = 48 - HASH_LOG2;
-      private static final int HASH_MASK2         = (1<<HASH_LOG2) - 1;
+      private static final int HASH_RSHIFT2       = 64 - HASH_LOG2;
+      private static final int HASH_LSHIFT2       = 16;
       private static final int MAX_DISTANCE1      = (1<<16) - 2;
       private static final int MAX_DISTANCE2      = (1<<24) - 2;
       private static final int MIN_MATCH4         = 4;
@@ -305,7 +305,7 @@ public final class LZCodec implements ByteTransform
 
                if ((ref > minRef) && (differentInts(src, ref, srcIdx) == false))
                {
-                  bestLen = findMatch(src, srcIdx, ref, Math.min(srcEnd-srcIdx, MAX_MATCH));
+                  bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
                }
 
                // No good match ?
@@ -515,7 +515,7 @@ public final class LZCodec implements ByteTransform
          dstIdx += mLenIdx;
          input.index = count;
          output.index = dstIdx;
-         return true;
+         return dstIdx <= count - (count/100);
       }
 
 
@@ -944,9 +944,9 @@ public final class LZCodec implements ByteTransform
       private int hash(byte[] block, int idx)
       {
          if (this.extra == true)
-            return (int) ((Memory.LittleEndian.readLong64(block, idx)*HASH_SEED) >> HASH_SHIFT2) & HASH_MASK2;
+            return (int) (((Memory.LittleEndian.readLong64(block, idx) << HASH_LSHIFT2) * HASH_SEED) >>> HASH_RSHIFT2);
 
-         return (int) ((Memory.LittleEndian.readLong64(block, idx)*HASH_SEED) >> HASH_SHIFT1) & HASH_MASK1;
+         return (int) (((Memory.LittleEndian.readLong64(block, idx) << HASH_LSHIFT1) * HASH_SEED) >>> HASH_RSHIFT1);
       }
 
 
