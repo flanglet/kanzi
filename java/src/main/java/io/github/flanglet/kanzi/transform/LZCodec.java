@@ -305,7 +305,7 @@ public final class LZCodec implements ByteTransform
 
                if ((ref > minRef) && (differentInts(src, ref, srcIdx) == false))
                {
-                  bestLen = 4 + findMatch(src, srcIdx+4, ref+4, Math.min(srcEnd-srcIdx-4, MAX_MATCH));
+                  bestLen = findMatch(src, srcIdx, ref, Math.min(srcEnd-srcIdx, MAX_MATCH));
                }
 
                // No good match ?
