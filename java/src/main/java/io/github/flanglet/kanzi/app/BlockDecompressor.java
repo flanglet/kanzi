@@ -683,7 +683,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
                if (decodedBlock < 0)
                {
                   System.err.println("Reached end of stream");
-                  return new FileDecompressResult(Error.ERR_READ_FILE,  this.cis.getRead());
+                  return new FileDecompressResult(Error.ERR_READ_FILE, this.cis.getRead());
                }
 
                try

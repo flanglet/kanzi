@@ -156,7 +156,7 @@ public class CompressedInputStream extends InputStream
     /**
      * Number of available (decoded, but not consumed) bytes.
      */
-    private int available;
+    private long available;
 
     /**
      * XXHash32 hasher used for checksum computation (32-bit).
@@ -618,7 +618,7 @@ public class CompressedInputStream extends InputStream
 
       while (remaining > 0) {
          // Limit to number of available bytes in buffer
-         final int lenChunk = Math.min(remaining, Math.min(this.available, this.bufferThreshold-this.buffers[this.bufferId].index));
+         final int lenChunk = (int) Math.min((long) remaining, Math.min(this.available, (long) (this.bufferThreshold-this.buffers[this.bufferId].index)));
 
          if (lenChunk > 0) {
             // Process a chunk of in-buffer data. No access to bitstream required
@@ -661,7 +661,7 @@ public class CompressedInputStream extends InputStream
      * @return The number of bytes successfully processed and decompressed from the block.
      * @throws IOException If an I/O error occurs during block processing.
      */
-    private int processBlock() throws IOException {
+    private long processBlock() throws IOException {
        this.readHeader();
 
        try {
@@ -670,7 +670,7 @@ public class CompressedInputStream extends InputStream
 
           // Protect against future concurrent modification of the list of block listeners
           Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
-          int decoded = 0;
+          long decoded = 0;
 
           while (true) {
              List<Callable<Status>> tasks = new ArrayList<>(this.jobs);
