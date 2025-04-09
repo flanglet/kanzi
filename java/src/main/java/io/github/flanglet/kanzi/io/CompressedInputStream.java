@@ -1087,7 +1087,9 @@ public class CompressedInputStream extends InputStream
                  return new Status(data, currentBlockId, 0, checksum1, 0, null);
               }
 
-              if ((preTransformLength < 0) || (preTransformLength > MAX_BITSTREAM_BLOCK_SIZE)) {
+              final int maxTransformLength = Math.min(Math.max(this.blockSize+this.blockSize/2, 2048), MAX_BITSTREAM_BLOCK_SIZE);
+
+              if ((preTransformLength < 0) || (preTransformLength > maxTransformLength)) {
                  // Error => cancel concurrent decoding tasks
                  this.processedBlockId.set(CANCEL_TASKS_ID);
                  return new Status(data, currentBlockId, 0, checksum1, Error.ERR_READ_FILE,
