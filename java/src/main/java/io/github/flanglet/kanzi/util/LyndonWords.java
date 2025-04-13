@@ -19,10 +19,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * The {@code LyndonWords} class provides functionality for finding Lyndon words in a given string.
  * A Lyndon word is a string that is strictly smaller than any of its non-trivial suffixes.
