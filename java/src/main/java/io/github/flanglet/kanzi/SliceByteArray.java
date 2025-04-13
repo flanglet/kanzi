@@ -18,8 +18,6 @@ package io.github.flanglet.kanzi;
 import java.util.Objects;
 
 
-import java.util.Objects;
-
 /**
  * A lightweight implementation of a byte array slice.
  *
