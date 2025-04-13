@@ -15,14 +15,16 @@ limitations under the License.
 
 package io.github.flanglet.kanzi.transform;
 
-// Port to (proper) Java of the DivSufSort algorithm by Yuta Mori.
-// DivSufSort is a fast two-stage suffix sorting algorithm.
-// The original C code is here: https://code.google.com/p/libdivsufsort/
-// See also https://code.google.com/p/libdivsufsort/source/browse/wiki/SACA_Benchmarks.wiki
-// for comparison of different suffix array construction algorithms.
-// It is used to implement the forward stage of the BWT in linear time.
+/**
+ * Port to Java of the DivSufSort algorithm by Yuta Mori.
+ * DivSufSort is a fast two-stage suffix sorting algorithm.
+ * The original C code is here: https://code.google.com/p/libdivsufsort/
+ * See also https://code.google.com/p/libdivsufsort/source/browse/wiki/SACA_Benchmarks.wiki
+ * for comparison of different suffix array construction algorithms.
+ * It is used to implement the forward stage of the BWT in linear time.
+ */
 
-public final class DivSufSort
+ public final class DivSufSort
 {
    private static final int SS_INSERTIONSORT_THRESHOLD = 16;
    private static final int SS_BLOCKSIZE = 4096;
@@ -75,6 +77,9 @@ public final class DivSufSort
    private final Stack mergeStack;
 
 
+   /**
+    * Create a new instance of DivSufSort
+    */
    public DivSufSort()
    {
      this.bucketA = new int[256];
@@ -103,6 +108,13 @@ public final class DivSufSort
 
 
    // Not thread safe
+   /**
+    * Compute the suffix array of the input.
+    * @param input the input data
+    * @param sa the suffix array
+    * @param start the start index in the input
+    * @param length the length of the input
+    */
    public void computeSuffixArray(byte[] input, int[] sa, int start, int length)
    {
        // Lazy dynamic memory allocation
@@ -193,6 +205,20 @@ public final class DivSufSort
 
 
    // Not thread safe
+   /**
+    * Compute the Burrows-Wheeler Transform of the input.
+    * The BWT is computed in place in the output array.
+    * 
+    * @param input the input data
+    * @param output the output data
+    * @param bwt the suffix array
+    * @param srcIdx the start index in the input
+    * @param dstIdx the start index in the output
+    * @param length the length of the input
+    * @param indexes the indexes array
+    * @param idxCount the number of indexes
+    * @return the primary index
+    */
    public int computeBWT(byte[] input, byte[] output, int[] bwt, int srcIdx, int dstIdx,
       int length, int[] indexes, int idxCount)
    {
@@ -619,10 +645,10 @@ public final class DivSufSort
       final int u1n = pb + 2;
       final int u2n = this.sa[p2+1] + 2;
 
-      if (u1n - u1 > u2n - u2)
-      {
-         while ((u2 < u2n) && (this.buffer[u1] == this.buffer[u2]))
-         {
+      if (u1n - u1 > u2n - u2) {
+         while ((u2 < u2n) && (this.buffer[u1] == this.buffer[u2])) {
+
+
             u1++;
             u2++;
          }

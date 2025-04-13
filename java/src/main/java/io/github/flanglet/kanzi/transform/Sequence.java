@@ -19,7 +19,7 @@ import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 /**
- * Encapsulates a sequence of transforms or functions in a function.
+ * Encapsulates a sequence of transforms in a transform.
  */
 public class Sequence implements ByteTransform {
     private static final byte SKIP_MASK = -1;
