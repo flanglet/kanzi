@@ -28,7 +28,7 @@ public final class TextCodec implements ByteTransform
 {
    private static final int THRESHOLD1 = 128;
    private static final int THRESHOLD2 = THRESHOLD1 * THRESHOLD1;
-   private static final int THRESHOLD3 = 32;
+   private static final int THRESHOLD3 = 64;
    private static final int THRESHOLD4 = THRESHOLD3 * 128;
    private static final int MAX_DICT_SIZE = 1 << 19;
    private static final int MAX_WORD_LENGTH = 31;
@@ -41,6 +41,7 @@ public final class TextCodec implements ByteTransform
    public static final byte ESCAPE_TOKEN2 = 0x0E; // toggle upper/lower case of first word char
    private static final int HASH1 = 0x7FEB352D;
    private static final int HASH2 = 0x846CA68B;
+   private static final byte MASK_FLIP_CASE = (byte) 0x80;
    private static final int MASK_NOT_TEXT = 0x80;
    private static final int MASK_CRLF = 0x40;
    private static final int MASK_XML_HTML = 0x20;
@@ -683,7 +684,6 @@ public final class TextCodec implements ByteTransform
                   DictEntry e = null;
                   DictEntry e1 = this.dictMap[h1&this.hashMask];
 
-                  // Check for hash collisions
                   if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
                   {
                      e = e1;
@@ -696,6 +696,7 @@ public final class TextCodec implements ByteTransform
                         e = e2;
                   }
 
+                  // Check for hash collisions
                   if (e != null)
                   {
                      if (sameWords(src, delimAnchor+2, e.buf, e.pos+1, length-1) == false)
@@ -1053,6 +1054,7 @@ public final class TextCodec implements ByteTransform
       private final int staticDictSize;
       private final int logHashSize;
       private final int hashMask;
+      private final int bsVersion;
       private boolean isCRLF; // EOL = CR+LF ?
       private int dictSize;
       private Map<String, Object> ctx;
@@ -1066,12 +1068,14 @@ public final class TextCodec implements ByteTransform
          this.dictList = new DictEntry[0];
          this.hashMask = (1<<this.logHashSize) - 1;
          this.staticDictSize = STATIC_DICT_WORDS;
+         this.bsVersion = 6;
       }
 
 
       public TextCodec2(Map<String, Object> ctx)
       {
          int log = 13;
+         int version = 6;
 
          if (ctx != null)
          {
@@ -1083,6 +1087,7 @@ public final class TextCodec implements ByteTransform
 
             boolean extraPerf = "TPAQX".equals(ctx.getOrDefault("entropy", ""));
             log += (extraPerf == true) ? 1 : 0;
+            version = (Integer) ctx.getOrDefault("bsVersion", 6);
          }
 
          this.logHashSize = log;
@@ -1092,6 +1097,7 @@ public final class TextCodec implements ByteTransform
          this.hashMask = (1<<this.logHashSize) - 1;
          this.staticDictSize = STATIC_DICT_WORDS;
          this.ctx = ctx;
+         this.bsVersion = version;
       }
 
 
@@ -1235,7 +1241,6 @@ public final class TextCodec implements ByteTransform
                   DictEntry e = null;
                   DictEntry e1 = this.dictMap[h1&this.hashMask];
 
-                  // Check for hash collisions
                   if ((e1 != null) && (e1.hash == h1) && ((e1.data>>>24) == length))
                   {
                      e = e1;
@@ -1248,6 +1253,7 @@ public final class TextCodec implements ByteTransform
                         e = e2;
                   }
 
+                  // Check for hash collisions
                   if (e != null)
                   {
                      if (sameWords(src, delimAnchor+2, e.buf, e.pos+1, length-1) == false)
@@ -1298,7 +1304,10 @@ public final class TextCodec implements ByteTransform
                         break;
                      }
 
-                     dstIdx = emitWordIndex(dst, dstIdx, e.data&MASK_LENGTH, ((e == e1) ? 0 : 32));
+                     // Case flip is encoded as 0x80
+                     dst[dstIdx] = MASK_FLIP_CASE;
+                     dstIdx += (e == e1 ? 0 : 1);
+                     dstIdx = emitWordIndex(dst, dstIdx, e.data&MASK_LENGTH);
                      emitAnchor = delimAnchor + 1 + (e.data>>>24);
                   }
                }
@@ -1366,9 +1375,8 @@ public final class TextCodec implements ByteTransform
                      break;
 
                   default:
-                     if ((cur & 0x80) != 0)
-                        dst[dstIdx++] = ESCAPE_TOKEN1;
-
+                     dst[dstIdx] = ESCAPE_TOKEN1;
+                     dstIdx += (cur >>> 7);
                      dst[dstIdx++] = cur;
                }
             }
@@ -1421,30 +1429,33 @@ public final class TextCodec implements ByteTransform
       }
 
 
-      private static int emitWordIndex(byte[] dst, int dstIdx, int val, int mask)
+      private static int emitWordIndex(byte[] dst, int dstIdx, int wIdx)
       {
-         // Emit word index (varint 5 bits + 7 bits + 7 bits)
-         // 1st byte: 0x80 => word idx, 0x40 => more bytes, 0x20 => toggle case 1st symbol
-         // 2nd byte: 0x80 => 1 more byte
-         if (val >= THRESHOLD3)
+         // Increment word index because 0x80 is reserved to first symbol case flip
+         wIdx++;
+
+         // Emit word index (varint 6 bits + 7 bits + 7 bits)
+         // first byte: 0x80 => word idx, 0x40 => more bytes
+         // next bytes: 0x80 => 1 more byte
+         if (wIdx >= THRESHOLD3)
          {
-            if (val >= THRESHOLD4)
+            if (wIdx >= THRESHOLD4)
             {
-               // 5 + 7 + 7 => 2^19
-               dst[dstIdx]   = (byte) (0xC0|mask|((val>>14)&0x1F));
-               dst[dstIdx+1] = (byte) (0x80|(val>>7));
-               dst[dstIdx+2] = (byte) (val&0x7F);
+               // 6 + 7 + 7 => 2^20
+               dst[dstIdx]   = (byte) (0xC0|(wIdx>>14));
+               dst[dstIdx+1] = (byte) (0x80|(wIdx>>7));
+               dst[dstIdx+2] = (byte) (wIdx&0x7F);
                return dstIdx + 3;
             }
 
-            // 5 + 7 => 2^12 = 32*128
-            dst[dstIdx]   = (byte) (0xC0|mask|(val>>7));
-            dst[dstIdx+1] = (byte) (val&0x7F);
+            // 6 + 7 => 2^13 = 64*128
+            dst[dstIdx]   = (byte) (0xC0|(wIdx>>7));
+            dst[dstIdx+1] = (byte) (wIdx&0x7F);
             return dstIdx + 2;
          }
 
-         // 5 => 32
-         dst[dstIdx] = (byte) (0x80|mask|val);
+         // 6 => 64
+         dst[dstIdx] = (byte) (0x80|wIdx);
          return dstIdx + 1;
       }
 
@@ -1466,6 +1477,7 @@ public final class TextCodec implements ByteTransform
          int words = this.staticDictSize;
          boolean wordRun = false;
          boolean res = true;
+         boolean oldEncoding = this.bsVersion < 6;
 
          while ((srcIdx < srcEnd) && (dstIdx < dstEnd))
          {
@@ -1534,30 +1546,78 @@ public final class TextCodec implements ByteTransform
             }
 
             srcIdx++;
+            byte flipMask = 0;
 
             if ((cur & 0x80) != 0)
             {
+               int idx;
+
                // Word in dictionary
-               // Read word index (varint 5 bits + 7 bits + 7 bits)
-               int idx = cur & 0x1F;
-
-               if ((cur&0x40) != 0)
+               if (oldEncoding == true)
                {
-                  int idx2 = src[srcIdx++];
+                  // Read word index (varint 5 bits + 7 bits + 7 bits)
+                  flipMask = (byte) (cur & 0x20);
+                  idx = cur & 0x1F;
 
-                  if ((idx2&0x80) != 0)
+                  if ((cur&0x40) != 0)
                   {
-                     idx = (idx<<7) | (idx2&0x7F);
-                     idx2 = src[srcIdx++] & 0x7F;
+                     int idx2 = src[srcIdx++];
+
+                     if ((idx2&0x80) != 0)
+                     {
+                        idx = (idx<<7) | (idx2&0x7F);
+                        idx2 = src[srcIdx++] & 0x7F;
+                     }
+
+                     idx = (idx<<7) | idx2;
+
+                     // Sanity check
+                     if (idx >= this.dictSize)
+                     {
+                        res = false;
+                        break;
+                     }
+                  }
+               }
+               else
+               {
+                  if (cur == MASK_FLIP_CASE)
+                  {
+                     // Flip first char case
+                     flipMask = 0x20;
+                     cur = src[srcIdx++];
                   }
 
-                  idx = (idx<<7) | idx2;
+                  // Read word index (varint 6 bits + 7 bits + 7 bits)
+                  idx = cur & 0x3F;
 
-                  if (idx >= this.dictSize)
+                  if ((cur&0x40) != 0)
+                  {
+                     int idx2 = src[srcIdx++];
+
+                     if ((idx2&0x80) != 0)
+                     {
+                        idx = (idx<<7) | (idx2&0x7F);
+                        idx2 = src[srcIdx++] & 0x7F;
+                     }
+
+                     idx = (idx<<7) | idx2;
+
+                     // Sanity check before adjusting index
+                     if (idx > this.dictSize)
+                     {
+                        res = false;
+                        break;
+                     }
+                  }
+                  else if (idx == 0)
                   {
                      res = false;
                      break;
                   }
+
+                  // Adjust index
+                  idx--;
                }
 
                final DictEntry e = this.dictList[idx];
@@ -1576,7 +1636,7 @@ public final class TextCodec implements ByteTransform
                }
 
                // Flip case of first character
-               dst[dstIdx++] = (byte) (buf[e.pos]^(cur & 0x20));
+               dst[dstIdx++] = (byte) (buf[e.pos]^flipMask);
 
                if (length > 1)
                {
