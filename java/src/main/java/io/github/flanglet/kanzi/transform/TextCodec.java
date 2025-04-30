@@ -1376,7 +1376,7 @@ public final class TextCodec implements ByteTransform
 
                   default:
                      dst[dstIdx] = ESCAPE_TOKEN1;
-                     dstIdx += (cur >>> 7);
+                     dstIdx += (cur>>>31);
                      dst[dstIdx++] = cur;
                }
             }
@@ -1431,32 +1431,29 @@ public final class TextCodec implements ByteTransform
 
       private static int emitWordIndex(byte[] dst, int dstIdx, int wIdx)
       {
-         // Increment word index because 0x80 is reserved to first symbol case flip
+         // 0x80 is reserved to first symbol case flip
          wIdx++;
 
-         // Emit word index (varint 6 bits + 7 bits + 7 bits)
-         // first byte: 0x80 => word idx, 0x40 => more bytes
-         // next bytes: 0x80 => 1 more byte
          if (wIdx >= THRESHOLD3)
          {
             if (wIdx >= THRESHOLD4)
             {
-               // 6 + 7 + 7 => 2^20
-               dst[dstIdx]   = (byte) (0xC0|(wIdx>>14));
-               dst[dstIdx+1] = (byte) (0x80|(wIdx>>7));
-               dst[dstIdx+2] = (byte) (wIdx&0x7F);
-               return dstIdx + 3;
+               // 3 byte index (1111xxxx xxxxxxxx xxxxxxxx)
+               dst[dstIdx+0] = (byte) (0xF0|(wIdx>>16));
+               dst[dstIdx+1] = (byte) (wIdx>>8);
+               dst[dstIdx+2] = (byte) (wIdx);
+               return dstIdx+3;
             }
 
-            // 6 + 7 => 2^13 = 64*128
-            dst[dstIdx]   = (byte) (0xC0|(wIdx>>7));
-            dst[dstIdx+1] = (byte) (wIdx&0x7F);
-            return dstIdx + 2;
+            // 2 byte index (110xxxxx xxxxxxxx)
+            dst[dstIdx]   = (byte) (0xC0|(wIdx>>8));
+            dst[dstIdx+1] = (byte) (wIdx);
+            return dstIdx+2;
          }
 
-         // 6 => 64
+         // 1 byte index (10xxxxxx) with 0x80 excluded
          dst[dstIdx] = (byte) (0x80|wIdx);
-         return dstIdx + 1;
+         return dstIdx+1;
       }
 
 
@@ -1588,20 +1585,24 @@ public final class TextCodec implements ByteTransform
                      cur = src[srcIdx++];
                   }
 
-                  // Read word index (varint 6 bits + 7 bits + 7 bits)
-                  idx = cur & 0x3F;
+                  // Read word index
+                  // 10xxxxxx => 1 byte
+                  // 110xxxxx => 2 bytes
+                  // 1111xxxx => 3 bytes
+                  idx = cur & 0x7F;
 
-                  if ((cur&0x40) != 0)
+                  if (idx >= 64)
                   {
-                     int idx2 = src[srcIdx++];
-
-                     if ((idx2&0x80) != 0)
+                     if (idx >= 112)
                      {
-                        idx = (idx<<7) | (idx2&0x7F);
-                        idx2 = src[srcIdx++] & 0x7F;
+                        idx = ((idx&0x0F) << 16) | ((src[srcIdx]&0xFF) << 8) | (src[srcIdx+1]&0xFF);
+                        srcIdx += 2;
                      }
-
-                     idx = (idx<<7) | idx2;
+                     else
+                     {
+                        idx = ((idx&0x1F) << 8) | (src[srcIdx]&0xFF);
+                        srcIdx++;
+                     }
 
                      // Sanity check before adjusting index
                      if (idx > this.dictSize)
