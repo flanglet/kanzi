@@ -846,14 +846,14 @@ public class Kanzi
       if (mode == 'c')
       {
          printOut("        Optional name of the output file or directory (defaults to", true);
-         printOut("        <inputName.knz>) or 'none' or 'stdout'. 'stdout' is not valid", true);
-         printOut("        when the number of jobs is greater than 1.\n", true);
+         printOut("        <inputName.knz> if input is <inputName> or 'stdout' if input is 'stdin').", true);
+         printOut("        or 'none' or 'stdout'.\n", true);
       }
       else if (mode == 'd')
       {
          printOut("        Optional name of the output file or directory (defaults to", true);
-         printOut("        <inputName.bak>) or 'none' or 'stdout'. 'stdout' is not valid", true);
-         printOut("        when the number of jobs is greater than 1.\n", true);
+         printOut("        <inputName> if input is <inputName.knz> or 'stdout' if input is 'stdin').", true);
+         printOut("        or 'none' or 'stdout'.\n", true);
       }
       else
       {
