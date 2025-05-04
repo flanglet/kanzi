@@ -97,6 +97,7 @@ public final class LZCodec implements ByteTransform
       private static final int MAX_DISTANCE1      = (1<<16) - 2;
       private static final int MAX_DISTANCE2      = (1<<24) - 2;
       private static final int MIN_MATCH4         = 4;
+      private static final int MIN_MATCH6         = 6;
       private static final int MIN_MATCH9         = 9;
       private static final int MAX_MATCH          = 65535 + 254 + 15 + MIN_MATCH4;
       private static final int MIN_BLOCK_LENGTH   = 24;
@@ -255,8 +256,8 @@ public final class LZCodec implements ByteTransform
 
             if (dt == Global.DataType.DNA)
             {
-               mm = MIN_MATCH9;
-               dst[dstIdx0+12] |= 2;
+               mm = MIN_MATCH6;
+               dst[dstIdx0+12] |= 4;
             }
             else if (dt == Global.DataType.SMALL_ALPHABET)
             {
@@ -566,7 +567,9 @@ public final class LZCodec implements ByteTransform
          final int srcEnd = srcIdx0 + tkIdx - 13;
          final int mFlag = src[srcIdx0+12] & 1;
          final int maxDist = (mFlag == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
-         final int minMatch = ((src[srcIdx0+12] & 2) == 0) ? MIN_MATCH4 : MIN_MATCH9;
+         final int mmIdx = (src[srcIdx0+12] >> 1) & 0x03;
+         final int[] MIN_MATCHES = { MIN_MATCH4, MIN_MATCH9, MIN_MATCH6, MIN_MATCH6 };
+         final int minMatch = MIN_MATCHES[mmIdx];
          int srcIdx = srcIdx0 + 13;
          int dstIdx = dstIdx0;
          int repd0 = 0;
