@@ -285,12 +285,15 @@ public class FSDCodec implements ByteTransform {
                 srcIdx++;
                 dstIdx++;
             }
-        } else { // mode == XOR_CODING
+        } else if (mode == XOR_CODING) {
             while (srcIdx < srcEnd) {
                 dst[dstIdx] = (byte) (src[srcIdx] ^ dst[dstIdx - dist]);
                 srcIdx++;
                 dstIdx++;
             }
+        } else {
+            // Invalid mode
+            return false;
         }
 
         input.index = srcIdx;
