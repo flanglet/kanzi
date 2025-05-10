@@ -196,75 +196,62 @@ public class EntropyUtils
          return 1;
       }
 
-      if (sumScaledFreq != scale)
+      if (sumScaledFreq == scale)
+          return alphabetSize;
+
+      int delta = sumScaledFreq - scale;
+      final int errThr = freqs[idxMax] >> 4;
+
+      if (Math.abs(delta) <= errThr)
       {
-         final int delta = sumScaledFreq - scale;
-         final int errThr = freqs[idxMax] >> 4;
-
-         if (Math.abs(delta) <= errThr)
-         {
-            // Fast path (small error): just adjust the max frequency (or fallback to the slow path)
-            freqs[idxMax] -= delta;
-            return alphabetSize;
-         }
-
-         if (delta < 0)
-         {
-             freqs[idxMax] += errThr;
-             sumScaledFreq += errThr;
-         }
-         else
-         {
-             freqs[idxMax] -= errThr;
-             sumScaledFreq -= errThr;
-         }
-
-         // Slow path: spread error across frequencies
-         LinkedList<FreqSortData> queue = new LinkedList<>();
-         final int inc = (delta > 0) ? -1 : 1;
-
-         for (int i=0; i<alphabetSize; i++)
-         {
-            if (freqs[alphabet[i]] > 2) // Do not distort small frequencies
-               queue.add(new FreqSortData(freqs, alphabet[i]));
-         }
-
-         Collections.sort(queue);
-
-         while (queue.size() != 0)
-         {
-            // Remove next symbol
-            FreqSortData fsd = queue.removeFirst();
-
-            // Do not zero out any frequency
-            if (freqs[fsd.symbol] == -inc)
-               continue;
-
-            // Distort frequency and re-enqueue
-            freqs[fsd.symbol] += inc;
-            sumScaledFreq += inc;
-            queue.addLast(fsd);
-
-            if (sumScaledFreq == scale)
-               break;
-         }
-
-         if (sumScaledFreq != scale)
-         {
-            for (int i=0; i<alphabetSize; i++)
-            {
-               if (freqs[alphabet[i]] != -inc)
-               {
-                  freqs[alphabet[i]] += inc;
-                  sumScaledFreq += inc;
-
-                  if (sumScaledFreq == scale)
-                     break;
-               }
-            }
-         }
+          // Fast path (small error): just adjust the max frequency
+          freqs[idxMax] -= delta;
+          return alphabetSize;
       }
 
+      if (delta < 0)
+       {
+          delta += errThr;
+          freqs[idxMax] += errThr;
+      }
+      else
+      {
+          delta -= errThr;
+          freqs[idxMax] -= errThr;
+      }
+
+      // Slow path: spread error across frequencies
+      final int inc = (delta > 0) ? -1 : 1;
+      delta = Math.abs(delta);
+      int round = 0;
+
+      while ((++round < 6) && (delta > 0))
+      {
+          int adjustments = 0;
+
+          for (int i = 0; i < alphabetSize; i++)
+          {
+              final int idx = alphabet[i];
+
+              // Skip small frequencies to avoid big distortion
+              // Do not zero out frequencies
+              if (freqs[idx] <= 2)
+                  continue;
+
+              // Adjust frequency
+              freqs[idx] += inc;
+              adjustments++;
+              delta--;
+
+              if (delta == 0)
+                  break;
+          }
+
+          if (adjustments == 0)
+             break;
+      }
+
+      freqs[idxMax] -= delta;
       return alphabetSize;
    }
 
