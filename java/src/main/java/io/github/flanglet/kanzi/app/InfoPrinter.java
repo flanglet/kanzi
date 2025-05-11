@@ -101,9 +101,7 @@ public class InfoPrinter implements Listener
          // Register initial block size
          BlockInfo bi = new BlockInfo();
          bi.time0 = evt.getTime();
-
-         if (this.type == Type.ENCODING)
-            bi.stage0Size = evt.getSize();
+         bi.stage0Size = evt.getSize();
 
          this.map.put(currentBlockId, bi);
 
@@ -120,9 +118,6 @@ public class InfoPrinter implements Listener
             return;
 
          bi.time1 = evt.getTime();
-
-         if (this.type == Type.DECODING)
-            bi.stage0Size = evt.getSize();
 
          if (this.level >= 5)
          {
