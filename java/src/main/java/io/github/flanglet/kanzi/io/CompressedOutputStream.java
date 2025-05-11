@@ -193,7 +193,7 @@ public class CompressedOutputStream extends OutputStream {
        this.headless = (Boolean) ctx.getOrDefault("headerless", false);
 
        // Allocate first buffer and add padding for incompressible blocks
-       final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
+       final int bufSize = Math.max(this.blockSize + (this.blockSize>>3), 256*1024);
        this.buffers[0] = new SliceByteArray(new byte[bufSize], bufSize, 0);
        this.buffers[this.jobs] = new SliceByteArray(new byte[0], 0, 0);
 
@@ -365,7 +365,7 @@ public class CompressedOutputStream extends OutputStream {
 
                if (this.bufferId+1 < nbTasks) {
                   this.bufferId++;
-                  final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
+                  final int bufSize = Math.max(this.blockSize + (this.blockSize>>3), 256*1024);
 
                   if (this.buffers[this.bufferId].length == 0) {
                      this.buffers[this.bufferId].array = new byte[bufSize];
@@ -416,7 +416,7 @@ public class CompressedOutputStream extends OutputStream {
              if (this.bufferId+1 < nbTasks) {
                 this.bufferId++;
 
-                final int bufSize = Math.max(this.blockSize + (this.blockSize>>6), 65536);
+                final int bufSize = Math.max(this.blockSize + (this.blockSize>>3), 256*1024);
 
                 if (this.buffers[this.bufferId].length == 0) {
                    this.buffers[this.bufferId].array = new byte[bufSize];
@@ -849,7 +849,7 @@ public class CompressedOutputStream extends OutputStream {
                   notifyListeners(this.listeners, evt);
                }
 
-               final int bufSize = Math.max(512*1024, Math.max(postTransformLength, blockLength+(blockLength>>3)));
+               final int bufSize = Math.max(256*1024, Math.max(postTransformLength, blockLength+(blockLength>>3)));
 
                if (data.length < bufSize) {
                   // Rare case where the transform expanded the input or entropy coder
