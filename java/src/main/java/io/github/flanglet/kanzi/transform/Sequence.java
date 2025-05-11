@@ -206,11 +206,11 @@ public class Sequence implements ByteTransform {
     public int getMaxEncodedLength(int srcLength) {
         int requiredSize = srcLength;
 
-        for (ByteTransform transform : this.transforms) {
-            final int reqSize = transform.getMaxEncodedLength(requiredSize);
+        for (ByteTransform t : this.transforms) {
+            if (t == null)
+                continue;
 
-            if (reqSize > requiredSize)
-                requiredSize = reqSize;
+            requiredSize = Math.max(requiredSize, t.getMaxEncodedLength(requiredSize));
         }
 
         return requiredSize;
