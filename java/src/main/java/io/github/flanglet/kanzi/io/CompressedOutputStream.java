@@ -276,6 +276,7 @@ public class CompressedOutputStream extends OutputStream {
        final int seed = 0x01030507 * BITSTREAM_FORMAT_VERSION;
        final int HASH = 0x1E35A7BD;
        int cksum = HASH * seed;
+       cksum ^= (HASH * ~chkSize);
        cksum ^= (HASH * ~this.entropyType);
        cksum ^= (HASH * (int) (~this.transformType >>> 32));
        cksum ^= (HASH * (int) ~this.transformType);

@@ -357,10 +357,11 @@ public class CompressedInputStream extends InputStream
                    Error.ERR_STREAM_VERSION);
 
         this.ctx.put("bsVersion", bsVersion);
+        int chkSize = 0;
 
         // Read block checksum
         if (bsVersion >= 6) {
-           int chkSize = (int) this.ibs.readBits(2);
+           chkSize = (int) this.ibs.readBits(2);
 
            if (chkSize == 1)
                this.hasher32 = new XXHash32(BITSTREAM_TYPE);
@@ -419,22 +420,23 @@ public class CompressedInputStream extends InputStream
            }
 
            // Read and verify checksum
-           int crcSize = 24;
-           int seed = 0x01030507 * bsVersion;
-
-           if (bsVersion == 5) {
-               crcSize = 16;
-               seed = bsVersion;
-           }
+           int crcSize = 16;
+           int seed = bsVersion;
 
            if (bsVersion >= 6) {
               // Padding
               this.ibs.readBits(15);
+              crcSize = 24;
+              seed = 0x01030507 * bsVersion;
            }
 
            final int cksum1 = (int) this.ibs.readBits(crcSize);
            final int HASH = 0x1E35A7BD;
            int cksum2 = HASH * seed;
+
+           if (bsVersion >= 6)
+               cksum2 ^= (HASH * ~chkSize);
+
            cksum2 ^= (HASH * ~this.entropyType);
            cksum2 ^= (HASH * (int) (~this.transformType >>> 32));
            cksum2 ^= (HASH * (int)  ~this.transformType);
@@ -731,7 +733,10 @@ public class CompressedInputStream extends InputStream
                    throw new io.github.flanglet.kanzi.io.IOException(status.msg, status.error);
 
                 if (status.decoded > this.blockSize)
-                   throw new io.github.flanglet.kanzi.io.IOException("Invalid data", Error.ERR_PROCESS_BLOCK);
+                {
+                   String msg = "Block " + status.blockId + " incorrectly decompressed";
+                   throw new io.github.flanglet.kanzi.io.IOException(msg, Error.ERR_PROCESS_BLOCK);
+                }
              }
              else
              {
@@ -749,7 +754,10 @@ public class CompressedInputStream extends InputStream
                       throw new io.github.flanglet.kanzi.io.IOException(status.msg, status.error);
 
                    if (status.decoded > this.blockSize)
-                      throw new io.github.flanglet.kanzi.io.IOException("Invalid data", Error.ERR_PROCESS_BLOCK);
+                   {
+                      String msg = "Block " + status.blockId + " incorrectly decompressed";
+                      throw new io.github.flanglet.kanzi.io.IOException(msg, Error.ERR_PROCESS_BLOCK);
+                   }
                 }
              }
 
