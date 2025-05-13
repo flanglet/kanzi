@@ -251,7 +251,7 @@ public class EntropyUtils
              break;
       }
 
-      freqs[idxMax] -= delta;
+      freqs[idxMax] = Math.max(freqs[idxMax]-delta, 1);
       return alphabetSize;
    }
 
