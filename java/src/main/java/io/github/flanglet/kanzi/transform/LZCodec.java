@@ -93,7 +93,7 @@ public final class LZCodec implements ByteTransform
       private static final int HASH_LSHIFT1       = 24;
       private static final int HASH_LOG2          = 21;
       private static final int HASH_RSHIFT2       = 64 - HASH_LOG2;
-      private static final int HASH_LSHIFT2       = 16;
+      private static final int HASH_LSHIFT2       = 24;
       private static final int MAX_DISTANCE1      = (1<<16) - 2;
       private static final int MAX_DISTANCE2      = (1<<24) - 2;
       private static final int MIN_MATCH4         = 4;
@@ -333,7 +333,7 @@ public final class LZCodec implements ByteTransform
                      final int bestLen1 = findMatch(src, srcIdx1, ref1, maxMatch);
 
                      // Select best match
-                     if ((bestLen1 > bestLen) || ((bestLen1 == bestLen) && (ref1 > ref)))
+                     if (bestLen1 > bestLen)
                      {
                         ref = ref1;
                         bestLen = bestLen1;
@@ -368,12 +368,17 @@ public final class LZCodec implements ByteTransform
             // Emit match
             srcInc = 0;
 
-            // Token: 3 bits litLen + 1 bit flag + 4 bits mLen (LLLFMMMM)
-            // LLL  : <= 7  --> LLL == literal length (if 7, remainder encoded outside of token)
-            // MMMM : <= 14 --> MMMM == match length (if 14, remainder encoded outside of token)
-            //        == 15 if dist == repd0 or repd1 && matchLen fully encoded outside of token
-            // F    : if MMMM == 15, flag = 0 if dist == repd0 and 1 if dist == repd1
-            //        else flag = 1 if dist >= threshold (256 or 65536) and 0 otherwise
+            // Token: 3 bits litLen + 1 bit flag + 4 bits mLen (LLLFFMMM)
+            // LLL : <= 7 --> LLL == literal length (if 7, remainder encoded outside of token)
+            // MMM : <= 6 --> MMMM == match length (if 6, remainder encoded outside of token)
+            // FF  : if MMM == 7
+            //          FF = 00 if dist == repd0
+            //          FF = 01 if dist == repd1
+            //       else
+            //          FF=00 => 1 byte dist
+            //          FF=01 => 2 byte dist
+            //          FF=10 => 3 byte dist
+            //          FF=11 => 3 byte dist
             final int dist = srcIdx - ref;
             final int mLen = bestLen - minMatch;
             final int litLen = srcIdx - anchor;
@@ -381,58 +386,40 @@ public final class LZCodec implements ByteTransform
 
             if (dist == repd[0])
             {
-               token = 0x0F;
+               token = 0x07;
                mLenIdx = emitLength(this.mLenBuf, mLenIdx, mLen);
             }
             else if (dist == repd[1])
             {
-               token = 0x1F;
+               token = 0x0F;
                mLenIdx = emitLength(this.mLenBuf, mLenIdx, mLen);
             }
             else
             {
-               token = 0;
+               int flag = 0;
 
                // Emit distance (since not repeat)
-               if (maxDist == MAX_DISTANCE2)
+               if (dist >= 65536)
                {
-                  if (dist >= 65536)
-                  {
-                     this.mBuf[mIdx++] = (byte) (dist>>16);
-                     token |= 0x10;
-                  }
-
-                  this.mBuf[mIdx++] = (byte) (dist>>8);
-               }
-               else
-               {
-                  if (dist >= 256)
-                  {
-                     this.mBuf[mIdx++] = (byte) (dist>>8);
-                     token |= 0x10;
-                  }
+                  this.mBuf[mIdx++] = (byte) (dist>>16);
+                  flag = 2;
                }
 
+               this.mBuf[mIdx] = (byte) (dist >> 8);
+               final int inc = (dist >= 256 ? 1 : 0);
+               mIdx += inc;
+               flag += inc;
                this.mBuf[mIdx++] = (byte) dist;
 
                // Emit match length
-               if (mLen >= 14)
+               if (mLen >= 6)
                {
-                  if (mLen == 14)
-                  {
-                      // Avoid the penalty of one extra byte to encode match length
-                      token |= 0x0D;
-                      bestLen--;
-                  }
-                  else
-                  {
-                      token |= 0x0E;
-                      mLenIdx = emitLength(this.mLenBuf, mLenIdx, mLen-14);
-                  }
+                  token = 6 + (flag<<3);
+                  mLenIdx = emitLength(this.mLenBuf, mLenIdx, mLen-6);
                }
                else
                {
-                  token += mLen;
+                  token = mLen + (flag<<3);
                }
             }
 
@@ -527,13 +514,153 @@ public final class LZCodec implements ByteTransform
       @Override
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
-         if (this.bsVersion == 2)
-            return inverseV2(input, output); // old encoding bitstream version < 3
-
          if (this.bsVersion == 3)
             return inverseV3(input, output); // old encoding bitstream version < 4
 
-         return inverseV4(input, output);
+         if (this.bsVersion == 4)
+            return inverseV4(input, output); // old encoding bitstream version < 5
+
+         return inverseV5(input, output);
+      }
+
+
+      public boolean inverseV5(SliceByteArray input, SliceByteArray output)
+      {
+         if (input.length == 0)
+            return true;
+
+         if (input.length < 13)
+            return false;
+
+         final int count = input.length;
+         final int srcIdx0 = input.index;
+         final int dstIdx0 = output.index;
+         final byte[] src = input.array;
+         final byte[] dst = output.array;
+         final int dstEnd = dst.length ;
+         int tkIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
+         int mIdx = Memory.LittleEndian.readInt32(src, srcIdx0+4);
+         int mLenIdx = Memory.LittleEndian.readInt32(src, srcIdx0+8);
+
+         if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (mLenIdx < srcIdx0))
+            return false;
+
+         mIdx += tkIdx;
+         mLenIdx += mIdx;
+
+         if ((tkIdx > srcIdx0+count) || (mIdx > srcIdx0+count) || (mLenIdx > srcIdx0+count))
+            return false;
+
+         final int srcEnd = srcIdx0 + tkIdx - 13;
+         final int mFlag = src[srcIdx0+12] & 1;
+         final int maxDist = (mFlag == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
+         final int mmIdx = (src[srcIdx0+12] >> 1) & 0x03;
+         final int[] MIN_MATCHES = { MIN_MATCH4, MIN_MATCH9, MIN_MATCH6, MIN_MATCH6 };
+         final int minMatch = MIN_MATCHES[mmIdx];
+         int srcIdx = srcIdx0 + 13;
+         int dstIdx = dstIdx0;
+         int repd0 = 0;
+         int repd1 = 0;
+         SliceByteArray sba1 = new SliceByteArray(src, srcIdx);
+         SliceByteArray sba2 = new SliceByteArray(src, mLenIdx);
+
+         while (true)
+         {
+            final int token = src[tkIdx++] & 0xFF;
+
+            if (token >= 32)
+            {
+               // Get literal length
+               sba1.index = srcIdx;
+               final int litLen = (token >= 0xE0) ? 7+readLength(sba1) : token>>5;
+               srcIdx = sba1.index;
+
+               // Emit literals
+               if (dstIdx+litLen >= dstEnd)
+               {
+                  System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
+               }
+               else
+               {
+                  emitLiterals(src, srcIdx, dst, dstIdx, litLen);
+               }
+
+               srcIdx += litLen;
+               dstIdx += litLen;
+
+               if (srcIdx >= srcEnd)
+                  break;
+            }
+
+            // Get match length and distance
+            int mLen = token & 0x07;
+            int dist;
+
+            if (mLen == 7)
+            {
+               // Repetition distance, read mLen fully outside of token
+               sba2.index = mLenIdx;
+               mLen = minMatch + readLength(sba2);
+               mLenIdx = sba2.index;
+               dist = ((token & 0x08) == 0) ? repd0 : repd1;
+            }
+            else
+            {
+               if (mLen == 6)
+               {
+                  // Read mLen remainder (if any) outside of token
+                  sba2.index = mLenIdx;
+                  mLen = 6 + readLength(sba2);
+                  mLenIdx = sba2.index;
+               }
+
+               mLen += minMatch;
+               dist = src[mIdx++] & 0xFF;
+
+               if (((token >> 3) & 1) != 0)
+                  dist = (dist<<8) | (src[mIdx++]&0xFF);
+
+               if (((token >> 4) & 1) != 0)
+                  dist = (dist<<8) | (src[mIdx++]&0xFF);
+            }
+
+            repd1 = repd0;
+            repd0 = dist;
+            final int mEnd = dstIdx + mLen;
+            int ref = dstIdx - dist;
+
+            // Sanity check
+            if ((ref < dstIdx0) || (dist > maxDist) || (mEnd > dstEnd))
+            {
+               input.index = srcIdx;
+               output.index = dstIdx;
+               return false;
+            }
+
+            // Copy match
+            if (dist >= 16)
+            {
+               do
+               {
+                  // No overlap
+                  System.arraycopy(dst, ref, dst, dstIdx, 16);
+                  ref += 16;
+                  dstIdx += 16;
+               }
+               while (dstIdx < mEnd);
+            }
+            else
+            {
+               for (int i=0; i<mLen; i++)
+                  dst[dstIdx+i] = dst[ref+i];
+            }
+
+            dstIdx = mEnd;
+         }
+
+         output.index = dstIdx;
+         input.index = mIdx;
+         return srcIdx == srcEnd + 13;
       }
 
 
