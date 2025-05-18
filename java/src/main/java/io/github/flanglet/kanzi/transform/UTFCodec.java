@@ -125,6 +125,9 @@ public class UTFCodec implements ByteTransform
       if ((mustValidate == true) && (validate(src, srcIdx+start, srcEnd)) == false)
          return false;
 
+      if (this.ctx != null)
+          this.ctx.put("dataType", Global.DataType.UTF8.ordinal());
+
       // 1-3 bit size + (7 or 11 or 16 or 21) bit payload
       // 3 MSBs indicate symbol size (limit map size to 22 bits)
       // 000 -> 7 bits
