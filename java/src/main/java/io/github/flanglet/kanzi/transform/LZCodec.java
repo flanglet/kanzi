@@ -368,17 +368,17 @@ public final class LZCodec implements ByteTransform
             // Emit match
             srcInc = 0;
 
-            // Token: 3 bits litLen + 1 bit flag + 4 bits mLen (LLLFFMMM)
+            // Token: 3 bits litLen + 2 bits flag + 3 bits mLen (LLLFFMMM)
             // LLL : <= 7 --> LLL == literal length (if 7, remainder encoded outside of token)
             // MMM : <= 6 --> MMMM == match length (if 6, remainder encoded outside of token)
             // FF  : if MMM == 7
-            //          FF = 00 if dist == repd0
-            //          FF = 01 if dist == repd1
+            //          FF = x0 if dist == repd0
+            //          FF = x1 if dist == repd1
             //       else
-            //          FF=00 => 1 byte dist
-            //          FF=01 => 2 byte dist
-            //          FF=10 => 3 byte dist
-            //          FF=11 => 3 byte dist
+            //          FF = 00 => 1 byte dist
+            //          FF = 01 => 2 byte dist
+            //          FF = 10 => 2 byte dist
+            //          FF = 11 => 3 byte dist
             final int dist = srcIdx - ref;
             final int mLen = bestLen - minMatch;
             final int litLen = srcIdx - anchor;
@@ -401,14 +401,19 @@ public final class LZCodec implements ByteTransform
                // Emit distance (since not repeat)
                if (dist >= 65536)
                {
-                  this.mBuf[mIdx++] = (byte) (dist>>16);
+                  this.mBuf[mIdx] = (byte) (dist>>16);
+                  this.mBuf[mIdx+1] = (byte) (dist>>8);
+                  mIdx += 2;
                   flag = 2;
                }
+               else
+               {
+                  this.mBuf[mIdx] = (byte) (dist>>8);
+                  final int inc = (dist >= 256 ? 1 : 0);
+                  mIdx += inc;
+                  flag = inc;
+               }
 
-               this.mBuf[mIdx] = (byte) (dist >> 8);
-               final int inc = (dist >= 256 ? 1 : 0);
-               mIdx += inc;
-               flag += inc;
                this.mBuf[mIdx++] = (byte) dist;
 
                // Emit match length
@@ -617,10 +622,10 @@ public final class LZCodec implements ByteTransform
                mLen += minMatch;
                dist = src[mIdx++] & 0xFF;
 
-               if (((token >> 3) & 1) != 0)
+               if ((token&0x18) != 0)
                   dist = (dist<<8) | (src[mIdx++]&0xFF);
 
-               if (((token >> 4) & 1) != 0)
+               if ((token&0x10) != 0)
                   dist = (dist<<8) | (src[mIdx++]&0xFF);
             }
 
