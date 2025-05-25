@@ -99,7 +99,7 @@ public final class LZCodec implements ByteTransform
       private static final int MIN_MATCH4         = 4;
       private static final int MIN_MATCH6         = 6;
       private static final int MIN_MATCH9         = 9;
-      private static final int MAX_MATCH          = 65535 + 254 + 15 + MIN_MATCH4;
+      private static final int MAX_MATCH          = 65535 + 254 + MIN_MATCH4;
       private static final int MIN_BLOCK_LENGTH   = 24;
 
       private int[] hashes;
@@ -333,7 +333,7 @@ public final class LZCodec implements ByteTransform
                      final int bestLen1 = findMatch(src, srcIdx1, ref1, maxMatch);
 
                      // Select best match
-                     if (bestLen1 > bestLen)
+                     if (bestLen1 >= bestLen)
                      {
                         ref = ref1;
                         bestLen = bestLen1;
@@ -370,15 +370,15 @@ public final class LZCodec implements ByteTransform
 
             // Token: 3 bits litLen + 2 bits flag + 3 bits mLen (LLLFFMMM)
             // LLL : <= 7 --> LLL == literal length (if 7, remainder encoded outside of token)
-            // MMM : <= 6 --> MMMM == match length (if 6, remainder encoded outside of token)
+            // MMM : <= 6 --> MMM == match length (if 6, remainder encoded outside of token)
             // FF  : if MMM == 7
             //          FF = x0 if dist == repd0
             //          FF = x1 if dist == repd1
             //       else
             //          FF = 00 => 1 byte dist
             //          FF = 01 => 2 byte dist
-            //          FF = 10 => 2 byte dist
-            //          FF = 11 => 3 byte dist
+            //          FF = 10 => 3 byte dist
+            //          FF = 11 => unused
             final int dist = srcIdx - ref;
             final int mLen = bestLen - minMatch;
             final int litLen = srcIdx - anchor;
@@ -396,22 +396,20 @@ public final class LZCodec implements ByteTransform
             }
             else
             {
-               int flag = 0;
-
                // Emit distance (since not repeat)
                if (dist >= 65536)
                {
                   this.mBuf[mIdx] = (byte) (dist>>16);
                   this.mBuf[mIdx+1] = (byte) (dist>>8);
                   mIdx += 2;
-                  flag = 2;
+                  token = 0x10;
                }
                else
                {
                   this.mBuf[mIdx] = (byte) (dist>>8);
                   final int inc = (dist >= 256 ? 1 : 0);
                   mIdx += inc;
-                  flag = inc;
+                  token = inc << 3;
                }
 
                this.mBuf[mIdx++] = (byte) dist;
@@ -419,12 +417,12 @@ public final class LZCodec implements ByteTransform
                // Emit match length
                if (mLen >= 6)
                {
-                  token = 6 + (flag<<3);
+                  token += 6;
                   mLenIdx = emitLength(this.mLenBuf, mLenIdx, mLen-6);
                }
                else
                {
-                  token = mLen + (flag<<3);
+                  token += mLen;
                }
             }
 
@@ -553,7 +551,7 @@ public final class LZCodec implements ByteTransform
          mIdx += tkIdx;
          mLenIdx += mIdx;
 
-         if ((tkIdx > srcIdx0+count) || (mIdx > srcIdx0+count) || (mLenIdx > srcIdx0+count))
+         if ((tkIdx >= srcIdx0+count) || (mIdx >= srcIdx0+count) || (mLenIdx >= srcIdx0+count))
             return false;
 
          final int srcEnd = srcIdx0 + tkIdx - 13;
@@ -622,11 +620,16 @@ public final class LZCodec implements ByteTransform
                mLen += minMatch;
                dist = src[mIdx++] & 0xFF;
 
-               if ((token&0x18) != 0)
-                  dist = (dist<<8) | (src[mIdx++]&0xFF);
-
                if ((token&0x10) != 0)
+               {
                   dist = (dist<<8) | (src[mIdx++]&0xFF);
+                  dist = (dist<<8) | (src[mIdx++]&0xFF);
+               }
+               else
+               {
+                  if ((token&0x08) != 0)
+                     dist = (dist<<8) | (src[mIdx++]&0xFF);
+               }
             }
 
             repd1 = repd0;
