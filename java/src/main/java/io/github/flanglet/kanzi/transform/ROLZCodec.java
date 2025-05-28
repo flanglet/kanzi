@@ -250,9 +250,6 @@ public class ROLZCodec implements ByteTransform
             {
                bestIdx = counter - i;
                bestLen = n;
-
-               if (bestLen == maxMatch)
-                  break;
             }
          }
 
@@ -400,19 +397,19 @@ public class ROLZCodec implements ByteTransform
                   }
                }
 
-               // mode LLLLLMMM -> L lit length, M match length
+               // token LLLLLMMM -> L lit length, M match length
                final int litLen = srcIdx - firstLitIdx;
-               final int mode = (litLen < 31) ? (litLen << 3) : 0xF8;
+               final int token = (litLen < 31) ? (litLen << 3) : 0xF8;
                final int mLen = match & 0xFFFF;
 
                if (mLen >= 7)
                {
-                  tkBuf.array[tkBuf.index++] = (byte) (mode | 0x07);
+                  tkBuf.array[tkBuf.index++] = (byte) (token | 0x07);
                   emitLength(lenBuf, mLen - 7);
                }
                else
                {
-                  tkBuf.array[tkBuf.index++] = (byte) (mode | mLen);
+                  tkBuf.array[tkBuf.index++] = (byte) (token | mLen);
                }
 
                // Emit literals
@@ -445,8 +442,8 @@ public class ROLZCodec implements ByteTransform
             if (tkBuf.index != 0)
             {
                // At least one match to emit
-               final int mode = (litLen >= 31) ? 0xF8 : (litLen << 3);
-               tkBuf.array[tkBuf.index++] = (byte) mode;
+               final int token = (litLen >= 31) ? 0xF8 : (litLen << 3);
+               tkBuf.array[tkBuf.index++] = (byte) token;
             }
 
             if (litLen >= 31)
@@ -577,7 +574,7 @@ public class ROLZCodec implements ByteTransform
          this.posChecks = 1 << this.logPosChecks;
          this.maskChecks = this.posChecks - 1;
 
-         final int bsVersion = (this.ctx == null) ? 3 : (Integer) this.ctx.getOrDefault("bsVersion", 3);
+         final int bsVersion = (this.ctx == null) ? 6 : (Integer) this.ctx.getOrDefault("bsVersion", 6);
 
          if (bsVersion >= 4)
          {
@@ -646,7 +643,7 @@ public class ROLZCodec implements ByteTransform
                   return false;
                }
 
-               if ((litLen>sizeChunk) || (tkLen>sizeChunk) || (mLenLen>sizeChunk) || (mIdxLen>sizeChunk))
+               if ((litLen>litBuf.length) || (tkLen>tkBuf.length) || (mLenLen>lenBuf.length) || (mIdxLen>mIdxBuf.length))
                {
                   input.index = srcIdx;
                   output.index = dstIdx;
@@ -684,14 +681,14 @@ public class ROLZCodec implements ByteTransform
             // Next chunk
             while (dstIdx < endChunk)
             {
-               // mode LLLLLMMM -> L lit length, M match length
-               final int mode = tkBuf.array[tkBuf.index++] & 0xFF;
-               int matchLen = mode & 0x07;
+               // token LLLLLMMM -> L lit length, M match length
+               final int token = tkBuf.array[tkBuf.index++] & 0xFF;
+               int matchLen = token & 0x07;
 
                if (matchLen == 7)
                   matchLen = readLength(lenBuf) + 7;
 
-               final int litLen = (mode < 0xF8) ? mode >> 3 : readLength(lenBuf) + 31;
+               final int litLen = (token < 0xF8) ? token >> 3 : readLength(lenBuf) + 31;
 
                if (litLen > 0)
                {
@@ -1035,7 +1032,7 @@ public class ROLZCodec implements ByteTransform
          int delta = 2;
          int srcIdx = input.index + 4;
          final byte flags = src[srcIdx++];
-         final int bsVersion = (this.ctx == null) ? 3 : (Integer) this.ctx.getOrDefault("bsVersion", 3);
+         final int bsVersion = (this.ctx == null) ? 6 : (Integer) this.ctx.getOrDefault("bsVersion", 6);
 
          if (bsVersion >= 4)
          {
