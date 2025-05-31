@@ -15,7 +15,7 @@ Kanzi is a lossless data compressor, not an archiver. It uses checksums (optiona
 It also lacks data deduplication across files. However, Kanzi generates a bitstream that is seekable (one or several consecutive blocks can be decompressed without the need for the whole bitstream to be decompressed).
 
 
-For more details, check https://github.com/flanglet/kanzi/wiki.
+For more details, check [Wiki](https://github.com/flanglet/kanzi/wiki), [QA](https://github.com/flanglet/kanzi/wiki/Q&A) and [DeepWiki](https://deepwiki.com/flanglet/kanzi)
 
 See how to reuse the code here: https://github.com/flanglet/kanzi/wiki/Using-and-extending-the-code
 
@@ -31,6 +31,7 @@ There is Go implementation available here: https://github.com/flanglet/kanzi-go
        src="https://img.shields.io/coverity/scan/16859.svg"/>
 </a>
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/flanglet/kanzi)
 
 
 ## Why Kanzi
