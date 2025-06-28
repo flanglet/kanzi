@@ -229,7 +229,7 @@ public class TestTransforms
       System.out.println("Correctness test for " + name);
       int range = 256;
 
-      for (int ii=0; ii<20; ii++)
+      for (int ii=0; ii<=50; ii++)
       {
          System.out.println("\nTest "+ii);
          int[] arr = new int[0];
@@ -241,7 +241,22 @@ public class TestTransforms
               3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
             };
          }
-         else if (ii == 1)
+         else if (ii < 10)
+         {
+            arr = new int[80000];
+
+            for (int i=0; i<arr.length; i++)
+               arr[i] = (byte) ii;
+         }
+         else if (ii == 10)
+         {
+            arr = new int[80000];
+            arr[0] = (byte) 1;
+
+            for (int i=1; i<arr.length; i++)
+               arr[i] = (byte) 8;
+         }
+         else if (ii == 11)
          {
             arr = new int[80000];
             arr[0] = 1;
@@ -249,11 +264,11 @@ public class TestTransforms
             for (int i=1; i<arr.length; i++)
                arr[i] = 8;
          }
-         else if (ii == 2)
+         else if (ii == 12)
          {
             arr = new int[] { 0, 0, 1, 1, 2, 2, 3, 3 };
          }
-         else if (ii == 3)
+         else if (ii == 13)
          {
             arr = new int[512];
 
@@ -265,7 +280,7 @@ public class TestTransforms
 
             arr[1] = 255;
          }
-         else if (ii < 6)
+         else if (ii < 16)
          {
             // Lots of zeros
             arr = new int[1<<(ii+6)];

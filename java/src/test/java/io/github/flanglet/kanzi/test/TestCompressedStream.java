@@ -149,6 +149,7 @@ public class TestCompressedStream
       }
       catch (IOException e)
       {
+         System.out.println("NONE&HUFFMAN");
          System.out.println("Exception: " +e.getMessage());
          return 2;
       }
@@ -206,6 +207,7 @@ public class TestCompressedStream
       }
       catch (IOException e)
       {
+         System.out.println("LZX&FPAQ");
          System.out.println("Exception: " +e.getMessage());
          return 2;
       }
@@ -259,6 +261,7 @@ public class TestCompressedStream
       }
       catch (IOException e)
       {
+         System.out.println("LZP+ZRLT&ANS0");
          System.out.println("Exception: " +e.getMessage());
          return 2;
       }
@@ -290,6 +293,7 @@ public class TestCompressedStream
       }
       catch (IOException e)
       {
+         System.out.println("NONE&HUFFMAN");
          System.out.println("OK, exception: " +e.getMessage());
          return 0;
       }
@@ -333,6 +337,7 @@ public class TestCompressedStream
       }
       catch (IOException e)
       {
+         System.out.println("NONE&HUFFMAN");
          System.out.println("OK, exception: " +e.getMessage());
          return 0;
       }
