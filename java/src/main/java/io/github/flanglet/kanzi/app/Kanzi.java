@@ -870,7 +870,7 @@ public class Kanzi
          printOut("        Set the compression level [0..9]", true);
          printOut("        Providing this option forces entropy and transform.", true);
          printOut("        0=None&None (store)", true);
-         printOut("        1=PACK+LZ&NONE", true);
+         printOut("        1=LZX&NONE", true);
          printOut("        2=DNA+LZ&HUFFMAN", true);
          printOut("        3=TEXT+UTF+PACK+MM+LZX&HUFFMAN", true);
          printOut("        4=TEXT+UTF+EXE+PACK+MM+ROLZ&NONE", true);
