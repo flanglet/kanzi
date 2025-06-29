@@ -257,7 +257,6 @@ public final class LZCodec implements ByteTransform
             if (dt == Global.DataType.DNA)
             {
                mm = MIN_MATCH6;
-               dst[dstIdx0+12] |= 4;
             }
             else if (dt == Global.DataType.SMALL_ALPHABET)
             {
@@ -265,6 +264,8 @@ public final class LZCodec implements ByteTransform
             }
          }
 
+         // dst[12] = 0000MMMD (4 bits + 3 bits minMatch + 1 bit max distance)
+         dst[12] |= (byte) (((mm - 2) & 0x07) << 1); // minMatch in [2..9]
          final int minMatch = mm;
          int srcIdx = srcIdx0;
          int anchor = srcIdx0;
@@ -364,6 +365,7 @@ public final class LZCodec implements ByteTransform
             //    or  3 bits litLen + 3 bits flag + 2 bits mLen (LLLFFFMM)
             // LLL : <= 7 --> LLL == literal length (if 7, remainder encoded outside of token)
             // MMM : <= 7 --> MMM == match length (if 7, remainder encoded outside of token)
+            // MM  : <= 3 --> MM  == match length (if 3, remainder encoded outside of token)
             // FF = 01    --> 1 byte dist
             // FF = 10    --> 2 byte dist
             // FF = 11    --> 3 byte dist
@@ -511,14 +513,14 @@ public final class LZCodec implements ByteTransform
          if (this.bsVersion == 3)
             return inverseV3(input, output); // old encoding bitstream version < 4
 
-         if (this.bsVersion == 4)
-            return inverseV4(input, output); // old encoding bitstream version < 5
+         if ((this.bsVersion == 4) || (this.bsVersion == 5))
+            return inverseV4(input, output); // old encoding bitstream version < 6
 
-         return inverseV5(input, output);
+         return inverseV6(input, output);
       }
 
 
-      public boolean inverseV5(SliceByteArray input, SliceByteArray output)
+      public boolean inverseV6(SliceByteArray input, SliceByteArray output)
       {
          if (input.length == 0)
             return true;
@@ -546,11 +548,8 @@ public final class LZCodec implements ByteTransform
             return false;
 
          final int srcEnd = srcIdx0 + tkIdx - 13;
-         final int mFlag = src[srcIdx0+12] & 1;
-         final int maxDist = (mFlag == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
-         final int mmIdx = (src[srcIdx0+12] >> 1) & 0x03;
-         final int[] MIN_MATCHES = { MIN_MATCH4, MIN_MATCH9, MIN_MATCH6, MIN_MATCH6 };
-         final int minMatch = MIN_MATCHES[mmIdx];
+         final int maxDist = ((src[srcIdx0+12] & 1) == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
+         final int minMatch = ((src[srcIdx0+12] >> 1) & 0x07) + 2;
          int srcIdx = srcIdx0 + 13;
          int dstIdx = dstIdx0;
          int repd0 = 0;
