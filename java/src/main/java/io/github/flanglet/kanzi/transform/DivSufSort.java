@@ -222,7 +222,6 @@ package io.github.flanglet.kanzi.transform;
    public int computeBWT(byte[] input, byte[] output, int[] bwt, int srcIdx, int dstIdx,
       int length, int[] indexes, int idxCount)
    {
-System.out.println("***** START "+this);
       // Lazy dynamic memory allocation
       if (this.buffer.length < length)
          this.buffer = new short[length];
@@ -243,7 +242,6 @@ System.out.println("***** START "+this);
       for (int i=pIdx+1; i<length; i++)
          output[dstIdx+i] = (byte) bwt[srcIdx+i];
 
-System.out.println("***** END "+this);
       return pIdx+1;
    }
 
@@ -366,7 +364,6 @@ System.out.println("***** END "+this);
       int c0 = this.buffer[n-1];
       final int[] arr = this.sa;
 
-System.out.println(this+" 1!");
       // Count the number of occurrences of the first one or two characters of each
       // type A, B and B* suffix. Moreover, store the beginning position of all
       // type B* suffixes into the array SA.
@@ -399,7 +396,6 @@ System.out.println(this+" 1!");
          }
       }
 
-System.out.println(this+" 2!");
       m = n - m;
       c0 = 0;
 
@@ -422,7 +418,6 @@ System.out.println(this+" 2!");
          }
       }
 
-System.out.println(this+" 3!");
       if (m > 0)
       {
          // Sort the type B* suffixes by their first two characters.
@@ -549,7 +544,6 @@ System.out.println(this+" 3!");
          }
       }
 
-System.out.println(this+" 4!");
       return m;
    }
 
