@@ -453,10 +453,6 @@ public class HuffmanDecoder implements EntropyDecoder
       int bs1 = bits1 + shift1 - HuffmanCommon.MAX_SYMBOL_SIZE_V4;
       int bs2 = bits2 + shift2 - HuffmanCommon.MAX_SYMBOL_SIZE_V4;
       int bs3 = bits3 + shift3 - HuffmanCommon.MAX_SYMBOL_SIZE_V4;
-      idx0 += (shift0 >>> 3);
-      idx1 += (shift1 >>> 3);
-      idx2 += (shift2 >>> 3);
-      idx3 += (shift3 >>> 3);
 
       while (n < szFrag)
       {
