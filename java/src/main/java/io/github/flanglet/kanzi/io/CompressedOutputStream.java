@@ -839,6 +839,11 @@ public class CompressedOutputStream extends OutputStream {
                   return new Status(currentBlockId, Error.ERR_WRITE_FILE, "Invalid block data length");
                }
 
+               // Register flags and functions
+               final int skipFlags = transform.getSkipFlags() & 0xFF;
+               final int nbFunctions = transform.getNbFunctions();
+               transform = null;
+
                // Record size of 'block size' - 1 in bytes
                mode |= (((dataSize-1) & 0x03) << 5);
 
@@ -863,10 +868,9 @@ public class CompressedOutputStream extends OutputStream {
                this.data.index = 0;
                CustomByteArrayOutputStream baos = new CustomByteArrayOutputStream(this.data.array, this.data.length);
                DefaultOutputBitStream os = new DefaultOutputBitStream(baos, 16384);
-               int skipFlags = transform.getSkipFlags() & 0xFF;
 
-               if (((mode & COPY_BLOCK_MASK) != 0) || (transform.getNbFunctions() <= 4)) {
-                  mode |= ((transform.getSkipFlags()&0xFF)>>>4);
+               if (((mode & COPY_BLOCK_MASK) != 0) || (nbFunctions <= 4)) {
+                  mode |= (skipFlags>>>4);
                   os.writeBits(mode, 8);
                }
                else {
