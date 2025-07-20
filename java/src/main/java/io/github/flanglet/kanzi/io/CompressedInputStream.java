@@ -1060,8 +1060,10 @@ public class CompressedInputStream extends InputStream
            final int from = (int) this.ctx.getOrDefault("from", 0);
            final int to = (int) this.ctx.getOrDefault("to", MAX_BLOCK_ID);
 
-           if ((this.blockId < from) || (this.blockId >= to))
-              return new Status(data, currentBlockId, 0, 0, 0, "Success", true);
+           if (this.blockId < from)
+              return new Status(data, currentBlockId, 0, 0, 0, "Skipped", true);
+           else if (this.blockId >= to)
+              return new Status(data, currentBlockId, 0, 0, 0, null);
 
            ByteArrayInputStream bais = new ByteArrayInputStream(data.array, 0, r);
            DefaultInputBitStream is = new DefaultInputBitStream(bais, 16384);
