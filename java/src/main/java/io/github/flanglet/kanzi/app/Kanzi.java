@@ -53,7 +53,7 @@ public class Kanzi
    // private static final int ARG_IDX_FROM = 11;
    // private static final int ARG_IDX_TO = 12;
 
-   private static final String KANZI_VERSION = "2.3.0";
+   private static final String KANZI_VERSION = "2.4.0";
    private static final String APP_HEADER = "Kanzi " + KANZI_VERSION + " (c) Frederic Langlet";
    private static final String APP_SUB_HEADER = "Fast lossless data compressor.";
    private static final String APP_USAGE = "Usage: java -jar kanzi.jar [-c|-d] [flags and files in any order]";

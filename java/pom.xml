@@ -10,7 +10,7 @@
 
     <groupId>io.github.flanglet</groupId>
     <artifactId>kanzi</artifactId>
-    <version>2.3.0</version>
+    <version>2.4.0</version>
 
     <name>Kanzi Compression</name>
     <description>Fast losssless data compressor in Java</description>
@@ -28,7 +28,7 @@
         <url>https://github.com/flanglet/kanzi</url>
         <connection>scm:git:https://github.com/flanglet/kanzi</connection>
         <developerConnection>scm:git:git@github.com:flanglet/kanzi</developerConnection>
-        <tag>2.3.0</tag>
+        <tag>2.4.0</tag>
     </scm>
 
     <distributionManagement>

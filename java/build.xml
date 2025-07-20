@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
    <project name="Kanzi Compression" default="build_compress">
    <property name="website" value="https://github.com/flanglet/kanzi"/>
-   <property name="Implementation-Version" value="2.3.0"/>
+   <property name="Implementation-Version" value="2.4.0"/>
    <property name="src.dir" value="src/main/java"/>
    <property name="build.dir" value="target"/>
    <property name="ant.build.javac.release" value="11"/>
