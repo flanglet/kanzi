@@ -201,7 +201,7 @@ public class TestEntropyCodec
    private static EntropyDecoder getDecoder(String name, InputBitStream ibs)
    {
       Map<String, Object> ctx = new HashMap<>();
-      ctx.put("bsVersion", 4);
+      ctx.put("bsVersion", 6);
 
       switch(name)
       {
@@ -444,9 +444,9 @@ public class TestEntropyCodec
           }
 
           final long prod = (long) iter * (long) size;
-          System.out.println("Encode [ms]       : " + delta1/1000000L);
+          System.out.println("Encode [ms]        : " + delta1/1000000L);
           System.out.println("Throughput [KiB/s] : " + prod * 1000000L / delta1 * 1000L / 1024L);
-          System.out.println("Decode [ms]       : " + delta2/1000000L);
+          System.out.println("Decode [ms]        : " + delta2/1000000L);
           System.out.println("Throughput [KiB/s] : " + prod * 1000000L / delta2 * 1000L / 1024L);
       }
   }
