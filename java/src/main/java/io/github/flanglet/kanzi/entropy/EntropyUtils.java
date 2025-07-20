@@ -15,8 +15,6 @@ limitations under the License.
 
 package io.github.flanglet.kanzi.entropy;
 
-import java.util.Collections;
-import java.util.LinkedList;
 import io.github.flanglet.kanzi.BitStreamException;
 import io.github.flanglet.kanzi.InputBitStream;
 import io.github.flanglet.kanzi.OutputBitStream;

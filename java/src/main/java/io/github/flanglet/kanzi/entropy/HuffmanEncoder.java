@@ -351,7 +351,7 @@ public class HuffmanEncoder implements EntropyEncoder
 
       final int end = blkptr + count;
       int startChunk = blkptr;
-      int minLenBuf = Math.min(Math.min(this.chunkSize+(this.chunkSize>>3), 2*count), 65536);
+      int minLenBuf = Math.max(Math.min(this.chunkSize+(this.chunkSize>>3), 2*count), 65536);
 
       if (this.buffer.length < minLenBuf)
           this.buffer = new byte[minLenBuf];
@@ -361,76 +361,110 @@ public class HuffmanEncoder implements EntropyEncoder
       while (startChunk < end)
       {
          // Update frequencies and rebuild Huffman codes
-         final int endChunk = Math.min(startChunk+this.chunkSize, end);
-         Global.computeHistogramOrder0(block, startChunk, endChunk, freqs, false);
+         final int sizeChunk = Math.min(this.chunkSize, end - startChunk);
 
-         if (this.updateFrequencies(freqs) <= 1)
+         if (sizeChunk < 32)
          {
+            // Special case for small chunks
+            this.bitstream.writeBits(block, startChunk, 8*sizeChunk);
+         }
+         else
+         {
+            final int endChunk = startChunk + sizeChunk;
+            Global.computeHistogramOrder0(block, startChunk, endChunk, freqs, false);
+
             // Skip chunk if only one symbol
-            startChunk = endChunk;
-            continue;
+            if (updateFrequencies(freqs) > 1)
+               encodeChunk(block, startChunk, sizeChunk);
          }
 
-         final int[] c = this.codes;
-         final int endChunk4 = ((endChunk-startChunk) & -4) + startChunk;
-         int idx = 0;
-         long st = 0;
-         int bits = 0; // accumulated bits
+         startChunk += sizeChunk;
+      }
 
-         for (int i=startChunk; i<endChunk4; i+=4)
+      return count;
+   }
+
+
+   // count is at least 32
+   private void encodeChunk(byte[] block, int blkptr, int count)
+   {
+      int[] nbBits = new int[] { 0, 0, 0, 0 };
+      final int szFrag = count / 4;
+      final int szFrag4 = szFrag & ~3;
+      final int szBuf = this.buffer.length / 4;
+
+      // Encode chunk
+      for (int j=0; j<4; j++)
+      {
+         final int[] c = this.codes;
+         int idx = j * szBuf;
+         int bits = 0; // accumulated bits
+         long state = 0;
+         final int start = blkptr + j * szFrag;
+         final int end4 = start + szFrag4;
+
+         // Encode fragments sequentially
+         for (int i=start; i<end4; i+=4)
          {
             int code;
             code = c[block[i]&0xFF];
             final int codeLen0 = code >>> 24;
-            st = (st << codeLen0) | (code & 0xFFFFFF);
+            state = (state << codeLen0) | (code&0xFFFFFF);
             code = c[block[i+1]&0xFF];
             final int codeLen1 = code >>> 24;
-            st = (st<<codeLen1) | (code&0xFFFFFF);
+            state = (state<<codeLen1) | (code&0xFFFFFF);
             code = c[block[i+2]&0xFF];
             final int codeLen2 = code >>> 24;
-            st = (st<<codeLen2) | (code&0xFFFFFF);
+            state = (state<<codeLen2) | (code&0xFFFFFF);
             code = c[block[i+3]&0xFF];
             final int codeLen3 = code >>> 24;
-            st = (st<<codeLen3) | (code&0xFFFFFF);
+            state = (state<<codeLen3) | (code&0xFFFFFF);
             bits += (codeLen0+codeLen1+codeLen2+codeLen3);
-            int shift = bits & -8;
-            BigEndian.writeLong64(this.buffer, idx, st << (64 - bits));
-            bits -= shift;
-            idx += (shift>>3);
+            BigEndian.writeLong64(this.buffer, idx, state << (64-bits)); // bits cannot be 0
+            idx += (bits>>3);
+            bits &= 7;
          }
 
-         for (int i=endChunk4; i<endChunk; i++)
+         final int end = start + szFrag;
+
+         // Fragment last bytes
+         for (int i=end4; i<end; i++)
          {
             final int code = c[block[i]&0xFF];
             final int codeLen = code >>> 24;
-            st = (st<<codeLen) | (code&0xFFFFFF);
+            state = (state<<codeLen) | (code&0xFFFFFF);
             bits += codeLen;
          }
 
-         int nbBits = (idx * 8) + bits;
+         nbBits[j] = ((idx-j*szBuf)*8) + bits;
 
          while (bits >= 8)
          {
-             bits -= 8;
-             this.buffer[idx++] = (byte) (st>>bits);
+            bits -= 8;
+            this.buffer[idx++] = (byte) (state>>bits);
          }
 
          if (bits > 0)
-             this.buffer[idx] = (byte) (st<<(8-bits));
-
-         // Write number of streams (0->1, 1->4, 2->8, 3->32)
-         this.bitstream.writeBits(0, 2);
-
-         // Write chunk size in bits
-         EntropyUtils.writeVarInt(this.bitstream, nbBits);
-
-         // Write compressed data to bitstream
-         this.bitstream.writeBits(this.buffer, 0, nbBits);
-
-         startChunk = endChunk;
+            this.buffer[idx++] = (byte) (state<<(8-bits));
       }
 
-      return count;
+      // Write chunk size in bits
+      EntropyUtils.writeVarInt(this.bitstream, nbBits[0]);
+      EntropyUtils.writeVarInt(this.bitstream, nbBits[1]);
+      EntropyUtils.writeVarInt(this.bitstream, nbBits[2]);
+      EntropyUtils.writeVarInt(this.bitstream, nbBits[3]);
+
+      // Write compressed data to bitstream
+      this.bitstream.writeBits(this.buffer, 0*szBuf, nbBits[0]);
+      this.bitstream.writeBits(this.buffer, 1*szBuf, nbBits[1]);
+      this.bitstream.writeBits(this.buffer, 2*szBuf, nbBits[2]);
+      this.bitstream.writeBits(this.buffer, 3*szBuf, nbBits[3]);
+
+      // Chunk last bytes
+      final int count4 = 4 * szFrag;
+
+      for (int i=count4; i<count; i++)
+         this.bitstream.writeBits(block[blkptr+i], 8);
    }
 
 
