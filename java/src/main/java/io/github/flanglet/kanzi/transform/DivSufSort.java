@@ -1,5 +1,5 @@
 /*
-Copyright 2011-2024 Frederic Langlet
+Copyright 2011-2025 Frederic Langlet
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 you may obtain a copy of the License at
@@ -222,6 +222,7 @@ package io.github.flanglet.kanzi.transform;
    public int computeBWT(byte[] input, byte[] output, int[] bwt, int srcIdx, int dstIdx,
       int length, int[] indexes, int idxCount)
    {
+System.out.println("***** START "+this);
       // Lazy dynamic memory allocation
       if (this.buffer.length < length)
          this.buffer = new short[length];
@@ -242,6 +243,7 @@ package io.github.flanglet.kanzi.transform;
       for (int i=pIdx+1; i<length; i++)
          output[dstIdx+i] = (byte) bwt[srcIdx+i];
 
+System.out.println("***** END "+this);
       return pIdx+1;
    }
 
@@ -364,6 +366,7 @@ package io.github.flanglet.kanzi.transform;
       int c0 = this.buffer[n-1];
       final int[] arr = this.sa;
 
+System.out.println(this+" 1!");
       // Count the number of occurrences of the first one or two characters of each
       // type A, B and B* suffix. Moreover, store the beginning position of all
       // type B* suffixes into the array SA.
@@ -396,6 +399,7 @@ package io.github.flanglet.kanzi.transform;
          }
       }
 
+System.out.println(this+" 2!");
       m = n - m;
       c0 = 0;
 
@@ -418,6 +422,7 @@ package io.github.flanglet.kanzi.transform;
          }
       }
 
+System.out.println(this+" 3!");
       if (m > 0)
       {
          // Sort the type B* suffixes by their first two characters.
@@ -544,6 +549,7 @@ package io.github.flanglet.kanzi.transform;
          }
       }
 
+System.out.println(this+" 4!");
       return m;
    }
 
