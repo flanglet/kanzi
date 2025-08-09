@@ -566,7 +566,7 @@ public final class LZCodec implements ByteTransform
                srcIdx = sba1.index;
 
                // Emit literals
-               if (dstIdx+litLen >= dstEnd)
+               if (srcIdx+litLen >= srcEnd)
                {
                   System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
                }
