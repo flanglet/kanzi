@@ -164,7 +164,7 @@ public class Sequence implements ByteTransform {
 
             // Apply inverse transform
             sa1.length = count;
-            sa2.length = dst.length;
+            sa2.length = dst.array.length;
 
             if (sa2.array.length < sa2.length)
                 sa2.array = new byte[sa2.length];

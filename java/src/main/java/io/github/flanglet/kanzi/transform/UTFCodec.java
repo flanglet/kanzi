@@ -15,12 +15,12 @@ limitations under the License.
 
 package io.github.flanglet.kanzi.transform;
 
-import java.util.Arrays;
 import java.util.Map;
 import io.github.flanglet.kanzi.ArrayComparator;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.SliceByteArray;
+import io.github.flanglet.kanzi.Memory.LittleEndian;
 import io.github.flanglet.kanzi.util.sort.QuickSort;
 
 
@@ -214,7 +214,7 @@ public class UTFCodec implements ByteTransform
       while (srcIdx < srcEnd)
       {
          srcIdx += pack(src, srcIdx, val);
-         int alias = aliasMap[val[0]];
+         final int alias = aliasMap[val[0]];
          dst[dstIdx++] = (byte) (alias);
          dst[dstIdx] = (byte) (alias>>>8);
          dstIdx += (alias>>>16);
@@ -250,29 +250,35 @@ public class UTFCodec implements ByteTransform
       final byte[] dst = output.array;
       int srcIdx = input.index;
       int dstIdx = output.index;
-      final int start = src[0] & 0x03;
-      final int adjust = src[1] & 0x03; // adjust end of regular processing
-      final int n = ((src[2]&0xFF) << 8) + (src[3]&0xFF);
+      final int start = src[srcIdx] & 0x03;
+      final int adjust = src[srcIdx+1] & 0x03; // adjust end of regular processing
+      final int n = ((src[srcIdx+2]&0xFF) << 8) + (src[srcIdx+3]&0xFF);
+      final int srcEnd = input.index + count - 4 + adjust;
+      final int dstEnd = output.length - 4;
 
       // Protect against invalid map size value
       if ((n == 0) || (n >= 32768) || (3*n >= count))
          return false;
 
       // Fill map with invalid value
-      int[] m = new int[32768];
-      Arrays.fill(m, 0, m.length, 0xFFFFFFFF);
+      UTFSymbol[] m = new UTFSymbol[32768];
       srcIdx += 4;
 
       // Build inverse mapping
       for (int i=0; i<n; i++)
       {
-         m[i] = ((src[srcIdx]&0xFF) << 16) | ((src[srcIdx+1]&0xFF) << 8) | (src[srcIdx+2]&0xFF);
+         m[i] = new UTFSymbol();
+         final int s = ((src[srcIdx]&0xFF) << 16) | ((src[srcIdx+1]&0xFF) << 8) | (src[srcIdx+2]&0xFF);
+         final int sl = (isBsVersion3 == true) ? unpackV0(s, m[i]) : unpackV1(s, m[i]);
+
+         if (sl == 0)
+            return false;
+
+         m[i].length = sl;
          srcIdx += 3;
       }
 
       boolean res = true;
-      final int srcEnd = count - 4 + adjust;
-      final int dstEnd = output.length - 4;
 
       if (dstEnd < 0)
          return false;
@@ -288,25 +294,14 @@ public class UTFCodec implements ByteTransform
          if (alias >= 128)
             alias = ((src[srcIdx++] & 0xFF) << 7) + (alias & 0x7F);
 
-         int s;
-
-         if (this.isBsVersion3 == true)
-            s = unpackV0(m[alias], dst, dstIdx);
-         else
-            s = unpackV1(m[alias], dst, dstIdx);
-
-         if (s == 0)
-         {
-            res = false;
-            break;
-         }
-
-         dstIdx += s;
+         UTFSymbol s = m[alias];
+         LittleEndian.writeInt32(dst, dstIdx, s.value);
+         dstIdx += s.length;
       }
 
       if (res == true)
       {
-         if (dstIdx >= dstEnd-count+srcEnd)
+         if ((srcIdx < srcEnd) || (dstIdx >= dstEnd-count+srcEnd))
          {
             res = false;
          }
@@ -493,31 +488,27 @@ public class UTFCodec implements ByteTransform
    }
 
 
-   public static int unpackV0(int in, byte[] out, int idx)
+   // Set the value in the UTFSymbol in little endian order to optimize the copy in the main loop
+   public static int unpackV0(int in, UTFSymbol out)
    {
       int s = (in>>>21) + 1;
 
       switch (s) {
       case 1:
-         out[idx] = (byte) in;
+         out.value = in;
          break;
 
       case 2:
-         out[idx+0] = (byte) (in >> 8);
-         out[idx+1] = (byte) in;
+         out.value = ((in & 0xFF) << 8) | ((in >> 8) & 0xFF);
          break;
 
       case 3:
-         out[idx+0] = (byte) (((in >> 12) & 0x0F) | 0xE0);
-         out[idx+1] = (byte) (((in >>  6) & 0x3F) | 0x80);
-         out[idx+2] = (byte) ((in & 0x3F) | 0x80);
+         out.value = (((in >> 12) & 0x0F) | 0xE0) | ((((in >>  6) & 0x3F) | 0x80) << 8) | (((in & 0x3F) | 0x80) << 16);
          break;
 
       case 4:
-         out[idx+0] = (byte) (((in >> 18) & 0x07) | 0xF0);
-         out[idx+1] = (byte) (((in >> 12) & 0x3F) | 0x80);
-         out[idx+2] = (byte) (((in >>  6) & 0x3F) | 0x80);
-         out[idx+3] = (byte) ((in & 0x3F) | 0x80);
+         out.value = (((in >> 18) & 0x07) | 0xF0) | ((((in >> 12) & 0x3F) | 0x80) << 8) |
+                     ((((in >>  6) & 0x3F) | 0x80) << 16)  | (((in & 0x3F) | 0x80) << 24);
          break;
 
       default:
@@ -529,26 +520,24 @@ public class UTFCodec implements ByteTransform
    }
 
 
-   public static int unpackV1(int in, byte[] out, int idx)
+   // Set the value in the UTFSymbol in little endian order to optimize the copy in the main loop
+   public static int unpackV1(int in, UTFSymbol out)
    {
       int s;
 
       switch (in >>> 19) {
       case 0:
-         out[idx] = (byte) in;
+         out.value = in;
          s = 1;
          break;
 
       case 1:
-         out[idx+0] = (byte) (in >> 8);
-         out[idx+1] = (byte) in;
+         out.value = ((in & 0xFF) << 8) | ((in >> 8) & 0xFF);
          s = 2;
          break;
 
       case 2:
-         out[idx+0] = (byte) (((in >> 12) & 0x0F) | 0xE0);
-         out[idx+1] = (byte) (((in >>  6) & 0x3F) | 0x80);
-         out[idx+2] = (byte) ((in & 0x3F) | 0x80);
+         out.value = (((in >> 12) & 0x0F) | 0xE0) | ((((in >> 6) & 0x3F) | 0x80) << 8) | (((in & 0x3F) | 0x80) << 16);
          s = 3;
          break;
 
@@ -556,10 +545,9 @@ public class UTFCodec implements ByteTransform
       case 5:
       case 6:
       case 7:
-         out[idx+0] = (byte) (((in >> 18) & 0x07) | 0xF0);
-         out[idx+1] = (byte) (((in >> 12) & 0x3F) | 0x80);
-         out[idx+2] = (byte) (((in >>  6) & 0x3F) | 0x80);
-         out[idx+3] = (byte) ((in & 0x3F) | 0x80);
+         out.value = (((in >> 18) & 0x07) | 0xF0) | ((((in >> 12) & 0x3F) | 0x80) << 8) |
+               ((((in >>  6) & 0x3F) | 0x80) << 16) | (((in & 0x3F) | 0x80) << 24);
+
          s = 4;
          break;
 
@@ -569,6 +557,13 @@ public class UTFCodec implements ByteTransform
       }
 
       return s;
+   }
+
+
+   static class UTFSymbol
+   {
+      int value;
+      int length;
    }
 
 
