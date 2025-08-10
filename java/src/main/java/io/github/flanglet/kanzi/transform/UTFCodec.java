@@ -122,7 +122,7 @@ public class UTFCodec implements ByteTransform
             start++;
       }
 
-      if ((mustValidate == true) && (validate(src, srcIdx+start, srcEnd)) == false)
+      if ((mustValidate == true) && (validate(src, srcIdx+start, srcEnd-start)) == false)
          return false;
 
       if (this.ctx != null)
@@ -220,11 +220,11 @@ public class UTFCodec implements ByteTransform
          dstIdx += (alias>>>16);
       }
 
-      dst[0] = (byte) start;
-      dst[1] = (byte) (srcIdx-srcEnd);
+      dst[output.index] = (byte) start;
+      dst[output.index+1] = (byte) (srcIdx-srcEnd);
 
       // Emit last (possibly) invalid symbols (due to block truncation)
-      while ((srcIdx < srcEnd+4) && (dstIdx < maxTarget))
+      while (srcIdx < srcEnd+4)
          dst[dstIdx++] = src[srcIdx++];
 
       input.index += srcIdx;
@@ -328,7 +328,7 @@ public class UTFCodec implements ByteTransform
    // A quick partial validation
    // A more complete validation is done during processing for the remaining cases
    // (rules for 3 and 4 byte sequences)
-   private static boolean validate(byte[] block, int start, int end)
+   private static boolean validate(byte[] block, int start, int count)
    {
       int[] freqs0 = new int[256];
       final int[][] freqs1 = new int[256][256];
@@ -337,7 +337,7 @@ public class UTFCodec implements ByteTransform
          freqs1[i] = new int[256];
 
       int prv = 0;
-      final int count = end - start;
+      final int end = start + count;
       final int end4 = start + (count & -4);
 
       // Unroll loop
@@ -357,7 +357,7 @@ public class UTFCodec implements ByteTransform
          freqs1[cur2][cur3]++;
          prv = cur3;
 
-         if ((i & 0xFFF) == 0)
+         if ((i & 0x0FFF) == start)
          {
             // Early check rules for 1 byte
             int sum = freqs0[0xC0] + freqs0[0xC1];
