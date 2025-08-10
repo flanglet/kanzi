@@ -650,8 +650,10 @@ public class CompressedInputStream extends InputStream {
          int c2 = this.read();
 
          // EOF ?
-         if (c2 == -1)
-            break;
+         if (c2 == -1) {
+            // Return EOF if no byte read
+            return len == remaining ? - 1 : len - remaining;
+         }
 
          data[off++] = (byte) c2;
          remaining--;
