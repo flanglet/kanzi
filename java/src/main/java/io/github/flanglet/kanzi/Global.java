@@ -34,15 +34,45 @@ public class Global {
    *  Enum representing the types of data that can be specially processed.
    */
   public enum DataType {
+        /**
+         * Represents an undefined or unknown data type.
+         */
         UNDEFINED,
+        /**
+         * Represents text data.
+         */
         TEXT,
+        /**
+         * Represents multimedia data (e.g., images, audio, video).
+         */
         MULTIMEDIA,
+        /**
+         * Represents executable file data.
+         */
         EXE,
+        /**
+         * Represents numeric data.
+         */
         NUMERIC,
+        /**
+         * Represents Base64 encoded data.
+         */
         BASE64,
+        /**
+         * Represents DNA sequence data.
+         */
         DNA,
+        /**
+         * Represents general binary data.
+         */
         BIN,
+        /**
+         * Represents UTF-8 encoded text data.
+         */
         UTF8,
+        /**
+         * Represents data with a small alphabet (e.g., few unique byte values).
+         */
         SMALL_ALPHABET
   }
 

@@ -27,30 +27,99 @@ public class TransformFactory {
     private static final int MAX_SHIFT = (8 - 1) * ONE_SHIFT; // 8 transforms
     private static final int MASK = (1 << ONE_SHIFT) - 1;
 
-    // Up to 64 transforms can be declared (6 bit index)
+    /**
+     * Up to 64 transforms can be declared (6 bit index).
+     * Represents the 'none' or 'copy' transform.
+     */
     public static final short NONE_TYPE = 0;  // copy
-    public static final short BWT_TYPE = 1;  // Burrows Wheeler
-    public static final short BWTS_TYPE = 2;  // Burrows Wheeler Scott
-    public static final short LZ_TYPE = 3;  // Lempel Ziv
-    public static final short SNAPPY_TYPE = 4;  // Snappy (obsolete)
-    public static final short RLT_TYPE = 5;  // Run Length
-    public static final short ZRLT_TYPE = 6;  // Zero Run Length
-    public static final short MTFT_TYPE = 7;  // Move To Front
-    public static final short RANK_TYPE = 8;  // Rank
-    public static final short EXE_TYPE = 9;  // EXE codec
-    public static final short DICT_TYPE = 10; // Text codec
-    public static final short ROLZ_TYPE = 11; // ROLZ codec
-    public static final short ROLZX_TYPE = 12; // ROLZ Extra codec
-    public static final short SRT_TYPE = 13; // Sorted Rank
-    public static final short LZP_TYPE = 14; // Lempel Ziv Predict
-    public static final short MM_TYPE = 15; // Multimedia (FSD) codec
-    public static final short LZX_TYPE = 16; // Lempel Ziv Extra
-    public static final short UTF_TYPE = 17; // UTF codec
-    public static final short PACK_TYPE = 18; // Alias codec
-    public static final short DNA_TYPE = 19; // DNA Alias codec
-    public static final short RESERVED3 = 20; // Reserved
-    public static final short RESERVED4 = 21; // Reserved
-    public static final short RESERVED5 = 22; // Reserved
+    /**
+     * Represents the Burrows-Wheeler Transform.
+     */
+    public static final short BWT_TYPE = 1;
+    /**
+     * Represents the Burrows-Wheeler Transform (Scott variant).
+     */
+    public static final short BWTS_TYPE = 2;
+    /**
+     * Represents the Lempel-Ziv Transform.
+     */
+    public static final short LZ_TYPE = 3;
+    /**
+     * Represents the Snappy Transform (obsolete).
+     */
+    public static final short SNAPPY_TYPE = 4;
+    /**
+     * Represents the Run Length Encoding Transform.
+     */
+    public static final short RLT_TYPE = 5;
+    /**
+     * Represents the Zero Run Length Encoding Transform.
+     */
+    public static final short ZRLT_TYPE = 6;
+    /**
+     * Represents the Move To Front Transform.
+     */
+    public static final short MTFT_TYPE = 7;
+    /**
+     * Represents the Rank Transform.
+     */
+    public static final short RANK_TYPE = 8;
+    /**
+     * Represents the Executable Codec Transform.
+     */
+    public static final short EXE_TYPE = 9;
+    /**
+     * Represents the Text Codec Transform (Dictionary based).
+     */
+    public static final short DICT_TYPE = 10;
+    /**
+     * Represents the ROLZ Codec Transform.
+     */
+    public static final short ROLZ_TYPE = 11;
+    /**
+     * Represents the ROLZ Extra Codec Transform.
+     */
+    public static final short ROLZX_TYPE = 12;
+    /**
+     * Represents the Sorted Rank Transform.
+     */
+    public static final short SRT_TYPE = 13;
+    /**
+     * Represents the Lempel-Ziv Predict Transform.
+     */
+    public static final short LZP_TYPE = 14;
+    /**
+     * Represents the Multimedia (FSD) Codec Transform.
+     */
+    public static final short MM_TYPE = 15;
+    /**
+     * Represents the Lempel-Ziv Extra Transform.
+     */
+    public static final short LZX_TYPE = 16;
+    /**
+     * Represents the UTF Codec Transform.
+     */
+    public static final short UTF_TYPE = 17;
+    /**
+     * Represents the Alias Codec Transform (general purpose packing).
+     */
+    public static final short PACK_TYPE = 18;
+    /**
+     * Represents the DNA Alias Codec Transform (specialized for DNA sequences).
+     */
+    public static final short DNA_TYPE = 19;
+    /**
+     * Reserved for future use.
+     */
+    public static final short RESERVED3 = 20;
+    /**
+     * Reserved for future use.
+     */
+    public static final short RESERVED4 = 21;
+    /**
+     * Reserved for future use.
+     */
+    public static final short RESERVED5 = 22;
 
     /**
      * Get the type of a transform based on its name.

@@ -15,39 +15,79 @@ limitations under the License.
 
 package io.github.flanglet.kanzi.entropy;
 
-public final class HuffmanCommon
-{
+/**
+ * <p>
+ * Utility class for common Huffman coding operations.
+ * </p>
+ */
+public final class HuffmanCommon {
+   /**
+    * The logarithm base 2 of the maximum chunk size.
+    */
    public static final int LOG_MAX_CHUNK_SIZE = 14;
+
+   /**
+    * The minimum chunk size for Huffman encoding/decoding.
+    */
    public static final int MIN_CHUNK_SIZE = 1024;
-   public static final int MAX_CHUNK_SIZE = 1<<LOG_MAX_CHUNK_SIZE;
+
+   /**
+    * The maximum chunk size for Huffman encoding/decoding.
+    */
+   public static final int MAX_CHUNK_SIZE = 1 << LOG_MAX_CHUNK_SIZE;
+
+   /**
+    * The maximum symbol size (number of bits) for Huffman codes in bitstream
+    * version 3.
+    */
    public static final int MAX_SYMBOL_SIZE_V3 = 14;
+
+   /**
+    * The maximum symbol size (number of bits) for Huffman codes in bitstream
+    * version 4.
+    */
    public static final int MAX_SYMBOL_SIZE_V4 = 12;
-   private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE_V3<<8) + 256;
 
+   /**
+    * The size of the internal buffer used for sorting symbols.
+    */
+   private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE_V3 << 8) + 256;
 
-   // Return the number of codes generated
+   /**
+    * Generates canonical Huffman codes based on the provided symbol sizes.
+    * Symbols are sorted first by increasing size, then by increasing value.
+    *
+    * @param sizes         An array where `sizes[symbol]` stores the bit length of
+    *                      the Huffman code for that symbol.
+    * @param codes         An array where the generated canonical code for each
+    *                      symbol will be stored.
+    * @param symbols       An array containing the symbols to be processed. This
+    *                      array will be sorted in place.
+    * @param count         The number of symbols to process.
+    * @param maxSymbolSize The maximum allowed bit length for any symbol's Huffman
+    *                      code.
+    * @return The number of codes generated (which should be equal to `count`), or
+    *         -1 if an error occurs
+    *         (e.g., invalid symbol or code size).
+    */
    public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] symbols,
-           int count, final int maxSymbolSize)
-   {
+         int count, final int maxSymbolSize) {
       // Sort symbols by increasing size (first key) and increasing value (second key)
-      if (count > 1)
-      {
+      if (count > 1) {
          byte[] buf = new byte[BUFFER_SIZE];
 
-         for (int i=0; i<count; i++)
-         {
+         for (int i = 0; i < count; i++) {
             final int s = symbols[i];
 
-            if (((s&0xFF) != s) || (sizes[s] > maxSymbolSize))
+            if (((s & 0xFF) != s) || (sizes[s] > maxSymbolSize))
                return -1;
 
-            buf[((sizes[s]-1)<<8)|s] = 1;
+            buf[((sizes[s] - 1) << 8) | s] = 1;
          }
 
          int n = 0;
 
-         for (int i=0; i<BUFFER_SIZE; i++)
-         {
+         for (int i = 0; i < BUFFER_SIZE; i++) {
             if (buf[i] == 0)
                continue;
 
@@ -61,10 +101,9 @@ public final class HuffmanCommon
       int code = 0;
       int curLen = sizes[symbols[0]];
 
-      for (int i=0; i<count; i++)
-      {
+      for (int i = 0; i < count; i++) {
          final int s = symbols[i];
-         code <<= (sizes[s]-curLen);
+         code <<= (sizes[s] - curLen);
          curLen = sizes[s];
          codes[s] = code;
          code++;

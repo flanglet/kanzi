@@ -30,12 +30,21 @@ import io.github.flanglet.kanzi.entropy.ANSRangeDecoder;
 import io.github.flanglet.kanzi.entropy.ANSRangeEncoder;
 
 
-// Implementation of a Reduced Offset Lempel Ziv transform
-// More information about ROLZ at http://ezcodesample.com/rolz/rolz_article.html
-
+/**
+ * <p>Implementation of a Reduced Offset Lempel Ziv transform.</p>
+ * <p>More information about ROLZ at <a href="http://ezcodesample.com/rolz/rolz_article.html">http://ezcodesample.com/rolz/rolz_article.html</a></p>
+ */
 public class ROLZCodec implements ByteTransform
 {
+   /**
+    * The size of the hash table.
+    */
    private static final int HASH_SIZE = 65536;
+
+   /**
+    * The size of the chunk to process at a time.
+    * This is used to limit memory usage and improve cache locality.
+    */
    private static final int CHUNK_SIZE = 16 * 1024 * 1024;
    private static final int MATCH_FLAG = 0;
    private static final int LITERAL_FLAG = 1;
@@ -43,25 +52,51 @@ public class ROLZCodec implements ByteTransform
    private static final int MATCH_CTX = 1;
    private static final int HASH = 200002979;
    private static final int HASH_MASK = ~(CHUNK_SIZE - 1);
+
+   /**
+    * The maximum block size supported by the codec (1 GB).
+    */
    private static final int MAX_BLOCK_SIZE = 1 << 30; // 1 GB
+
+   /**
+    * The minimum block size required for the codec to operate efficiently.
+    */
    private static final int MIN_BLOCK_SIZE = 64;
 
 
+   /**
+    * The delegate codec that performs the actual encoding/decoding.
+    */
    private final ByteTransform delegate;
 
 
+   /**
+    * Creates a new {@link ROLZCodec} instance.
+    * The default implementation uses ROLZCodec1 (ANS based).
+    */
    public ROLZCodec()
    {
       this.delegate = new ROLZCodec1(); // defaults to ANS
    }
 
 
+   /**
+    * Creates a new {@link ROLZCodec} instance with the specified extra flag.
+    *
+    * @param extra If {@code true}, uses ROLZCodec2 (CM based), otherwise uses ROLZCodec1 (ANS based).
+    */
    public ROLZCodec(boolean extra)
    {
       this.delegate = (extra == true) ? new ROLZCodec2() : new ROLZCodec1();
    }
 
 
+   /**
+    * Creates a new {@link ROLZCodec} instance with the given context.
+    * The choice between ROLZCodec1 and ROLZCodec2 is based on the "transform" key in the context.
+    *
+    * @param ctx A map of parameters to configure the ROLZ codec.
+    */
    public ROLZCodec(Map<String, Object> ctx)
    {
       String transform = "NONE";
@@ -74,24 +109,55 @@ public class ROLZCodec implements ByteTransform
    }
 
 
+   /**
+    * Computes a key for hashing based on the first two bytes at the given index.
+    *
+    * @param buf The byte array.
+    * @param idx The starting index.
+    * @return The computed key.
+    */
    private static int getKey1(final byte[] buf, final int idx)
    {
       return Memory.LittleEndian.readInt16(buf, idx) & 0xFFFF;
    }
 
 
+   /**
+    * Computes a key for hashing based on a 64-bit value at the given index.
+    *
+    * @param buf The byte array.
+    * @param idx The starting index.
+    * @return The computed key.
+    */
    private static int getKey2(final byte[] buf, final int idx)
    {
       return (int) ((Memory.LittleEndian.readLong64(buf, idx) * HASH) >> 40) & 0xFFFF;
    }
 
 
+   /**
+    * Computes a hash value for the given byte array at the specified index.
+    *
+    * @param buf The byte array.
+    * @param idx The starting index.
+    * @return The computed hash value.
+    */
    private static int hash(final byte[] buf, final int idx)
    {
       return ((Memory.LittleEndian.readInt32(buf, idx)<<8) * HASH) & HASH_MASK;
    }
 
 
+   /**
+    * Emits a copy of bytes from a reference position to the destination.
+    * This method handles overlapping copies efficiently.
+    *
+    * @param dst The destination byte array.
+    * @param dstIdx The starting index in the destination array.
+    * @param ref The starting index of the reference in the destination array.
+    * @param matchLen The length of the match to copy.
+    * @return The next available index in the destination array after the copy.
+    */
    private static int emitCopy(byte[] dst, int dstIdx, int ref, int matchLen)
    {
       while (matchLen >= 4)
@@ -115,6 +181,13 @@ public class ROLZCodec implements ByteTransform
    }
 
 
+
+   /**
+    * <p>Returns the maximum length of the encoded data for a given source length.</p>
+    *
+    * @param srcLength The length of the source data.
+    * @return The maximum length of the encoded data.
+    */
    @Override
    public int getMaxEncodedLength(int srcLength)
    {
@@ -122,6 +195,13 @@ public class ROLZCodec implements ByteTransform
    }
 
 
+   /**
+    * <p>Encodes the provided data in the source slice and puts the result in the destination slice.</p>
+    *
+    * @param src The source slice of bytes.
+    * @param dst The destination slice of bytes.
+    * @return {@code true} if the encoding was successful, {@code false} otherwise.
+    */
    @Override
    public boolean forward(SliceByteArray src, SliceByteArray dst)
    {
@@ -141,6 +221,13 @@ public class ROLZCodec implements ByteTransform
    }
 
 
+   /**
+    * <p>Decodes the provided data in the source slice and puts the result in the destination slice.</p>
+    *
+    * @param src The source slice of bytes.
+    * @param dst The destination slice of bytes.
+    * @return {@code true} if the decoding was successful, {@code false} otherwise.
+    */
    @Override
    public boolean inverse(SliceByteArray src, SliceByteArray dst)
    {
@@ -157,6 +244,9 @@ public class ROLZCodec implements ByteTransform
    }
 
 
+   /**
+    * <p>Implementation of a ROLZ codec using ANS for encoding/decoding literals and matches.</p>
+    */
    // Use ANS to encode/decode literals and matches
    static class ROLZCodec1 implements ByteTransform
    {
@@ -164,29 +254,71 @@ public class ROLZCodec implements ByteTransform
       private static final int MIN_MATCH4 = 4;
       private static final int MIN_MATCH7 = 7;
       private static final int MAX_MATCH = MIN_MATCH3 + 65535;
+
+      /**
+       * The logarithm base 2 of the number of position checks.
+       */
       private static final int LOG_POS_CHECKS = 4;
 
+      /**
+       * The logarithm base 2 of the number of position checks.
+       */
       private int logPosChecks;
+
+      /**
+       * A mask used for modulo operations with `posChecks`.
+       */
       private int maskChecks;
+
+      /**
+       * The number of position checks.
+       */
       private int posChecks;
+
+      /**
+       * Counters for each hash key, used to track the number of times a key has been seen.
+       */
       private final int[] counters;
+
+      /**
+       * Stores the positions of previous matches for each hash key.
+       */
       private int[] matches;
+
+      /**
+       * The minimum match length.
+       */
       private int minMatch;
+
+      /**
+       * The context map for codec configuration.
+       */
       private final Map<String, Object> ctx;
 
 
+      /**
+       * Creates a new {@link ROLZCodec1} instance with default parameters.
+       */
       public ROLZCodec1()
       {
          this(LOG_POS_CHECKS, null);
       }
 
 
+      /**
+       * Creates a new {@link ROLZCodec1} instance with the specified logarithm of position checks.
+       * @param logPosChecks The logarithm base 2 of the number of position checks.
+       */
       public ROLZCodec1(int logPosChecks)
       {
          this(logPosChecks, null);
       }
 
 
+      /**
+       * Creates a new {@link ROLZCodec1} instance with the given context.
+       * @param ctx A map of parameters to configure the ROLZ codec.
+       */
       public ROLZCodec1(Map<String, Object> ctx)
       {
          this(LOG_POS_CHECKS, ctx);
@@ -207,6 +339,16 @@ public class ROLZCodec implements ByteTransform
          this.ctx = ctx;
       }
 
+      /**
+       * Finds the best match for the current position in the source buffer.
+       *
+       * @param sba The source slice byte array.
+       * @param pos The current position in the source buffer.
+       * @param hash32 The 32-bit hash of the current position.
+       * @param counter The current counter for the hash key.
+       * @param base The base index in the matches array for the current hash key.
+       * @return An integer containing the best match index (upper 16 bits) and length (lower 16 bits), or -1 if no match is found.
+       */
 
       // return position index (LOG_POS_CHECKS bits) + length (16 bits) or -1
       private int findMatch(final SliceByteArray sba, final int pos, int hash32,
@@ -257,6 +399,13 @@ public class ROLZCodec implements ByteTransform
       }
 
 
+      /**
+       * <p>Encodes the provided data in the source slice and puts the result in the destination slice.</p>
+       *
+       * @param input The source slice of bytes.
+       * @param output The destination slice of bytes.
+       * @return {@code true} if the encoding was successful, {@code false} otherwise.
+       */
       @Override
       public boolean forward(SliceByteArray input, SliceByteArray output)
       {
@@ -516,6 +665,12 @@ public class ROLZCodec implements ByteTransform
       }
 
 
+      /**
+       * Emits a length value into the length buffer using a variable-length encoding.
+       *
+       * @param lenBuf The slice byte array to write the length to.
+       * @param length The length to emit.
+       */
       private static void emitLength(SliceByteArray lenBuf, int length)
       {
          if (length >= 1<<7)
@@ -535,6 +690,13 @@ public class ROLZCodec implements ByteTransform
       }
 
 
+      /**
+       * <p>Decodes the provided data in the source slice and puts the result in the destination slice.</p>
+       *
+       * @param input The source slice of bytes.
+       * @param output The destination slice of bytes.
+       * @return {@code true} if the decoding was successful, {@code false} otherwise.
+       */
       @Override
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
@@ -753,6 +915,12 @@ public class ROLZCodec implements ByteTransform
       }
 
 
+      /**
+       * Reads a length value from the length buffer using a variable-length decoding.
+       *
+       * @param lenBuf The slice byte array to read the length from.
+       * @return The read length.
+       */
       private static int readLength(SliceByteArray lenBuf)
       {
          int next = lenBuf.array[lenBuf.index++];
@@ -780,6 +948,12 @@ public class ROLZCodec implements ByteTransform
       }
 
 
+      /**
+       * <p>Returns the maximum length of the encoded data for a given source length.</p>
+       *
+       * @param srcLen The length of the source data.
+       * @return The maximum length of the encoded data.
+       */
       @Override
       public int getMaxEncodedLength(int srcLen)
       {
@@ -788,36 +962,80 @@ public class ROLZCodec implements ByteTransform
    }
 
 
-   // Use CM (ROLZEncoder/ROLZDecoder) to encode/decode literals and matches
-   // Code loosely based on 'balz' by Ilya Muravyov
+   /**
+    * <p>Implementation of a ROLZ codec using CM (Context Model) for encoding/decoding literals and matches.</p>
+    * <p>Code loosely based on 'balz' by Ilya Muravyov.</p>
+    */
    static class ROLZCodec2 implements ByteTransform
    {
       private static final int MIN_MATCH3 = 3;
       private static final int MIN_MATCH7 = 7;
       private static final int MAX_MATCH = MIN_MATCH3 + 255;
+
+      /**
+       * The logarithm base 2 of the number of position checks.
+       */
       private static final int LOG_POS_CHECKS = 5;
 
+      /**
+       * The logarithm base 2 of the number of position checks.
+       */
       private final int logPosChecks;
+
+      /**
+       * A mask used for modulo operations with `posChecks`.
+       */
       private final int maskChecks;
+
+      /**
+       * The number of position checks.
+       */
       private final int posChecks;
+
+      /**
+       * Stores the positions of previous matches for each hash key.
+       */
       private final int[] matches;
+
+      /**
+       * Counters for each hash key, used to track the number of times a key has been seen.
+       */
       private final int[] counters;
+
+      /**
+       * The context map for codec configuration.
+       */
       private final Map<String, Object> ctx;
+
+      /**
+       * The minimum match length.
+       */
       private int minMatch;
 
 
+      /**
+       * Creates a new {@link ROLZCodec2} instance with default parameters.
+       */
       public ROLZCodec2()
       {
          this(LOG_POS_CHECKS, null);
       }
 
 
+      /**
+       * Creates a new {@link ROLZCodec2} instance with the specified logarithm of position checks.
+       * @param logPosChecks The logarithm base 2 of the number of position checks.
+       */
       public ROLZCodec2(int logPosChecks)
       {
          this(logPosChecks, null);
       }
 
 
+      /**
+       * Creates a new {@link ROLZCodec2} instance with the given context.
+       * @param ctx A map of parameters to configure the ROLZ codec.
+       */
       public ROLZCodec2(Map<String, Object> ctx)
       {
          this(LOG_POS_CHECKS, ctx);
@@ -838,6 +1056,14 @@ public class ROLZCodec implements ByteTransform
          this.ctx = ctx;
       }
 
+      /**
+       * Finds the best match for the current position in the source buffer.
+       *
+       * @param sba The source slice byte array.
+       * @param pos The current position in the source buffer.
+       * @param key The hash key for the current position.
+       * @return An integer containing the best match index (upper 16 bits) and length (lower 16 bits), or -1 if no match is found.
+       */
 
       // return position index (LOG_POS_CHECKS bits) + length (16 bits) or -1
       private int findMatch(final SliceByteArray sba, final int pos, final int key)
@@ -896,6 +1122,13 @@ public class ROLZCodec implements ByteTransform
       }
 
 
+      /**
+       * <p>Encodes the provided data in the source slice and puts the result in the destination slice.</p>
+       *
+       * @param input The source slice of bytes.
+       * @param output The destination slice of bytes.
+       * @return {@code true} if the encoding was successful, {@code false} otherwise.
+       */
       @Override
       public boolean forward(SliceByteArray input, SliceByteArray output)
       {
@@ -1013,6 +1246,13 @@ public class ROLZCodec implements ByteTransform
       }
 
 
+      /**
+       * <p>Decodes the provided data in the source slice and puts the result in the destination slice.</p>
+       *
+       * @param input The source slice of bytes.
+       * @param output The destination slice of bytes.
+       * @return {@code true} if the decoding was successful, {@code false} otherwise.
+       */
       @Override
       public boolean inverse(SliceByteArray input, SliceByteArray output)
       {
@@ -1133,6 +1373,12 @@ public class ROLZCodec implements ByteTransform
       }
 
 
+      /**
+       * <p>Returns the maximum length of the encoded data for a given source length.</p>
+       *
+       * @param srcLen The length of the source data.
+       * @return The maximum length of the encoded data.
+       */
       @Override
       public int getMaxEncodedLength(int srcLen)
       {
@@ -1144,13 +1390,30 @@ public class ROLZCodec implements ByteTransform
 
 
 
+   /**
+    * <p>Encoder for ROLZ using arithmetic coding principles.</p>
+    */
    static class ROLZEncoder
    {
+      /**
+       * The maximum value for the 'high' bound of the range.
+       */
       private static final long TOP         = 0x00FFFFFFFFFFFFFFL;
+
+      /**
+       * A mask for the lower 32 bits.
+       */
       private static final long MASK_0_32   = 0x00000000FFFFFFFFL;
+
+      /**
+       * The scaling factor for probabilities.
+       */
       private static final int PSCALE       = 0xFFFF;
 
 
+      /**
+       * The slice byte array to write encoded data to.
+       */
       private final SliceByteArray sba;
       private long low;
       private long high;
@@ -1160,9 +1423,19 @@ public class ROLZCodec implements ByteTransform
       private int ctx;
       private int pIdx;
 
-
+      /**
+       * Creates a new {@link ROLZEncoder} instance.
+       *
+       * @param litLogSize The logarithm base 2 of the context size for literals.
+       * @param mLogSize The logarithm base 2 of the context size for matches.
+       * @param sba The slice byte array to write encoded data to.
+       */
       public ROLZEncoder(int litLogSize, int mLogSize, SliceByteArray sba)
       {
+         if (sba == null) {
+            throw new IllegalArgumentException("Invalid null slice byte array");
+         }
+
          this.low = 0L;
          this.high = TOP;
          this.sba = sba;
@@ -1177,6 +1450,9 @@ public class ROLZCodec implements ByteTransform
          this.reset();
       }
 
+      /**
+       * Resets the probabilities to their initial values.
+       */
       private void reset()
       {
          final int mLogSize = this.logSizes[MATCH_CTX];
@@ -1190,24 +1466,44 @@ public class ROLZCodec implements ByteTransform
             this.probs[LITERAL_CTX][i] = PSCALE>>1;
       }
 
+      /**
+       * Sets the context for probability updates.
+       *
+       * @param n The index of the probability table to use (LITERAL_CTX or MATCH_CTX).
+       * @param ctx The context value.
+       */
       public void setContext(int n, byte ctx)
       {
          this.pIdx = n;
          this.ctx = (ctx&0xFF) << this.logSizes[this.pIdx];
       }
 
+      /**
+       * Encodes a sequence of bits.
+       *
+       * @param val The integer containing the bits to encode.
+       * @param n The number of bits to encode (from LSB to MSB).
+       */
       public final void encodeBits(int val, int n)
       {
          this.c1 = 1;
 
          do
          {
+            if (n < 0) {
+               throw new IllegalArgumentException("Invalid number of bits to encode: " + n);
+            }
             n--;
             this.encodeBit(val & (1<<n));
          }
          while (n != 0);
       }
 
+      /**
+       * Encodes a 9-bit value.
+       *
+       * @param val The 9-bit value to encode.
+       */
       public final void encode9Bits(int val)
       {
          this.c1 = 1;
@@ -1222,6 +1518,11 @@ public class ROLZCodec implements ByteTransform
          this.encodeBit(val & 0x01);
       }
 
+      /**
+       * Encodes a single bit.
+       *
+       * @param bit The bit to encode (0 or 1).
+       */
       public void encodeBit(int bit)
       {
          // Calculate interval split
@@ -1251,6 +1552,9 @@ public class ROLZCodec implements ByteTransform
          }
       }
 
+      /**
+       * Flushes the remaining bits in the range encoder to the output stream.
+       */
       public void dispose()
       {
          for (int i=0; i<8; i++)
@@ -1264,11 +1568,29 @@ public class ROLZCodec implements ByteTransform
    }
 
 
+   /**
+    * <p>Decoder for ROLZ using arithmetic coding principles.</p>
+    */
    static class ROLZDecoder
    {
+      /**
+       * The maximum value for the 'high' bound of the range.
+       */
       private static final long TOP         = 0x00FFFFFFFFFFFFFFL;
+
+      /**
+       * A mask for the lower 56 bits.
+       */
       private static final long MASK_0_56   = 0x00FFFFFFFFFFFFFFL;
+
+      /**
+       * A mask for the lower 32 bits.
+       */
       private static final long MASK_0_32   = 0x00000000FFFFFFFFL;
+
+      /**
+       * The scaling factor for probabilities.
+       */
       private static final int PSCALE       = 0xFFFF;
 
       private final SliceByteArray sba;
@@ -1281,9 +1603,19 @@ public class ROLZCodec implements ByteTransform
       private int ctx;
       private int pIdx;
 
-
+      /**
+       * Creates a new {@link ROLZDecoder} instance.
+       *
+       * @param litLogSize The logarithm base 2 of the context size for literals.
+       * @param mLogSize The logarithm base 2 of the context size for matches.
+       * @param sba The slice byte array to read encoded data from.
+       */
       public ROLZDecoder(int litLogSize, int mLogSize, SliceByteArray sba)
       {
+         if (sba == null) {
+            throw new IllegalArgumentException("Invalid null slice byte array");
+         }
+
          this.low = 0L;
          this.high = TOP;
          this.sba = sba;
@@ -1304,6 +1636,9 @@ public class ROLZCodec implements ByteTransform
          this.reset();
       }
 
+      /**
+       * Resets the probabilities to their initial values.
+       */
       private void reset()
       {
          final int mLogSize = this.logSizes[MATCH_CTX];
@@ -1317,12 +1652,24 @@ public class ROLZCodec implements ByteTransform
             this.probs[LITERAL_CTX][i] = PSCALE>>1;
       }
 
+      /**
+       * Sets the context for probability updates.
+       *
+       * @param n The index of the probability table to use (LITERAL_CTX or MATCH_CTX).
+       * @param ctx The context value.
+       */
       public void setContext(int n, byte ctx)
       {
          this.pIdx = n;
          this.ctx = (ctx&0xFF) << this.logSizes[this.pIdx];
       }
 
+      /**
+       * Decodes a sequence of bits.
+       *
+       * @param n The number of bits to decode.
+       * @return The decoded integer value.
+       */
       public int decodeBits(int n)
       {
          this.c1 = 1;
@@ -1330,6 +1677,9 @@ public class ROLZCodec implements ByteTransform
 
          do
          {
+            if (n < 0) {
+               throw new IllegalArgumentException("Invalid number of bits to decode: " + n);
+            }
             decodeBit();
             n--;
          }
@@ -1338,6 +1688,11 @@ public class ROLZCodec implements ByteTransform
          return this.c1 & mask;
       }
 
+      /**
+       * Decodes a 9-bit value.
+       *
+       * @return The decoded 9-bit value.
+       */
       public int decode9Bits()
       {
          this.c1 = 1;
@@ -1353,6 +1708,11 @@ public class ROLZCodec implements ByteTransform
          return this.c1 & 0x1FF;
       }
 
+      /**
+       * Decodes a single bit.
+       *
+       * @return The decoded bit (0 or 1).
+       */
       public int decodeBit()
       {
          // Calculate interval split
@@ -1388,6 +1748,9 @@ public class ROLZCodec implements ByteTransform
          return bit;
       }
 
+      /**
+       * Disposes of the decoder resources (currently does nothing).
+       */
       public void dispose()
       {
       }

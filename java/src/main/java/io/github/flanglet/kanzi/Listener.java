@@ -16,7 +16,7 @@ limitations under the License.
 package io.github.flanglet.kanzi;
 
 /**
- * The {@code Listener} interface defines a contract for objects that need to 
+ * The {@code Listener} interface defines a contract for objects that need to
  * handle and process events.
  * <p>
  * Classes that implement this interface are expected to provide an implementation 

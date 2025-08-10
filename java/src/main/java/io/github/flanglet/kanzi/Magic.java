@@ -20,33 +20,117 @@ package io.github.flanglet.kanzi;
  */
 public class Magic {
 
+    /**
+     * Represents no magic number, indicating an unknown or unidentifiable file type.
+     */
     public static final int NO_MAGIC = 0;
+    /**
+     * Magic number for JPEG image files.
+     */
     public static final int JPG_MAGIC = 0xFFD8FFE0;
+    /**
+     * Magic number for GIF image files.
+     */
     public static final int GIF_MAGIC = 0x47494638;
+    /**
+     * Magic number for PDF document files.
+     */
     public static final int PDF_MAGIC = 0x25504446;
+    /**
+     * Magic number for ZIP archive files (also applies to JAR and Office documents).
+     */
     public static final int ZIP_MAGIC = 0x504B0304; // Works for jar & office docs
+    /**
+     * Magic number for LZMA compressed files (also applies to 7z archives).
+     */
     public static final int LZMA_MAGIC = 0x377ABCAF; // Works for 7z  37 7A BC AF 27 1C
+    /**
+     * Magic number for PNG image files.
+     */
     public static final int PNG_MAGIC = 0x89504E47;
+    /**
+     * Magic number for ELF (Executable and Linkable Format) executable files.
+     */
     public static final int ELF_MAGIC = 0x7F454C46;
+    /**
+     * Magic number for 32-bit Mach-O executable files (macOS).
+     */
     public static final int MAC_MAGIC32 = 0xFEEDFACE;
+    /**
+     * Magic number for 32-bit Mach-O executable files (reversed byte order).
+     */
     public static final int MAC_CIGAM32 = 0xCEFAEDFE;
+    /**
+     * Magic number for 64-bit Mach-O executable files (macOS).
+     */
     public static final int MAC_MAGIC64 = 0xFEEDFACF;
+    /**
+     * Magic number for 64-bit Mach-O executable files (reversed byte order).
+     */
     public static final int MAC_CIGAM64 = 0xCFFAEDFE;
+    /**
+     * Magic number for Zstandard compressed files.
+     */
     public static final int ZSTD_MAGIC = 0x28B52FFD;
+    /**
+     * Magic number for Brotli compressed files.
+     */
     public static final int BROTLI_MAGIC = 0x81CFB2CE;
+    /**
+     * Magic number for RIFF (Resource Interchange File Format) files (e.g., WAV, AVI, WEBP).
+     */
     public static final int RIFF_MAGIC = 0x52494646; // WAV, AVI, WEBP
+    /**
+     * Magic number for Microsoft Cabinet files.
+     */
     public static final int CAB_MAGIC = 0x4D534346;
+    /**
+     * Magic number for FLAC (Free Lossless Audio Codec) files.
+     */
     public static final int FLAC_MAGIC = 0x664C6143;
+    /**
+     * Magic number for XZ compressed files.
+     */
     public static final int XZ_MAGIC = 0xFD377A58; // FD 37 7A 58 5A 00
+    /**
+     * Magic number for RAR archive files.
+     */
     public static final int RAR_MAGIC = 0x52617221; // 52 61 72 21 1A 07 00
+    /**
+     * Magic number for Kanzi compressed files.
+     */
     public static final int KNZ_MAGIC = 0x4B414E5A;
+    /**
+     * Magic number for BZIP2 compressed files.
+     */
     public static final int BZIP2_MAGIC = 0x425A68;
+    /**
+     * Magic number for MP3 files with an ID3 tag.
+     */
     public static final int MP3_ID3_MAGIC = 0x494433;
+    /**
+     * Magic number for GZIP compressed files.
+     */
     public static final int GZIP_MAGIC = 0x1F8B;
+    /**
+     * Magic number for BMP image files.
+     */
     public static final int BMP_MAGIC = 0x424D;
+    /**
+     * Magic number for Windows executable files.
+     */
     public static final int WIN_MAGIC = 0x4D5A;
+    /**
+     * Magic number for PBM (Portable BitMap) image files (binary only).
+     */
     public static final int PBM_MAGIC = 0x5034; // bin only
+    /**
+     * Magic number for PGM (Portable GrayMap) image files (binary only).
+     */
     public static final int PGM_MAGIC = 0x5035; // bin only
+    /**
+     * Magic number for PPM (Portable PixMap) image files (binary only).
+     */
     public static final int PPM_MAGIC = 0x5036; // bin only
 
     private static final int[] KEYS32 = {
