@@ -73,7 +73,6 @@ public class Benchmark {
             new Benchmark(inputFile).run();
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -337,7 +336,9 @@ public class Benchmark {
         } finally {
             // Clean up
             if (tempOutput != null && tempOutput.exists()) {
-                tempOutput.delete();
+                if (tempOutput.delete() == false) {
+                   System.err.println("Could not delete file '" + tempOutput.getAbsolutePath() + "'");
+                }
             }
         }
     }
