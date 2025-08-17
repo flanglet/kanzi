@@ -17,9 +17,9 @@ import java.util.concurrent.*;
  * - Java 8+
  * - Kanzi Java library (kanzi.jar) in classpath
  *
- * Usage: java -cp kanzi.jar:. io.github.flanglet.kanzi.app.KanziBenchmark <input-file>
+ * Usage: java -cp kanzi.jar:. io.github.flanglet.kanzi.app.Benchmark input-file
  */
-public class KanziBenchmark {
+public class Benchmark {
 
     private static final DecimalFormat SIZE_FORMAT = new DecimalFormat("#,##0");
     private static final DecimalFormat RATIO_FORMAT = new DecimalFormat("0.00");
@@ -59,7 +59,7 @@ public class KanziBenchmark {
 
     public static void main(String[] args) {
         if (args.length != 1) {
-            System.err.println("Usage: java -cp kanzi.jar:. io.github.flanglet.kanzi.app.KanziBenchmark <input-file>");
+            System.err.println("Usage: java -cp kanzi.jar:. io.github.flanglet.kanzi.app.Benchmark <input-file>");
             System.exit(1);
         }
 
@@ -70,7 +70,7 @@ public class KanziBenchmark {
         }
 
         try {
-            new KanziBenchmark(inputFile).run();
+            new Benchmark(inputFile).run();
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
@@ -78,7 +78,7 @@ public class KanziBenchmark {
         }
     }
 
-    public KanziBenchmark(File inputFile) {
+    public Benchmark(File inputFile) {
         this.inputFile = inputFile;
         this.originalSize = inputFile.length();
         this.parallelJobs = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
@@ -242,6 +242,8 @@ public class KanziBenchmark {
         for (Future<CompressionResult> future : futures) {
             try {
                 parallelResults.add(future.get());
+            } catch (InterruptedException e) {
+                throw e;
             } catch (Exception e) {
                 System.err.println("Error in parallel test: " + e.getMessage());
             }

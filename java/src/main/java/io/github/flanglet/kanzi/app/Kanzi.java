@@ -79,7 +79,7 @@ public class Kanzi
          return(status);
 
       // Help mode only ?
-      if (!map.containsKey("mode"))
+      if (map.containsKey("mode") == false)
          System.exit(0);
 
       char mode = (char) map.remove("mode");
