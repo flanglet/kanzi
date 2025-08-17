@@ -65,17 +65,21 @@ public class Kanzi
     *
     * @param args command line arguments passed to the application
     */
-   public static void main(String[] args)
+   public static void main(String[] args) {
+       System.exit(execute(args));
+   }
+
+   public static int execute(String[] args)
    {
       Map<String, Object> map = new HashMap<>();
       int status = processCommandLine(args, map);
 
       // Command line processing error ?
       if (status != 0)
-         System.exit(status);
+         return(status);
 
       // Help mode only ?
-      if (map.containsKey("mode") == false)
+      if (!map.containsKey("mode"))
          System.exit(0);
 
       char mode = (char) map.remove("mode");
@@ -91,7 +95,7 @@ public class Kanzi
          catch (Exception e)
          {
             System.err.println("Could not create the compressor: "+e.getMessage());
-            System.exit(io.github.flanglet.kanzi.Error.ERR_CREATE_COMPRESSOR);
+            return(io.github.flanglet.kanzi.Error.ERR_CREATE_COMPRESSOR);
          }
 
          int code = bc.call();
@@ -108,7 +112,7 @@ public class Kanzi
             code = io.github.flanglet.kanzi.Error.ERR_WRITE_FILE;
          }
 
-         System.exit(code);
+         return(code);
       }
 
       if (mode == 'd')
@@ -122,7 +126,7 @@ public class Kanzi
          catch (Exception e)
          {
             System.err.println("Could not create the decompressor: "+e.getMessage());
-            System.exit(io.github.flanglet.kanzi.Error.ERR_CREATE_DECOMPRESSOR);
+            return(io.github.flanglet.kanzi.Error.ERR_CREATE_DECOMPRESSOR);
          }
 
          int code = bd.call();
@@ -139,11 +143,11 @@ public class Kanzi
             code = io.github.flanglet.kanzi.Error.ERR_WRITE_FILE;
          }
 
-         System.exit(code);
+         return(code);
       }
 
       System.out.println("Missing arguments: try --help or -h");
-      System.exit(1);
+      return(1);
    }
 
 
