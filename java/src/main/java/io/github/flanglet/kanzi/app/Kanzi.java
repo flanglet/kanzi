@@ -274,7 +274,7 @@ public class Kanzi
 
         if ((showHelp == true) || (args.length == 0))
         {
-            printHelp(mode, showHeader);
+            printHelp(mode, verbose, showHeader);
             return 0;
         }
 
@@ -814,30 +814,36 @@ public class Kanzi
      * @param mode the mode of operation (compress or decompress)
      * @param showHeader whether to show the application header
      */
-    private static void printHelp(char mode, boolean showHeader)
+    private static void printHelp(char mode, int verbose, boolean showHeader)
     {
       if (showHeader == true)
       {
          printOut("", true);
          printOut(APP_HEADER+"\n", true);
-         printOut(APP_SUB_HEADER, true);
-         printOut(APP_USAGE, true);
+         printOut(APP_SUB_HEADER, verbose > 1);
       }
 
+      printOut(APP_USAGE, true);
       printOut("", true);
-      printOut("Credits: Matt Mahoney, Yann Collet, Jan Ondrus, Yuta Mori, Ilya Muravyov,", true);
-      printOut("         Neal Burns, Fabian Giesen, Jarek Duda, Ilya Grebnov", true);
-      printOut("", true);
+      printOut("Options\n", true); 
       printOut("   -h, --help", true);
-      printOut("        Display this message\n", true);
 
       if ((mode != 'c') && (mode != 'd'))
       {
+         printOut("        Display this message.", true);
+         printOut("        Use in conjunction with -c to print information for compression,", true);
+         printOut("        or -d to print information for decompression.\n", true);
          printOut("   -c, --compress", true);
          printOut("        Compress mode\n", true);
          printOut("   -d, --decompress", true);
          printOut("        Decompress mode\n", true);
       }
+      else
+      {
+         printOut("        Display this message.\n", true);
+      }
+
+
 
       printOut("   -i, --input=<inputName>", true);
       printOut("        Name of the input file or directory or 'stdin'.", true);
@@ -910,6 +916,16 @@ public class Kanzi
       printOut("        Overwrite the output file if it already exists\n", true);
       printOut("   --rm", true);
       printOut("        Remove the input file after successful (de)compression.", true);
+
+      if (mode == 'c')
+      {
+         printOut("        Remove the input file after successful compression.", true);
+      }
+      else
+      {
+         printOut("        Remove the input file after successful decompression.", true);
+      }
+
       printOut("        If the input is a folder, all processed files under the folder are removed.\n", true);
       printOut("   --no-link", true);
       printOut("        Skip links\n", true);
@@ -924,18 +940,79 @@ public class Kanzi
          printOut("   --to=blockID", true);
          printOut("        Decompress ending at the provided block (excluded).\n", true);
          printOut("", true);
-         printOut("EG. java -jar kanzi.jar -d -i foo.knz -f -v 2 -j 2\n", true);
-         printOut("EG. java -jar kanzi.jar --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
+         printOut("Examples\n", true);
+         printOut("  java -jar kanzi.jar -d -i foo.knz -f -v 2 -j 2\n", true);
+         printOut("  java -jar kanzi.jar --decompress --input=foo.knz --force --verbose=2 --jobs=2\n", true);
       }
 
       if (mode == 'c')
       {
          printOut("", true);
-         printOut("EG. java -jar kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
-         printOut("EG. java -jar kanzi.jar -c -i foo.txt -f -t BWT+MTFT+ZRLT -b 4m -e FPAQ -j 4\n", true);
-         printOut("EG. java -jar kanzi.jar --compress --input=foo.txt --force --jobs=4", true);
-         printOut("    --output=foo.knz --transform=BWT+MTFT+ZRLT --block=4m --entropy=FPAQ\n", true);
+         printOut("Transforms\n", true);
+         printOut("  BWT: Burrows Wheeler Transform is a transform that reorders symbols", true);
+         printOut("       in a reversible way that is more amenable to entropy coding.", true);
+         printOut("       This implementation uses a linear time foward transform and parallel", true);
+         printOut("       inverse tranform.\n", true);
+         printOut("  BWTS: Burrows Wheeler Transform by Scott is a bijective variant of the BWT.\n", true);
+         printOut("  LZ: Lempel Ziv implementation of the dictionary based LZ77 transform that", true);
+         printOut("      removes redundancy in the data.\n", true);
+         printOut("  LZX: Lempel Ziv Extra. Same as above with a bigger hash table and more", true);
+         printOut("       match searches.\n", true);
+         printOut("  LZP: Lempel Ziv Prediction can be described as an LZ implementation with only", true);
+         printOut("       one possible match (no offset is emitted).\n", true);
+         printOut("  RLT: Run Length Transform is a simple transform that replaces runs of similar", true);
+         printOut("       symbols with a compact representation.\n", true);
+         printOut("  ZRLT: Zero Run Length Transform. Similar to RLT but only processes runs of 0.", true);
+         printOut("        Usually used post BWT.\n", true);
+         printOut("  MTFT: Move-To-Front Transform is a transform that reduces entropy by assigning", true);
+         printOut("        shorter symbols to recent data (like a LRU cache). Usually used post BWT.\n", true);
+         printOut("  RANK: Rank Transform is a transform that that reduces entropy by assigning shorter", true);
+         printOut("        symbols based on symbol frequency ranks. Usually used post BWT.\n", true);
+         printOut("  EXE: a transform that reduces the entropy of executable files (X86 & ARM64)", true);
+         printOut("       by replacing relative jump addresses with absolute ones.\n", true);
+         printOut("  TEXT: a text transform that uses a dictionary to replace common words with", true);
+         printOut("        their dictionary index.\n", true);
+         printOut("  ROLZ: Reduced Offset Lempel Ziv is an implementation of LZ that replaces match offsets", true);
+         printOut("        with indexes, creating a more compact output with slower decoding speeds.\n", true);
+         printOut("  ROLZX: Extended ROLZ with more match searches and a more compact encoding.\n", true);
+         printOut("  SRT: Sorted Rank Transform is a transform that that reduces entropy by assigning", true);
+         printOut("       shorter symbols based on symbol frequency ranks. Usually used post BWT.\n", true);
+         printOut("  MM: Multimedia transform is a fast transform that removes redundancy in correlated", true);
+         printOut("      channels in some multimedia files (EG. wav, pnm).\n", true);
+         printOut("  UTF: a fast transform replacing UTF-8 codewords with aliases based on frequencies.\n", true);
+         printOut("  PACK: a fast transform replacing unused symbols with aliases based on frequencies.\n", true);
+         printOut("  DNA: same as PACK but triggered only when DNA data is detected.\n", true);
+         printOut("", true);
+         printOut("Entropy codecs\n", true);
+         printOut("  Huffman: a fast implementation of canonical Huffman. Both encoder and decoder", true);
+         printOut("           use code tables and multi-streams to improve performance.\n", true);
+         printOut("  RANGE: a fast implementation of a static range codec.\n", true);
+         printOut("  ANS: based on Range Asymmetric Numeral Systems by Jarek Duda (specifically", true);
+         printOut("       an implementation by Fabian Giesen). Works in a similar fashion to the Range", true);
+         printOut("       codec but uses only 1 state instead of 2, and encodes in reverse byte order.\n", true);
+         printOut("  FPAQ: a binary arithmetic codec based on FPAQ1 by Matt Mahoney. Uses a simple", true);
+         printOut("        adaptive order 0 predictor based on frequencies.\n", true);
+         printOut("  CM: a binary arithmetic codec derived from BCM by Ilya Muravyov. Uses context", true);
+         printOut("      mixing of counters to generate a prediction of the next bit value.\n", true);
+         printOut("  TPAQ: a binary arithmetic codec based initially on Tangelo 2.4 (itself derived", true);
+         printOut("        from FPAQ8). Uses context mixing of predictions produced by one layer", true);
+         printOut("        neural networks. The initial code has been heavily tuned to improve", true);
+         printOut("        compression ratio and speed. Slow but usually excellent compression ratio.\n", true);
+         printOut("  TPAQX: Extended TPAQ with more predictions and more memory usage. Slowest but", true);
+         printOut("         usually the best compression ratio.\n", true);
+         printOut("", true);
+         printOut("Examples\n", true);
+         printOut("  java -jar kanzi.jar -c -i foo.txt -o none -b 4m -l 4 -v 3\n", true);
+         printOut("  java -jar kanzi.jar -c -i foo.txt -f -t BWT+MTFT+ZRLT -b 4m -e FPAQ -j 4\n", true);
+         printOut("  java -jar kanzi.jar --compress --input=foo.txt --output=foo.knz --force", true);
+         printOut("                      --transform=BWT+MTFT+ZRLT --block=4m --entropy=FPAQ --jobs=4\n", true);
       }
+
+      printOut("", true);
+      printOut("Credits\n", true);
+      printOut(" Matt Mahoney, Yann Collet, Jan Ondrus, Yuta Mori, Ilya Muravyov,", true);
+      printOut(" Neal Burns, Fabian Giesen, Jarek Duda, Ilya Grebnov", true);
+      printOut("", true);
     }
 
 
