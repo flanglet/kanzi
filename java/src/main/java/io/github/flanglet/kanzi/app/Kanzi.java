@@ -38,6 +38,8 @@ public class Kanzi
       "-c", "-d", "-i", "-o", "-b", "-t", "-e", "-j", "-v", "-l", "-s", "-x", "-f", "-h"
    };
 
+   private static final int MAX_CONCURRENCY = 64;
+
    // Argument index constants for easier reference
    //private static final int ARG_IDX_COMPRESS = 0;
    //private static final int ARG_IDX_DECOMPRESS = 1;
@@ -906,7 +908,9 @@ public class Kanzi
       printOut("   -j, --jobs=<jobs>", true);
       printOut("        Maximum number of jobs the program may start concurrently", true);
       printOut("        If 0 is provided, use all available cores (maximum is 64).", true);
-      printOut("        (default is half of available cores).\n", true);
+      int cores = Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
+      cores = Math.min(cores, MAX_CONCURRENCY);
+      printOut("        Default is half of available cores (" + cores + " on this machine).\n", true);
       printOut("   -v, --verbose=<level>", true);
       printOut("        0=silent, 1=default, 2=display details, 3=display configuration,", true);
       printOut("        4=display block size and timings, 5=display extra information", true);
