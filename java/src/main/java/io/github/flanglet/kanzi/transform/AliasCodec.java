@@ -259,7 +259,7 @@ public class AliasCodec implements ByteTransform
             }
 
             // Worth it?
-            if (savings * 20 < count)
+            if (savings < count/20)
                 return false;
 
             final int srcEnd = input.index + count - 1;
