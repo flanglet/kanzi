@@ -955,8 +955,8 @@ public class Kanzi
          printOut("Transforms\n", true);
          printOut("  BWT: Burrows Wheeler Transform is a transform that reorders symbols", true);
          printOut("       in a reversible way that is more amenable to entropy coding.", true);
-         printOut("       This implementation uses a linear time foward transform and parallel", true);
-         printOut("       inverse tranform.\n", true);
+         printOut("       This implementation uses a linear time forward transform and parallel", true);
+         printOut("       inverse transform.\n", true);
          printOut("  BWTS: Burrows Wheeler Transform by Scott is a bijective variant of the BWT.\n", true);
          printOut("  LZ: Lempel Ziv implementation of the dictionary based LZ77 transform that", true);
          printOut("      removes redundancy in the data.\n", true);

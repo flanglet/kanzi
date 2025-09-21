@@ -128,8 +128,8 @@ public class CompressedOutputStream extends OutputStream {
     *            data.
     * @param ctx The context map that holds configuration settings for the
     *            compression process.
-    * @throws NullPointerException     if a null paramater has been provided.
-    * @throws IllegalArgumentException if an invalid paramater has been provided.
+    * @throws NullPointerException     if a null parameter has been provided.
+    * @throws IllegalArgumentException if an invalid parameter has been provided.
     */
    public CompressedOutputStream(OutputBitStream obs, Map<String, Object> ctx) {
       if (obs == null)
