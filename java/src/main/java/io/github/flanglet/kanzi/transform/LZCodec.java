@@ -139,7 +139,7 @@ public final class LZCodec implements ByteTransform {
       private static final int HASH_LOG1 = 16;
       private static final int HASH_RSHIFT1 = 64 - HASH_LOG1;
       private static final int HASH_LSHIFT1 = 24;
-      private static final int HASH_LOG2 = 21;
+      private static final int HASH_LOG2 = 19;
       private static final int HASH_RSHIFT2 = 64 - HASH_LOG2;
       private static final int HASH_LSHIFT2 = 24;
       private static final int MAX_DISTANCE1 = (1 << 16) - 2;
@@ -390,7 +390,7 @@ public final class LZCodec implements ByteTransform {
                   final int ref1 = this.hashes[h1];
                   this.hashes[h1] = srcIdx1;
 
-                  if ((ref1 > minRef + 1) && (differentInts(src, ref1 + bestLen - 3, srcIdx1 + bestLen - 3) == false)) {
+                  if ((ref1 > minRef+1) && (differentInts(src, ref1 + bestLen - 3, srcIdx1 + bestLen - 3) == false)) {
                      final int maxMatch = Math.min(srcEnd - srcIdx1, MAX_MATCH);
                      final int bestLen1 = findMatch(src, srcIdx1, ref1, maxMatch);
 
@@ -401,14 +401,38 @@ public final class LZCodec implements ByteTransform {
                         srcIdx = srcIdx1;
                      }
                   }
+
+                  if (this.extra == true) {
+                     final int srcIdx2 = srcIdx + 2;
+                     final int h2 = hash(src, srcIdx2);
+                     final int ref2 = this.hashes[h2];
+                     this.hashes[h2] = srcIdx2;
+
+                     if ((ref2 > minRef+2) && (differentInts(src, ref2+bestLen-3, srcIdx2+bestLen-3) == false)) {
+                        final int maxMatch = Math.min(srcEnd - srcIdx2, MAX_MATCH);
+                        final int bestLen2 = findMatch(src, srcIdx2, ref2, maxMatch);
+
+                        // Select best match
+                        if (bestLen2 >= bestLen) {
+                           ref = ref2;
+                           bestLen = bestLen2;
+                           srcIdx = srcIdx2;
+                        }
+                     }
+                  }
                }
 
                // Extend backwards
-               while ((bestLen < MAX_MATCH) && (srcIdx > anchor) && (ref > minRef)
-                     && (src[srcIdx - 1] == src[ref - 1])) {
+               while ((srcIdx > anchor) && (ref > minRef) && (src[srcIdx - 1] == src[ref - 1])) {
                   bestLen++;
                   ref--;
                   srcIdx--;
+               }
+
+               if (bestLen > MAX_MATCH) {
+                   ref += (bestLen - MAX_MATCH);
+                   srcIdx += (bestLen - MAX_MATCH);
+                   bestLen = MAX_MATCH;
                }
             } else {
                if ((bestLen >= MAX_MATCH) || (src[srcIdx] != src[ref - 1])) {
@@ -436,7 +460,6 @@ public final class LZCodec implements ByteTransform {
             // FFF = 000 --> dist == repd0
             // FFF = 001 --> dist == repd1
             final int dist = srcIdx - ref;
-            final int mLen = bestLen - minMatch;
             int token, mLenTh;
 
             if (dist == repd[0]) {
@@ -464,6 +487,8 @@ public final class LZCodec implements ByteTransform {
             }
 
             // Emit match length
+            final int mLen = bestLen - minMatch;
+
             if (mLen >= mLenTh) {
                token += mLenTh;
                mLenIdx = emitLength(this.mLenBuf, mLenIdx, mLen - mLenTh);
@@ -512,6 +537,14 @@ public final class LZCodec implements ByteTransform {
 
             // Fill this.hashes and update positions
             anchor = srcIdx + bestLen;
+
+            while (srcIdx+4 < anchor) {
+               srcIdx += 4;
+               this.hashes[hash(src, srcIdx-3)] = srcIdx-3;
+               this.hashes[hash(src, srcIdx-2)] = srcIdx-2;
+               this.hashes[hash(src, srcIdx-1)] = srcIdx-1;
+               this.hashes[hash(src, srcIdx-0)] = srcIdx;
+            }
 
             while (++srcIdx < anchor)
                this.hashes[hash(src, srcIdx)] = srcIdx;
