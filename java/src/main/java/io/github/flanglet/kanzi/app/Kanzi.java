@@ -781,8 +781,7 @@ public class Kanzi
            if (skip == true)
               map.put("skipBlocks", true);
 
-           if (fileReorder == false)
-              map.put("fileReorder", false);
+           map.put("fileReorder", fileReorder);
         }
 
         map.put("verbose", verbose);
