@@ -187,8 +187,8 @@ tasks.register('xmldoc', Javadoc) {
     )
     def rstFile = reporting.file(
             version.endsWith("-SNAPSHOT")
-                    ? "xmlDoclet/javadoc_snapshot.rst"
-                    : "xmlDoclet/javadoc_stable.rst"
+                    ? "xmlDoclet/javadoc_snapshot.md"
+                    : "xmlDoclet/javadoc_stable.md"
     )
 
     source = sourceSets.main.allJava

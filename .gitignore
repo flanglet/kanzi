@@ -38,3 +38,4 @@ bin/
 .DS_Store
 
 java/CHANGELOG.md
+java/site/javadoc**
