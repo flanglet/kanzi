@@ -36,3 +36,5 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+java/CHANGELOG.md
