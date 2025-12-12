@@ -89,8 +89,7 @@ def getVersion = { boolean considerSnapshot ->
 // RELEASE=true gradle JSQLFormatter:publish
 version = getVersion(!System.getenv("RELEASE"))
 
-//group = 'io.github.flanglet'
-group = 'com.manticore-projects.jsqlformatter'
+group = 'io.github.flanglet'
 description = 'Kanzi Compression'
 
 tasks.register('generateBuildInfo') {
