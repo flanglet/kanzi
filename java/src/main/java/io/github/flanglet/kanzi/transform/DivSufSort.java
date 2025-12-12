@@ -27,7 +27,7 @@ package io.github.flanglet.kanzi.transform;
  public final class DivSufSort
 {
    private static final int SS_INSERTIONSORT_THRESHOLD = 16;
-   private static final int SS_BLOCKSIZE = 4096;
+   private static final int SS_BLOCKSIZE = 8192;
    private static final int SS_MISORT_STACKSIZE = 16;
    private static final int SS_SMERGE_STACKSIZE = 32;
    private static final int TR_STACKSIZE = 64;

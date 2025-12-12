@@ -366,7 +366,7 @@ public class Kanzi
                continue;
            }
 
-           if (arg.equals("--no-dot-file"))
+           if (arg.equals("--skip-dot-files"))
            {
                if (ctx != -1)
                   printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
@@ -376,7 +376,7 @@ public class Kanzi
                continue;
            }
 
-           if (arg.equals("--no-link"))
+           if (arg.equals("--skip-links"))
            {
                if (ctx != -1)
                   printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
@@ -781,8 +781,7 @@ public class Kanzi
            if (skip == true)
               map.put("skipBlocks", true);
 
-           if (fileReorder == false)
-              map.put("fileReorder", false);
+           map.put("fileReorder", fileReorder);
         }
 
         map.put("verbose", verbose);
@@ -931,9 +930,9 @@ public class Kanzi
       }
 
       printOut("        If the input is a folder, all processed files under the folder are removed.\n", true);
-      printOut("   --no-link", true);
-      printOut("        Skip links\n", true);
-      printOut("   --no-dot-file", true);
+      printOut("   --skip-links", true);
+      printOut("        Do not follow links\n", true);
+      printOut("   --skip-dot-files", true);
       printOut("        Skip dot files\n", true);
 
       if (mode == 'd')
