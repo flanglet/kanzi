@@ -294,6 +294,7 @@ public class TestTransforms
                arr[i] = val;
             }
          }
+         /* @Fixme: Useless condition: it's known that ii != 6 at this point
          else if (ii == 6)
          {
             // Totally RANDOM
@@ -302,6 +303,7 @@ public class TestTransforms
             for (int j=20; j<arr.length; j++)
                arr[j] = TestEntropyCodec.RANDOM.nextInt(range);
          }
+         */
          else
          {
             arr = new int[1024];
