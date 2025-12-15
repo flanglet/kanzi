@@ -344,14 +344,14 @@ public class CompressedInputStream extends InputStream {
 
       // Sanity check
       if (type != BITSTREAM_TYPE)
-         throw new io.github.flanglet.kanzi.io.IOException("Invalid stream type", Error.ERR_INVALID_FILE);
+         throw new KanziIOException("Invalid stream type", Error.ERR_INVALID_FILE);
 
       // Read stream version
       final int bsVersion = (int) this.ibs.readBits(4);
 
       // Sanity check
       if (bsVersion > BITSTREAM_FORMAT_VERSION)
-         throw new io.github.flanglet.kanzi.io.IOException(
+         throw new KanziIOException(
                "Invalid bitstream, cannot read this version of the stream: " + bsVersion,
                Error.ERR_STREAM_VERSION);
 
@@ -367,7 +367,7 @@ public class CompressedInputStream extends InputStream {
          else if (chkSize == 2)
             this.hasher64 = new XXHash64(BITSTREAM_TYPE);
          else if (chkSize == 3)
-            throw new io.github.flanglet.kanzi.io.IOException(
+            throw new KanziIOException(
                   "Invalid bitstream, incorrect block checksum size: " + chkSize,
                   Error.ERR_INVALID_FILE);
       } else {
@@ -380,7 +380,7 @@ public class CompressedInputStream extends InputStream {
          this.entropyType = (int) this.ibs.readBits(5);
          this.ctx.put("entropy", EntropyCodecFactory.getName(this.entropyType));
       } catch (IllegalArgumentException e) {
-         throw new io.github.flanglet.kanzi.io.IOException("Invalid bitstream, unknown entropy codec type: " +
+         throw new KanziIOException("Invalid bitstream, unknown entropy codec type: " +
                this.entropyType, Error.ERR_INVALID_CODEC);
       }
 
@@ -389,7 +389,7 @@ public class CompressedInputStream extends InputStream {
          this.transformType = this.ibs.readBits(48);
          this.ctx.put("transform", new TransformFactory().getName(this.transformType));
       } catch (IllegalArgumentException e) {
-         throw new io.github.flanglet.kanzi.io.IOException("Invalid bitstream, unknown transform type: " +
+         throw new KanziIOException("Invalid bitstream, unknown transform type: " +
                this.transformType, Error.ERR_INVALID_CODEC);
       }
 
@@ -397,7 +397,7 @@ public class CompressedInputStream extends InputStream {
       this.blockSize = (int) this.ibs.readBits(28) << 4;
 
       if ((this.blockSize < MIN_BITSTREAM_BLOCK_SIZE) || (this.blockSize > MAX_BITSTREAM_BLOCK_SIZE))
-         throw new io.github.flanglet.kanzi.io.IOException("Invalid bitstream, incorrect block size: " + this.blockSize,
+         throw new KanziIOException("Invalid bitstream, incorrect block size: " + this.blockSize,
                Error.ERR_BLOCK_SIZE);
 
       this.ctx.put("blockSize", this.blockSize);
@@ -447,7 +447,7 @@ public class CompressedInputStream extends InputStream {
          cksum2 = (cksum2 >>> 23) ^ (cksum2 >>> 3);
 
          if (cksum1 != (cksum2 & ((1 << crcSize) - 1)))
-            throw new io.github.flanglet.kanzi.io.IOException("Invalid bitstream, checksum mismatch",
+            throw new KanziIOException("Invalid bitstream, checksum mismatch",
                   Error.ERR_CRC_CHECK);
       } else if (bsVersion >= 3) {
          final int nbBlocks = (int) this.ibs.readBits(6);
@@ -465,7 +465,7 @@ public class CompressedInputStream extends InputStream {
          cksum2 = (cksum2 >>> 23) ^ (cksum2 >>> 3);
 
          if (cksum1 != (cksum2 & 0x0F))
-            throw new io.github.flanglet.kanzi.io.IOException("Invalid bitstream, corrupted header",
+            throw new KanziIOException("Invalid bitstream, corrupted header",
                   Error.ERR_CRC_CHECK);
       } else {
          // Header prior to version 3
@@ -547,7 +547,7 @@ public class CompressedInputStream extends InputStream {
       try {
          if (this.available == 0) {
             if (this.closed.get() == true)
-               throw new io.github.flanglet.kanzi.io.IOException("Stream closed", Error.ERR_WRITE_FILE);
+               throw new KanziIOException("Stream closed", Error.ERR_WRITE_FILE);
 
             this.available = this.processBlock();
 
@@ -563,12 +563,12 @@ public class CompressedInputStream extends InputStream {
             this.bufferId++;
 
          return res;
-      } catch (io.github.flanglet.kanzi.io.IOException e) {
+      } catch (KanziIOException e) {
          throw e;
       } catch (BitStreamException e) {
-         throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), Error.ERR_READ_FILE);
+         throw new KanziIOException(e.getMessage(), Error.ERR_READ_FILE);
       } catch (Exception e) {
-         throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), Error.ERR_UNKNOWN);
+         throw new KanziIOException(e.getMessage(), Error.ERR_UNKNOWN);
       }
    }
 
@@ -737,11 +737,11 @@ public class CompressedInputStream extends InputStream {
                decoded += status.decoded;
 
                if (status.error != 0)
-                  throw new io.github.flanglet.kanzi.io.IOException(status.msg, status.error);
+                  throw new KanziIOException(status.msg, status.error);
 
                if (status.decoded > this.blockSize) {
                   String msg = "Block " + status.blockId + " incorrectly decompressed";
-                  throw new io.github.flanglet.kanzi.io.IOException(msg, Error.ERR_PROCESS_BLOCK);
+                  throw new KanziIOException(msg, Error.ERR_PROCESS_BLOCK);
                }
             } else {
                // Invoke the tasks concurrently and wait for the results
@@ -755,11 +755,11 @@ public class CompressedInputStream extends InputStream {
                   decoded += status.decoded;
 
                   if (status.error != 0)
-                     throw new io.github.flanglet.kanzi.io.IOException(status.msg, status.error);
+                     throw new KanziIOException(status.msg, status.error);
 
                   if (status.decoded > this.blockSize) {
                      String msg = "Block " + status.blockId + " incorrectly decompressed";
-                     throw new io.github.flanglet.kanzi.io.IOException(msg, Error.ERR_PROCESS_BLOCK);
+                     throw new KanziIOException(msg, Error.ERR_PROCESS_BLOCK);
                   }
                }
             }
@@ -794,7 +794,7 @@ public class CompressedInputStream extends InputStream {
 
          this.bufferId = 0;
          return decoded;
-      } catch (io.github.flanglet.kanzi.io.IOException e) {
+      } catch (KanziIOException e) {
          throw e;
       } catch (Exception e) {
          if (e instanceof InterruptedException)
@@ -802,7 +802,7 @@ public class CompressedInputStream extends InputStream {
 
          int errorCode = (e instanceof BitStreamException) ? ((BitStreamException) e).getErrorCode()
                : Error.ERR_UNKNOWN;
-         throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), errorCode);
+         throw new KanziIOException(e.getMessage(), errorCode);
       }
    }
 
@@ -820,7 +820,7 @@ public class CompressedInputStream extends InputStream {
       try {
          this.ibs.close();
       } catch (BitStreamException e) {
-         throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), e.getErrorCode());
+         throw new KanziIOException(e.getMessage(), e.getErrorCode());
       }
 
       // Release resources, force error on any subsequent write attempt

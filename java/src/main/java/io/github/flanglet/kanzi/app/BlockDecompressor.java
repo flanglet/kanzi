@@ -40,6 +40,7 @@ import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.SliceByteArray;
 import io.github.flanglet.kanzi.io.CompressedInputStream;
 import io.github.flanglet.kanzi.io.IOUtil;
+import io.github.flanglet.kanzi.io.KanziIOException;
 import io.github.flanglet.kanzi.io.NullOutputStream;
 import io.github.flanglet.kanzi.Listener;
 
@@ -703,7 +704,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer>
             }
             while (decodedBlock == sa.array.length);
          }
-         catch (io.github.flanglet.kanzi.io.IOException e)
+         catch (KanziIOException e)
          {
             System.err.println("An unexpected condition happened. Exiting ...");
             System.err.println(e.getMessage());

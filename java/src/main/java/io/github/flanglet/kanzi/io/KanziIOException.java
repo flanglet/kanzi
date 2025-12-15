@@ -21,19 +21,19 @@ package io.github.flanglet.kanzi.io;
  * This exception includes an error code to provide more specific information
  * about the nature of the I/O error that occurred.
  */
-public class IOException extends java.io.IOException {
+public class KanziIOException extends java.io.IOException {
     private static final long serialVersionUID = -9153775235137373283L;
 
     private final int code;
 
     /**
-     * Constructs a new {@code IOException} with the specified detail message 
+     * Constructs a new {@code KanziIOException} with the specified detail message
      * and error code.
      *
      * @param msg the detail message explaining the reason for the exception
      * @param code an integer error code that provides additional context about the error
      */
-    public IOException(String msg, int code) {
+    public KanziIOException(String msg, int code) {
         super(msg);
         this.code = code;
     }

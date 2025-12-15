@@ -229,11 +229,11 @@ public class CompressedOutputStream extends OutputStream {
          return;
 
       if (this.obs.writeBits(BITSTREAM_TYPE, 32) != 32)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write bitstream type to header",
+         throw new KanziIOException("Cannot write bitstream type to header",
                Error.ERR_WRITE_FILE);
 
       if (this.obs.writeBits(BITSTREAM_FORMAT_VERSION, 4) != 4)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write bitstream version to header",
+         throw new KanziIOException("Cannot write bitstream version to header",
                Error.ERR_WRITE_FILE);
 
       int chkSize = 0;
@@ -244,18 +244,18 @@ public class CompressedOutputStream extends OutputStream {
          chkSize = 2;
 
       if (this.obs.writeBits(chkSize, 2) != 2)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write checksum type to header",
+         throw new KanziIOException("Cannot write checksum type to header",
                Error.ERR_WRITE_FILE);
 
       if (this.obs.writeBits(this.entropyType, 5) != 5)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write entropy type to header", Error.ERR_WRITE_FILE);
+         throw new KanziIOException("Cannot write entropy type to header", Error.ERR_WRITE_FILE);
 
       if (this.obs.writeBits(this.transformType, 48) != 48)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write transform types to header",
+         throw new KanziIOException("Cannot write transform types to header",
                Error.ERR_WRITE_FILE);
 
       if (this.obs.writeBits(this.blockSize >>> 4, 28) != 28)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write block size to header", Error.ERR_WRITE_FILE);
+         throw new KanziIOException("Cannot write block size to header", Error.ERR_WRITE_FILE);
 
       // this.inputSize not provided or >= 2^48 -> 0, <2^16 -> 1, <2^32 -> 2, <2^48 ->
       // 3
@@ -277,17 +277,17 @@ public class CompressedOutputStream extends OutputStream {
       }
 
       if (this.obs.writeBits(szMask, 2) != 2)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write size of input to header",
+         throw new KanziIOException("Cannot write size of input to header",
                Error.ERR_WRITE_FILE);
 
       if (szMask > 0) {
          if (this.obs.writeBits(this.inputSize, 16 * szMask) != 16 * szMask)
-            throw new io.github.flanglet.kanzi.io.IOException("Cannot write size of input to header",
+            throw new KanziIOException("Cannot write size of input to header",
                   Error.ERR_WRITE_FILE);
       }
 
       if (this.obs.writeBits(0, 15) != 15)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write padding to header", Error.ERR_WRITE_FILE);
+         throw new KanziIOException("Cannot write padding to header", Error.ERR_WRITE_FILE);
 
       final int seed = 0x01030507 * BITSTREAM_FORMAT_VERSION;
       final int HASH = 0x1E35A7BD;
@@ -306,7 +306,7 @@ public class CompressedOutputStream extends OutputStream {
       cksum = (cksum >>> 23) ^ (cksum >>> 3);
 
       if (this.obs.writeBits(cksum, 24) != 24)
-         throw new io.github.flanglet.kanzi.io.IOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);
+         throw new KanziIOException("Cannot write checksum to header", Error.ERR_WRITE_FILE);
    }
 
    /**
@@ -356,7 +356,7 @@ public class CompressedOutputStream extends OutputStream {
     * @param off  the start offset in the data.
     * @param len  the number of bytes to write.
     * @exception IOException if an I/O error occurs. In particular,
-    *                        an <code>IOException</code> is thrown if the output
+    *                        an <code>KanziIOException</code> is thrown if the output
     *                        stream is closed.
     */
    @Override
@@ -442,7 +442,7 @@ public class CompressedOutputStream extends OutputStream {
             } else {
                // If all buffers are full, time to encode
                if (this.closed.get() == true)
-                  throw new io.github.flanglet.kanzi.io.IOException("Stream closed", Error.ERR_WRITE_FILE);
+                  throw new KanziIOException("Stream closed", Error.ERR_WRITE_FILE);
 
                this.processBlock();
             }
@@ -450,9 +450,9 @@ public class CompressedOutputStream extends OutputStream {
 
          this.buffers[this.bufferId].array[this.buffers[this.bufferId].index++] = (byte) b;
       } catch (BitStreamException e) {
-         throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), Error.ERR_READ_FILE);
+         throw new KanziIOException(e.getMessage(), Error.ERR_READ_FILE);
       } catch (Exception e) {
-         throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), Error.ERR_UNKNOWN);
+         throw new KanziIOException(e.getMessage(), Error.ERR_UNKNOWN);
       }
    }
 
@@ -499,7 +499,7 @@ public class CompressedOutputStream extends OutputStream {
          this.obs.writeBits(0, 3);
          this.obs.close();
       } catch (BitStreamException e) {
-         throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), e.getErrorCode());
+         throw new KanziIOException(e.getMessage(), e.getErrorCode());
       }
 
       this.listeners.clear();
@@ -571,7 +571,7 @@ public class CompressedOutputStream extends OutputStream {
             Status status = tasks.get(0).call();
 
             if (status.error != 0)
-               throw new io.github.flanglet.kanzi.io.IOException(status.msg, status.error);
+               throw new KanziIOException(status.msg, status.error);
          } else {
             // Invoke the tasks concurrently and validate the results
             for (Future<Status> result : this.pool.invokeAll(tasks)) {
@@ -579,12 +579,12 @@ public class CompressedOutputStream extends OutputStream {
                Status status = result.get();
 
                if (status.error != 0)
-                  throw new io.github.flanglet.kanzi.io.IOException(status.msg, status.error);
+                  throw new KanziIOException(status.msg, status.error);
             }
          }
 
          this.bufferId = 0;
-      } catch (io.github.flanglet.kanzi.io.IOException e) {
+      } catch (KanziIOException e) {
          throw e;
       } catch (Exception e) {
          if (e instanceof InterruptedException)
@@ -592,7 +592,7 @@ public class CompressedOutputStream extends OutputStream {
 
          int errorCode = (e instanceof BitStreamException) ? ((BitStreamException) e).getErrorCode()
                : Error.ERR_UNKNOWN;
-         throw new io.github.flanglet.kanzi.io.IOException(e.getMessage(), errorCode);
+         throw new KanziIOException(e.getMessage(), errorCode);
       }
    }
 
