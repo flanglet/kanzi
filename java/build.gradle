@@ -141,7 +141,7 @@ java {
     //withJavadocJar()
 
     sourceCompatibility = '11'
-    targetCompatibility = '8'
+    targetCompatibility = '11'
 
     // needed for XML-Doclet to work (since Doclet changed again with Java 13)
     toolchain {
