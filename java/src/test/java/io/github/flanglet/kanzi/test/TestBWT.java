@@ -15,6 +15,8 @@ limitations under the License.
 
 package io.github.flanglet.kanzi.test;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
@@ -52,13 +54,13 @@ public class TestBWT
    {
       if (args.length > 0)
       {
-         byte[] buf1 = args[0].getBytes();
+         byte[] buf1 = args[0].getBytes(StandardCharsets.UTF_8);
          byte[] buf2 = new byte[buf1.length];
          SliceByteArray sa1 = new SliceByteArray(buf1, 0);
          SliceByteArray sa2 = new SliceByteArray(buf2, 0);
          BWT bwt = new BWT();
          bwt.forward(sa1, sa2);
-         System.out.print("BWT:  " + new String(buf2));
+         System.out.print("BWT:  " + new String(buf2, StandardCharsets.UTF_8));
          System.out.println(" (" + bwt.getPrimaryIndex(0) + ")");
          sa1.index = 0;
          sa2.index = 0;
@@ -95,15 +97,15 @@ public class TestBWT
 
          if (ii == 1)
          {
-            buf1 = "mississippi".getBytes();
+            buf1 = "mississippi".getBytes(StandardCharsets.UTF_8);
          }
          else if (ii == 2)
          {
-            buf1 = "3.14159265358979323846264338327950288419716939937510".getBytes();
+            buf1 = "3.14159265358979323846264338327950288419716939937510".getBytes(StandardCharsets.UTF_8);
          }
          else if (ii == 3)
          {
-            buf1 = "SIX.MIXED.PIXIES.SIFT.SIXTY.PIXIE.DUST.BOXES".getBytes();
+            buf1 = "SIX.MIXED.PIXIES.SIFT.SIXTY.PIXIE.DUST.BOXES".getBytes(StandardCharsets.UTF_8);
          }
          else if (ii < iters)
          {
@@ -128,7 +130,7 @@ public class TestBWT
          SliceByteArray sa2 = new SliceByteArray(buf2, 0);
          SliceByteArray sa3 = new SliceByteArray(buf3, 0);
          ByteTransform transform = (isBWT) ? new BWT() : new BWTS();
-         String str1 = new String(buf1, start, buf1.length-start);
+         String str1 = new String(buf1, start, buf1.length-start, StandardCharsets.UTF_8);
 
          if (str1.length() < 512)
          {
@@ -141,7 +143,7 @@ public class TestBWT
          sa1.index = start;
          sa2.index = 0;
          transform.forward(sa1, sa2);
-         String str2 = new String(buf2);
+         String str2 = new String(buf2, StandardCharsets.UTF_8);
 
          if (str2.length() < 512)
          {
@@ -178,7 +180,7 @@ public class TestBWT
          sa3.index = start;
 
          transform.inverse(sa2, sa3);
-         String str3 = new String(buf3, start, buf3.length-start);
+         String str3 = new String(buf3, start, buf3.length-start, StandardCharsets.UTF_8);
 
          if (str3.length() < 512)
          {
