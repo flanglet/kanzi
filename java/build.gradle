@@ -275,7 +275,7 @@ spotbugs {
     excludeFilter = file("config/spotbugs/spotBugsExcludeFilter.xml")
 
     // do not run over the test, although we should do that eventually
-    spotbugsTest.enabled = false
+    spotbugsTest.enabled = true
 }
 
 pmd {
