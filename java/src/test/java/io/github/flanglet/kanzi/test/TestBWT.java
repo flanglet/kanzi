@@ -66,7 +66,7 @@ public class TestBWT
          sa2.index = 0;
          BWTS bwts = new BWTS();
          bwts.forward(sa1, sa2);
-         System.out.println("BWTS: " + new String(buf2));
+         System.out.println("BWTS: " + new String(buf2, StandardCharsets.UTF_8));
          System.exit(0);
       }
 
