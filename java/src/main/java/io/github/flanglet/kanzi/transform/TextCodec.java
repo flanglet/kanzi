@@ -15,6 +15,7 @@ limitations under the License.
 
 package io.github.flanglet.kanzi.transform;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.Global;
@@ -172,7 +173,7 @@ public final class TextCodec implements ByteTransform
       "DocumentActivityAnywayAfraidTypeActiveTrainInterestingRadioDange" +
       "rGenerationLeafCopyMatchClaimAnyoneSoftwarePartyDeviceCodeLangua" +
       "geLinkHoweverConfirmCommentCityAnywhereSomewhereDebateDriveHighe" +
-      "rBeautifulOnlineFanPriorityTraditionalSixUnited").getBytes();
+      "rBeautifulOnlineFanPriorityTraditionalSixUnited").getBytes(StandardCharsets.UTF_8);
 
    private static final DictEntry[] STATIC_DICTIONARY = new DictEntry[1024];
    private static final int STATIC_DICT_WORDS = createDictionary(DICT_EN_1024, STATIC_DICTIONARY, 1024, 0);

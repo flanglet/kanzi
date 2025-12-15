@@ -16,6 +16,7 @@ limitations under the License.
 package io.github.flanglet.kanzi;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -151,11 +152,11 @@ public class Global {
   };
 
   private static final byte[] BASE64_SYMBOLS =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes(StandardCharsets.UTF_8);
 
-  private static final byte[] NUMERIC_SYMBOLS = "0123456789+-*/=,.:; ".getBytes();
+  private static final byte[] NUMERIC_SYMBOLS = "0123456789+-*/=,.:; ".getBytes(StandardCharsets.UTF_8);
 
-  private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(); // either T or U and N for unknown
+  private static final byte[] DNA_SYMBOLS = "acgntuACGNTU".getBytes(StandardCharsets.UTF_8); // either T or U and N for unknown
 
   private static final int[] SQUASH = initSquash();
 

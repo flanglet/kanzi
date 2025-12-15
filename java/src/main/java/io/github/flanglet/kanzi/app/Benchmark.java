@@ -1,6 +1,7 @@
 package io.github.flanglet.kanzi.app;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.*;
@@ -290,7 +291,7 @@ public class Benchmark {
             PrintStream originalErr = System.err;
 
             ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
-            PrintStream suppressedOut = new PrintStream(outputBuffer);
+            PrintStream suppressedOut = new PrintStream(outputBuffer, true, StandardCharsets.UTF_8);
 
             try {
                 // Redirect output to suppress Kanzi's console output
@@ -308,7 +309,7 @@ public class Benchmark {
                     System.setOut(originalOut);
                     System.setErr(originalErr);
 
-                    String output = outputBuffer.toString();
+                    String output = outputBuffer.toString(StandardCharsets.UTF_8);
                     System.err.println("Kanzi failed with exit code " + exitCode + " for: " + name);
                     if (!output.trim().isEmpty()) {
                         System.err.println("Output: " + output);

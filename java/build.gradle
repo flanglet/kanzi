@@ -140,7 +140,7 @@ java {
     withSourcesJar()
     //withJavadocJar()
 
-    sourceCompatibility = '8'
+    sourceCompatibility = '11'
     targetCompatibility = '8'
 
     // needed for XML-Doclet to work (since Doclet changed again with Java 13)
