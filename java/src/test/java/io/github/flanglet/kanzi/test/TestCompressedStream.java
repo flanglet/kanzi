@@ -57,7 +57,6 @@ public class TestCompressedStream
       System.out.println("Correctness Test");
       byte[] values = new byte[65536 << 6];
       byte[] incompressible = new byte[65536 << 6];
-      Random rnd = new Random();
       long sum = 0;
 
       try
@@ -68,8 +67,8 @@ public class TestCompressedStream
 
             for (int i=0; i<length; i++)
             {
-               values[i] = (byte) rnd.nextInt(4*test+1);
-               incompressible[i] = (byte) (rnd.nextInt());
+               values[i] = (byte)  TestEntropyCodec.RANDOM.nextInt(4*test+1);
+               incompressible[i] = (byte) ( TestEntropyCodec.RANDOM.nextInt());
             }
 
             System.out.println("\nIteration " + test + " (size " + length + ")");
@@ -109,7 +108,7 @@ public class TestCompressedStream
       try
       {
          System.out.println("Test - regular");
-         final int blockSize = (length / (1 + new Random().nextInt(3))) & -16;
+         final int blockSize = (length / (1 +  TestEntropyCodec.RANDOM.nextInt(3))) & -16;
          byte[] buf = new byte[length];
          System.arraycopy(block, 0, buf, 0, length);
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2*block.length);
@@ -159,9 +158,9 @@ public class TestCompressedStream
    {
       try
       {
-         final int blockSize = (length / (1 + new Random().nextInt(3))) & -16;
-         int checksum = new Random().nextInt(3) * 32;
-         int jobs = 1 + new Random().nextInt(4);
+         final int blockSize = (length / (1 +  TestEntropyCodec.RANDOM.nextInt(3))) & -16;
+         int checksum = TestEntropyCodec.RANDOM.nextInt(3) * 32;
+         int jobs = 1 + TestEntropyCodec.RANDOM.nextInt(4);
          System.out.println("Test - " + jobs + " job(s) " + ((checksum == 0) ? "checksum" : ""));
          byte[] buf = new byte[length];
          System.arraycopy(block, 0, buf, 0, length);
@@ -218,7 +217,7 @@ public class TestCompressedStream
       try
       {
          System.out.println("Test - incompressible data");
-         final int blockSize = (length / (1 + new Random().nextInt(3))) & -16;
+         final int blockSize = (length / (1 +  TestEntropyCodec.RANDOM.nextInt(3))) & -16;
          byte[] buf = new byte[length];
          System.arraycopy(block, 0, buf, 0, length);
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2*block.length);

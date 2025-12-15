@@ -92,7 +92,6 @@ public class TestBWT
          System.out.println("\nTest "+ii);
          int start = 0;
          byte[] buf1;
-         Random rnd = new Random();
 
          if (ii == 1)
          {
@@ -112,7 +111,7 @@ public class TestBWT
 
             for (int i=0; i<buf1.length; i++)
             {
-               buf1[i] = (byte) (65 + rnd.nextInt(4*ii));
+               buf1[i] = (byte) (65 +  TestEntropyCodec.RANDOM.nextInt(4*ii));
             }
          }
          else

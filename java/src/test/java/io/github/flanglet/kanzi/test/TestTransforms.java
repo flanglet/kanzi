@@ -223,7 +223,6 @@ public class TestTransforms
       byte[] input;
       byte[] output;
       byte[] reverse;
-      Random rnd = new Random();
 
       // Test behavior
       System.out.println("Correctness test for " + name);
@@ -287,7 +286,7 @@ public class TestTransforms
 
             for (int i=0; i<arr.length; i++)
             {
-               int val = rnd.nextInt(100);
+               int val = TestEntropyCodec.RANDOM.nextInt(100);
 
                if (val >= 33)
                   val = 0;
@@ -297,11 +296,11 @@ public class TestTransforms
          }
          else if (ii == 6)
          {
-            // Totally random
+            // Totally RANDOM
             arr = new int[512];
 
             for (int j=20; j<arr.length; j++)
-               arr[j] = rnd.nextInt(range);
+               arr[j] = TestEntropyCodec.RANDOM.nextInt(range);
          }
          else
          {
@@ -310,12 +309,12 @@ public class TestTransforms
 
             while (idx < arr.length)
             {
-               int len = rnd.nextInt(120); // above LZP min match threshold
+               int len = TestEntropyCodec.RANDOM.nextInt(120); // above LZP min match threshold
 
                if (len % 3 == 0)
                  len = 1;
 
-               int val = rnd.nextInt(range);
+               int val = TestEntropyCodec.RANDOM.nextInt(range);
                int end = (idx+len) < arr.length ? idx+len : arr.length;
 
                for (int j=idx; j<end; j++)
@@ -458,7 +457,7 @@ public class TestTransforms
          SliceByteArray sa2 = new SliceByteArray(output, 0);
          SliceByteArray sa3 = new SliceByteArray(reverse, 0);
 
-         // Generate random data with runs
+         // Generate RANDOM data with runs
          // Leave zeros at the beginning for ZRLT to succeed
          int n = iter/20;
 
