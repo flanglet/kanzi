@@ -1,5 +1,4 @@
 *.zip
-*.xml
 
 java/.gradle
 java/build/

@@ -433,7 +433,7 @@ public class EXECodec implements ByteTransform {
             if ((src[srcIdx - 1] & X86_MASK_JUMP) != X86_INSTRUCTION_JUMP)
                 continue;
 
-            if (src[srcIdx] == 0xF5) {
+            if ( (src[srcIdx] & 0xFF) == 0xF5 ) {
                 // Not an encoded address. Skip escape symbol
                 srcIdx++;
                 continue;
@@ -588,7 +588,12 @@ private byte detectType(byte[] src, int start, int count) {
 
         // X86
         if ((src[i] & X86_MASK_JUMP) == X86_INSTRUCTION_JUMP) {
-            if ((src[i + 4] == 0) || (src[i + 4] == 0xFF)) {
+            /* `src[i + 4] == 0xFF` is equal to `(byte)(-1) == 255` which is always false!`
+            * `& 0xFF` promotes the byte to an unsigned value in 0..255
+            * */
+            int b = src[i + 4] & 0xFF;
+
+            if (b == 0 || b == 0xFF) {
                 // Count relative jumps (CALL = E8/ JUMP = E9 .. .. .. 00/FF)
                 jumpsX86++;
             }

@@ -16,6 +16,7 @@ limitations under the License.
 package io.github.flanglet.kanzi.util;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -90,7 +91,7 @@ public class LyndonWords {
      * @return an array of Lyndon words
      */
     public String[] split(String s, Charset cs) {
-        byte[] buf = (cs == null) ? s.getBytes() : s.getBytes(cs);
+        byte[] buf = (cs == null) ? s.getBytes(StandardCharsets.UTF_8) : s.getBytes(cs);
         this.chenFoxLyndonBreakpoints(buf, s.length());
  
         // Create an array to hold the Lyndon words
@@ -125,7 +126,7 @@ public class LyndonWords {
      * @return an array of integers representing the positions of the Lyndon word breakpoints
      */
     public int[] getPositions(String s, Charset cs) {
-        byte[] buf = (cs == null) ? s.getBytes() : s.getBytes(cs);
+        byte[] buf = (cs == null) ? s.getBytes(StandardCharsets.UTF_8) : s.getBytes(cs);
         return this.getPositions(buf, buf.length);   // relies on default encoding
     }
 

@@ -40,6 +40,7 @@ import io.github.flanglet.kanzi.io.CompressedOutputStream;
 import io.github.flanglet.kanzi.io.IOUtil;
 import io.github.flanglet.kanzi.Error;
 import io.github.flanglet.kanzi.Global;
+import io.github.flanglet.kanzi.io.KanziIOException;
 import io.github.flanglet.kanzi.io.NullOutputStream;
 import io.github.flanglet.kanzi.Listener;
 import io.github.flanglet.kanzi.transform.TransformFactory;
@@ -835,7 +836,7 @@ public class BlockCompressor implements Runnable, Callable<Integer>
                this.cos.write(sa.array, 0, len);
             }
          }
-         catch (io.github.flanglet.kanzi.io.IOException e)
+         catch (KanziIOException e)
          {
             System.err.println("An unexpected condition happened. Exiting ...");
             System.err.println(e.getMessage());

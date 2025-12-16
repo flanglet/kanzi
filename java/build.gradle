@@ -140,8 +140,8 @@ java {
     withSourcesJar()
     //withJavadocJar()
 
-    sourceCompatibility = '8'
-    targetCompatibility = '8'
+    sourceCompatibility = '11'
+    targetCompatibility = '11'
 
     // needed for XML-Doclet to work (since Doclet changed again with Java 13)
     toolchain {
@@ -275,7 +275,7 @@ spotbugs {
     excludeFilter = file("config/spotbugs/spotBugsExcludeFilter.xml")
 
     // do not run over the test, although we should do that eventually
-    spotbugsTest.enabled = false
+    spotbugsTest.enabled = true
 }
 
 pmd {

@@ -15,6 +15,7 @@ limitations under the License.
 
 package io.github.flanglet.kanzi;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 
@@ -103,11 +104,10 @@ public final class SliceByteArray {
     }
 
     @Override
-    @SuppressWarnings("lgtm [java/print-array]")
     public String toString() {
         StringBuilder builder = new StringBuilder(100);
         builder.append("[ data=");
-        builder.append(String.valueOf(this.array));
+        builder.append(Arrays.toString(this.array));
         builder.append(", len=");
         builder.append(this.length);
         builder.append(", idx=");

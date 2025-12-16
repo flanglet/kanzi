@@ -35,6 +35,7 @@ import org.junit.Test;
 public class TestCompressedStream
 {
    private static final ExecutorService pool = Executors.newFixedThreadPool(4);
+   private final static Random RANDOM = new Random(Long.MAX_VALUE);
 
 
    public static void main(String[] args)
@@ -57,7 +58,6 @@ public class TestCompressedStream
       System.out.println("Correctness Test");
       byte[] values = new byte[65536 << 6];
       byte[] incompressible = new byte[65536 << 6];
-      Random rnd = new Random();
       long sum = 0;
 
       try
@@ -68,8 +68,8 @@ public class TestCompressedStream
 
             for (int i=0; i<length; i++)
             {
-               values[i] = (byte) rnd.nextInt(4*test+1);
-               incompressible[i] = (byte) (rnd.nextInt());
+               values[i] = (byte)  RANDOM.nextInt(4*test+1);
+               incompressible[i] = (byte) ( RANDOM.nextInt());
             }
 
             System.out.println("\nIteration " + test + " (size " + length + ")");
@@ -109,7 +109,7 @@ public class TestCompressedStream
       try
       {
          System.out.println("Test - regular");
-         final int blockSize = (length / (1 + new Random().nextInt(3))) & -16;
+         final int blockSize = (length / (1 +  RANDOM.nextInt(3))) & -16;
          byte[] buf = new byte[length];
          System.arraycopy(block, 0, buf, 0, length);
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2*block.length);
@@ -159,9 +159,9 @@ public class TestCompressedStream
    {
       try
       {
-         final int blockSize = (length / (1 + new Random().nextInt(3))) & -16;
-         int checksum = new Random().nextInt(3) * 32;
-         int jobs = 1 + new Random().nextInt(4);
+         final int blockSize = (length / (1 +  RANDOM.nextInt(3))) & -16;
+         int checksum = RANDOM.nextInt(3) * 32;
+         int jobs = 1 + RANDOM.nextInt(4);
          System.out.println("Test - " + jobs + " job(s) " + ((checksum == 0) ? "checksum" : ""));
          byte[] buf = new byte[length];
          System.arraycopy(block, 0, buf, 0, length);
@@ -218,7 +218,7 @@ public class TestCompressedStream
       try
       {
          System.out.println("Test - incompressible data");
-         final int blockSize = (length / (1 + new Random().nextInt(3))) & -16;
+         final int blockSize = (length / (1 +  RANDOM.nextInt(3))) & -16;
          byte[] buf = new byte[length];
          System.arraycopy(block, 0, buf, 0, length);
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2*block.length);

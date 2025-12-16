@@ -49,6 +49,8 @@ import org.junit.Test;
 
 public class TestEntropyCodec
 {
+    private final static Random RANDOM = new Random();
+
     public static void main(String[] args)
     {
        if (args.length == 0)
@@ -254,7 +256,6 @@ public class TestEntropyCodec
           try
           {
             byte[] values;
-            Random random = new Random();
 
             if (ii == 3)
                  values = new byte[] { 0, 0, 32, 15, -4, 16, 0, 16, 0, 7, -1, -4, -32, 0, 31, -1 };
@@ -287,7 +288,7 @@ public class TestEntropyCodec
                values = new byte[256];
 
                for (int i=0; i<values.length; i++)
-                    values[i] = (byte) (64 + 4*ii + random.nextInt(8*ii+1));
+                    values[i] = (byte) (64 + 4*ii + TestEntropyCodec.RANDOM.nextInt(8*ii+1));
             }
 
             System.out.println("Original:");
@@ -359,7 +360,6 @@ public class TestEntropyCodec
       System.out.println("\n\nSpeed test for " + name);
       int[] repeats = { 3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3 };
       final int size = 500000;
-      Random random = new Random();
 
       for (int jj=0; jj<3; jj++)
       {
@@ -377,7 +377,7 @@ public class TestEntropyCodec
                   int i0 = i;
                   int len = repeats[idx];
                   idx = (idx + 1) & 0x0F;
-                  byte b = (byte) random.nextInt(256);
+                  byte b = (byte)  TestEntropyCodec.RANDOM.nextInt(256);
 
                   if (i0+len >= size)
                       len = size-i0-1;
