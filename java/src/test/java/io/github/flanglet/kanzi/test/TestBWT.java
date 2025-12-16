@@ -28,6 +28,8 @@ import org.junit.Test;
 
 public class TestBWT
 {
+   private final static Random RANDOM = new Random(Long.MAX_VALUE);
+
    @Test
    public void testBWT()
    {
@@ -113,7 +115,7 @@ public class TestBWT
 
             for (int i=0; i<buf1.length; i++)
             {
-               buf1[i] = (byte) (65 +  TestEntropyCodec.RANDOM.nextInt(4*ii));
+               buf1[i] = (byte) (65 +  RANDOM.nextInt(4*ii));
             }
          }
          else

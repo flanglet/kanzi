@@ -35,6 +35,8 @@ import org.junit.Test;
 
 public class TestTransforms
 {
+   private final static Random RANDOM = new Random(Long.MAX_VALUE);
+
    public static void main(String[] args)
    {
       if (args.length == 0)
@@ -286,7 +288,7 @@ public class TestTransforms
 
             for (int i=0; i<arr.length; i++)
             {
-               int val = TestEntropyCodec.RANDOM.nextInt(100);
+               int val = RANDOM.nextInt(100);
 
                if (val >= 33)
                   val = 0;
@@ -294,16 +296,14 @@ public class TestTransforms
                arr[i] = val;
             }
          }
-         /* @Fixme: Useless condition: it's known that ii != 6 at this point
-         else if (ii == 6)
+         else if (ii == 16)
          {
             // Totally RANDOM
             arr = new int[512];
 
             for (int j=20; j<arr.length; j++)
-               arr[j] = TestEntropyCodec.RANDOM.nextInt(range);
+               arr[j] = RANDOM.nextInt(range);
          }
-         */
          else
          {
             arr = new int[1024];
@@ -311,12 +311,12 @@ public class TestTransforms
 
             while (idx < arr.length)
             {
-               int len = TestEntropyCodec.RANDOM.nextInt(120); // above LZP min match threshold
+               int len = RANDOM.nextInt(120); // above LZP min match threshold
 
                if (len % 3 == 0)
                  len = 1;
 
-               int val = TestEntropyCodec.RANDOM.nextInt(range);
+               int val = RANDOM.nextInt(range);
                int end = (idx+len) < arr.length ? idx+len : arr.length;
 
                for (int j=idx; j<end; j++)

@@ -37,6 +37,9 @@ import org.junit.Test;
 
 public class TestDefaultBitStream
 {
+
+   private final static Random RANDOM = new Random(Long.MAX_VALUE);
+
    public static void main(String[] args)
    {
       testCorrectnessAligned1();

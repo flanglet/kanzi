@@ -49,7 +49,7 @@ import org.junit.Test;
 
 public class TestEntropyCodec
 {
-    public final static Random RANDOM = new Random();
+    private final static Random RANDOM = new Random();
 
     public static void main(String[] args)
     {
