@@ -26,11 +26,12 @@ public interface ArrayComparator {
     /**
      * Compares two sub-arrays starting at the specified indices.
      *
-     * @param lidx the starting index of the left sub-array
-     * @param ridx the starting index of the right sub-array
-     * @return a negative integer, zero, or a positive integer as the
-     *         left sub-array is less than, equal to, or greater than
-     *         the right sub-array
+     * @param lidx
+     *            the starting index of the left sub-array
+     * @param ridx
+     *            the starting index of the right sub-array
+     * @return a negative integer, zero, or a positive integer as the left sub-array
+     *         is less than, equal to, or greater than the right sub-array
      */
     public int compare(int lidx, int ridx);
 }

@@ -20,10 +20,9 @@ package io.github.flanglet.kanzi.entropy;
 /**
  * <p>
  * Implementation of an Adaptive Probability Map (APM) with linear
- * interpolation.
- * This class maps a probability and a context into a new probability that the
- * next bit will be 1. After each guess, it updates its state to improve future
- * guesses.
+ * interpolation. This class maps a probability and a context into a new
+ * probability that the next bit will be 1. After each guess, it updates its
+ * state to improve future guesses.
  * </p>
  *
  * <p>
@@ -32,62 +31,67 @@ package io.github.flanglet.kanzi.entropy;
  * </p>
  */
 /* package */ final class LinearAdaptiveProbMap {
-   /**
-    * The index into the {@code data} array, representing the last probability and
-    * context.
-    */
-   private int index;
+    /**
+     * The index into the {@code data} array, representing the last probability and
+     * context.
+     */
+    private int index;
 
-   /**
-    * The update rate for adapting probabilities. A smaller rate means faster
-    * adaptation.
-    */
-   private final int rate;
+    /**
+     * The update rate for adapting probabilities. A smaller rate means faster
+     * adaptation.
+     */
+    private final int rate;
 
-   /**
-    * The internal data array storing probabilities for different contexts.
-    * Each entry is a packed integer representing a probability.
-    */
-   private final int[] data;
+    /**
+     * The internal data array storing probabilities for different contexts. Each
+     * entry is a packed integer representing a probability.
+     */
+    private final int[] data;
 
-   /**
-    * Creates a new {@code LinearAdaptiveProbMap}.
-    *
-    * @param n    The number of contexts to support.
-    * @param rate The update rate for adapting probabilities.
-    */
-   LinearAdaptiveProbMap(int n, int rate) {
-      final int size = (n == 0) ? 65 : n * 65;
-      this.data = new int[size];
-      this.rate = rate;
+    /**
+     * Creates a new {@code LinearAdaptiveProbMap}.
+     *
+     * @param n
+     *            The number of contexts to support.
+     * @param rate
+     *            The update rate for adapting probabilities.
+     */
+    LinearAdaptiveProbMap(int n, int rate) {
+        final int size = (n == 0) ? 65 : n * 65;
+        this.data = new int[size];
+        this.rate = rate;
 
-      for (int j = 0; j <= 64; j++)
-         this.data[j] = (j << 6) << 4;
+        for (int j = 0; j <= 64; j++)
+            this.data[j] = (j << 6) << 4;
 
-      for (int i = 1; i < n; i++)
-         System.arraycopy(this.data, 0, this.data, i * 65, 65);
-   }
+        for (int i = 1; i < n; i++)
+            System.arraycopy(this.data, 0, this.data, i * 65, 65);
+    }
 
-   /**
-    * Returns an improved prediction given the current bit, prediction, and
-    * context.
-    *
-    * @param bit The actual bit observed (0 or 1).
-    * @param pr  The current prediction (probability of 1).
-    * @param ctx The current context.
-    * @return The improved prediction (probability of 1), scaled.
-    */
-   int get(int bit, int pr, int ctx) {
-      // Update probability based on error and learning rate
-      final int g = (-bit & 65528) + (bit << this.rate);
-      this.data[this.index] += ((g - this.data[this.index]) >> this.rate);
-      this.data[this.index + 1] += ((g - this.data[this.index + 1]) >> this.rate);
+    /**
+     * Returns an improved prediction given the current bit, prediction, and
+     * context.
+     *
+     * @param bit
+     *            The actual bit observed (0 or 1).
+     * @param pr
+     *            The current prediction (probability of 1).
+     * @param ctx
+     *            The current context.
+     * @return The improved prediction (probability of 1), scaled.
+     */
+    int get(int bit, int pr, int ctx) {
+        // Update probability based on error and learning rate
+        final int g = (-bit & 65528) + (bit << this.rate);
+        this.data[this.index] += ((g - this.data[this.index]) >> this.rate);
+        this.data[this.index + 1] += ((g - this.data[this.index + 1]) >> this.rate);
 
-      // Find index: 65*ctx + quantized prediction in [0..64]
-      this.index = (pr >> 6) + (ctx << 6) + ctx;
+        // Find index: 65*ctx + quantized prediction in [0..64]
+        this.index = (pr >> 6) + (ctx << 6) + ctx;
 
-      // Return interpolated probability
-      final int w = pr & 127;
-      return (this.data[this.index] * (128 - w) + this.data[this.index + 1] * w) >> 11;
-   }
+        // Return interpolated probability
+        final int w = pr & 127;
+        return (this.data[this.index] * (128 - w) + this.data[this.index + 1] * w) >> 11;
+    }
 }

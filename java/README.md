@@ -20,6 +20,3 @@ The generated `JAR` file is under 'target'.
 Run 'ant build_lib' to generate a JAR file with all classes in tree excluding tests.
 
 Run 'ant build_all' to generate a JAR file with all classes in tree including tests.
-
-
-

@@ -22,13 +22,12 @@ import java.util.Map;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
 
-
-
 /**
- * Bijective version of the Burrows-Wheeler Transform.
- * The main advantage over the regular BWT is that there is no need for a primary index (hence the bijectivity).
- * BWTS is about 10% slower than BWT.
- * Forward transform based on the code at https://code.google.com/p/mk-bwts/ by Neal Burns and DivSufSort (port of libDivSufSort by Yuta Mori).
+ * Bijective version of the Burrows-Wheeler Transform. The main advantage over
+ * the regular BWT is that there is no need for a primary index (hence the
+ * bijectivity). BWTS is about 10% slower than BWT. Forward transform based on
+ * the code at https://code.google.com/p/mk-bwts/ by Neal Burns and DivSufSort
+ * (port of libDivSufSort by Yuta Mori).
  */
 public class BWTS implements ByteTransform {
     private static final int MAX_BLOCK_SIZE = 1024 * 1024 * 1024; // 1 GB
@@ -50,7 +49,8 @@ public class BWTS implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx the context map
+     * @param ctx
+     *            the context map
      */
     public BWTS(Map<String, Object> ctx) {
         this.buffer1 = new int[0];
@@ -61,10 +61,13 @@ public class BWTS implements ByteTransform {
     /**
      * Performs the forward transform, encoding the input data.
      *
-     * @param src   the source byte array
-     * @param dst   the destination byte array
+     * @param src
+     *            the source byte array
+     * @param dst
+     *            the destination byte array
      * @return true if the transform was successful, false otherwise
-     * @throws IllegalArgumentException if the source length exceeds the maximum block size
+     * @throws IllegalArgumentException
+     *             if the source length exceeds the maximum block size
      */
     @Override
     public boolean forward(SliceByteArray src, SliceByteArray dst) {
@@ -176,17 +179,26 @@ public class BWTS implements ByteTransform {
     /**
      * Moves the head of a Lyndon word.
      *
-     * @param sa      the suffix array
-     * @param isa     the inverse suffix array
-     * @param data    the data array
-     * @param count   the count
-     * @param srcIdx  the source index
-     * @param start   the start index
-     * @param size    the size
-     * @param rank    the rank
+     * @param sa
+     *            the suffix array
+     * @param isa
+     *            the inverse suffix array
+     * @param data
+     *            the data array
+     * @param count
+     *            the count
+     * @param srcIdx
+     *            the source index
+     * @param start
+     *            the start index
+     * @param size
+     *            the size
+     * @param rank
+     *            the rank
      * @return the new rank
      */
-    private static int moveLyndonWordHead(int[] sa, int[] isa, byte[] data, int count, int srcIdx, int start, int size, int rank) {
+    private static int moveLyndonWordHead(int[] sa, int[] isa, byte[] data, int count, int srcIdx, int start, int size,
+            int rank) {
         final int end = start + size;
         final int startIdx = srcIdx + start;
 
@@ -223,10 +235,13 @@ public class BWTS implements ByteTransform {
     /**
      * Performs the inverse transform, decoding the input data.
      *
-     * @param src   the source byte array
-     * @param dst   the destination byte array
+     * @param src
+     *            the source byte array
+     * @param dst
+     *            the destination byte array
      * @return true if the transform was successful, false otherwise
-     * @throws IllegalArgumentException if the source length exceeds the maximum block size
+     * @throws IllegalArgumentException
+     *             if the source length exceeds the maximum block size
      */
     @Override
     public boolean inverse(SliceByteArray src, SliceByteArray dst) {
@@ -314,7 +329,8 @@ public class BWTS implements ByteTransform {
     /**
      * Returns the maximum size required for the encoding output buffer.
      *
-     * @param srcLength the source length
+     * @param srcLength
+     *            the source length
      * @return the maximum encoded length
      */
     @Override

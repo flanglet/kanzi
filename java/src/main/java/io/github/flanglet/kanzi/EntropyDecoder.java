@@ -23,19 +23,22 @@ package io.github.flanglet.kanzi;
 public interface EntropyDecoder {
 
     /**
-     * Decodes the next chunk of data from the bitstream and returns it
-     * in the provided buffer.
+     * Decodes the next chunk of data from the bitstream and returns it in the
+     * provided buffer.
      *
-     * @param buffer the buffer to store the decoded data
-     * @param blkptr the starting index in the buffer
-     * @param len the length of data to decode
+     * @param buffer
+     *            the buffer to store the decoded data
+     * @param blkptr
+     *            the starting index in the buffer
+     * @param len
+     *            the length of data to decode
      * @return the number of bytes decoded
      */
     public int decode(byte[] buffer, int blkptr, int len);
 
     /**
-     * Releases any resources associated with this entropy decoder.
-     * This method should be called before disposing of the entropy decoder.
+     * Releases any resources associated with this entropy decoder. This method
+     * should be called before disposing of the entropy decoder.
      */
     public void dispose();
 

@@ -33,7 +33,8 @@ public class Sequence implements ByteTransform {
     /**
      * Constructor with an array of transforms.
      *
-     * @param transforms the array of transforms
+     * @param transforms
+     *            the array of transforms
      */
     public Sequence(ByteTransform[] transforms) {
         if (transforms == null)
@@ -48,8 +49,10 @@ public class Sequence implements ByteTransform {
     /**
      * Performs the forward transform, encoding the input data.
      *
-     * @param src the input byte array
-     * @param dst the output byte array
+     * @param src
+     *            the input byte array
+     * @param dst
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -124,8 +127,10 @@ public class Sequence implements ByteTransform {
     /**
      * Performs the inverse transform, decoding the input data.
      *
-     * @param src the input byte array
-     * @param dst the output byte array
+     * @param src
+     *            the input byte array
+     * @param dst
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -200,9 +205,11 @@ public class Sequence implements ByteTransform {
     }
 
     /**
-     * Returns the maximum encoded length, which includes some extra buffer for incompressible data.
+     * Returns the maximum encoded length, which includes some extra buffer for
+     * incompressible data.
      *
-     * @param srcLength the source length
+     * @param srcLength
+     *            the source length
      * @return the maximum encoded length
      */
     @Override
@@ -240,7 +247,8 @@ public class Sequence implements ByteTransform {
     /**
      * Sets the skip flags indicating which transforms to skip.
      *
-     * @param flags the skip flags
+     * @param flags
+     *            the skip flags
      * @return true if the flags were set successfully, false otherwise
      */
     public boolean setSkipFlags(byte flags) {

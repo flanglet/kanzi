@@ -23,17 +23,17 @@ import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.SliceByteArray;
 
-
 /**
- * Utility class to encode and decode a BWT data block and its associated primary index(es).
+ * Utility class to encode and decode a BWT data block and its associated
+ * primary index(es).
  * <p>
  * BWT stream format: Header (mode + primary index(es)) | Data (n bytes)
  * <ul>
- *   <li>mode (8 bits): xxxyyyzz</li>
- *   <li>xxx: ignored</li>
- *   <li>yyy: log(chunks)</li>
- *   <li>zz: primary index size - 1 (in bytes)</li>
- *   <li>primary indexes (chunks * (8|16|24|32 bits))</li>
+ * <li>mode (8 bits): xxxyyyzz</li>
+ * <li>xxx: ignored</li>
+ * <li>yyy: log(chunks)</li>
+ * <li>zz: primary index size - 1 (in bytes)</li>
+ * <li>primary indexes (chunks * (8|16|24|32 bits))</li>
  * </ul>
  */
 public class BWTBlockCodec implements ByteTransform {
@@ -53,7 +53,8 @@ public class BWTBlockCodec implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx the context map
+     * @param ctx
+     *            the context map
      */
     public BWTBlockCodec(Map<String, Object> ctx) {
         this.bwt = new BWT(ctx);
@@ -63,8 +64,10 @@ public class BWTBlockCodec implements ByteTransform {
     /**
      * Performs the forward transform, encoding the input data.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -123,8 +126,10 @@ public class BWTBlockCodec implements ByteTransform {
     /**
      * Performs the inverse transform, decoding the input data.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -148,7 +153,7 @@ public class BWTBlockCodec implements ByteTransform {
             if (blockSize < headerSize)
                 return false;
 
-            if (chunks != BWT.getBWTChunks(blockSize-headerSize))
+            if (chunks != BWT.getBWTChunks(blockSize - headerSize))
                 return false;
 
             // Read header
@@ -200,7 +205,8 @@ public class BWTBlockCodec implements ByteTransform {
     /**
      * Returns the maximum encoded length, which includes the header size.
      *
-     * @param srcLen the source length
+     * @param srcLen
+     *            the source length
      * @return the maximum encoded length
      */
     @Override

@@ -24,11 +24,11 @@ import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 /**
- * Zero Run Length Encoding is a simple encoding algorithm by Wheeler
- * closely related to Run Length Encoding. The main difference is
- * that only runs of 0 values are processed. Also, the length is
- * encoded in a different way (each digit in a different byte).
- * This algorithm is well adapted to process post BWT/MTFT data.
+ * Zero Run Length Encoding is a simple encoding algorithm by Wheeler closely
+ * related to Run Length Encoding. The main difference is that only runs of 0
+ * values are processed. Also, the length is encoded in a different way (each
+ * digit in a different byte). This algorithm is well adapted to process post
+ * BWT/MTFT data.
  */
 public final class ZRLT implements ByteTransform {
 
@@ -41,7 +41,8 @@ public final class ZRLT implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx the context map
+     * @param ctx
+     *            the context map
      */
     public ZRLT(Map<String, Object> ctx) {
     }
@@ -49,8 +50,10 @@ public final class ZRLT implements ByteTransform {
     /**
      * Performs the forward transform, encoding the input data.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -86,7 +89,9 @@ public final class ZRLT implements ByteTransform {
 
                     // Encode length
                     runLength++;
-                    int log2 = (runLength <= 256) ? Global.LOG2_VALUES[runLength - 1] : 31 - Integer.numberOfLeadingZeros(runLength);
+                    int log2 = (runLength <= 256)
+                            ? Global.LOG2_VALUES[runLength - 1]
+                            : 31 - Integer.numberOfLeadingZeros(runLength);
 
                     if (dstIdx >= dstEnd - log2) {
                         res = false;
@@ -135,8 +140,10 @@ public final class ZRLT implements ByteTransform {
     /**
      * Performs the inverse transform, decoding the input data.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -156,8 +163,7 @@ public final class ZRLT implements ByteTransform {
         final int dstEnd = output.length;
         int runLength = 0;
 
-        mainLoop:
-        while (true) {
+        mainLoop : while (true) {
             int val = src[srcIdx] & 0xFF;
 
             if (val <= 1) {
@@ -228,7 +234,8 @@ public final class ZRLT implements ByteTransform {
     /**
      * Required encoding output buffer size unknown, so we guess.
      *
-     * @param srcLen the source length
+     * @param srcLen
+     *            the source length
      * @return the maximum encoded length
      */
     @Override

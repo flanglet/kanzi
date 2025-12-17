@@ -31,10 +31,10 @@ public class TransformFactory {
     private static final int MASK = (1 << ONE_SHIFT) - 1;
 
     /**
-     * Up to 64 transforms can be declared (6 bit index).
-     * Represents the 'none' or 'copy' transform.
+     * Up to 64 transforms can be declared (6 bit index). Represents the 'none' or
+     * 'copy' transform.
      */
-    public static final short NONE_TYPE = 0;  // copy
+    public static final short NONE_TYPE = 0; // copy
     /**
      * Represents the Burrows-Wheeler Transform.
      */
@@ -127,7 +127,8 @@ public class TransformFactory {
     /**
      * Get the type of a transform based on its name.
      *
-     * @param name the name of the transform
+     * @param name
+     *            the name of the transform
      * @return the type of the transform
      */
     public long getType(String name) {
@@ -161,7 +162,8 @@ public class TransformFactory {
     /**
      * Get the type token of a transform based on its name.
      *
-     * @param name the name of the transform
+     * @param name
+     *            the name of the transform
      * @return the type token of the transform
      */
     private long getTypeToken(String name) {
@@ -169,64 +171,64 @@ public class TransformFactory {
         name = String.valueOf(name).toUpperCase();
 
         switch (name) {
-            case "TEXT":
+            case "TEXT" :
                 return DICT_TYPE;
 
-            case "BWT":
+            case "BWT" :
                 return BWT_TYPE;
 
-            case "BWTS":
+            case "BWTS" :
                 return BWTS_TYPE;
 
-            case "LZ":
+            case "LZ" :
                 return LZ_TYPE;
 
-            case "LZX":
+            case "LZX" :
                 return LZX_TYPE;
 
-            case "LZP":
+            case "LZP" :
                 return LZP_TYPE;
 
-            case "ROLZ":
+            case "ROLZ" :
                 return ROLZ_TYPE;
 
-            case "ROLZX":
+            case "ROLZX" :
                 return ROLZX_TYPE;
 
-            case "SRT":
+            case "SRT" :
                 return SRT_TYPE;
 
-            case "RANK":
+            case "RANK" :
                 return RANK_TYPE;
 
-            case "MTFT":
+            case "MTFT" :
                 return MTFT_TYPE;
 
-            case "ZRLT":
+            case "ZRLT" :
                 return ZRLT_TYPE;
 
-            case "UTF":
+            case "UTF" :
                 return UTF_TYPE;
 
-            case "RLT":
+            case "RLT" :
                 return RLT_TYPE;
 
-            case "EXE":
+            case "EXE" :
                 return EXE_TYPE;
 
-            case "MM":
+            case "MM" :
                 return MM_TYPE;
 
-            case "PACK":
+            case "PACK" :
                 return PACK_TYPE;
 
-            case "DNA":
+            case "DNA" :
                 return DNA_TYPE;
 
-            case "NONE":
+            case "NONE" :
                 return NONE_TYPE;
 
-            default:
+            default :
                 throw new IllegalArgumentException("Unknown transform type: '" + name + "'");
         }
     }
@@ -234,8 +236,10 @@ public class TransformFactory {
     /**
      * Create a sequence of ByteTransform instances based on the function type.
      *
-     * @param ctx the context map
-     * @param functionType the type of the function
+     * @param ctx
+     *            the context map
+     * @param functionType
+     *            the type of the function
      * @return the sequence of ByteTransform instances
      */
     public Sequence newFunction(Map<String, Object> ctx, long functionType) {
@@ -267,86 +271,88 @@ public class TransformFactory {
     /**
      * Create a ByteTransform instance based on the function type token.
      *
-     * @param ctx the context map
-     * @param functionType the type token of the function
+     * @param ctx
+     *            the context map
+     * @param functionType
+     *            the type token of the function
      * @return the ByteTransform instance
      */
     private static ByteTransform newFunctionToken(Map<String, Object> ctx, int functionType) {
         switch (functionType) {
-            case DICT_TYPE:
+            case DICT_TYPE :
                 String entropyType = (String) ctx.getOrDefault("entropy", "NONE");
                 entropyType = entropyType.toUpperCase();
                 int textCodecType = 1;
 
                 // Select text encoding based on entropy codec.
-                if (entropyType.equals("NONE") || entropyType.equals("ANS0") ||
-                    entropyType.equals("HUFFMAN") || entropyType.equals("RANGE"))
+                if (entropyType.equals("NONE") || entropyType.equals("ANS0") || entropyType.equals("HUFFMAN")
+                        || entropyType.equals("RANGE"))
                     textCodecType = 2;
 
                 ctx.put("textcodec", textCodecType);
                 return new TextCodec(ctx);
 
-            case ROLZ_TYPE:
+            case ROLZ_TYPE :
                 return new ROLZCodec(ctx);
 
-            case ROLZX_TYPE:
+            case ROLZX_TYPE :
                 return new ROLZCodec(ctx);
 
-            case BWT_TYPE:
+            case BWT_TYPE :
                 return new BWTBlockCodec(ctx);
 
-            case BWTS_TYPE:
+            case BWTS_TYPE :
                 return new BWTS(ctx);
 
-            case RANK_TYPE:
+            case RANK_TYPE :
                 ctx.put("sbrt", SBRT.MODE_RANK);
                 return new SBRT(ctx);
 
-            case SRT_TYPE:
+            case SRT_TYPE :
                 return new SRT(ctx);
 
-            case MTFT_TYPE:
+            case MTFT_TYPE :
                 ctx.put("sbrt", SBRT.MODE_MTF);
                 return new SBRT(ctx);
 
-            case ZRLT_TYPE:
+            case ZRLT_TYPE :
                 return new ZRLT(ctx);
 
-            case UTF_TYPE:
+            case UTF_TYPE :
                 return new UTFCodec(ctx);
 
-            case RLT_TYPE:
+            case RLT_TYPE :
                 return new RLT(ctx);
 
-            case LZ_TYPE:
+            case LZ_TYPE :
                 ctx.put("lz", LZ_TYPE);
                 return new LZCodec(ctx);
 
-            case LZX_TYPE:
+            case LZX_TYPE :
                 ctx.put("lz", LZX_TYPE);
                 return new LZCodec(ctx);
 
-            case LZP_TYPE:
+            case LZP_TYPE :
                 ctx.put("lz", LZP_TYPE);
                 return new LZCodec(ctx);
 
-            case EXE_TYPE:
+            case EXE_TYPE :
                 return new EXECodec(ctx);
 
-            case MM_TYPE:
+            case MM_TYPE :
                 return new FSDCodec(ctx);
 
-            case PACK_TYPE:
+            case PACK_TYPE :
                 return new AliasCodec(ctx);
 
-            case DNA_TYPE:
+            case DNA_TYPE :
                 ctx.put("packOnlyDNA", true);
                 return new AliasCodec(ctx);
 
-            case NONE_TYPE:
+            case NONE_TYPE :
                 return new NullTransform(ctx);
 
-            default:
+            default :
                 throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");
         }
     }
@@ -354,7 +360,8 @@ public class TransformFactory {
     /**
      * Get the name of a transform based on its type.
      *
-     * @param functionType the type of the transform
+     * @param functionType
+     *            the type of the transform
      * @return the name of the transform
      */
     public String getName(long functionType) {
@@ -383,69 +390,70 @@ public class TransformFactory {
     /**
      * Get the name token of a transform based on its type.
      *
-     * @param functionType the type of the transform
+     * @param functionType
+     *            the type of the transform
      * @return the name token of the transform
      */
     private static String getNameToken(int functionType) {
         switch (functionType) {
-            case DICT_TYPE:
+            case DICT_TYPE :
                 return "TEXT";
 
-            case ROLZ_TYPE:
+            case ROLZ_TYPE :
                 return "ROLZ";
 
-            case ROLZX_TYPE:
+            case ROLZX_TYPE :
                 return "ROLZX";
 
-            case BWT_TYPE:
+            case BWT_TYPE :
                 return "BWT";
 
-            case BWTS_TYPE:
+            case BWTS_TYPE :
                 return "BWTS";
 
-            case SRT_TYPE:
+            case SRT_TYPE :
                 return "SRT";
 
-            case UTF_TYPE:
+            case UTF_TYPE :
                 return "UTF";
 
-            case RANK_TYPE:
+            case RANK_TYPE :
                 return "RANK";
 
-            case MTFT_TYPE:
+            case MTFT_TYPE :
                 return "MTFT";
 
-            case ZRLT_TYPE:
+            case ZRLT_TYPE :
                 return "ZRLT";
 
-            case RLT_TYPE:
+            case RLT_TYPE :
                 return "RLT";
 
-            case EXE_TYPE:
+            case EXE_TYPE :
                 return "EXE";
 
-            case LZ_TYPE:
+            case LZ_TYPE :
                 return "LZ";
 
-            case LZX_TYPE:
+            case LZX_TYPE :
                 return "LZX";
 
-            case LZP_TYPE:
+            case LZP_TYPE :
                 return "LZP";
 
-            case MM_TYPE:
+            case MM_TYPE :
                 return "MM";
 
-            case PACK_TYPE:
+            case PACK_TYPE :
                 return "PACK";
 
-            case DNA_TYPE:
+            case DNA_TYPE :
                 return "DNA";
 
-            case NONE_TYPE:
+            case NONE_TYPE :
                 return "NONE";
 
-            default:
+            default :
                 throw new IllegalArgumentException("Unknown transform type: '" + functionType + "'");
         }
     }

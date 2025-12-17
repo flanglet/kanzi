@@ -25,30 +25,41 @@ package io.github.flanglet.kanzi;
 public interface IntTransform {
 
     /**
-     * Processes the source array and writes the transformed data to the
-     * destination array in the forward direction.
+     * Processes the source array and writes the transformed data to the destination
+     * array in the forward direction.
      *
-     * @param src the source {@code SliceIntArray} containing the data to be processed
-     * @param dst the destination {@code SliceIntArray} where the processed data will be written
-     * @return {@code true} if the transformation was successful, {@code false} otherwise
+     * @param src
+     *            the source {@code SliceIntArray} containing the data to be
+     *            processed
+     * @param dst
+     *            the destination {@code SliceIntArray} where the processed data
+     *            will be written
+     * @return {@code true} if the transformation was successful, {@code false}
+     *         otherwise
      */
     public boolean forward(SliceIntArray src, SliceIntArray dst);
 
     /**
-     * Processes the source array and writes the transformed data to the
-     * destination array in the inverse direction.
+     * Processes the source array and writes the transformed data to the destination
+     * array in the inverse direction.
      *
-     * @param src the source {@code SliceIntArray} containing the data to be processed
-     * @param dst the destination {@code SliceIntArray} where the processed data will be written
-     * @return {@code true} if the transformation was successful, {@code false} otherwise
+     * @param src
+     *            the source {@code SliceIntArray} containing the data to be
+     *            processed
+     * @param dst
+     *            the destination {@code SliceIntArray} where the processed data
+     *            will be written
+     * @return {@code true} if the transformation was successful, {@code false}
+     *         otherwise
      */
     public boolean inverse(SliceIntArray src, SliceIntArray dst);
 
     /**
-     * Returns the maximum size required for the output buffer given the
-     * length of the source data.
+     * Returns the maximum size required for the output buffer given the length of
+     * the source data.
      *
-     * @param srcLength the length of the source data
+     * @param srcLength
+     *            the length of the source data
      * @return the maximum size required for the output buffer
      */
     public int getMaxEncodedLength(int srcLength);

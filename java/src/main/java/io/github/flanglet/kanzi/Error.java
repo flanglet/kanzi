@@ -19,23 +19,23 @@
 package io.github.flanglet.kanzi;
 
 /**
- * This final class defines constants for various error codes used
- * throughout the application.
+ * This final class defines constants for various error codes used throughout
+ * the application.
  */
 public final class Error {
 
     /**
-     *  Missing paraneter
+     * Missing paraneter
      */
     public static final int ERR_MISSING_PARAM = 1;
 
     /**
-     *  Invalid block size
+     * Invalid block size
      */
     public static final int ERR_BLOCK_SIZE = 2;
 
     /**
-     *  Invalid entropy coded
+     * Invalid entropy coded
      */
     public static final int ERR_INVALID_CODEC = 3;
 
@@ -95,12 +95,12 @@ public final class Error {
     public static final int ERR_CREATE_CODEC = 14;
 
     /**
-     *  Invalid file
+     * Invalid file
      */
     public static final int ERR_INVALID_FILE = 15;
 
     /**
-     *  Invalid or unsupported bit stream version
+     * Invalid or unsupported bit stream version
      */
     public static final int ERR_STREAM_VERSION = 16;
 
@@ -120,7 +120,7 @@ public final class Error {
     public static final int ERR_CRC_CHECK = 19;
 
     /**
-     *  Unknown error
+     * Unknown error
      */
     public static final int ERR_UNKNOWN = 127;
 

@@ -23,12 +23,15 @@ package io.github.flanglet.kanzi;
 public interface EntropyEncoder {
 
     /**
-     * Encodes the provided array into the bitstream and returns the
-     * number of bytes written to the bitstream.
+     * Encodes the provided array into the bitstream and returns the number of bytes
+     * written to the bitstream.
      *
-     * @param array the array containing the data to be encoded
-     * @param blkptr the starting index in the array
-     * @param len the length of data to encode
+     * @param array
+     *            the array containing the data to be encoded
+     * @param blkptr
+     *            the starting index in the array
+     * @param len
+     *            the length of data to encode
      * @return the number of bytes written to the bitstream
      */
     public int encode(byte[] array, int blkptr, int len);
@@ -41,9 +44,9 @@ public interface EntropyEncoder {
     public OutputBitStream getBitStream();
 
     /**
-     * Releases any resources associated with this entropy encoder.
-     * This method should be called before disposing of the entropy encoder.
-     * Trying to encode after a call to dispose gives undefined behavior.
+     * Releases any resources associated with this entropy encoder. This method
+     * should be called before disposing of the entropy encoder. Trying to encode
+     * after a call to dispose gives undefined behavior.
      */
     public void dispose();
 }

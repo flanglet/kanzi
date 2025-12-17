@@ -19,8 +19,8 @@
 package io.github.flanglet.kanzi;
 
 /**
- * This class represents exceptions specific to bit stream operations.
- * It provides different error codes to identify various error conditions.
+ * This class represents exceptions specific to bit stream operations. It
+ * provides different error codes to identify various error conditions.
  */
 public class BitStreamException extends RuntimeException {
 
@@ -61,11 +61,13 @@ public class BitStreamException extends RuntimeException {
     }
 
     /**
-     * Constructs a {@code BitStreamException} with the specified detail message
-     * and error code.
+     * Constructs a {@code BitStreamException} with the specified detail message and
+     * error code.
      *
-     * @param message the detail message
-     * @param code the error code
+     * @param message
+     *            the detail message
+     * @param code
+     *            the error code
      */
     public BitStreamException(String message, int code) {
         super(message);
@@ -76,9 +78,12 @@ public class BitStreamException extends RuntimeException {
      * Constructs a {@code BitStreamException} with the specified detail message,
      * cause, and error code.
      *
-     * @param message the detail message
-     * @param cause the cause
-     * @param code the error code
+     * @param message
+     *            the detail message
+     * @param cause
+     *            the cause
+     * @param code
+     *            the error code
      */
     public BitStreamException(String message, Throwable cause, int code) {
         super(message, cause);
@@ -86,11 +91,13 @@ public class BitStreamException extends RuntimeException {
     }
 
     /**
-     * Constructs a {@code BitStreamException} with the specified cause
-     * and error code.
+     * Constructs a {@code BitStreamException} with the specified cause and error
+     * code.
      *
-     * @param cause the cause
-     * @param code the error code
+     * @param cause
+     *            the cause
+     * @param code
+     *            the error code
      */
     public BitStreamException(Throwable cause, int code) {
         super(cause);

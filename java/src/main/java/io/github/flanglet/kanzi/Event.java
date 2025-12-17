@@ -19,9 +19,9 @@
 package io.github.flanglet.kanzi;
 
 /**
- * This class represents events that occur during compression and
- * decompression processes. Each event includes attributes such as type,
- * size, hash, and timestamp.
+ * This class represents events that occur during compression and decompression
+ * processes. Each event includes attributes such as type, size, hash, and
+ * timestamp.
  */
 public class Event {
 
@@ -111,9 +111,12 @@ public class Event {
     /**
      * Constructs an Event with the specified type, id, and size, with no hash.
      *
-     * @param type the type of event
-     * @param id the event id
-     * @param size the size of the event
+     * @param type
+     *            the type of event
+     * @param id
+     *            the event id
+     * @param size
+     *            the size of the event
      */
     public Event(Type type, int id, long size) {
         this(type, id, size, 0, HashType.NO_HASH);
@@ -122,9 +125,12 @@ public class Event {
     /**
      * Constructs an Event with the specified type, id, and message.
      *
-     * @param type the type of event
-     * @param id the event id
-     * @param msg the event message
+     * @param type
+     *            the type of event
+     * @param id
+     *            the event id
+     * @param msg
+     *            the event message
      */
     public Event(Type type, int id, String msg) {
         this(type, id, msg, 0);
@@ -133,10 +139,14 @@ public class Event {
     /**
      * Constructs an Event with the specified type, id, message, and time.
      *
-     * @param type the type of event
-     * @param id the event id
-     * @param msg the event message
-     * @param time the event timestamp
+     * @param type
+     *            the type of event
+     * @param id
+     *            the event id
+     * @param msg
+     *            the event message
+     * @param time
+     *            the event timestamp
      */
     public Event(Type type, int id, String msg, long time) {
         this.id = id;
@@ -151,25 +161,37 @@ public class Event {
     /**
      * Constructs an Event with the specified type, id, size, hash, and hash type.
      *
-     * @param type the type of event
-     * @param id the event id
-     * @param size the size of the event
-     * @param hash the hash of the event
-     * @param hashType the type of hash used
+     * @param type
+     *            the type of event
+     * @param id
+     *            the event id
+     * @param size
+     *            the size of the event
+     * @param hash
+     *            the hash of the event
+     * @param hashType
+     *            the type of hash used
      */
     public Event(Type type, int id, long size, long hash, HashType hashType) {
         this(type, id, size, hash, hashType, 0);
     }
 
     /**
-     * Constructs an Event with the specified type, id, size, hash, hash type, and time.
+     * Constructs an Event with the specified type, id, size, hash, hash type, and
+     * time.
      *
-     * @param type the type of event
-     * @param id the event id
-     * @param size the size of the event
-     * @param hash the hash of the event
-     * @param hashType the type of hash used
-     * @param time the event timestamp
+     * @param type
+     *            the type of event
+     * @param id
+     *            the event id
+     * @param size
+     *            the size of the event
+     * @param hash
+     *            the hash of the event
+     * @param hashType
+     *            the type of hash used
+     * @param time
+     *            the event timestamp
      */
     public Event(Type type, int id, long size, long hash, HashType hashType, long time) {
         this.id = id;

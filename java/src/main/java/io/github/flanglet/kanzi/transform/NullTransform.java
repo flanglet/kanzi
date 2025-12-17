@@ -22,7 +22,6 @@ import java.util.Map;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
 
-
 /**
  * NullTransform is a no-op transform that simply copies the input to the output
  * without performing any modifications.
@@ -38,17 +37,20 @@ public class NullTransform implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx the context map (not used in this implementation)
+     * @param ctx
+     *            the context map (not used in this implementation)
      */
     public NullTransform(Map<String, Object> ctx) {
     }
 
     /**
-     * Performs the forward transform, which in this case is a no-op copy
-     * from the input to the output.
+     * Performs the forward transform, which in this case is a no-op copy from the
+     * input to the output.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -57,11 +59,13 @@ public class NullTransform implements ByteTransform {
     }
 
     /**
-     * Performs the inverse transform, which in this case is a no-op copy
-     * from the input to the output.
+     * Performs the inverse transform, which in this case is a no-op copy from the
+     * input to the output.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -72,8 +76,10 @@ public class NullTransform implements ByteTransform {
     /**
      * Copies the input byte array to the output byte array.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the copy was successful, false otherwise
      */
     private static boolean doCopy(SliceByteArray input, SliceByteArray output) {
@@ -97,7 +103,8 @@ public class NullTransform implements ByteTransform {
      * Returns the maximum encoded length, which is the same as the source length
      * for this no-op transform.
      *
-     * @param srcLen the source length
+     * @param srcLen
+     *            the source length
      * @return the maximum encoded length
      */
     @Override

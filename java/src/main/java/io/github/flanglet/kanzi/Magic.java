@@ -18,15 +18,16 @@
 
 package io.github.flanglet.kanzi;
 
-
 /**
- * This class defines constants representing magic numbers for various file types
- * and provides methods to identify file types based on their magic numbers.
+ * This class defines constants representing magic numbers for various file
+ * types and provides methods to identify file types based on their magic
+ * numbers.
  */
 public class Magic {
 
     /**
-     * Represents no magic number, indicating an unknown or unidentifiable file type.
+     * Represents no magic number, indicating an unknown or unidentifiable file
+     * type.
      */
     public static final int NO_MAGIC = 0;
     /**
@@ -42,13 +43,14 @@ public class Magic {
      */
     public static final int PDF_MAGIC = 0x25504446;
     /**
-     * Magic number for ZIP archive files (also applies to JAR and Office documents).
+     * Magic number for ZIP archive files (also applies to JAR and Office
+     * documents).
      */
     public static final int ZIP_MAGIC = 0x504B0304; // Works for jar & office docs
     /**
      * Magic number for LZMA compressed files (also applies to 7z archives).
      */
-    public static final int LZMA_MAGIC = 0x377ABCAF; // Works for 7z  37 7A BC AF 27 1C
+    public static final int LZMA_MAGIC = 0x377ABCAF; // Works for 7z 37 7A BC AF 27 1C
     /**
      * Magic number for PNG image files.
      */
@@ -82,7 +84,8 @@ public class Magic {
      */
     public static final int BROTLI_MAGIC = 0x81CFB2CE;
     /**
-     * Magic number for RIFF (Resource Interchange File Format) files (e.g., WAV, AVI, WEBP).
+     * Magic number for RIFF (Resource Interchange File Format) files (e.g., WAV,
+     * AVI, WEBP).
      */
     public static final int RIFF_MAGIC = 0x52494646; // WAV, AVI, WEBP
     /**
@@ -138,22 +141,19 @@ public class Magic {
      */
     public static final int PPM_MAGIC = 0x5036; // bin only
 
-    private static final int[] KEYS32 = {
-        GIF_MAGIC, PDF_MAGIC, ZIP_MAGIC, LZMA_MAGIC, PNG_MAGIC,
-        ELF_MAGIC, MAC_MAGIC32, MAC_CIGAM32, MAC_MAGIC64, MAC_CIGAM64,
-        ZSTD_MAGIC, BROTLI_MAGIC, CAB_MAGIC, RIFF_MAGIC, FLAC_MAGIC,
-        XZ_MAGIC, KNZ_MAGIC, RAR_MAGIC
-    };
+    private static final int[] KEYS32 = {GIF_MAGIC, PDF_MAGIC, ZIP_MAGIC, LZMA_MAGIC, PNG_MAGIC, ELF_MAGIC, MAC_MAGIC32,
+            MAC_CIGAM32, MAC_MAGIC64, MAC_CIGAM64, ZSTD_MAGIC, BROTLI_MAGIC, CAB_MAGIC, RIFF_MAGIC, FLAC_MAGIC,
+            XZ_MAGIC, KNZ_MAGIC, RAR_MAGIC};
 
-    private static final int[] KEYS16 = {
-        GZIP_MAGIC, BMP_MAGIC, WIN_MAGIC
-    };
+    private static final int[] KEYS16 = {GZIP_MAGIC, BMP_MAGIC, WIN_MAGIC};
 
     /**
      * Identifies the type of a file based on its magic number.
      *
-     * @param src the byte array containing the file data
-     * @param start the starting index in the array
+     * @param src
+     *            the byte array containing the file data
+     * @param start
+     *            the starting index in the array
      * @return the magic number of the file type
      */
     public static int getType(byte[] src, int start) {
@@ -190,29 +190,30 @@ public class Magic {
     /**
      * Checks if a file type represented by its magic number is compressed.
      *
-     * @param magic the magic number of the file type
+     * @param magic
+     *            the magic number of the file type
      * @return {@code true} if the file type is compressed, {@code false} otherwise
      */
     public static boolean isCompressed(int magic) {
         switch (magic) {
-            case JPG_MAGIC:
-            case GIF_MAGIC:
-            case PNG_MAGIC:
-            // case RIFF_MAGIC: may or may not be
-            case LZMA_MAGIC:
-            case ZSTD_MAGIC:
-            case BROTLI_MAGIC:
-            case CAB_MAGIC:
-            case ZIP_MAGIC:
-            case GZIP_MAGIC:
-            case BZIP2_MAGIC:
-            case FLAC_MAGIC:
-            case MP3_ID3_MAGIC:
-            case XZ_MAGIC:
-            case KNZ_MAGIC:
-            case RAR_MAGIC:
+            case JPG_MAGIC :
+            case GIF_MAGIC :
+            case PNG_MAGIC :
+                // case RIFF_MAGIC: may or may not be
+            case LZMA_MAGIC :
+            case ZSTD_MAGIC :
+            case BROTLI_MAGIC :
+            case CAB_MAGIC :
+            case ZIP_MAGIC :
+            case GZIP_MAGIC :
+            case BZIP2_MAGIC :
+            case FLAC_MAGIC :
+            case MP3_ID3_MAGIC :
+            case XZ_MAGIC :
+            case KNZ_MAGIC :
+            case RAR_MAGIC :
                 return true;
-            default:
+            default :
                 return false;
         }
     }
@@ -220,23 +221,24 @@ public class Magic {
     /**
      * Checks if a file type represented by its magic number is multimedia.
      *
-     * @param magic the magic number of the file type
+     * @param magic
+     *            the magic number of the file type
      * @return {@code true} if the file type is multimedia, {@code false} otherwise
      */
     public static boolean isMultimedia(int magic) {
         switch (magic) {
-            case JPG_MAGIC:
-            case GIF_MAGIC:
-            case PNG_MAGIC:
-            case RIFF_MAGIC:
-            case FLAC_MAGIC:
-            case MP3_ID3_MAGIC:
-            case BMP_MAGIC:
-            case PBM_MAGIC:
-            case PGM_MAGIC:
-            case PPM_MAGIC:
+            case JPG_MAGIC :
+            case GIF_MAGIC :
+            case PNG_MAGIC :
+            case RIFF_MAGIC :
+            case FLAC_MAGIC :
+            case MP3_ID3_MAGIC :
+            case BMP_MAGIC :
+            case PBM_MAGIC :
+            case PGM_MAGIC :
+            case PPM_MAGIC :
                 return true;
-            default:
+            default :
                 return false;
         }
     }
@@ -244,19 +246,20 @@ public class Magic {
     /**
      * Checks if a file type represented by its magic number is executable.
      *
-     * @param magic the magic number of the file type
+     * @param magic
+     *            the magic number of the file type
      * @return {@code true} if the file type is executable, {@code false} otherwise
      */
     public static boolean isExecutable(int magic) {
         switch (magic) {
-            case ELF_MAGIC:
-            case WIN_MAGIC:
-            case MAC_MAGIC32:
-            case MAC_CIGAM32:
-            case MAC_MAGIC64:
-            case MAC_CIGAM64:
+            case ELF_MAGIC :
+            case WIN_MAGIC :
+            case MAC_MAGIC32 :
+            case MAC_CIGAM32 :
+            case MAC_MAGIC64 :
+            case MAC_CIGAM64 :
                 return true;
-            default:
+            default :
                 return false;
         }
     }

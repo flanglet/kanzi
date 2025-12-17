@@ -26,15 +26,15 @@ import io.github.flanglet.kanzi.Magic;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 /**
- * Fixed Step Delta codec.
- * Decorrelates values separated by a constant distance (step) and encodes residuals.
+ * Fixed Step Delta codec. Decorrelates values separated by a constant distance
+ * (step) and encodes residuals.
  */
 public class FSDCodec implements ByteTransform {
     private static final int MIN_LENGTH = 1024;
     private static final byte ESCAPE_TOKEN = (byte) 255;
     private static final byte DELTA_CODING = (byte) 0;
     private static final byte XOR_CODING = (byte) 1;
-    private static final int[] DISTANCES = { 0, 1, 2, 3, 4, 8, 16 };
+    private static final int[] DISTANCES = {0, 1, 2, 3, 4, 8, 16};
 
     private Map<String, Object> ctx;
 
@@ -47,7 +47,8 @@ public class FSDCodec implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx the context map
+     * @param ctx
+     *            the context map
      */
     public FSDCodec(Map<String, Object> ctx) {
         this.ctx = ctx;
@@ -56,8 +57,10 @@ public class FSDCodec implements ByteTransform {
     /**
      * Performs the forward transform, encoding the input data.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -78,11 +81,9 @@ public class FSDCodec implements ByteTransform {
             return false;
 
         if (this.ctx != null) {
-            Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
-                    Global.DataType.UNDEFINED);
+            Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
 
-            if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.MULTIMEDIA) &&
-                    (dt != Global.DataType.BIN))
+            if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.MULTIMEDIA) && (dt != Global.DataType.BIN))
                 return false;
         }
 
@@ -90,14 +91,14 @@ public class FSDCodec implements ByteTransform {
 
         // Skip detection except for a few candidate types
         switch (magic) {
-            case Magic.BMP_MAGIC:
-            case Magic.RIFF_MAGIC:
-            case Magic.PBM_MAGIC:
-            case Magic.PGM_MAGIC:
-            case Magic.PPM_MAGIC:
-            case Magic.NO_MAGIC:
+            case Magic.BMP_MAGIC :
+            case Magic.RIFF_MAGIC :
+            case Magic.PBM_MAGIC :
+            case Magic.PGM_MAGIC :
+            case Magic.PPM_MAGIC :
+            case Magic.NO_MAGIC :
                 break;
-            default:
+            default :
                 return false;
         }
 
@@ -235,8 +236,10 @@ public class FSDCodec implements ByteTransform {
     /**
      * Performs the inverse transform, decoding the input data.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -305,9 +308,11 @@ public class FSDCodec implements ByteTransform {
     }
 
     /**
-     * Returns the maximum encoded length, which includes some extra buffer for incompressible data.
+     * Returns the maximum encoded length, which includes some extra buffer for
+     * incompressible data.
      *
-     * @param srcLength the source length
+     * @param srcLength
+     *            the source length
      * @return the maximum encoded length
      */
     @Override
