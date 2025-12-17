@@ -15,11 +15,10 @@ limitations under the License.
 
 package io.github.flanglet.kanzi.io;
 
-
 /**
- * Custom exception class that extends {@link java.io.IOException}.
- * This exception includes an error code to provide more specific information
- * about the nature of the I/O error that occurred.
+ * Custom exception class that extends {@link java.io.IOException}. This
+ * exception includes an error code to provide more specific information about
+ * the nature of the I/O error that occurred.
  */
 public class KanziIOException extends java.io.IOException {
     private static final long serialVersionUID = -9153775235137373283L;
@@ -30,8 +29,11 @@ public class KanziIOException extends java.io.IOException {
      * Constructs a new {@code KanziIOException} with the specified detail message
      * and error code.
      *
-     * @param msg the detail message explaining the reason for the exception
-     * @param code an integer error code that provides additional context about the error
+     * @param msg
+     *            the detail message explaining the reason for the exception
+     * @param code
+     *            an integer error code that provides additional context about the
+     *            error
      */
     public KanziIOException(String msg, int code) {
         super(msg);

@@ -312,7 +312,7 @@ spotless {
     }
     java {
         leadingTabsToSpaces(4)
-        eclipse().configFile('config/formatter/eclipse-java-google-style.xml')
+        eclipse().configFile('config/formatter/eclipse_java_formatter_k_r_style.xml')
     }
 }
 

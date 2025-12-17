@@ -23,11 +23,11 @@ import io.github.flanglet.kanzi.Memory.BigEndian;
 import io.github.flanglet.kanzi.Memory.LittleEndian;
 import io.github.flanglet.kanzi.SliceByteArray;
 
-
 /**
- * EXECodec is a codec for processing executable files. It identifies and processes
- * x86 and ARM64 instructions to transform relative addresses into absolute addresses
- * and vice versa. This helps in compressing the executable files more efficiently.
+ * EXECodec is a codec for processing executable files. It identifies and
+ * processes x86 and ARM64 instructions to transform relative addresses into
+ * absolute addresses and vice versa. This helps in compressing the executable
+ * files more efficiently.
  */
 public class EXECodec implements ByteTransform {
     private static final byte X86_MASK_JUMP = (byte) 0xFE;
@@ -45,13 +45,13 @@ public class EXECodec implements ByteTransform {
     private static final int ARM_B_ADDR_MASK = (1 << 26) - 1;
     private static final int ARM_B_OPCODE_MASK = 0xFFFFFFFF ^ ARM_B_ADDR_MASK;
     private static final int ARM_B_ADDR_SGN_MASK = 1 << 25;
-    private static final int ARM_OPCODE_B = 0x14000000;  // 6 bit opcode
+    private static final int ARM_OPCODE_B = 0x14000000; // 6 bit opcode
     private static final int ARM_OPCODE_BL = 0x94000000; // 6 bit opcode
     private static final int ARM_CB_REG_BITS = 5; // lowest bits for register
     private static final int ARM_CB_ADDR_MASK = 0x00FFFFE0;
     private static final int ARM_CB_ADDR_SGN_MASK = 1 << 18;
     private static final int ARM_CB_OPCODE_MASK = 0x7F000000;
-    private static final int ARM_OPCODE_CBZ = 0x34000000;  // 8 bit opcode
+    private static final int ARM_OPCODE_CBZ = 0x34000000; // 8 bit opcode
     private static final int ARM_OPCODE_CBNZ = 0x3500000; // 8 bit opcode
     private static final int WIN_PE = 0x00004550;
     private static final int WIN_X86_ARCH = 0x014C;
@@ -84,7 +84,8 @@ public class EXECodec implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx the context map
+     * @param ctx
+     *            the context map
      */
     public EXECodec(Map<String, Object> ctx) {
         this.ctx = ctx;
@@ -99,8 +100,10 @@ public class EXECodec implements ByteTransform {
     /**
      * Performs the forward transform, encoding the input data.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -120,8 +123,7 @@ public class EXECodec implements ByteTransform {
             return false;
 
         if (this.ctx != null) {
-            Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType",
-                    Global.DataType.UNDEFINED);
+            Global.DataType dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
 
             if ((dt != Global.DataType.UNDEFINED) && (dt != Global.DataType.EXE) && (dt != Global.DataType.BIN))
                 return false;
@@ -245,7 +247,8 @@ public class EXECodec implements ByteTransform {
             final int opcode1 = instr & ARM_B_OPCODE_MASK;
             // final int opcode2 = instr & ARM_CB_OPCODE_MASK;
             boolean isBL = (opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL); // unconditional jump
-            boolean isCB = false; // disable for now ... isCB = (opcode2 == ARM_OPCODE_CBZ) || (opcode2 == ARM_OPCODE_CBNZ); // conditional jump
+            boolean isCB = false; // disable for now ... isCB = (opcode2 == ARM_OPCODE_CBZ) || (opcode2 ==
+                                  // ARM_OPCODE_CBNZ); // conditional jump
 
             if (!isBL && !isCB) {
                 // Not a relative jump
@@ -327,8 +330,10 @@ public class EXECodec implements ByteTransform {
     /**
      * Performs the inverse transform, decoding the input data.
      *
-     * @param input  the input byte array
-     * @param output the output byte array
+     * @param input
+     *            the input byte array
+     * @param output
+     *            the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -433,7 +438,7 @@ public class EXECodec implements ByteTransform {
             if ((src[srcIdx - 1] & X86_MASK_JUMP) != X86_INSTRUCTION_JUMP)
                 continue;
 
-            if ( (src[srcIdx] & 0xFF) == 0xF5 ) {
+            if ((src[srcIdx] & 0xFF) == 0xF5) {
                 // Not an encoded address. Skip escape symbol
                 srcIdx++;
                 continue;
@@ -445,10 +450,8 @@ public class EXECodec implements ByteTransform {
             if ((sgn != 0) && (sgn != -1))
                 continue;
 
-            int addr = (0xFF & (MASK_ADDRESS ^ src[srcIdx + 3])) |
-                    ((0xFF & (MASK_ADDRESS ^ src[srcIdx + 2])) << 8) |
-                    ((0xFF & (MASK_ADDRESS ^ src[srcIdx + 1])) << 16) |
-                    ((0xFF & sgn) << 24);
+            int addr = (0xFF & (MASK_ADDRESS ^ src[srcIdx + 3])) | ((0xFF & (MASK_ADDRESS ^ src[srcIdx + 2])) << 8)
+                    | ((0xFF & (MASK_ADDRESS ^ src[srcIdx + 1])) << 16) | ((0xFF & sgn) << 24);
 
             addr -= dstIdx;
             dst[dstIdx] = (byte) addr;
@@ -467,362 +470,376 @@ public class EXECodec implements ByteTransform {
         return true;
     }
 
-private boolean inverseARM(SliceByteArray input, SliceByteArray output) {
-    final byte[] src = input.array;
-    final byte[] dst = output.array;
-    int srcIdx = input.index + 9;
-    int dstIdx = output.index;
-    this.codeStart = input.index + LittleEndian.readInt32(src, input.index + 1);
-    this.codeEnd = input.index + LittleEndian.readInt32(src, input.index + 5);
+    private boolean inverseARM(SliceByteArray input, SliceByteArray output) {
+        final byte[] src = input.array;
+        final byte[] dst = output.array;
+        int srcIdx = input.index + 9;
+        int dstIdx = output.index;
+        this.codeStart = input.index + LittleEndian.readInt32(src, input.index + 1);
+        this.codeEnd = input.index + LittleEndian.readInt32(src, input.index + 5);
 
-    if (this.codeStart > input.index) {
-        System.arraycopy(src, input.index + 9, dst, dstIdx, this.codeStart - input.index);
-        dstIdx += (this.codeStart - input.index);
-        srcIdx += (this.codeStart - input.index);
-    }
+        if (this.codeStart > input.index) {
+            System.arraycopy(src, input.index + 9, dst, dstIdx, this.codeStart - input.index);
+            dstIdx += (this.codeStart - input.index);
+            srcIdx += (this.codeStart - input.index);
+        }
 
-    while (srcIdx < this.codeEnd) {
-        final int instr = LittleEndian.readInt32(src, srcIdx);
-        final int opcode1 = instr & ARM_B_OPCODE_MASK;
-        // final int opcode2 = instr & ARM_CB_OPCODE_MASK;
-        boolean isBL = (opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL); // unconditional jump
-        boolean isCB = false; // disable for now ... isCB = (opcode2 == ARM_OPCODE_CBZ) || (opcode2 == ARM_OPCODE_CBNZ); // conditional jump
+        while (srcIdx < this.codeEnd) {
+            final int instr = LittleEndian.readInt32(src, srcIdx);
+            final int opcode1 = instr & ARM_B_OPCODE_MASK;
+            // final int opcode2 = instr & ARM_CB_OPCODE_MASK;
+            boolean isBL = (opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL); // unconditional jump
+            boolean isCB = false; // disable for now ... isCB = (opcode2 == ARM_OPCODE_CBZ) || (opcode2 ==
+                                  // ARM_OPCODE_CBNZ); // conditional jump
 
-        if (!isBL && !isCB) {
-            // Not a relative jump
-            dst[dstIdx] = src[srcIdx];
-            dst[dstIdx + 1] = src[srcIdx + 1];
-            dst[dstIdx + 2] = src[srcIdx + 2];
-            dst[dstIdx + 3] = src[srcIdx + 3];
+            if (!isBL && !isCB) {
+                // Not a relative jump
+                dst[dstIdx] = src[srcIdx];
+                dst[dstIdx + 1] = src[srcIdx + 1];
+                dst[dstIdx + 2] = src[srcIdx + 2];
+                dst[dstIdx + 3] = src[srcIdx + 3];
+                srcIdx += 4;
+                dstIdx += 4;
+                continue;
+            }
+
+            // Decode absolute address
+            int val, addr;
+
+            if (isBL) {
+                addr = (instr & ARM_B_ADDR_MASK) << 2;
+                final int offset = (addr - dstIdx) >> 2;
+                val = opcode1 | (offset & ARM_B_ADDR_MASK);
+            } else {
+                addr = ((instr & ARM_CB_ADDR_MASK) >> ARM_CB_REG_BITS) << 2;
+                final int offset = (addr - dstIdx) >> 2;
+                val = (instr & ~ARM_CB_ADDR_MASK) | (offset << ARM_CB_REG_BITS);
+            }
+
+            if (addr == 0) {
+                dst[dstIdx] = src[srcIdx + 4];
+                dst[dstIdx + 1] = src[srcIdx + 5];
+                dst[dstIdx + 2] = src[srcIdx + 6];
+                dst[dstIdx + 3] = src[srcIdx + 7];
+                srcIdx += 8;
+                dstIdx += 4;
+                continue;
+            }
+
+            LittleEndian.writeInt32(dst, dstIdx, val);
             srcIdx += 4;
             dstIdx += 4;
-            continue;
         }
 
-        // Decode absolute address
-        int val, addr;
-
-        if (isBL) {
-            addr = (instr & ARM_B_ADDR_MASK) << 2;
-            final int offset = (addr - dstIdx) >> 2;
-            val = opcode1 | (offset & ARM_B_ADDR_MASK);
-        } else {
-            addr = ((instr & ARM_CB_ADDR_MASK) >> ARM_CB_REG_BITS) << 2;
-            final int offset = (addr - dstIdx) >> 2;
-            val = (instr & ~ARM_CB_ADDR_MASK) | (offset << ARM_CB_REG_BITS);
-        }
-
-        if (addr == 0) {
-            dst[dstIdx] = src[srcIdx + 4];
-            dst[dstIdx + 1] = src[srcIdx + 5];
-            dst[dstIdx + 2] = src[srcIdx + 6];
-            dst[dstIdx + 3] = src[srcIdx + 7];
-            srcIdx += 8;
-            dstIdx += 4;
-            continue;
-        }
-
-        LittleEndian.writeInt32(dst, dstIdx, val);
-        srcIdx += 4;
-        dstIdx += 4;
+        final int end = input.length + input.index;
+        System.arraycopy(src, srcIdx, dst, dstIdx, end - srcIdx);
+        dstIdx += (end - srcIdx);
+        input.index = end;
+        output.index = dstIdx;
+        return true;
     }
 
-    final int end = input.length + input.index;
-    System.arraycopy(src, srcIdx, dst, dstIdx, end - srcIdx);
-    dstIdx += (end - srcIdx);
-    input.index = end;
-    output.index = dstIdx;
-    return true;
-}
-
-/**
- * Returns the maximum encoded length, which includes some extra buffer for incompressible data.
- *
- * @param srcLen the source length
- * @return the maximum encoded length
- */
-@Override
-public int getMaxEncodedLength(int srcLen) {
-    // Allocate some extra buffer for incompressible data.
-    return (srcLen <= 256) ? srcLen + 32 : srcLen + srcLen / 8;
-}
-
-/**
- * Detects the type of executable (x86 or ARM64) based on the provided byte array.
- *
- * @param src   the source byte array
- * @param start the start index in the byte array
- * @param count the number of bytes to check
- * @return a byte indicating the type of executable
- */
-private byte detectType(byte[] src, int start, int count) {
-    // Let us check the first bytes ... but this may not be the first block
-    // Best effort
-    final int magic = Magic.getType(src, start);
-    this.arch = 0;
-
-    if (this.parseHeader(src, start, count, magic)) {
-        if ((this.arch == ELF_X86_ARCH) || (this.arch == ELF_AMD64_ARCH))
-            return X86;
-
-        if ((this.arch == WIN_X86_ARCH) || (this.arch == WIN_AMD64_ARCH))
-            return X86;
-
-        if (this.arch == MAC_AMD64_ARCH)
-            return X86;
-
-        if ((this.arch == ELF_ARM64_ARCH) || (this.arch == WIN_ARM64_ARCH))
-            return ARM64;
-
-        if (this.arch == MAC_ARM64_ARCH)
-            return ARM64;
+    /**
+     * Returns the maximum encoded length, which includes some extra buffer for
+     * incompressible data.
+     *
+     * @param srcLen
+     *            the source length
+     * @return the maximum encoded length
+     */
+    @Override
+    public int getMaxEncodedLength(int srcLen) {
+        // Allocate some extra buffer for incompressible data.
+        return (srcLen <= 256) ? srcLen + 32 : srcLen + srcLen / 8;
     }
 
-    int jumpsX86 = 0;
-    int jumpsARM64 = 0;
-    int[] histo = new int[256];
-    final int end = start + count - 4;
+    /**
+     * Detects the type of executable (x86 or ARM64) based on the provided byte
+     * array.
+     *
+     * @param src
+     *            the source byte array
+     * @param start
+     *            the start index in the byte array
+     * @param count
+     *            the number of bytes to check
+     * @return a byte indicating the type of executable
+     */
+    private byte detectType(byte[] src, int start, int count) {
+        // Let us check the first bytes ... but this may not be the first block
+        // Best effort
+        final int magic = Magic.getType(src, start);
+        this.arch = 0;
 
-    for (int i = start; i < end; i++) {
-        histo[src[i] & 0xFF]++;
+        if (this.parseHeader(src, start, count, magic)) {
+            if ((this.arch == ELF_X86_ARCH) || (this.arch == ELF_AMD64_ARCH))
+                return X86;
 
-        // X86
-        if ((src[i] & X86_MASK_JUMP) == X86_INSTRUCTION_JUMP) {
-            /* `src[i + 4] == 0xFF` is equal to `(byte)(-1) == 255` which is always false!`
-            * `& 0xFF` promotes the byte to an unsigned value in 0..255
-            * */
-            int b = src[i + 4] & 0xFF;
+            if ((this.arch == WIN_X86_ARCH) || (this.arch == WIN_AMD64_ARCH))
+                return X86;
 
-            if (b == 0 || b == 0xFF) {
-                // Count relative jumps (CALL = E8/ JUMP = E9 .. .. .. 00/FF)
-                jumpsX86++;
-            }
-        } else if ((src[i] == X86_TWO_BYTE_PREFIX) && ((src[i + 1] & X86_MASK_JCC) == X86_INSTRUCTION_JCC)) {
-            i++;
+            if (this.arch == MAC_AMD64_ARCH)
+                return X86;
 
-            if ((src[i] == 0x38) || (src[i] == 0x3A))
+            if ((this.arch == ELF_ARM64_ARCH) || (this.arch == WIN_ARM64_ARCH))
+                return ARM64;
+
+            if (this.arch == MAC_ARM64_ARCH)
+                return ARM64;
+        }
+
+        int jumpsX86 = 0;
+        int jumpsARM64 = 0;
+        int[] histo = new int[256];
+        final int end = start + count - 4;
+
+        for (int i = start; i < end; i++) {
+            histo[src[i] & 0xFF]++;
+
+            // X86
+            if ((src[i] & X86_MASK_JUMP) == X86_INSTRUCTION_JUMP) {
+                /*
+                 * `src[i + 4] == 0xFF` is equal to `(byte)(-1) == 255` which is always false!`
+                 * `& 0xFF` promotes the byte to an unsigned value in 0..255
+                 */
+                int b = src[i + 4] & 0xFF;
+
+                if (b == 0 || b == 0xFF) {
+                    // Count relative jumps (CALL = E8/ JUMP = E9 .. .. .. 00/FF)
+                    jumpsX86++;
+                }
+            } else if ((src[i] == X86_TWO_BYTE_PREFIX) && ((src[i + 1] & X86_MASK_JCC) == X86_INSTRUCTION_JCC)) {
                 i++;
 
-            // Count relative conditional jumps (0x0F 0x8?)
-            // Only count those with 16/32 offsets
-            jumpsX86++;
+                if ((src[i] == 0x38) || (src[i] == 0x3A))
+                    i++;
+
+                // Count relative conditional jumps (0x0F 0x8?)
+                // Only count those with 16/32 offsets
+                jumpsX86++;
+            }
+
+            // ARM
+            if ((i & 3) != 0)
+                continue;
+
+            final int instr = LittleEndian.readInt32(src, i);
+            final int opcode1 = instr & ARM_B_OPCODE_MASK;
+            final int opcode2 = instr & ARM_CB_OPCODE_MASK;
+
+            if ((opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL) || (opcode2 == ARM_OPCODE_CBZ)
+                    || (opcode2 == ARM_OPCODE_CBNZ))
+                jumpsARM64++;
         }
 
-        // ARM
-        if ((i & 3) != 0)
-            continue;
+        Global.DataType dt = Global.detectSimpleType(count, histo);
 
-        final int instr = LittleEndian.readInt32(src, i);
-        final int opcode1 = instr & ARM_B_OPCODE_MASK;
-        final int opcode2 = instr & ARM_CB_OPCODE_MASK;
+        if (dt != Global.DataType.BIN)
+            return (byte) (NOT_EXE | dt.ordinal());
 
-        if ((opcode1 == ARM_OPCODE_B) || (opcode1 == ARM_OPCODE_BL) ||
-            (opcode2 == ARM_OPCODE_CBZ) || (opcode2 == ARM_OPCODE_CBNZ))
-            jumpsARM64++;
+        // Filter out (some/many) multimedia files
+        int smallVals = 0;
+
+        for (int i = 0; i < 16; i++)
+            smallVals += histo[i];
+
+        if ((histo[0] < (count / 10)) || (smallVals > (count / 2)) || (histo[255] < (count / 100)))
+            return (byte) (NOT_EXE | dt.ordinal());
+
+        // Ad-hoc thresholds
+        if ((jumpsX86 >= (count / 200)) && (histo[255] >= (count / 50)))
+            return X86;
+
+        if (jumpsARM64 >= (count / 200))
+            return ARM64;
+
+        // Number of jump instructions too small => either not an exe or not worth the
+        // change, skip.
+        return (byte) (NOT_EXE | dt.ordinal());
     }
 
-    Global.DataType dt = Global.detectSimpleType(count, histo);
+    /**
+     * Parses the header of the provided byte array to detect known headers.
+     *
+     * @param src
+     *            the source byte array
+     * @param start
+     *            the start index in the byte array
+     * @param count
+     *            the number of bytes to check
+     * @param magic
+     *            the detected magic number of the file
+     * @return true if a known header is detected, false otherwise
+     */
+    private boolean parseHeader(byte[] src, int start, int count, int magic) {
+        if (magic == Magic.WIN_MAGIC) {
+            if (count >= 64) {
+                this.arch = LittleEndian.readInt32(src, start + 18);
+                final int posPE = LittleEndian.readInt32(src, start + 60);
 
-    if (dt != Global.DataType.BIN)
-        return (byte) (NOT_EXE | dt.ordinal());
+                if ((posPE > 0) && (posPE <= count - 48) && (LittleEndian.readInt32(src, start + posPE) == WIN_PE)) {
+                    this.codeStart = Math.min(start + LittleEndian.readInt32(src, start + posPE + 44), start + count);
+                    this.codeEnd = Math.min(this.codeStart + start + LittleEndian.readInt32(src, start + posPE + 28),
+                            start + count);
+                    this.arch = LittleEndian.readInt16(src, start + posPE + 4);
+                }
 
-    // Filter out (some/many) multimedia files
-    int smallVals = 0;
-
-    for (int i = 0; i < 16; i++)
-        smallVals += histo[i];
-
-    if ((histo[0] < (count / 10)) || (smallVals > (count / 2)) || (histo[255] < (count / 100)))
-        return (byte) (NOT_EXE | dt.ordinal());
-
-    // Ad-hoc thresholds
-    if ((jumpsX86 >= (count / 200)) && (histo[255] >= (count / 50)))
-        return X86;
-
-    if (jumpsARM64 >= (count / 200))
-        return ARM64;
-
-    // Number of jump instructions too small => either not an exe or not worth the change, skip.
-    return (byte) (NOT_EXE | dt.ordinal());
-}
-
-/**
- * Parses the header of the provided byte array to detect known headers.
- *
- * @param src   the source byte array
- * @param start the start index in the byte array
- * @param count the number of bytes to check
- * @param magic the detected magic number of the file
- * @return true if a known header is detected, false otherwise
- */
-private boolean parseHeader(byte[] src, int start, int count, int magic) {
-    if (magic == Magic.WIN_MAGIC) {
-        if (count >= 64) {
-            this.arch = LittleEndian.readInt32(src, start + 18);
-            final int posPE = LittleEndian.readInt32(src, start + 60);
-
-            if ((posPE > 0) && (posPE <= count - 48) && (LittleEndian.readInt32(src, start + posPE) == WIN_PE)) {
-                this.codeStart = Math.min(start + LittleEndian.readInt32(src, start + posPE + 44), start + count);
-                this.codeEnd = Math.min(this.codeStart + start + LittleEndian.readInt32(src, start + posPE + 28), start + count);
-                this.arch = LittleEndian.readInt16(src, start + posPE + 4);
+                return true;
             }
+        } else if (magic == Magic.ELF_MAGIC) {
+            boolean isLittleEndian = src[5] == 1;
 
-            return true;
-        }
-    } else if (magic == Magic.ELF_MAGIC) {
-        boolean isLittleEndian = src[5] == 1;
+            if (count >= 64) {
+                this.codeStart = 0;
 
-        if (count >= 64) {
-            this.codeStart = 0;
+                if (isLittleEndian) {
+                    if (src[start + 4] == 2) {
+                        // 64 bits
+                        int nbEntries = LittleEndian.readInt16(src, start + 0x3C);
+                        int szEntry = LittleEndian.readInt16(src, start + 0x3A);
+                        int posSection = (int) LittleEndian.readLong64(src, start + 0x28);
 
-            if (isLittleEndian) {
-                if (src[start + 4] == 2) {
-                    // 64 bits
-                    int nbEntries = LittleEndian.readInt16(src, start + 0x3C);
-                    int szEntry = LittleEndian.readInt16(src, start + 0x3A);
-                    int posSection = (int) LittleEndian.readLong64(src, start + 0x28);
+                        for (int i = 0; i < nbEntries; i++) {
+                            int startEntry = start + posSection + i * szEntry;
+                            int typeSection = LittleEndian.readInt32(src, startEntry + 4);
+                            int offSection = (int) LittleEndian.readLong64(src, startEntry + 0x18);
+                            int lenSection = (int) LittleEndian.readLong64(src, startEntry + 0x20);
 
-                    for (int i = 0; i < nbEntries; i++) {
-                        int startEntry = start + posSection + i * szEntry;
-                        int typeSection = LittleEndian.readInt32(src, startEntry + 4);
-                        int offSection = (int) LittleEndian.readLong64(src, startEntry + 0x18);
-                        int lenSection = (int) LittleEndian.readLong64(src, startEntry + 0x20);
+                            if ((typeSection == 1) && (lenSection >= 64)) {
+                                if (codeStart == 0)
+                                    codeStart = start + offSection;
 
-                        if ((typeSection == 1) && (lenSection >= 64)) {
-                            if (codeStart == 0)
-                                codeStart = start + offSection;
+                                codeEnd = start + offSection + lenSection;
+                            }
+                        }
+                    } else {
+                        // 32 bits
+                        int nbEntries = LittleEndian.readInt16(src, start + 0x30);
+                        int szEntry = LittleEndian.readInt16(src, start + 0x2E);
+                        int posSection = LittleEndian.readInt32(src, start + 0x20);
 
-                            codeEnd = start + offSection + lenSection;
+                        for (int i = 0; i < nbEntries; i++) {
+                            int startEntry = start + posSection + i * szEntry;
+                            int typeSection = LittleEndian.readInt32(src, startEntry + 4);
+                            int offSection = LittleEndian.readInt32(src, startEntry + 0x10);
+                            int lenSection = LittleEndian.readInt32(src, startEntry + 0x14);
+
+                            if ((typeSection == 1) && (lenSection >= 64)) {
+                                if (codeStart == 0)
+                                    codeStart = start + offSection;
+
+                                codeEnd = start + offSection + lenSection;
+                            }
                         }
                     }
                 } else {
-                    // 32 bits
-                    int nbEntries = LittleEndian.readInt16(src, start + 0x30);
-                    int szEntry = LittleEndian.readInt16(src, start + 0x2E);
-                    int posSection = LittleEndian.readInt32(src, start + 0x20);
+                    if (src[start + 4] == 2) {
+                        // 64 bits
+                        int nbEntries = BigEndian.readInt16(src, start + 0x3C);
+                        int szEntry = BigEndian.readInt16(src, start + 0x3A);
+                        int posSection = (int) BigEndian.readLong64(src, start + 0x28);
 
-                    for (int i = 0; i < nbEntries; i++) {
-                        int startEntry = start + posSection + i * szEntry;
-                        int typeSection = LittleEndian.readInt32(src, startEntry + 4);
-                        int offSection = LittleEndian.readInt32(src, startEntry + 0x10);
-                        int lenSection = LittleEndian.readInt32(src, startEntry + 0x14);
+                        for (int i = 0; i < nbEntries; i++) {
+                            int startEntry = start + posSection + i * szEntry;
+                            int typeSection = BigEndian.readInt32(src, startEntry + 4);
+                            int offSection = (int) BigEndian.readLong64(src, startEntry + 0x18);
+                            int lenSection = (int) BigEndian.readLong64(src, startEntry + 0x20);
 
-                        if ((typeSection == 1) && (lenSection >= 64)) {
-                            if (codeStart == 0)
-                                codeStart = start + offSection;
+                            if ((typeSection == 1) && (lenSection >= 64)) {
+                                if (codeStart == 0)
+                                    codeStart = start + offSection;
 
-                            codeEnd = start + offSection + lenSection;
+                                codeEnd = start + offSection + lenSection;
+                            }
                         }
-                    }
-                }
-            } else {
-                if (src[start + 4] == 2) {
-                    // 64 bits
-                    int nbEntries = BigEndian.readInt16(src, start + 0x3C);
-                    int szEntry = BigEndian.readInt16(src, start + 0x3A);
-                    int posSection = (int) BigEndian.readLong64(src, start + 0x28);
+                    } else {
+                        // 32 bits
+                        int nbEntries = BigEndian.readInt16(src, start + 0x30);
+                        int szEntry = BigEndian.readInt16(src, start + 0x2E);
+                        int posSection = BigEndian.readInt32(src, start + 0x20);
 
-                    for (int i = 0; i < nbEntries; i++) {
-                        int startEntry = start + posSection + i * szEntry;
-                        int typeSection = BigEndian.readInt32(src, startEntry + 4);
-                        int offSection = (int) BigEndian.readLong64(src, startEntry + 0x18);
-                        int lenSection = (int) BigEndian.readLong64(src, startEntry + 0x20);
+                        for (int i = 0; i < nbEntries; i++) {
+                            int startEntry = start + posSection + i * szEntry;
+                            int typeSection = BigEndian.readInt32(src, startEntry + 4);
+                            int offSection = BigEndian.readInt32(src, startEntry + 0x10);
+                            int lenSection = BigEndian.readInt32(src, startEntry + 0x14);
 
-                        if ((typeSection == 1) && (lenSection >= 64)) {
-                            if (codeStart == 0)
-                                codeStart = start + offSection;
+                            if ((typeSection == 1) && (lenSection >= 64)) {
+                                if (codeStart == 0)
+                                    codeStart = start + offSection;
 
-                            codeEnd = start + offSection + lenSection;
-                        }
-                    }
-                } else {
-                    // 32 bits
-                    int nbEntries = BigEndian.readInt16(src, start + 0x30);
-                    int szEntry = BigEndian.readInt16(src, start + 0x2E);
-                    int posSection = BigEndian.readInt32(src, start + 0x20);
-
-                    for (int i = 0; i < nbEntries; i++) {
-                        int startEntry = start + posSection + i * szEntry;
-                        int typeSection = BigEndian.readInt32(src, startEntry + 4);
-                        int offSection = BigEndian.readInt32(src, startEntry + 0x10);
-                        int lenSection = BigEndian.readInt32(src, startEntry + 0x14);
-
-                        if ((typeSection == 1) && (lenSection >= 64)) {
-                            if (codeStart == 0)
-                                codeStart = start + offSection;
-
-                            codeEnd = start + offSection + lenSection;
-                        }
-                    }
-                }
-            }
-
-            this.arch = LittleEndian.readInt16(src, start + 18);
-            this.codeStart = Math.min(this.codeStart, count);
-            this.codeEnd = Math.min(this.codeEnd, count);
-            return true;
-        }
-    } else if ((magic == Magic.MAC_MAGIC32) || (magic == Magic.MAC_CIGAM32) ||
-               (magic == Magic.MAC_MAGIC64) || (magic == Magic.MAC_CIGAM64)) {
-        boolean is64Bits = (magic == Magic.MAC_MAGIC64) || (magic == Magic.MAC_CIGAM64);
-        this.codeStart = 0;
-
-        if (count >= 64) {
-            int mode = LittleEndian.readInt32(src, 12);
-
-            if (mode != MAC_MH_EXECUTE)
-                return false;
-
-            this.arch = LittleEndian.readInt32(src, 4);
-            int nbCmds = LittleEndian.readInt32(src, 0x10);
-            int pos = (is64Bits) ? 0x20 : 0x1C;
-            int cmd = 0;
-
-            while (cmd < nbCmds) {
-                int ldCmd = LittleEndian.readInt32(src, pos);
-                int szCmd = LittleEndian.readInt32(src, pos + 4);
-                int szSegHdr = (is64Bits) ? 0x48 : 0x38;
-
-                if ((ldCmd == MAC_LC_SEGMENT) || (ldCmd == MAC_LC_SEGMENT64)) {
-                    if (pos + 14 >= count)
-                        return false;
-
-                    long nameSegment = BigEndian.readLong64(src, pos + 8) >>> 16;
-
-                    if (nameSegment == 0x5F5F54455854L) {
-                        int posSection = pos + szSegHdr;
-
-                        if (posSection + 0x34 >= count)
-                            return false;
-
-                        long nameSection = BigEndian.readLong64(src, posSection) >>> 16;
-
-                        if (nameSection == 0x5F5F74657874L) {
-                            // Text section in TEXT segment
-                            if (is64Bits) {
-                                this.codeStart = (int) LittleEndian.readLong64(src, posSection + 0x30);
-                                this.codeEnd = this.codeStart + LittleEndian.readInt32(src, posSection + 0x28);
-                                break;
-                            } else {
-                                this.codeStart = LittleEndian.readInt32(src, posSection + 0x2C);
-                                this.codeEnd = this.codeStart + LittleEndian.readInt32(src, posSection + 0x28);
-                                break;
+                                codeEnd = start + offSection + lenSection;
                             }
                         }
                     }
                 }
 
-                cmd++;
-                pos += szCmd;
+                this.arch = LittleEndian.readInt16(src, start + 18);
+                this.codeStart = Math.min(this.codeStart, count);
+                this.codeEnd = Math.min(this.codeEnd, count);
+                return true;
             }
+        } else if ((magic == Magic.MAC_MAGIC32) || (magic == Magic.MAC_CIGAM32) || (magic == Magic.MAC_MAGIC64)
+                || (magic == Magic.MAC_CIGAM64)) {
+            boolean is64Bits = (magic == Magic.MAC_MAGIC64) || (magic == Magic.MAC_CIGAM64);
+            this.codeStart = 0;
 
-            this.codeStart = Math.min(this.codeStart, count);
-            this.codeEnd = Math.min(this.codeEnd, count);
-            return true;
+            if (count >= 64) {
+                int mode = LittleEndian.readInt32(src, 12);
+
+                if (mode != MAC_MH_EXECUTE)
+                    return false;
+
+                this.arch = LittleEndian.readInt32(src, 4);
+                int nbCmds = LittleEndian.readInt32(src, 0x10);
+                int pos = (is64Bits) ? 0x20 : 0x1C;
+                int cmd = 0;
+
+                while (cmd < nbCmds) {
+                    int ldCmd = LittleEndian.readInt32(src, pos);
+                    int szCmd = LittleEndian.readInt32(src, pos + 4);
+                    int szSegHdr = (is64Bits) ? 0x48 : 0x38;
+
+                    if ((ldCmd == MAC_LC_SEGMENT) || (ldCmd == MAC_LC_SEGMENT64)) {
+                        if (pos + 14 >= count)
+                            return false;
+
+                        long nameSegment = BigEndian.readLong64(src, pos + 8) >>> 16;
+
+                        if (nameSegment == 0x5F5F54455854L) {
+                            int posSection = pos + szSegHdr;
+
+                            if (posSection + 0x34 >= count)
+                                return false;
+
+                            long nameSection = BigEndian.readLong64(src, posSection) >>> 16;
+
+                            if (nameSection == 0x5F5F74657874L) {
+                                // Text section in TEXT segment
+                                if (is64Bits) {
+                                    this.codeStart = (int) LittleEndian.readLong64(src, posSection + 0x30);
+                                    this.codeEnd = this.codeStart + LittleEndian.readInt32(src, posSection + 0x28);
+                                    break;
+                                } else {
+                                    this.codeStart = LittleEndian.readInt32(src, posSection + 0x2C);
+                                    this.codeEnd = this.codeStart + LittleEndian.readInt32(src, posSection + 0x28);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    cmd++;
+                    pos += szCmd;
+                }
+
+                this.codeStart = Math.min(this.codeStart, count);
+                this.codeEnd = Math.min(this.codeEnd, count);
+                return true;
+            }
         }
-    }
 
-    return false;
-}
+        return false;
+    }
 
 }

@@ -21,10 +21,12 @@ import java.util.Objects;
 /**
  * A lightweight implementation of a slice for an integer array.
  *
- * <p>This class allows for managing a portion of an integer array, providing
- * a means to represent a subset of the array with a specified length and
- * starting index. This can be useful for efficiently handling integer data
- * without creating multiple copies.</p>
+ * <p>
+ * This class allows for managing a portion of an integer array, providing a
+ * means to represent a subset of the array with a specified length and starting
+ * index. This can be useful for efficiently handling integer data without
+ * creating multiple copies.
+ * </p>
  */
 public final class SliceIntArray {
     public int[] array; // array.length is the slice capacity
@@ -41,10 +43,14 @@ public final class SliceIntArray {
     /**
      * Constructs a {@code SliceIntArray} with the specified array and index.
      *
-     * @param array the integer array
-     * @param idx the starting index of the slice
-     * @throws NullPointerException if the provided array is null
-     * @throws NullPointerException if the provided index is negative
+     * @param array
+     *            the integer array
+     * @param idx
+     *            the starting index of the slice
+     * @throws NullPointerException
+     *             if the provided array is null
+     * @throws NullPointerException
+     *             if the provided index is negative
      */
     public SliceIntArray(int[] array, int idx) {
         if (array == null)
@@ -58,14 +64,21 @@ public final class SliceIntArray {
     }
 
     /**
-     * Constructs a {@code SliceIntArray} with the specified array, length, and index.
+     * Constructs a {@code SliceIntArray} with the specified array, length, and
+     * index.
      *
-     * @param array the integer array
-     * @param length the length of the slice
-     * @param idx the starting index of the slice
-     * @throws NullPointerException if the provided array is null
-     * @throws IllegalArgumentException if the provided length is negative
-     * @throws NullPointerException if the provided index is negative
+     * @param array
+     *            the integer array
+     * @param length
+     *            the length of the slice
+     * @param idx
+     *            the starting index of the slice
+     * @throws NullPointerException
+     *             if the provided array is null
+     * @throws IllegalArgumentException
+     *             if the provided length is negative
+     * @throws NullPointerException
+     *             if the provided index is negative
      */
     public SliceIntArray(int[] array, int length, int idx) {
         if (array == null)
@@ -89,9 +102,7 @@ public final class SliceIntArray {
                 return true;
 
             SliceIntArray sa = (SliceIntArray) o;
-            return (this.array == sa.array) &&
-                   (this.length == sa.length) &&
-                   (this.index == sa.index);
+            return (this.array == sa.array) && (this.length == sa.length) && (this.index == sa.index);
         } catch (ClassCastException e) {
             return false;
         }
@@ -118,7 +129,8 @@ public final class SliceIntArray {
     /**
      * Validates the provided {@code SliceIntArray} instance.
      *
-     * @param sa the {@code SliceIntArray} to validate
+     * @param sa
+     *            the {@code SliceIntArray} to validate
      * @return {@code true} if the instance is valid, {@code false} otherwise
      */
     public static boolean isValid(SliceIntArray sa) {

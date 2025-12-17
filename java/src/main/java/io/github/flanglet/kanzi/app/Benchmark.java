@@ -6,17 +6,14 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
-
 /**
  * Kanzi Compression Benchmark
  *
- * A comprehensive benchmarking tool for the Kanzi Java compression library
- * that tests various transform and entropy coding combinations with timing
- * and compression ratio analysis.
+ * A comprehensive benchmarking tool for the Kanzi Java compression library that
+ * tests various transform and entropy coding combinations with timing and
+ * compression ratio analysis.
  *
- * Requirements:
- * - Java 8+
- * - Kanzi Java library (kanzi.jar) in classpath
+ * Requirements: - Java 8+ - Kanzi Java library (kanzi.jar) in classpath
  *
  * Usage: java -cp kanzi.jar:. io.github.flanglet.kanzi.app.Benchmark input-file
  */
@@ -28,30 +25,22 @@ public class Benchmark {
     private static final DecimalFormat TIME_FORMAT = new DecimalFormat("0.000");
 
     // Kanzi configuration lists
-    private static final String[] TRANSFORMS = {
-            "NONE", "PACK", "BWT", "BWTS", "LZ", "LZX", "LZP", "ROLZ", "ROLZX",
-            "RLT", "ZRLT", "MTFT", "RANK", "SRT", "TEXT", "EXE", "MM", "UTF", "DNA"
-    };
+    private static final String[] TRANSFORMS = {"NONE", "PACK", "BWT", "BWTS", "LZ", "LZX", "LZP", "ROLZ", "ROLZX",
+            "RLT", "ZRLT", "MTFT", "RANK", "SRT", "TEXT", "EXE", "MM", "UTF", "DNA"};
 
-    private static final String[] OPTIMIZED_TRANSFORMS = {
-            "TEXT", "RLT", "PACK", "ZRLT", "BWTS", "BWT", "LZP", "MTFT", "SRT",
-            "LZ", "LZX", "ROLZ", "ROLZX", "RANK", "EXE", "MM"
-    };
+    private static final String[] OPTIMIZED_TRANSFORMS = {"TEXT", "RLT", "PACK", "ZRLT", "BWTS", "BWT", "LZP", "MTFT",
+            "SRT", "LZ", "LZX", "ROLZ", "ROLZX", "RANK", "EXE", "MM"};
 
-    private static final String[] ENTROPY_CODERS = {
-            "NONE", "HUFFMAN", "ANS0", "ANS1", "RANGE", "CM", "FPAQ", "TPAQ", "TPAQX"
-    };
+    private static final String[] ENTROPY_CODERS = {"NONE", "HUFFMAN", "ANS0", "ANS1", "RANGE", "CM", "FPAQ", "TPAQ",
+            "TPAQX"};
 
-    private static final String[] SPECIALIZED_TRANSFORMS = {
-            "RLT", "PACK", "PACK+ZRLT+PACK", "PACK+RLT", "RLT+PACK", "RLT+TEXT+PACK",
-            "RLT+PACK+LZP", "RLT+PACK+LZP+RLT", "TEXT+ZRLT+PACK", "RLT+LZP+PACK+RLT",
-            "TEXT+ZRLT+PACK+LZP", "TEXT+RLT+PACK", "TEXT+RLT+LZP", "TEXT+RLT+PACK+LZP",
-            "TEXT+RLT+LZP+RLT", "TEXT+RLT+PACK+LZP+RLT", "TEXT+RLT+LZP+PACK",
-            "TEXT+RLT+PACK+RLT+LZP", "TEXT+RLT+LZP+PACK+RLT", "TEXT+PACK+RLT",
-            "EXE+TEXT+RLT+UTF+PACK", "EXE+TEXT+RLT+UTF+DNA", "EXE+TEXT+RLT", "EXE+TEXT",
-            "TEXT+BWTS+SRT+ZRLT", "BWTS+SRT+ZRLT", "TEXT+BWTS+MTFT+RLT", "BWTS+MTFT+RLT",
-            "TEXT+BWT+MTFT+RLT", "BWT+MTFT+RLT"
-    };
+    private static final String[] SPECIALIZED_TRANSFORMS = {"RLT", "PACK", "PACK+ZRLT+PACK", "PACK+RLT", "RLT+PACK",
+            "RLT+TEXT+PACK", "RLT+PACK+LZP", "RLT+PACK+LZP+RLT", "TEXT+ZRLT+PACK", "RLT+LZP+PACK+RLT",
+            "TEXT+ZRLT+PACK+LZP", "TEXT+RLT+PACK", "TEXT+RLT+LZP", "TEXT+RLT+PACK+LZP", "TEXT+RLT+LZP+RLT",
+            "TEXT+RLT+PACK+LZP+RLT", "TEXT+RLT+LZP+PACK", "TEXT+RLT+PACK+RLT+LZP", "TEXT+RLT+LZP+PACK+RLT",
+            "TEXT+PACK+RLT", "EXE+TEXT+RLT+UTF+PACK", "EXE+TEXT+RLT+UTF+DNA", "EXE+TEXT+RLT", "EXE+TEXT",
+            "TEXT+BWTS+SRT+ZRLT", "BWTS+SRT+ZRLT", "TEXT+BWTS+MTFT+RLT", "BWTS+MTFT+RLT", "TEXT+BWT+MTFT+RLT",
+            "BWT+MTFT+RLT"};
 
     private final File inputFile;
     private final long originalSize;
@@ -108,7 +97,8 @@ public class Benchmark {
         System.out.println("Parallel jobs: " + parallelJobs);
         System.out.println();
         System.out.printf("%12s %10s %9s %10s %s%n", "COMPRESSED", "TIME", "RATIO", "SPEED", "ALGORITHM");
-        System.out.printf("%12s %10s %9s %10s %s%n", "------------", "----------", "---------", "----------", "----------");
+        System.out.printf("%12s %10s %9s %10s %s%n", "------------", "----------", "---------", "----------",
+                "----------");
     }
 
     private void runLevelPresets() throws Exception {
@@ -160,7 +150,7 @@ public class Benchmark {
                     for (String e : entropyTypes) {
                         String transform = "TEXT+" + t2 + "+" + t3 + "+" + t4;
                         String name = "kanzi -t" + transform + " -e" + e;
-                        String[] args = {"--block=64m", "--transform="+ transform, "--entropy=" + e};
+                        String[] args = {"--block=64m", "--transform=" + transform, "--entropy=" + e};
                         testCases.add(new TestConfig(name, args));
                     }
                 }
@@ -338,19 +328,15 @@ public class Benchmark {
             // Clean up
             if (tempOutput != null && tempOutput.exists()) {
                 if (tempOutput.delete() == false) {
-                   System.err.println("Could not delete file '" + tempOutput.getAbsolutePath() + "'");
+                    System.err.println("Could not delete file '" + tempOutput.getAbsolutePath() + "'");
                 }
             }
         }
     }
 
     private void printResult(CompressionResult result) {
-        System.out.printf("%12s %10s %8.2f%% %10.2f %s%n",
-                formatSize(result.compressedSize),
-                formatTime(result.timeSeconds),
-                result.ratio,
-                result.speedMBps,
-                result.algorithm);
+        System.out.printf("%12s %10s %8.2f%% %10.2f %s%n", formatSize(result.compressedSize),
+                formatTime(result.timeSeconds), result.ratio, result.speedMBps, result.algorithm);
     }
 
     private void analyzeResults() {
@@ -364,23 +350,20 @@ public class Benchmark {
         }
 
         // Find best compression
-        CompressionResult bestCompression = results.stream()
-                .min(Comparator.comparing(r -> r.ratio))
-                .orElse(null);
+        CompressionResult bestCompression = results.stream().min(Comparator.comparing(r -> r.ratio)).orElse(null);
 
         // Find most reasonable compression (balance of ratio and speed)
-        CompressionResult bestBalanced = results.stream()
-                .min(Comparator.comparing(result -> {
-                    // Balance score: heavily weight compression ratio, but penalize very slow speeds
-                    double balanceScore = result.ratio * 2.0;
-                    if (result.speedMBps > 0 && !Double.isInfinite(result.speedMBps)) {
-                        balanceScore += 100.0 / result.speedMBps;
-                    } else {
-                        balanceScore += 1000.0;  // Penalty for very slow
-                    }
-                    return balanceScore;
-                }))
-                .orElse(null);
+        CompressionResult bestBalanced = results.stream().min(Comparator.comparing(result -> {
+            // Balance score: heavily weight compression ratio, but penalize very slow
+            // speeds
+            double balanceScore = result.ratio * 2.0;
+            if (result.speedMBps > 0 && !Double.isInfinite(result.speedMBps)) {
+                balanceScore += 100.0 / result.speedMBps;
+            } else {
+                balanceScore += 1000.0; // Penalty for very slow
+            }
+            return balanceScore;
+        })).orElse(null);
 
         System.out.println("\n📊 **BEST COMPRESSION RATIO:**");
         printAnalysisResult(bestCompression);
@@ -419,26 +402,31 @@ public class Benchmark {
         double reductionPercent = 100.0 - result.ratio;
 
         System.out.println("   Algorithm: " + result.algorithm);
-        System.out.println("   Size:      " + formatSize(originalSize) + " → " +
-                formatSize(result.compressedSize) + " (" + RATIO_FORMAT.format(result.ratio) + "%)");
+        System.out.println("   Size:      " + formatSize(originalSize) + " → " + formatSize(result.compressedSize)
+                + " (" + RATIO_FORMAT.format(result.ratio) + "%)");
         System.out.println("   Time:      " + formatTime(result.timeSeconds));
         System.out.println("   Speed:     " + SPEED_FORMAT.format(result.speedMBps) + " MB/s");
-        System.out.println("   Savings:   " + formatSize(savings) + " (" +
-                RATIO_FORMAT.format(reductionPercent) + "% reduction)");
+        System.out.println(
+                "   Savings:   " + formatSize(savings) + " (" + RATIO_FORMAT.format(reductionPercent) + "% reduction)");
     }
 
     private static String formatSize(long bytes) {
-        if (bytes < 1024) return bytes + "B";
-        if (bytes < 1024 * 1024) return SIZE_FORMAT.format(bytes / 1024.0) + "KB";
-        if (bytes < 1024L * 1024 * 1024) return SIZE_FORMAT.format(bytes / (1024.0 * 1024.0)) + "MB";
+        if (bytes < 1024)
+            return bytes + "B";
+        if (bytes < 1024 * 1024)
+            return SIZE_FORMAT.format(bytes / 1024.0) + "KB";
+        if (bytes < 1024L * 1024 * 1024)
+            return SIZE_FORMAT.format(bytes / (1024.0 * 1024.0)) + "MB";
         return SIZE_FORMAT.format(bytes / (1024.0 * 1024.0 * 1024.0)) + "GB";
     }
 
     private static String formatTime(double seconds) {
-        if (seconds < 1.0) return TIME_FORMAT.format(seconds) + "s";
-        if (seconds < 60.0) return TIME_FORMAT.format(seconds) + "s";
-        int minutes = (int)(seconds / 60);
-        int remainingSeconds = (int)(seconds % 60);
+        if (seconds < 1.0)
+            return TIME_FORMAT.format(seconds) + "s";
+        if (seconds < 60.0)
+            return TIME_FORMAT.format(seconds) + "s";
+        int minutes = (int) (seconds / 60);
+        int remainingSeconds = (int) (seconds % 60);
         return minutes + "m" + remainingSeconds + "s";
     }
 
@@ -457,7 +445,9 @@ public class Benchmark {
             this.compressedSize = compressedSize;
             this.timeSeconds = timeSeconds;
             this.ratio = (compressedSize * 100.0) / originalSize;
-            this.speedMBps = timeSeconds > 0 ? (originalSize / (1024.0 * 1024.0)) / timeSeconds : Double.POSITIVE_INFINITY;
+            this.speedMBps = timeSeconds > 0
+                    ? (originalSize / (1024.0 * 1024.0)) / timeSeconds
+                    : Double.POSITIVE_INFINITY;
         }
     }
 
