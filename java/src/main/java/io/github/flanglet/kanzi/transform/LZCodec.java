@@ -1090,6 +1090,7 @@ public final class LZCodec implements ByteTransform {
          final byte[] src = input.array;
          final byte[] dst = output.array;
          final int srcEnd = input.index + count;
+         final int dstEnd = output.length;
          int srcIdx = input.index;
          int dstIdx = output.index;
          final int minMatch = (this.isBsVersion3 == true) ? MIN_MATCH96 : MIN_MATCH64;
@@ -1143,6 +1144,9 @@ public final class LZCodec implements ByteTransform {
                return false;
 
             mLen += (src[srcIdx++] & 0xFF);
+
+            if (dstIdx +mLen > dstEnd)
+               return false;
 
             if (ref + mLen < dstIdx) {
                System.arraycopy(dst, ref, dst, dstIdx, mLen);
