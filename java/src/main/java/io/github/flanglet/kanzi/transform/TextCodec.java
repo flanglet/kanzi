@@ -317,10 +317,13 @@ public final class TextCodec implements ByteTransform
       boolean notText = nbBinChars > (count>>2);
 
       if (notText == false) {
-         if (strict == true)
-            notText = ((nbTextChars < (count>>2)) || (freqs0[0] >= (count/100)) || ((nbASCII/95) < (count/100)));
-         else
-            notText = ((nbTextChars < (count>>1)) || (freqs0[32] < (count/50)));
+         notText = nbTextChars < (count / 4);
+
+         if (strict == true) {
+            notText |= ((freqs0[0] >= (count / 100)) || ((nbASCII / 95) < (count / 100)));
+         } else {
+            notText |= (freqs0[32] < (count / 50));
+         }
       }
 
       int res = 0;
