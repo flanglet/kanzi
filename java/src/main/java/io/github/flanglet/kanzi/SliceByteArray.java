@@ -18,15 +18,14 @@ package io.github.flanglet.kanzi;
 import java.util.Arrays;
 import java.util.Objects;
 
+
 /**
  * A lightweight implementation of a byte array slice.
  *
- * <p>
- * This class provides a way to manage a portion of a byte array, allowing for
- * the representation of a subset of the array with a specified length and
+ * <p>This class provides a way to manage a portion of a byte array, allowing
+ * for the representation of a subset of the array with a specified length and
  * starting index. This can be useful for handling byte data efficiently without
- * creating multiple copies.
- * </p>
+ * creating multiple copies.</p>
  */
 public final class SliceByteArray {
     public byte[] array; // array.length is the slice capacity
@@ -43,14 +42,10 @@ public final class SliceByteArray {
     /**
      * Constructs a {@code SliceByteArray} with the specified array and index.
      *
-     * @param array
-     *            the byte array
-     * @param idx
-     *            the starting index of the slice
-     * @throws NullPointerException
-     *             if the provided array is null
-     * @throws NullPointerException
-     *             if the provided index is negative
+     * @param array the byte array
+     * @param idx the starting index of the slice
+     * @throws NullPointerException if the provided array is null
+     * @throws NullPointerException if the provided index is negative
      */
     public SliceByteArray(byte[] array, int idx) {
         if (array == null)
@@ -64,21 +59,14 @@ public final class SliceByteArray {
     }
 
     /**
-     * Constructs a {@code SliceByteArray} with the specified array, length, and
-     * index.
+     * Constructs a {@code SliceByteArray} with the specified array, length, and index.
      *
-     * @param array
-     *            the byte array
-     * @param length
-     *            the length of the slice
-     * @param idx
-     *            the starting index of the slice
-     * @throws NullPointerException
-     *             if the provided array is null
-     * @throws IllegalArgumentException
-     *             if the provided length is negative
-     * @throws NullPointerException
-     *             if the provided index is negative
+     * @param array the byte array
+     * @param length the length of the slice
+     * @param idx the starting index of the slice
+     * @throws NullPointerException if the provided array is null
+     * @throws IllegalArgumentException if the provided length is negative
+     * @throws NullPointerException if the provided index is negative
      */
     public SliceByteArray(byte[] array, int length, int idx) {
         if (array == null)
@@ -102,7 +90,9 @@ public final class SliceByteArray {
                 return true;
 
             SliceByteArray sa = (SliceByteArray) o;
-            return (this.array == sa.array) && (this.length == sa.length) && (this.index == sa.index);
+            return (this.array == sa.array) &&
+                   (this.length == sa.length) &&
+                   (this.index == sa.index);
         } catch (ClassCastException e) {
             return false;
         }
@@ -129,8 +119,7 @@ public final class SliceByteArray {
     /**
      * Validates the provided {@code SliceByteArray} instance.
      *
-     * @param sa
-     *            the {@code SliceByteArray} to validate
+     * @param sa the {@code SliceByteArray} to validate
      * @return {@code true} if the instance is valid, {@code false} otherwise
      */
     public static boolean isValid(SliceByteArray sa) {
@@ -146,3 +135,4 @@ public final class SliceByteArray {
         return (sa.index <= sa.array.length);
     }
 }
+
