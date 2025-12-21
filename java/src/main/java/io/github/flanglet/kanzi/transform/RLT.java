@@ -1,13 +1,10 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
+ * Copyright 2011-2025 Frederic Langlet
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- *
  * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *                 http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,14 +21,16 @@ import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 /**
- * Implementation of an escaped RLE Run length encoding: RUN_LEN_ENCODE1 = 224
- * =&gt; RUN_LEN_ENCODE2 = 31*224 = 6944 4 &lt;= runLen &lt; 224+4 -&gt; 1 byte
- * 228 &lt;= runLen &lt; 6944+228 -&gt; 2 bytes 7172 &lt;= runLen &lt;
- * 65535+7172 -&gt; 3 bytes
+ * Implementation of an escaped RLE
+ * Run length encoding:
+ * RUN_LEN_ENCODE1 = 224 =&gt; RUN_LEN_ENCODE2 = 31*224 = 6944
+ * 4    &lt;= runLen &lt; 224+4     -&gt; 1 byte
+ * 228  &lt;= runLen &lt; 6944+228   -&gt; 2 bytes
+ * 7172 &lt;= runLen &lt; 65535+7172 -&gt; 3 bytes
  */
 public class RLT implements ByteTransform {
     private static final int RUN_LEN_ENCODE1 = 224; // used to encode run length
-    private static final int RUN_LEN_ENCODE2 = (255 - RUN_LEN_ENCODE1) << 8; // used to encode run length
+    private static final int RUN_LEN_ENCODE2 = (255-RUN_LEN_ENCODE1) << 8; // used to encode run length
     private static final int RUN_THRESHOLD = 3;
     private static final int MAX_RUN = 0xFFFF + RUN_LEN_ENCODE2 + RUN_THRESHOLD - 1;
     private static final int MAX_RUN4 = MAX_RUN - 4;
@@ -51,8 +50,7 @@ public class RLT implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx
-     *            the context map
+     * @param ctx the context map
      */
     public RLT(Map<String, Object> ctx) {
         this.freqs = new int[256];
@@ -62,10 +60,8 @@ public class RLT implements ByteTransform {
     /**
      * Performs the forward transform, encoding the input data.
      *
-     * @param input
-     *            the input byte array
-     * @param output
-     *            the output byte array
+     * @param input  the input byte array
+     * @param output the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -99,8 +95,8 @@ public class RLT implements ByteTransform {
             entropyType = entropyType.toUpperCase();
 
             // Fast track if entropy coder is used
-            if (entropyType.equals("NONE") || entropyType.equals("ANS0") || entropyType.equals("HUFFMAN")
-                    || entropyType.equals("RANGE"))
+            if (entropyType.equals("NONE") || entropyType.equals("ANS0") ||
+                entropyType.equals("HUFFMAN") || entropyType.equals("RANGE"))
                 findBestEscape = false;
         }
 
@@ -264,12 +260,9 @@ public class RLT implements ByteTransform {
     /**
      * Emits the run length.
      *
-     * @param dst
-     *            the destination byte array
-     * @param dstIdx
-     *            the current index in the destination array
-     * @param run
-     *            the run length to emit
+     * @param dst the destination byte array
+     * @param dstIdx the current index in the destination array
+     * @param run the run length to emit
      * @return the updated index in the destination array
      */
     private static int emitRunLength(byte[] dst, int dstIdx, int run) {
@@ -293,10 +286,8 @@ public class RLT implements ByteTransform {
     /**
      * Performs the inverse transform, decoding the input data.
      *
-     * @param input
-     *            the input byte array
-     * @param output
-     *            the output byte array
+     * @param input  the input byte array
+     * @param output the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -406,11 +397,9 @@ public class RLT implements ByteTransform {
     }
 
     /**
-     * Returns the maximum encoded length, which includes some extra buffer for
-     * incompressible data.
+     * Returns the maximum encoded length, which includes some extra buffer for incompressible data.
      *
-     * @param srcLen
-     *            the source length
+     * @param srcLen the source length
      * @return the maximum encoded length
      */
     @Override

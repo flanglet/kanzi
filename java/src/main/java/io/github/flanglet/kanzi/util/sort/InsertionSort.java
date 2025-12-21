@@ -1,20 +1,17 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright 2011-2025 Frederic Langlet
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+you may obtain a copy of the License at
+
+                http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package io.github.flanglet.kanzi.util.sort;
 
@@ -22,24 +19,16 @@ import io.github.flanglet.kanzi.ArrayComparator;
 import io.github.flanglet.kanzi.IntSorter;
 
 /**
- * The {@code InsertionSort} class implements the insertion sort algorithm, a
- * simple comparison-based sorting algorithm with a worst-case time complexity
- * of O(n²) and an average-case complexity of O(n+k), where k is the number of
- * inversions. This algorithm is efficient for small data sets or nearly sorted
- * data, but is not suitable for large datasets due to its quadratic time
- * complexity.
+ * The {@code InsertionSort} class implements the insertion sort algorithm, a simple comparison-based sorting algorithm with
+ * a worst-case time complexity of O(n²) and an average-case complexity of O(n+k), where k is the number of inversions.
+ * This algorithm is efficient for small data sets or nearly sorted data, but is not suitable for large datasets due to its
+ * quadratic time complexity.
  *
- * <p>
- * Insertion sort works by iterating through the array and repeatedly inserting
- * each element into its correct position relative to the elements before it.
- * The algorithm performs well when the data is already nearly sorted, making it
- * ideal for small datasets or nearly sorted data.
- * </p>
+ * <p>Insertion sort works by iterating through the array and repeatedly inserting each element into its correct position
+ * relative to the elements before it. The algorithm performs well when the data is already nearly sorted, making it ideal for
+ * small datasets or nearly sorted data.</p>
  *
- * <p>
- * This class implements the {@code IntSorter} interface, which defines the
- * {@code sort} method for sorting integer arrays.
- * </p>
+ * <p>This class implements the {@code IntSorter} interface, which defines the {@code sort} method for sorting integer arrays.</p>
  */
 public class InsertionSort implements IntSorter {
 
@@ -56,12 +45,9 @@ public class InsertionSort implements IntSorter {
 
     /**
      * Constructs an {@code InsertionSort} instance with the specified comparator.
-     * If {@code cmp} is {@code null}, the natural ordering of the elements will be
-     * used.
+     * If {@code cmp} is {@code null}, the natural ordering of the elements will be used.
      *
-     * @param cmp
-     *            the comparator to use for element comparisons, or {@code null} to
-     *            use natural ordering.
+     * @param cmp the comparator to use for element comparisons, or {@code null} to use natural ordering.
      */
     public InsertionSort(ArrayComparator cmp) {
         this.cmp = cmp;
@@ -70,31 +56,22 @@ public class InsertionSort implements IntSorter {
     /**
      * Returns the comparator used by this {@code InsertionSort} instance.
      *
-     * @return the comparator used for element comparisons, or {@code null} if
-     *         natural ordering is used.
+     * @return the comparator used for element comparisons, or {@code null} if natural ordering is used.
      */
     protected ArrayComparator getComparator() {
         return this.cmp;
     }
 
     /**
-     * Sorts the specified portion of the input array using the insertion sort
-     * algorithm.
+     * Sorts the specified portion of the input array using the insertion sort algorithm.
      *
-     * <p>
-     * The sorting begins at index {@code blkptr} and sorts {@code len} elements in
-     * the array. The array is rearranged in-place, and the elements will be sorted
-     * in ascending order.
-     * </p>
+     * <p>The sorting begins at index {@code blkptr} and sorts {@code len} elements in the array. The array is rearranged
+     * in-place, and the elements will be sorted in ascending order.</p>
      *
-     * @param input
-     *            the array to be sorted.
-     * @param blkptr
-     *            the starting index of the portion to be sorted.
-     * @param len
-     *            the number of elements to sort.
-     * @return {@code true} if the sorting was successful, {@code false} if invalid
-     *         parameters were provided (e.g., out-of-bounds indices).
+     * @param input the array to be sorted.
+     * @param blkptr the starting index of the portion to be sorted.
+     * @param len the number of elements to sort.
+     * @return {@code true} if the sorting was successful, {@code false} if invalid parameters were provided (e.g., out-of-bounds indices).
      */
     @Override
     public boolean sort(int[] input, int blkptr, int len) {
@@ -114,17 +91,13 @@ public class InsertionSort implements IntSorter {
     }
 
     /**
-     * Performs the insertion sort on the array using the provided comparator. This
-     * method handles the sorting for small sub-arrays and larger arrays.
+     * Performs the insertion sort on the array using the provided comparator.
+     * This method handles the sorting for small sub-arrays and larger arrays.
      *
-     * @param array
-     *            the array to be sorted.
-     * @param blkptr
-     *            the starting index of the portion to be sorted.
-     * @param end
-     *            the index where the sorting should end.
-     * @param comp
-     *            the comparator used for element comparisons.
+     * @param array the array to be sorted.
+     * @param blkptr the starting index of the portion to be sorted.
+     * @param end the index where the sorting should end.
+     * @param comp the comparator used for element comparisons.
      */
     private static void sortWithComparator(int[] array, int blkptr, int end, ArrayComparator comp) {
         // Shortcut for 2-element sub-array
@@ -191,16 +164,12 @@ public class InsertionSort implements IntSorter {
     }
 
     /**
-     * Performs the insertion sort on the array using natural ordering (i.e., no
-     * comparator). This method handles the sorting for small sub-arrays and larger
-     * arrays without needing a custom comparator.
+     * Performs the insertion sort on the array using natural ordering (i.e., no comparator).
+     * This method handles the sorting for small sub-arrays and larger arrays without needing a custom comparator.
      *
-     * @param array
-     *            the array to be sorted.
-     * @param blkptr
-     *            the starting index of the portion to be sorted.
-     * @param end
-     *            the index where the sorting should end.
+     * @param array the array to be sorted.
+     * @param blkptr the starting index of the portion to be sorted.
+     * @param end the index where the sorting should end.
      */
     private static void sortNoComparator(int[] array, int blkptr, int end) {
         // Shortcut for 2-element sub-array
@@ -266,3 +235,4 @@ public class InsertionSort implements IntSorter {
         }
     }
 }
+

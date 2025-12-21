@@ -1,20 +1,17 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright 2011-2025 Frederic Langlet
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+you may obtain a copy of the License at
+
+                http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package io.github.flanglet.kanzi.util.sort;
 
@@ -22,20 +19,12 @@ import io.github.flanglet.kanzi.ByteSorter;
 import io.github.flanglet.kanzi.IntSorter;
 
 /**
- * The {@code BucketSort} class provides an implementation of the bucket sort
- * algorithm for sorting integers and bytes. Bucket sort is a simple and
- * efficient sorting algorithm that works by distributing elements into a number
- * of buckets, then sorting the individual buckets. This implementation is
- * optimized to handle small integer and byte values.
+ * The {@code BucketSort} class provides an implementation of the bucket sort algorithm for sorting integers and bytes.
+ * Bucket sort is a simple and efficient sorting algorithm that works by distributing elements into a number of buckets,
+ * then sorting the individual buckets. This implementation is optimized to handle small integer and byte values.
  *
- * <p>
- * It is a simplified form of radix sort with buckets of width one, making it
- * efficient for small integers (up to 0xFFFF).
- * </p>
- * <p>
- * This implementation is not thread-safe due to the mutable state of its
- * internal data structures.
- * </p>
+ * <p>It is a simplified form of radix sort with buckets of width one, making it efficient for small integers (up to 0xFFFF).</p>
+ * <p>This implementation is not thread-safe due to the mutable state of its internal data structures.</p>
  */
 public class BucketSort implements IntSorter, ByteSorter {
 
@@ -43,22 +32,18 @@ public class BucketSort implements IntSorter, ByteSorter {
     private final int[] count;
 
     /**
-     * Constructs a {@code BucketSort} object using the default bucket size for byte
-     * values (0 to 255).
+     * Constructs a {@code BucketSort} object using the default bucket size for byte values (0 to 255).
      */
     public BucketSort() {
         this.count = new int[256];
     }
 
     /**
-     * Constructs a {@code BucketSort} object with a custom bucket size determined
-     * by the logarithm of the maximum value.
+     * Constructs a {@code BucketSort} object with a custom bucket size determined by the logarithm of the maximum value.
      *
-     * @param logMaxValue
-     *            the logarithm (base 2) of the maximum value to be sorted. Must be
-     *            between 2 and 16 (inclusive).
-     * @throws IllegalArgumentException
-     *             if the {@code logMaxValue} is less than 2 or greater than 16.
+     * @param logMaxValue the logarithm (base 2) of the maximum value to be sorted.
+     *                     Must be between 2 and 16 (inclusive).
+     * @throws IllegalArgumentException if the {@code logMaxValue} is less than 2 or greater than 16.
      */
     public BucketSort(int logMaxValue) {
         if (logMaxValue < 2)
@@ -73,20 +58,14 @@ public class BucketSort implements IntSorter, ByteSorter {
     /**
      * Sorts an array of integers using the bucket sort algorithm.
      *
-     * <p>
-     * The sorting works by counting the frequency of each integer in the input
-     * array, then placing the integers back into the array in sorted order.
-     * </p>
+     * <p>The sorting works by counting the frequency of each integer in the input array, then placing the integers back into
+     * the array in sorted order.</p>
      *
-     * @param input
-     *            the array of integers to be sorted.
-     * @param blkptr
-     *            the starting index in the array to begin sorting.
-     * @param len
-     *            the length of the portion of the array to be sorted.
-     * @return {@code true} if the sorting was successful; {@code false} if there
-     *         were invalid parameters (e.g., out-of-bounds indices or invalid
-     *         length).
+     * @param input the array of integers to be sorted.
+     * @param blkptr the starting index in the array to begin sorting.
+     * @param len the length of the portion of the array to be sorted.
+     * @return {@code true} if the sorting was successful; {@code false} if there were invalid parameters (e.g.,
+     *         out-of-bounds indices or invalid length).
      */
     @Override
     public boolean sort(int[] input, int blkptr, int len) {
@@ -96,9 +75,9 @@ public class BucketSort implements IntSorter, ByteSorter {
         if (len == 1)
             return true;
 
-        final int len8 = len & -8; // Round down to the nearest multiple of 8
+        final int len8 = len & -8;  // Round down to the nearest multiple of 8
         final int end8 = blkptr + len8;
-        final int[] c = this.count; // Bucket count array
+        final int[] c = this.count;  // Bucket count array
         final int length = c.length;
 
         // Unrolled loop for efficient counting
@@ -151,19 +130,13 @@ public class BucketSort implements IntSorter, ByteSorter {
     /**
      * Sorts an array of bytes using the bucket sort algorithm.
      *
-     * <p>
-     * This method behaves similarly to the integer sort method, but operates on
-     * byte values (0 to 255).
-     * </p>
+     * <p>This method behaves similarly to the integer sort method, but operates on byte values (0 to 255).</p>
      *
-     * @param input
-     *            the array of bytes to be sorted.
-     * @param blkptr
-     *            the starting index in the array to begin sorting.
-     * @param len
-     *            the length of the portion of the array to be sorted.
-     * @return {@code true} if the sorting was successful; {@code false} if there
-     *         were invalid parameters ( out-of-bounds indices or invalid length).
+     * @param input the array of bytes to be sorted.
+     * @param blkptr the starting index in the array to begin sorting.
+     * @param len the length of the portion of the array to be sorted.
+     * @return {@code true} if the sorting was successful; {@code false} if there were invalid parameters (
+     *         out-of-bounds indices or invalid length).
      */
     @Override
     public boolean sort(byte[] input, int blkptr, int len) {
@@ -173,9 +146,9 @@ public class BucketSort implements IntSorter, ByteSorter {
         if (len == 1)
             return true;
 
-        final int len8 = len & -8; // Round down to the nearest multiple of 8
+        final int len8 = len & -8;  // Round down to the nearest multiple of 8
         final int end8 = blkptr + len8;
-        final int[] c = this.count; // Bucket count array
+        final int[] c = this.count;  // Bucket count array
         final int length = c.length;
 
         // Unrolled loop for efficient counting
@@ -225,3 +198,4 @@ public class BucketSort implements IntSorter, ByteSorter {
         return true;
     }
 }
+

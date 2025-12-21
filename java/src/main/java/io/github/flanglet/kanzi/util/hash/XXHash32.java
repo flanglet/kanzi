@@ -1,36 +1,33 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright 2011-2025 Frederic Langlet
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+you may obtain a copy of the License at
+
+                http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package io.github.flanglet.kanzi.util.hash;
+
 
 import io.github.flanglet.kanzi.Memory;
 
 /**
  * XXHash32 is an implementation of the 32-bit variant of the XXHash algorithm,
- * which is a fast non-cryptographic hash function. It is designed for
- * high-speed hashing, commonly used in applications where performance is
- * critical, such as checksums, hash tables, and data integrity verification.
+ * which is a fast non-cryptographic hash function. It is designed for high-speed
+ * hashing, commonly used in applications where performance is critical, such as 
+ * checksums, hash tables, and data integrity verification.
  * Port to Java of the original source code: https://github.com/Cyan4973/xxHash
  *
- * <p>
- * XXHash32 uses a sequence of rounds with constant mixing primes to process the
- * input data and produce a 32-bit hash value. This class allows for an optional
- * user-defined seed, providing a degree of variability in the output.
+ * <p>XXHash32 uses a sequence of rounds with constant mixing primes to process 
+ * the input data and produce a 32-bit hash value. This class allows for an 
+ * optional user-defined seed, providing a degree of variability in the output.
  */
 public class XXHash32 {
 
@@ -55,30 +52,27 @@ public class XXHash32 {
     /**
      * Constructs an XXHash32 instance with a specified seed.
      * 
-     * @param seed
-     *            The seed value to be used in the hash computation.
+     * @param seed The seed value to be used in the hash computation.
      */
     public XXHash32(int seed) {
         this.seed = seed;
     }
 
     /**
-     * Sets the seed value for the hash computation. This allows for custom seed
-     * values to modify the output hash.
+     * Sets the seed value for the hash computation. This allows for custom seed values
+     * to modify the output hash.
      * 
-     * @param seed
-     *            The new seed value.
+     * @param seed The new seed value.
      */
     public void setSeed(int seed) {
         this.seed = seed;
     }
 
     /**
-     * Computes the 32-bit hash of the provided byte array. This method uses the
-     * entire byte array, starting from index 0.
+     * Computes the 32-bit hash of the provided byte array.
+     * This method uses the entire byte array, starting from index 0.
      * 
-     * @param data
-     *            The byte array to be hashed.
+     * @param data The byte array to be hashed.
      * @return The 32-bit hash value of the input data.
      */
     public int hash(byte[] data) {
@@ -86,15 +80,12 @@ public class XXHash32 {
     }
 
     /**
-     * Computes the 32-bit hash of the provided byte array, with the option to
-     * specify an offset and length of the data to be used.
+     * Computes the 32-bit hash of the provided byte array, with the option to specify
+     * an offset and length of the data to be used.
      * 
-     * @param data
-     *            The byte array to be hashed.
-     * @param offset
-     *            The starting index within the byte array.
-     * @param length
-     *            The number of bytes to hash.
+     * @param data The byte array to be hashed.
+     * @param offset The starting index within the byte array.
+     * @param length The number of bytes to hash.
      * @return The 32-bit hash value of the input data.
      */
     public int hash(byte[] data, int offset, int length) {
@@ -118,8 +109,8 @@ public class XXHash32 {
                 idx += 16;
             } while (idx <= end16);
 
-            h32 = ((v1 << 1) | (v1 >>> 31)) + ((v2 << 7) | (v2 >>> 25)) + ((v3 << 12) | (v3 >>> 20))
-                    + ((v4 << 18) | (v4 >>> 14));
+            h32 = ((v1 << 1) | (v1 >>> 31)) + ((v2 << 7) | (v2 >>> 25)) +
+                  ((v3 << 12) | (v3 >>> 20)) + ((v4 << 18) | (v4 >>> 14));
         } else {
             h32 = this.seed + PRIME32_5;
         }
@@ -150,10 +141,8 @@ public class XXHash32 {
     /**
      * Performs a single round of mixing for the hash value.
      * 
-     * @param acc
-     *            The accumulator value to be mixed.
-     * @param val
-     *            The value to be mixed with the accumulator.
+     * @param acc The accumulator value to be mixed.
+     * @param val The value to be mixed with the accumulator.
      * @return The new mixed accumulator value.
      */
     private static int round(int acc, int val) {
@@ -161,3 +150,4 @@ public class XXHash32 {
         return ((acc << 13) | (acc >>> 19)) * PRIME32_1;
     }
 }
+

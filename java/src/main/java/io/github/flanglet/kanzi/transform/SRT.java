@@ -1,13 +1,10 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
+ * Copyright 2011-2025 Frederic Langlet
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- *
  * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *                 http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,8 +20,8 @@ import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 /**
- * Sorted Rank Transform is typically used after a BWT to reduce the variance of
- * the data prior to entropy coding.
+ * Sorted Rank Transform is typically used after a BWT to reduce the variance
+ * of the data prior to entropy coding.
  */
 public class SRT implements ByteTransform {
     private static final int MAX_HEADER_SIZE = 4 * 256;
@@ -51,8 +48,7 @@ public class SRT implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx
-     *            the context map
+     * @param ctx the context map
      */
     public SRT(Map<String, Object> ctx) {
         this.freqs = new int[256];
@@ -66,10 +62,8 @@ public class SRT implements ByteTransform {
     /**
      * Performs the forward transform, encoding the input data.
      *
-     * @param input
-     *            the input byte array
-     * @param output
-     *            the output byte array
+     * @param input  the input byte array
+     * @param output the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -95,7 +89,7 @@ public class SRT implements ByteTransform {
             _freqs[i] = 0;
 
         // find first symbols and count occurrences
-        for (int i = input.index, b = 0; i < srcEnd;) {
+        for (int i = input.index, b = 0; i < srcEnd; ) {
             final byte val = src[i];
             final int c = val & 0xFF;
 
@@ -131,7 +125,7 @@ public class SRT implements ByteTransform {
         final byte[] dst = output.array;
 
         // encoding
-        for (int i = 0; i < count;) {
+        for (int i = 0; i < count; ) {
             final int c = src[i] & 0xFF;
             int r = _s2r[c] & 0xFF;
             int p = _buckets[c];
@@ -168,10 +162,8 @@ public class SRT implements ByteTransform {
     /**
      * Performs the inverse transform, decoding the input data.
      *
-     * @param input
-     *            the input byte array
-     * @param output
-     *            the output byte array
+     * @param input  the input byte array
+     * @param output the output byte array
      * @return true if the transform was successful, false otherwise
      */
     @Override
@@ -254,10 +246,8 @@ public class SRT implements ByteTransform {
     /**
      * Preprocesses the input frequencies and symbols.
      *
-     * @param freqs
-     *            the frequencies array
-     * @param symbols
-     *            the symbols array
+     * @param freqs   the frequencies array
+     * @param symbols the symbols array
      * @return the number of symbols
      */
     private static int preprocess(int[] freqs, byte[] symbols) {
@@ -282,8 +272,7 @@ public class SRT implements ByteTransform {
                 final int t = symbols[i] & 0xFF;
                 int b = i - h;
 
-                while ((b >= 0) && ((freqs[symbols[b] & 0xFF] < freqs[t])
-                        || ((freqs[t] == freqs[symbols[b] & 0xFF]) && (t < (symbols[b] & 0xFF))))) {
+                while ((b >= 0) && ((freqs[symbols[b] & 0xFF] < freqs[t]) || ((freqs[t] == freqs[symbols[b] & 0xFF]) && (t < (symbols[b] & 0xFF))))) {
                     symbols[b + h] = symbols[b];
                     b -= h;
                 }
@@ -301,12 +290,9 @@ public class SRT implements ByteTransform {
     /**
      * Encodes the header.
      *
-     * @param freqs
-     *            the frequencies array
-     * @param dst
-     *            the destination byte array
-     * @param dstIdx
-     *            the current index in the destination array
+     * @param freqs the frequencies array
+     * @param dst   the destination byte array
+     * @param dstIdx the current index in the destination array
      * @return the updated index in the destination array
      */
     private static int encodeHeader(int[] freqs, byte[] dst, int dstIdx) {
@@ -327,12 +313,9 @@ public class SRT implements ByteTransform {
     /**
      * Decodes the header.
      *
-     * @param src
-     *            the source byte array
-     * @param srcIdx
-     *            the current index in the source array
-     * @param freqs
-     *            the frequencies array
+     * @param src   the source byte array
+     * @param srcIdx the current index in the source array
+     * @param freqs  the frequencies array
      * @return the updated index in the source array
      */
     private static int decodeHeader(byte[] src, int srcIdx, int[] freqs) {
@@ -358,11 +341,9 @@ public class SRT implements ByteTransform {
     }
 
     /**
-     * Returns the maximum encoded length, which includes some extra buffer for
-     * incompressible data.
+     * Returns the maximum encoded length, which includes some extra buffer for incompressible data.
      *
-     * @param srcLen
-     *            the source length
+     * @param srcLen the source length
      * @return the maximum encoded length
      */
     @Override

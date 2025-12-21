@@ -1,41 +1,38 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright 2011-2025 Frederic Langlet
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+you may obtain a copy of the License at
+
+                http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package io.github.flanglet.kanzi;
 
 /**
- * This final class defines constants for various error codes used throughout
- * the application.
+ * This final class defines constants for various error codes used
+ * throughout the application.
  */
 public final class Error {
 
     /**
-     * Missing paraneter
+     *  Missing paraneter
      */
     public static final int ERR_MISSING_PARAM = 1;
 
     /**
-     * Invalid block size
+     *  Invalid block size
      */
     public static final int ERR_BLOCK_SIZE = 2;
 
     /**
-     * Invalid entropy coded
+     *  Invalid entropy coded
      */
     public static final int ERR_INVALID_CODEC = 3;
 
@@ -95,12 +92,12 @@ public final class Error {
     public static final int ERR_CREATE_CODEC = 14;
 
     /**
-     * Invalid file
+     *  Invalid file
      */
     public static final int ERR_INVALID_FILE = 15;
 
     /**
-     * Invalid or unsupported bit stream version
+     *  Invalid or unsupported bit stream version
      */
     public static final int ERR_STREAM_VERSION = 16;
 
@@ -120,7 +117,7 @@ public final class Error {
     public static final int ERR_CRC_CHECK = 19;
 
     /**
-     * Unknown error
+     *  Unknown error
      */
     public static final int ERR_UNKNOWN = 127;
 

@@ -1,20 +1,17 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright 2011-2025 Frederic Langlet
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+you may obtain a copy of the License at
+
+                http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package io.github.flanglet.kanzi.util.hash;
 
@@ -22,21 +19,20 @@ import io.github.flanglet.kanzi.Memory;
 
 /**
  * XXHash64 is an implementation of the 64-bit variant of the XXHash algorithm,
- * which is a fast non-cryptographic hash function. It is designed for
- * high-speed hashing, and is widely used for checksums and hashing large
- * amounts of data. This class allows for a configurable seed value, and
- * provides methods for hashing byte arrays of various lengths. Port to Java of
- * the original source code: https://github.com/Cyan4973/xxHash
+ * which is a fast non-cryptographic hash function. It is designed for high-speed
+ * hashing, and is widely used for checksums and hashing large amounts of data.
+ * This class allows for a configurable seed value, and provides methods for
+ * hashing byte arrays of various lengths.
+ * Port to Java of the original source code: https://github.com/Cyan4973/xxHash
  * 
- * <p>
- * The algorithm processes the input data in blocks and uses a combination of
+ * <p>The algorithm processes the input data in blocks and uses a combination of
  * mix functions and bitwise operations to produce a hash value. It is optimized
  * for 64-bit platforms and can be used for general-purpose hashing where
  * cryptographic security is not a concern.
  * 
  */
 public class XXHash64 {
-
+    
     // Constants used in the hashing algorithm
     private static final long PRIME64_1 = 0x9E3779B185EBCA87L;
     private static final long PRIME64_2 = 0xC2B2AE3D27D4EB4FL;
@@ -48,8 +44,8 @@ public class XXHash64 {
     private long seed;
 
     /**
-     * Default constructor that initializes the hash function with a seed based on
-     * the current system time in nanoseconds.
+     * Default constructor that initializes the hash function with a seed based on the
+     * current system time in nanoseconds.
      */
     public XXHash64() {
         this(System.nanoTime());
@@ -58,30 +54,27 @@ public class XXHash64 {
     /**
      * Constructs an XXHash64 instance with a specified seed.
      * 
-     * @param seed
-     *            The seed value to be used in the hash computation.
+     * @param seed The seed value to be used in the hash computation.
      */
     public XXHash64(long seed) {
         this.seed = seed;
     }
 
     /**
-     * Sets the seed value for the hash computation. This allows for custom seed
-     * values to modify the output hash.
+     * Sets the seed value for the hash computation. This allows for custom seed values
+     * to modify the output hash.
      * 
-     * @param seed
-     *            The new seed value.
+     * @param seed The new seed value.
      */
     public void setSeed(long seed) {
         this.seed = seed;
     }
 
     /**
-     * Computes the 64-bit hash of the provided byte array. This method uses the
-     * entire byte array, starting from index 0.
+     * Computes the 64-bit hash of the provided byte array.
+     * This method uses the entire byte array, starting from index 0.
      * 
-     * @param data
-     *            The byte array to be hashed.
+     * @param data The byte array to be hashed.
      * @return The 64-bit hash value of the input data.
      */
     public long hash(byte[] data) {
@@ -89,15 +82,12 @@ public class XXHash64 {
     }
 
     /**
-     * Computes the 64-bit hash of the provided byte array, with the option to
-     * specify an offset and length of the data to be used.
+     * Computes the 64-bit hash of the provided byte array, with the option to specify
+     * an offset and length of the data to be used.
      * 
-     * @param data
-     *            The byte array to be hashed.
-     * @param offset
-     *            The starting index within the byte array.
-     * @param length
-     *            The number of bytes to hash.
+     * @param data The byte array to be hashed.
+     * @param offset The starting index within the byte array.
+     * @param length The number of bytes to hash.
      * @return The 64-bit hash value of the input data.
      */
     public long hash(byte[] data, int offset, int length) {
@@ -121,8 +111,8 @@ public class XXHash64 {
                 idx += 32;
             } while (idx <= end32);
 
-            h64 = ((v1 << 1) | (v1 >>> 31)) + ((v2 << 7) | (v2 >>> 25)) + ((v3 << 12) | (v3 >>> 20))
-                    + ((v4 << 18) | (v4 >>> 14));
+            h64 = ((v1 << 1) | (v1 >>> 31)) + ((v2 << 7) | (v2 >>> 25)) +
+                  ((v3 << 12) | (v3 >>> 20)) + ((v4 << 18) | (v4 >>> 14));
 
             // Finalization
             h64 = mergeRound(h64, v1);
@@ -165,10 +155,8 @@ public class XXHash64 {
     /**
      * Performs a single round of mixing for the hash value.
      * 
-     * @param acc
-     *            The accumulator value to be mixed.
-     * @param val
-     *            The value to be mixed with the accumulator.
+     * @param acc The accumulator value to be mixed.
+     * @param val The value to be mixed with the accumulator.
      * @return The new mixed accumulator value.
      */
     private static long round(long acc, long val) {
@@ -177,13 +165,10 @@ public class XXHash64 {
     }
 
     /**
-     * Merges an additional value into the accumulator during the finalization
-     * phase.
+     * Merges an additional value into the accumulator during the finalization phase.
      * 
-     * @param acc
-     *            The current accumulator value.
-     * @param val
-     *            The value to be merged into the accumulator.
+     * @param acc The current accumulator value.
+     * @param val The value to be merged into the accumulator.
      * @return The updated accumulator value.
      */
     private static long mergeRound(long acc, long val) {
@@ -191,3 +176,5 @@ public class XXHash64 {
         return acc * PRIME64_1 + PRIME64_4;
     }
 }
+
+

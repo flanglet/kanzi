@@ -1,13 +1,10 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
+ * Copyright 2011-2025 Frederic Langlet
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- *
  * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *                 http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,18 +20,19 @@ import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 /**
- * Sort By Rank Transform is a family of transforms typically used after a BWT
- * to reduce the variance of the data prior to entropy coding. SBR(alpha) is
- * defined by sbr(x, alpha) = (1-alpha)*(t-w1(x,t)) + alpha*(t-w2(x,t)) where x
- * is an item in the data list, t is the current access time and wk(x,t) is the
- * k-th access time to x at time t (with alpha in [0..1]). See [Two new families
- * of list update algorithms] by Frank Schulz for details. SBR(0)= Move to Front
- * Transform SBR(1)= Time Stamp Transform This code implements SBR(0), SBR(1/2)
- * and SBR(1). Code derived from openBWT.
+ * Sort By Rank Transform is a family of transforms typically used after
+ * a BWT to reduce the variance of the data prior to entropy coding.
+ * SBR(alpha) is defined by sbr(x, alpha) = (1-alpha)*(t-w1(x,t)) + alpha*(t-w2(x,t))
+ * where x is an item in the data list, t is the current access time and wk(x,t) is
+ * the k-th access time to x at time t (with alpha in [0..1]).
+ * See [Two new families of list update algorithms] by Frank Schulz for details.
+ * SBR(0)= Move to Front Transform
+ * SBR(1)= Time Stamp Transform
+ * This code implements SBR(0), SBR(1/2) and SBR(1). Code derived from openBWT.
  */
 public class SBRT implements ByteTransform {
-    public static final int MODE_MTF = 1; // alpha = 0
-    public static final int MODE_RANK = 2; // alpha = 1/2
+    public static final int MODE_MTF = 1;       // alpha = 0
+    public static final int MODE_RANK = 2;      // alpha = 1/2
     public static final int MODE_TIMESTAMP = 3; // alpha = 1
 
     private final int[] prev;
@@ -53,8 +51,7 @@ public class SBRT implements ByteTransform {
     /**
      * Constructor with mode parameter.
      *
-     * @param mode
-     *            the mode of the transform
+     * @param mode the mode of the transform
      */
     public SBRT(int mode) {
         if ((mode != MODE_MTF) && (mode != MODE_RANK) && (mode != MODE_TIMESTAMP))
@@ -70,8 +67,7 @@ public class SBRT implements ByteTransform {
     /**
      * Constructor with a context map.
      *
-     * @param ctx
-     *            the context map
+     * @param ctx the context map
      */
     public SBRT(Map<String, Object> ctx) {
         final int m = (Integer) ctx.getOrDefault("sbrt", MODE_MTF);
@@ -207,8 +203,7 @@ public class SBRT implements ByteTransform {
     /**
      * Return the max size required for the encoding output buffer.
      *
-     * @param srcLength
-     *            the source length
+     * @param srcLength the source length
      * @return the max encoded length
      */
     @Override

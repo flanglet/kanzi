@@ -1,20 +1,17 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright 2011-2025 Frederic Langlet
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+you may obtain a copy of the License at
+
+                http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package io.github.flanglet.kanzi.transform;
 
@@ -32,40 +29,42 @@ import io.github.flanglet.kanzi.SliceByteArray;
  * <p>
  * It can be configured to operate in a mode optimized for DNA sequences.
  */
-public class AliasCodec implements ByteTransform {
+public class AliasCodec implements ByteTransform
+{
     private static final int MIN_BLOCK_SIZE = 1024;
     private final Map<String, Object> ctx;
     private final boolean onlyDNA;
 
     /**
-     * Default constructor. Creates an AliasCodec instance with no specific context
-     * and not restricted to DNA data.
+     * Default constructor.
+     * Creates an AliasCodec instance with no specific context and not restricted to DNA data.
      */
-    public AliasCodec() {
+    public AliasCodec()
+    {
         this.ctx = null;
         this.onlyDNA = false;
     }
 
     /**
-     * Constructor with DNA restriction flag. Creates an AliasCodec instance with no
-     * specific context and optionally restricted to DNA data.
+     * Constructor with DNA restriction flag.
+     * Creates an AliasCodec instance with no specific context and optionally restricted to DNA data.
      *
-     * @param onlyDNA
-     *            if true, restricts the transform to operate on DNA sequences only
+     * @param onlyDNA if true, restricts the transform to operate on DNA sequences only
      */
-    public AliasCodec(boolean onlyDNA) {
+    public AliasCodec(boolean onlyDNA)
+    {
         this.ctx = null;
         this.onlyDNA = onlyDNA;
     }
 
     /**
-     * Constructor with context. Creates an AliasCodec instance with a specific
-     * context.
+     * Constructor with context.
+     * Creates an AliasCodec instance with a specific context.
      *
-     * @param ctx
-     *            the context containing configuration parameters
+     * @param ctx the context containing configuration parameters
      */
-    public AliasCodec(Map<String, Object> ctx) {
+    public AliasCodec(Map<String, Object> ctx)
+    {
         this.ctx = ctx;
         this.onlyDNA = (Boolean) this.ctx.getOrDefault("packOnlyDNA", false);
     }
@@ -73,14 +72,13 @@ public class AliasCodec implements ByteTransform {
     /**
      * Performs the forward transformation on the input data.
      *
-     * @param input
-     *            the input data to be transformed
-     * @param output
-     *            the buffer to store the transformed data
+     * @param input the input data to be transformed
+     * @param output the buffer to store the transformed data
      * @return true if the transformation was successful, false otherwise
      */
     @Override
-    public boolean forward(SliceByteArray input, SliceByteArray output) {
+    public boolean forward(SliceByteArray input, SliceByteArray output)
+    {
         if (input.length == 0)
             return true;
 
@@ -97,7 +95,8 @@ public class AliasCodec implements ByteTransform {
 
         Global.DataType dt = Global.DataType.UNDEFINED;
 
-        if (this.ctx != null) {
+        if (this.ctx != null)
+        {
             dt = (Global.DataType) this.ctx.getOrDefault("dataType", Global.DataType.UNDEFINED);
 
             if ((dt == Global.DataType.MULTIMEDIA) || (dt == Global.DataType.UTF8))
@@ -121,7 +120,8 @@ public class AliasCodec implements ByteTransform {
         int n0 = 0;
         int[] absent = new int[256];
 
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < 256; i++)
+        {
             if (freqs0[i] == 0)
                 absent[n0++] = i;
         }
@@ -129,7 +129,8 @@ public class AliasCodec implements ByteTransform {
         if (n0 < 16)
             return false;
 
-        if (dt == Global.DataType.UNDEFINED) {
+        if (dt == Global.DataType.UNDEFINED)
+        {
             dt = Global.detectSimpleType(count, freqs0);
 
             if ((this.ctx != null) && (dt != Global.DataType.UNDEFINED))
@@ -139,28 +140,35 @@ public class AliasCodec implements ByteTransform {
                 return false;
         }
 
-        if (n0 >= 240) {
+        if (n0 >= 240)
+        {
             // Small alphabet => pack bits
             dst[dstIdx++] = (byte) n0;
 
-            if (n0 == 255) {
+            if (n0 == 255)
+            {
                 // One symbol
                 dst[dstIdx++] = src[srcIdx];
                 Memory.LittleEndian.writeInt32(dst, dstIdx, count);
                 dstIdx += 4;
                 srcIdx += count;
-            } else {
+            }
+            else
+            {
                 int[] map8 = new int[256];
 
-                for (int i = 0, j = 0; i < 256; i++) {
-                    if (freqs0[i] != 0) {
+                for (int i = 0, j = 0; i < 256; i++)
+                {
+                    if (freqs0[i] != 0)
+                    {
                         dst[dstIdx++] = (byte) i;
                         map8[i] = j;
                         j++;
                     }
                 }
 
-                if (n0 >= 252) {
+                if (n0 >= 252)
+                {
                     // 4 symbols or less
                     dst[dstIdx++] = (byte) (count & 3);
 
@@ -173,26 +181,31 @@ public class AliasCodec implements ByteTransform {
                     if ((count & 3) > 0)
                         dst[dstIdx++] = src[srcIdx++];
 
-                    while (srcIdx < count) {
-                        dst[dstIdx++] = (byte) ((map8[src[srcIdx + 0] & 0xFF] << 6)
-                                | (map8[src[srcIdx + 1] & 0xFF] << 4) | (map8[src[srcIdx + 2] & 0xFF] << 2)
-                                | map8[src[srcIdx + 3] & 0xFF]);
+                    while (srcIdx < count)
+                    {
+                        dst[dstIdx++] = (byte) ((map8[src[srcIdx + 0] & 0xFF] << 6) | (map8[src[srcIdx + 1] & 0xFF] << 4) |
+                                                (map8[src[srcIdx + 2] & 0xFF] << 2) |  map8[src[srcIdx + 3] & 0xFF]);
                         srcIdx += 4;
                     }
-                } else {
+                }
+                else
+                {
                     // 16 symbols or less
                     dst[dstIdx++] = (byte) (count & 1);
 
                     if ((count & 1) != 0)
                         dst[dstIdx++] = src[srcIdx++];
 
-                    while (srcIdx < count) {
+                    while (srcIdx < count)
+                    {
                         dst[dstIdx++] = (byte) ((map8[src[srcIdx] & 0xFF] << 4) | map8[src[srcIdx + 1] & 0xFF]);
                         srcIdx += 2;
                     }
                 }
             }
-        } else {
+        }
+        else
+        {
             // Digram encoding
             TreeSet<Alias> t = new TreeSet<>();
 
@@ -202,15 +215,17 @@ public class AliasCodec implements ByteTransform {
                 Global.computeHistogramOrder1(src, srcIdx, count, freqs1, false);
                 int n1 = 0;
 
-                for (int i = 0; i < 65536; i++) {
-                    if (freqs1[i >> 8][i & 0xFF] == 0)
+                for (int i = 0; i < 65536; i++)
+                {
+                    if (freqs1[i>>8][i&0xFF] == 0)
                         continue;
 
-                    t.add(new Alias(i, freqs1[i >> 8][i & 0xFF]));
+                    t.add(new Alias(i, freqs1[i>>8][i&0xFF]));
                     n1++;
                 }
 
-                if (n1 < n0) {
+                if (n1 < n0)
+                {
                     // Fewer distinct 2-byte symbols than 1-byte symbols
                     n0 = n1;
 
@@ -223,15 +238,16 @@ public class AliasCodec implements ByteTransform {
 
             // Build map symbol -> alias
             for (int i = 0; i < 65536; i++)
-                map16[i] = (i >> 8) | 0x100;
+                map16[i] = (i>>8) | 0x100;
 
             int savings = 0;
             dst[output.index] = (byte) n0;
-            dst[output.index + 1] = (byte) 0;
+            dst[output.index+1] = (byte) 0;
             dstIdx += 2;
 
             // Header: emit map data
-            for (int i = 0; i < n0; i++) {
+            for (int i = 0; i < n0; i++)
+            {
                 Alias sd = t.pollFirst();
                 savings += sd.freq; // ignore factor 2
                 final int idx = sd.val;
@@ -243,20 +259,22 @@ public class AliasCodec implements ByteTransform {
             }
 
             // Worth it?
-            if (savings < count / 20)
+            if (savings < count/20)
                 return false;
 
             final int srcEnd = input.index + count - 1;
 
             // Emit aliased data
-            while (srcIdx < srcEnd) {
+            while (srcIdx < srcEnd)
+            {
                 final int alias = map16[((src[srcIdx] & 0xFF) << 8) | (src[srcIdx + 1] & 0xFF)];
                 dst[dstIdx++] = (byte) alias;
                 srcIdx += (alias >>> 8);
             }
 
-            if (srcIdx != count) {
-                dst[output.index + 1] = (byte) 1;
+            if (srcIdx != count)
+            {
+                dst[output.index+1] = (byte) 1;
                 dst[dstIdx++] = src[srcIdx++];
             }
         }
@@ -270,14 +288,13 @@ public class AliasCodec implements ByteTransform {
     /**
      * Performs the inverse transformation on the input data.
      *
-     * @param input
-     *            the transformed data to be reverted
-     * @param output
-     *            the buffer to store the original data
+     * @param input the transformed data to be reverted
+     * @param output the buffer to store the original data
      * @return true if the transformation was successful, false otherwise
      */
     @Override
-    public boolean inverse(SliceByteArray input, SliceByteArray output) {
+    public boolean inverse(SliceByteArray input, SliceByteArray output)
+    {
         if (input.length == 0)
             return true;
 
@@ -294,10 +311,12 @@ public class AliasCodec implements ByteTransform {
         if (n < 16)
             return false;
 
-        if (n >= 240) {
+        if (n >= 240)
+        {
             n = 256 - n;
 
-            if (n == 1) {
+            if (n == 1)
+            {
                 // One symbol
                 byte val = src[srcIdx++];
                 final int oSize = Memory.LittleEndian.readInt32(src, srcIdx);
@@ -310,7 +329,9 @@ public class AliasCodec implements ByteTransform {
 
                 srcIdx += count;
                 dstIdx += oSize;
-            } else {
+            }
+            else
+            {
                 byte[] idx2symb = new byte[16];
 
                 // Rebuild map alias -> symbol
@@ -322,13 +343,15 @@ public class AliasCodec implements ByteTransform {
                 if (adjust >= 4)
                     return false;
 
-                if (n <= 4) {
+                if (n <= 4)
+                {
                     // 4 symbols or less
                     int[] decodeMap = new int[256];
 
-                    for (int i = 0; i < 256; i++) {
+                    for (int i = 0; i < 256; i++)
+                    {
                         int val;
-                        val = (idx2symb[(i >> 0) & 0x03] & 0xFF);
+                        val  = (idx2symb[(i >> 0) & 0x03] & 0xFF);
                         val <<= 8;
                         val |= (idx2symb[(i >> 2) & 0x03] & 0xFF);
                         val <<= 8;
@@ -347,15 +370,19 @@ public class AliasCodec implements ByteTransform {
                     if (adjust > 2)
                         dst[dstIdx++] = src[srcIdx++];
 
-                    while (srcIdx < count) {
+                    while (srcIdx < count)
+                    {
                         Memory.LittleEndian.writeInt32(dst, dstIdx, decodeMap[src[srcIdx++] & 0xFF]);
                         dstIdx += 4;
                     }
-                } else {
+                }
+                else
+                {
                     // 16 symbols or less
                     int[] decodeMap = new int[256];
 
-                    for (int i = 0; i < 256; i++) {
+                    for (int i = 0; i < 256; i++)
+                    {
                         int val = (idx2symb[i & 0x0F] & 0xFF);
                         val <<= 8;
                         val |= (idx2symb[i >> 4] & 0xFF);
@@ -365,14 +392,17 @@ public class AliasCodec implements ByteTransform {
                     if (adjust != 0)
                         dst[dstIdx++] = src[srcIdx++];
 
-                    while (srcIdx < count) {
+                    while (srcIdx < count)
+                    {
                         final int val = decodeMap[src[srcIdx++] & 0xFF];
                         Memory.LittleEndian.writeInt16(dst, dstIdx, val);
                         dstIdx += 2;
                     }
                 }
             }
-        } else {
+        }
+        else
+        {
             // Rebuild map alias -> symbol
             final int adjust = src[srcIdx++] & 0xFF;
             final int srcEnd = input.index + count - adjust;
@@ -381,12 +411,14 @@ public class AliasCodec implements ByteTransform {
             for (int i = 0; i < 256; i++)
                 map16[i] = 0x10000 | i;
 
-            for (int i = 0; i < n; i++) {
+            for (int i = 0; i < n; i++)
+            {
                 map16[src[srcIdx + 2] & 0xFF] = 0x20000 | (src[srcIdx] & 0xFF) | ((src[srcIdx + 1] & 0xFF) << 8);
                 srcIdx += 3;
             }
 
-            while (srcIdx < srcEnd) {
+            while (srcIdx < srcEnd)
+            {
                 final int val = map16[src[srcIdx++] & 0xFF];
                 dst[dstIdx] = (byte) val;
                 dst[dstIdx + 1] = (byte) (val >>> 8);
@@ -405,32 +437,32 @@ public class AliasCodec implements ByteTransform {
     /**
      * Returns the maximum length of the encoded data.
      *
-     * @param srcLen
-     *            the length of the source data
+     * @param srcLen the length of the source data
      * @return the maximum length of the encoded data
      */
     @Override
-    public int getMaxEncodedLength(int srcLen) {
+    public int getMaxEncodedLength(int srcLen)
+    {
         return srcLen + 1024;
     }
 
     /**
-     * The Alias class represents a mapping between a symbol and its frequency. It
-     * is used to facilitate the aliasing process in the transformation.
+     * The Alias class represents a mapping between a symbol and its frequency.
+     * It is used to facilitate the aliasing process in the transformation.
      */
-    static class Alias implements Comparable<Alias> {
+    static class Alias implements Comparable<Alias>
+    {
         public final int val;
         public final int freq;
 
         /**
          * Constructs an Alias instance with the specified value and frequency.
          *
-         * @param val
-         *            the value of the symbol
-         * @param freq
-         *            the frequency of the symbol
+         * @param val the value of the symbol
+         * @param freq the frequency of the symbol
          */
-        public Alias(int val, int freq) {
+        public Alias(int val, int freq)
+        {
             this.val = val;
             this.freq = freq;
         }
@@ -438,13 +470,13 @@ public class AliasCodec implements ByteTransform {
         /**
          * Compares this Alias object with another for order.
          *
-         * @param other
-         *            the other Alias object to be compared
+         * @param other the other Alias object to be compared
          * @return a negative integer, zero, or a positive integer as this object is
-         *         less than, equal to, or greater than the specified object
+         * less than, equal to, or greater than the specified object
          */
         @Override
-        public int compareTo(Alias other) {
+        public int compareTo(Alias other)
+        {
             if (other == this)
                 return 0;
 
@@ -462,12 +494,12 @@ public class AliasCodec implements ByteTransform {
         /**
          * Indicates whether some other object is "equal to" this one.
          *
-         * @param other
-         *            the reference object with which to compare
+         * @param other the reference object with which to compare
          * @return true if this object is the same as the obj argument; false otherwise
          */
         @Override
-        public boolean equals(Object other) {
+        public boolean equals(Object other)
+        {
             if (other == this)
                 return true;
 
@@ -487,7 +519,8 @@ public class AliasCodec implements ByteTransform {
          * @return a hash code value for this object
          */
         @Override
-        public int hashCode() {
+        public int hashCode()
+        {
             int hash = 7;
             hash = 19 * hash + this.val;
             hash = 19 * hash + this.freq;

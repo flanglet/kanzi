@@ -1,26 +1,23 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright 2011-2025 Frederic Langlet
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+you may obtain a copy of the License at
+
+                http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package io.github.flanglet.kanzi;
 
 /**
- * This class represents exceptions specific to bit stream operations. It
- * provides different error codes to identify various error conditions.
+ * This class represents exceptions specific to bit stream operations.
+ * It provides different error codes to identify various error conditions.
  */
 public class BitStreamException extends RuntimeException {
 
@@ -61,13 +58,11 @@ public class BitStreamException extends RuntimeException {
     }
 
     /**
-     * Constructs a {@code BitStreamException} with the specified detail message and
-     * error code.
+     * Constructs a {@code BitStreamException} with the specified detail message
+     * and error code.
      *
-     * @param message
-     *            the detail message
-     * @param code
-     *            the error code
+     * @param message the detail message
+     * @param code the error code
      */
     public BitStreamException(String message, int code) {
         super(message);
@@ -78,12 +73,9 @@ public class BitStreamException extends RuntimeException {
      * Constructs a {@code BitStreamException} with the specified detail message,
      * cause, and error code.
      *
-     * @param message
-     *            the detail message
-     * @param cause
-     *            the cause
-     * @param code
-     *            the error code
+     * @param message the detail message
+     * @param cause the cause
+     * @param code the error code
      */
     public BitStreamException(String message, Throwable cause, int code) {
         super(message, cause);
@@ -91,13 +83,11 @@ public class BitStreamException extends RuntimeException {
     }
 
     /**
-     * Constructs a {@code BitStreamException} with the specified cause and error
-     * code.
+     * Constructs a {@code BitStreamException} with the specified cause
+     * and error code.
      *
-     * @param cause
-     *            the cause
-     * @param code
-     *            the error code
+     * @param cause the cause
+     * @param code the error code
      */
     public BitStreamException(Throwable cause, int code) {
         super(cause);

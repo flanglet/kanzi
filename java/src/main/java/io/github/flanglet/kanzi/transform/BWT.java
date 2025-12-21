@@ -1,20 +1,17 @@
 /*
- * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
- *
- * Copyright (C) 2011-2025 Frederic Langlet
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright 2011-2025 Frederic Langlet
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+you may obtain a copy of the License at
+
+                http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package io.github.flanglet.kanzi.transform;
 
@@ -32,30 +29,39 @@ import io.github.flanglet.kanzi.SliceByteArray;
  * The Burrows-Wheeler Transform (BWT) is a reversible transform based on
  * permutation of the data in the original message to reduce the entropy.
  * <p>
- * The initial text can be found here: Burrows M and Wheeler D, [A block sorting
- * lossless data compression algorithm] Technical Report 124, Digital Equipment
- * Corporation, 1994
+ * The initial text can be found here:
+ * Burrows M and Wheeler D, [A block sorting lossless data compression algorithm]
+ * Technical Report 124, Digital Equipment Corporation, 1994
  * <p>
  * See also Peter Fenwick, [Block sorting text compression - final report]
  * Technical Report 130, 1996
  * <p>
- * This implementation replaces the 'slow' sorting of permutation strings with
- * the construction of a suffix array (faster but more complex). The suffix
- * array contains the indexes of the sorted suffixes.
+ * This implementation replaces the 'slow' sorting of permutation strings
+ * with the construction of a suffix array (faster but more complex).
+ * The suffix array contains the indexes of the sorted suffixes.
  * <p>
- * E.G. 0123456789A Source: mississippi\0 Suffixes: rank sorted mississippi\0 0
- * -&gt; 4 i\0 ississippi\0 1 -&gt; 3 ippi\0 ssissippi\0 2 -&gt; 10 issippi\0
- * sissippi\0 3 -&gt; 8 ississippi\0 issippi\0 4 -&gt; 2 mississippi\0 ssippi\0
- * 5 -&gt; 9 pi\0 sippi\0 6 -&gt; 7 ppi\0 ippi\0 7 -&gt; 1 sippi\0 ppi\0 8 -&gt;
- * 6 sissippi\0 pi\0 9 -&gt; 5 ssippi\0 i\0 10 -&gt; 0 ssissippi\0 Suffix array
- * SA: 10 7 4 1 0 9 8 6 3 5 2 BWT[i] = input[SA[i]-1] =&gt; BWT(input) =
- * ipssmpissii (+ primary index 5) The suffix array and permutation vector are
- * equal when the input is 0 terminated The insertion of a guard is done
- * internally and is entirely transparent.
+ * E.G.    0123456789A
+ * Source: mississippi\0
+ * Suffixes:    rank  sorted
+ * mississippi\0  0  -&gt; 4             i\0
+ *  ississippi\0  1  -&gt; 3          ippi\0
+ *   ssissippi\0  2  -&gt; 10      issippi\0
+ *    sissippi\0  3  -&gt; 8    ississippi\0
+ *     issippi\0  4  -&gt; 2   mississippi\0
+ *      ssippi\0  5  -&gt; 9            pi\0
+ *       sippi\0  6  -&gt; 7           ppi\0
+ *        ippi\0  7  -&gt; 1         sippi\0
+ *         ppi\0  8  -&gt; 6      sissippi\0
+ *          pi\0  9  -&gt; 5        ssippi\0
+ *           i\0  10 -&gt; 0     ssissippi\0
+ * Suffix array SA: 10 7 4 1 0 9 8 6 3 5 2
+ * BWT[i] = input[SA[i]-1] =&gt; BWT(input) = ipssmpissii (+ primary index 5)
+ * The suffix array and permutation vector are equal when the input is 0 terminated
+ * The insertion of a guard is done internally and is entirely transparent.
  * <p>
- * This implementation extends the canonical algorithm to use up to MAX_CHUNKS
- * primary indexes (based on input block size). Each primary index corresponds
- * to a data chunk. Chunks may be inverted concurrently.
+ * This implementation extends the canonical algorithm to use up to MAX_CHUNKS primary
+ * indexes (based on input block size). Each primary index corresponds to a data chunk.
+ * Chunks may be inverted concurrently.
  */
 public class BWT implements ByteTransform {
 
@@ -90,11 +96,8 @@ public class BWT implements ByteTransform {
     /**
      * Number of jobs provided in the context.
      *
-     * @param ctx
-     *            the context containing the number of jobs and the thread pool
-     * @throws IllegalArgumentException
-     *             if the number of jobs is not positive or the thread pool is null
-     *             when the number of jobs is greater than 1
+     * @param ctx the context containing the number of jobs and the thread pool
+     * @throws IllegalArgumentException if the number of jobs is not positive or the thread pool is null when the number of jobs is greater than 1
      */
     public BWT(Map<String, Object> ctx) {
         final int tasks = (ctx == null) ? 1 : (Integer) ctx.get("jobs");
@@ -119,8 +122,7 @@ public class BWT implements ByteTransform {
     /**
      * Returns the primary index for the given chunk.
      *
-     * @param n
-     *            the chunk number
+     * @param n the chunk number
      * @return the primary index for the given chunk
      */
     public int getPrimaryIndex(int n) {
@@ -130,10 +132,8 @@ public class BWT implements ByteTransform {
     /**
      * Sets the primary index for the given chunk.
      *
-     * @param n
-     *            the chunk number
-     * @param primaryIndex
-     *            the primary index to set
+     * @param n            the chunk number
+     * @param primaryIndex the primary index to set
      * @return true if the primary index was set successfully, false otherwise
      */
     public boolean setPrimaryIndex(int n, int primaryIndex) {
@@ -147,13 +147,10 @@ public class BWT implements ByteTransform {
     /**
      * Forward transform.
      *
-     * @param src
-     *            the source byte array
-     * @param dst
-     *            the destination byte array
+     * @param src the source byte array
+     * @param dst the destination byte array
      * @return true if the transform was successful, false otherwise
-     * @throws IllegalArgumentException
-     *             if the source length exceeds the maximum block size
+     * @throws IllegalArgumentException if the source length exceeds the maximum block size
      */
     @Override
     public boolean forward(SliceByteArray src, SliceByteArray dst) {
@@ -185,8 +182,8 @@ public class BWT implements ByteTransform {
         if (this.buffer1.length < count)
             this.buffer1 = new int[count];
 
-        this.saAlgo.computeBWT(src.array, dst.array, this.buffer1, src.index, dst.index, count, this.primaryIndexes,
-                getBWTChunks(count));
+        this.saAlgo.computeBWT(src.array, dst.array, this.buffer1, src.index, dst.index, count,
+                this.primaryIndexes, getBWTChunks(count));
         src.index += count;
         dst.index += count;
         return true;
@@ -195,13 +192,10 @@ public class BWT implements ByteTransform {
     /**
      * Inverse transform.
      *
-     * @param src
-     *            the source byte array
-     * @param dst
-     *            the destination byte array
+     * @param src the source byte array
+     * @param dst the destination byte array
      * @return true if the transform was successful, false otherwise
-     * @throws IllegalArgumentException
-     *             if the source length exceeds the maximum block size
+     * @throws IllegalArgumentException if the source length exceeds the maximum block size
      */
     @Override
     public boolean inverse(SliceByteArray src, SliceByteArray dst) {
@@ -236,12 +230,9 @@ public class BWT implements ByteTransform {
     /**
      * Inverse transform using the mergeTPSI algorithm.
      *
-     * @param src
-     *            the source byte array
-     * @param dst
-     *            the destination byte array
-     * @param count
-     *            the number of bytes to process
+     * @param src   the source byte array
+     * @param dst   the destination byte array
+     * @param count the number of bytes to process
      * @return true if the transform was successful, false otherwise
      */
     private boolean inverseMergeTPSI(SliceByteArray src, SliceByteArray dst, int count) {
@@ -307,8 +298,8 @@ public class BWT implements ByteTransform {
             if ((t0 < 0) || (t1 < 0) || (t2 < 0) || (t3 < 0) || (t4 < 0) || (t5 < 0) || (t6 < 0) || (t7 < 0))
                 return false;
 
-            if ((t0 >= count) || (t1 >= count) || (t2 >= count) || (t3 >= count) || (t4 >= count) || (t5 >= count)
-                    || (t6 >= count) || (t7 >= count))
+            if ((t0 >= count) || (t1 >= count) || (t2 >= count) || (t3 >= count) ||
+                    (t4 >= count) || (t5 >= count) || (t6 >= count) || (t7 >= count))
                 return false;
 
             // Last interval [7*chunk:count] smaller when 8*ckSize != count
@@ -377,12 +368,9 @@ public class BWT implements ByteTransform {
     /**
      * Inverse transform using the biPSIv2 algorithm.
      *
-     * @param src
-     *            the source byte array
-     * @param dst
-     *            the destination byte array
-     * @param count
-     *            the number of bytes to process
+     * @param src   the source byte array
+     * @param dst   the destination byte array
+     * @param count the number of bytes to process
      * @return true if the transform was successful, false otherwise
      */
     private boolean inverseBiPSIv2(SliceByteArray src, SliceByteArray dst, int count) {
@@ -465,7 +453,7 @@ public class BWT implements ByteTransform {
             final int p = freqs_[c];
             freqs_[c]++;
             if (p < pIdx) {
-                final int idx = (c << 8) | (input[srcIdx + p] & 0xFF);
+				final int idx = (c << 8) | (input[srcIdx + p] & 0xFF);
                 data[b[idx]] = i;
                 b[idx]++;
             } else if (p > pIdx) {
@@ -552,8 +540,7 @@ public class BWT implements ByteTransform {
     /**
      * Returns the number of BWT chunks based on the input size.
      *
-     * @param size
-     *            the input size
+     * @param size the input size
      * @return the number of BWT chunks
      */
     public static int getBWTChunks(int size) {
@@ -565,29 +552,24 @@ public class BWT implements ByteTransform {
      */
     class InverseBiPSIv2Task implements Callable<Integer> {
         private final byte[] output;
-        private final int dstIdx; // initial offset
-        private final int ckSize; // chunk size, must be adjusted to not go over total
-        private final int total; // max number of bytes to process
+        private final int dstIdx;     // initial offset
+        private final int ckSize;     // chunk size, must be adjusted to not go over total
+        private final int total;      // max number of bytes to process
         private final int firstChunk; // index first chunk
-        private final int lastChunk; // index last chunk
+        private final int lastChunk;  // index last chunk
 
         /**
          * Constructs an InverseBiPSIv2Task.
          *
-         * @param output
-         *            the output byte array
-         * @param dstIdx
-         *            the initial offset
-         * @param total
-         *            the maximum number of bytes to process
-         * @param ckSize
-         *            the chunk size
-         * @param firstChunk
-         *            the index of the first chunk
-         * @param lastChunk
-         *            the index of the last chunk
+         * @param output      the output byte array
+         * @param dstIdx      the initial offset
+         * @param total       the maximum number of bytes to process
+         * @param ckSize      the chunk size
+         * @param firstChunk  the index of the first chunk
+         * @param lastChunk   the index of the last chunk
          */
-        public InverseBiPSIv2Task(byte[] output, int dstIdx, int total, int ckSize, int firstChunk, int lastChunk) {
+        public InverseBiPSIv2Task(byte[] output, int dstIdx, int total,
+                                  int ckSize, int firstChunk, int lastChunk) {
             this.output = output;
             this.dstIdx = dstIdx;
             this.ckSize = ckSize;
@@ -679,8 +661,7 @@ public class BWT implements ByteTransform {
     /**
      * Returns the maximum size required for the encoding output buffer.
      *
-     * @param srcLength
-     *            the source length
+     * @param srcLength the source length
      * @return the maximum encoded length
      */
     @Override
