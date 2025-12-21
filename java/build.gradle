@@ -213,7 +213,7 @@ test {
 }
 
 license {
-    rule(file("../java/LICENSE"))
+    rule(file("../java/LICENSE_HEADER"))
     include("**/*.java") // Include Java files into the file resolution.
     exclude("**/*.properties") // Exclude properties files from the file resolution.
 }
