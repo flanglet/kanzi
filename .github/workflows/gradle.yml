@@ -31,7 +31,7 @@ jobs:
         uses: gradle/actions/setup-gradle@main
 
       - name: Run Gradle Check
-        run: cd ./java && ./gradlew check -x license -x pmdMain -x pmdTest -x checkstyleMain -x checkstyleTest -x spotlessJavaCheck -x test
+        run: cd ./java && ./gradlew check -x pmdMain -x pmdTest -x checkstyleMain -x checkstyleTest
 
 
   gradle_publish:
@@ -54,7 +54,7 @@ jobs:
         uses: gradle/actions/setup-gradle@main
 
       - name: Publish with Gradle
-        run: cd ./java && ./gradlew publish -x license -x pmdMain -x pmdTest -x checkstyleMain -x checkstyleTest -x spotlessJavaCheck -x test
+        run: cd ./java && ./gradlew publish -x pmdMain -x pmdTest -x checkstyleMain -x checkstyleTest
         env:
           ossrhUsername: ${{ secrets.OSSRHUSERNAME }}
           ossrhPassword: ${{ secrets.OSSRHPASSWORD }}
