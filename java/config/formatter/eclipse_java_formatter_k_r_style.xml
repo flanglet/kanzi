@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<profiles version="13">
+    <profile kind="CodeFormatterProfile" name="KRStyle" version="13">
+
+        <!-- K&R brace style -->
+        <setting id="org.eclipse.jdt.core.formatter.brace_position_for_type_declaration" value="end_of_line"/>
+        <setting id="org.eclipse.jdt.core.formatter.brace_position_for_method_declaration" value="end_of_line"/>
+        <setting id="org.eclipse.jdt.core.formatter.brace_position_for_constructor_declaration" value="end_of_line"/>
+        <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block" value="end_of_line"/>
+        <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block_in_case" value="end_of_line"/>
+        <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_declaration" value="end_of_line"/>
+        <setting id="org.eclipse.jdt.core.formatter.brace_position_for_switch" value="end_of_line"/>
+
+        <!-- Indentation -->
+        <setting id="org.eclipse.jdt.core.formatter.tabulation.char" value="space"/>
+        <setting id="org.eclipse.jdt.core.formatter.tabulation.size" value="4"/>
+        <setting id="org.eclipse.jdt.core.formatter.indentation.size" value="4"/>
+
+        <!-- Line length -->
+        <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
+
+        <!-- Keep compact else-if -->
+        <setting id="org.eclipse.jdt.core.formatter.compact_else_if" value="true"/>
+
+        <!-- EVERYTHING ELSE: unchanged from Google profile -->
+    </profile>
+</profiles>
