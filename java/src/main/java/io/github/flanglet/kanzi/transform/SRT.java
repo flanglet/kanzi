@@ -1,10 +1,13 @@
 /*
- * Copyright 2011-2025 Frederic Langlet
+ * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
+ *
+ * Copyright (C) 2025 Frederic Langlet
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *                 http://www.apache.org/licenses/LICENSE-2.0
+ * You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,334 +23,335 @@ import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 /**
- * Sorted Rank Transform is typically used after a BWT to reduce the variance
- * of the data prior to entropy coding.
+ * Sorted Rank Transform is typically used after a BWT to reduce the variance of the data prior to
+ * entropy coding.
  */
 public class SRT implements ByteTransform {
-    private static final int MAX_HEADER_SIZE = 4 * 256;
+  private static final int MAX_HEADER_SIZE = 4 * 256;
 
-    private final int[] freqs;
-    private final byte[] symbols;
-    private final int[] r2s;
-    private final int[] s2r;
-    private final int[] buckets;
-    private final int[] bucketEnds;
+  private final int[] freqs;
+  private final byte[] symbols;
+  private final int[] r2s;
+  private final int[] s2r;
+  private final int[] buckets;
+  private final int[] bucketEnds;
 
-    /**
-     * Default constructor.
-     */
-    public SRT() {
-        this.freqs = new int[256];
-        this.symbols = new byte[256];
-        this.r2s = new int[256];
-        this.s2r = new int[256];
-        this.buckets = new int[256];
-        this.bucketEnds = new int[256];
+  /**
+   * Default constructor.
+   */
+  public SRT() {
+    this.freqs = new int[256];
+    this.symbols = new byte[256];
+    this.r2s = new int[256];
+    this.s2r = new int[256];
+    this.buckets = new int[256];
+    this.bucketEnds = new int[256];
+  }
+
+  /**
+   * Constructor with a context map.
+   *
+   * @param ctx the context map
+   */
+  public SRT(Map<String, Object> ctx) {
+    this.freqs = new int[256];
+    this.symbols = new byte[256];
+    this.r2s = new int[256];
+    this.s2r = new int[256];
+    this.buckets = new int[256];
+    this.bucketEnds = new int[256];
+  }
+
+  /**
+   * Performs the forward transform, encoding the input data.
+   *
+   * @param input the input byte array
+   * @param output the output byte array
+   * @return true if the transform was successful, false otherwise
+   */
+  @Override
+  public boolean forward(SliceByteArray input, SliceByteArray output) {
+    if (input.length == 0)
+      return true;
+
+    if (input.array == output.array)
+      return false;
+
+    final int count = input.length;
+
+    if (output.length - output.index < getMaxEncodedLength(count))
+      return false;
+
+    final byte[] src = input.array;
+    final int srcEnd = input.index + count;
+    final int[] _freqs = this.freqs;
+    final int[] _r2s = this.r2s;
+    final int[] _s2r = this.s2r;
+
+    for (int i = 0; i < 256; i++)
+      _freqs[i] = 0;
+
+    // find first symbols and count occurrences
+    for (int i = input.index, b = 0; i < srcEnd;) {
+      final byte val = src[i];
+      final int c = val & 0xFF;
+
+      if (_freqs[c] == 0) {
+        _r2s[b] = c;
+        _s2r[c] = (byte) b;
+        b++;
+      }
+
+      int j = i + 1;
+
+      while ((j < count) && (src[j] == val))
+        j++;
+
+      _freqs[c] += (j - i);
+      i = j;
     }
 
-    /**
-     * Constructor with a context map.
-     *
-     * @param ctx the context map
-     */
-    public SRT(Map<String, Object> ctx) {
-        this.freqs = new int[256];
-        this.symbols = new byte[256];
-        this.r2s = new int[256];
-        this.s2r = new int[256];
-        this.buckets = new int[256];
-        this.bucketEnds = new int[256];
+    // init arrays
+    final byte[] _symbols = this.symbols;
+    final int[] _buckets = this.buckets;
+    int nbSymbols = preprocess(_freqs, _symbols);
+
+    for (int i = 0, bucketPos = 0; i < nbSymbols; i++) {
+      final int c = _symbols[i] & 0xFF;
+      _buckets[c] = bucketPos;
+      bucketPos += _freqs[c];
     }
 
-    /**
-     * Performs the forward transform, encoding the input data.
-     *
-     * @param input  the input byte array
-     * @param output the output byte array
-     * @return true if the transform was successful, false otherwise
-     */
-    @Override
-    public boolean forward(SliceByteArray input, SliceByteArray output) {
-        if (input.length == 0)
-            return true;
+    final int headerSize = encodeHeader(_freqs, output.array, output.index);
+    output.index += headerSize;
+    final int dstIdx = output.index;
+    final byte[] dst = output.array;
 
-        if (input.array == output.array)
-            return false;
+    // encoding
+    for (int i = 0; i < count;) {
+      final int c = src[i] & 0xFF;
+      int r = _s2r[c] & 0xFF;
+      int p = _buckets[c];
+      dst[dstIdx + p] = (byte) r;
+      p++;
 
-        final int count = input.length;
+      if (r != 0) {
+        do {
+          _r2s[r] = _r2s[r - 1];
+          _s2r[_r2s[r]] = r;
+          r--;
+        } while (r != 0);
 
-        if (output.length - output.index < getMaxEncodedLength(count))
-            return false;
+        _r2s[0] = c;
+        _s2r[c] = 0;
+      }
 
-        final byte[] src = input.array;
-        final int srcEnd = input.index + count;
-        final int[] _freqs = this.freqs;
-        final int[] _r2s = this.r2s;
-        final int[] _s2r = this.s2r;
+      i++;
 
-        for (int i = 0; i < 256; i++)
-            _freqs[i] = 0;
+      while ((i < count) && (src[i] == c)) {
+        dst[dstIdx + p] = 0;
+        p++;
+        i++;
+      }
 
-        // find first symbols and count occurrences
-        for (int i = input.index, b = 0; i < srcEnd; ) {
-            final byte val = src[i];
-            final int c = val & 0xFF;
-
-            if (_freqs[c] == 0) {
-                _r2s[b] = c;
-                _s2r[c] = (byte) b;
-                b++;
-            }
-
-            int j = i + 1;
-
-            while ((j < count) && (src[j] == val))
-                j++;
-
-            _freqs[c] += (j - i);
-            i = j;
-        }
-
-        // init arrays
-        final byte[] _symbols = this.symbols;
-        final int[] _buckets = this.buckets;
-        int nbSymbols = preprocess(_freqs, _symbols);
-
-        for (int i = 0, bucketPos = 0; i < nbSymbols; i++) {
-            final int c = _symbols[i] & 0xFF;
-            _buckets[c] = bucketPos;
-            bucketPos += _freqs[c];
-        }
-
-        final int headerSize = encodeHeader(_freqs, output.array, output.index);
-        output.index += headerSize;
-        final int dstIdx = output.index;
-        final byte[] dst = output.array;
-
-        // encoding
-        for (int i = 0; i < count; ) {
-            final int c = src[i] & 0xFF;
-            int r = _s2r[c] & 0xFF;
-            int p = _buckets[c];
-            dst[dstIdx + p] = (byte) r;
-            p++;
-
-            if (r != 0) {
-                do {
-                    _r2s[r] = _r2s[r - 1];
-                    _s2r[_r2s[r]] = r;
-                    r--;
-                } while (r != 0);
-
-                _r2s[0] = c;
-                _s2r[c] = 0;
-            }
-
-            i++;
-
-            while ((i < count) && (src[i] == c)) {
-                dst[dstIdx + p] = 0;
-                p++;
-                i++;
-            }
-
-            _buckets[c] = p;
-        }
-
-        input.index += count;
-        output.index += count;
-        return true;
+      _buckets[c] = p;
     }
 
-    /**
-     * Performs the inverse transform, decoding the input data.
-     *
-     * @param input  the input byte array
-     * @param output the output byte array
-     * @return true if the transform was successful, false otherwise
-     */
-    @Override
-    public boolean inverse(SliceByteArray input, SliceByteArray output) {
-        if (input.length == 0)
-            return true;
+    input.index += count;
+    output.index += count;
+    return true;
+  }
 
-        if (input.array == output.array)
-            return false;
+  /**
+   * Performs the inverse transform, decoding the input data.
+   *
+   * @param input the input byte array
+   * @param output the output byte array
+   * @return true if the transform was successful, false otherwise
+   */
+  @Override
+  public boolean inverse(SliceByteArray input, SliceByteArray output) {
+    if (input.length == 0)
+      return true;
 
-        final int[] _freqs = this.freqs;
-        final int headerSize = decodeHeader(input.array, input.index, _freqs);
-        input.index += headerSize;
-        final int count = input.length - headerSize;
+    if (input.array == output.array)
+      return false;
 
-        if (count > output.length - output.index)
-            return false;
+    final int[] _freqs = this.freqs;
+    final int headerSize = decodeHeader(input.array, input.index, _freqs);
+    input.index += headerSize;
+    final int count = input.length - headerSize;
 
-        final byte[] src = input.array;
-        final int srcIdx = input.index;
-        final byte[] _symbols = this.symbols;
+    if (count > output.length - output.index)
+      return false;
 
-        // init arrays
-        int nbSymbols = preprocess(_freqs, _symbols);
+    final byte[] src = input.array;
+    final int srcIdx = input.index;
+    final byte[] _symbols = this.symbols;
 
-        final int[] _buckets = this.buckets;
-        final int[] _bucketEnds = this.bucketEnds;
-        final int[] _r2s = this.r2s;
+    // init arrays
+    int nbSymbols = preprocess(_freqs, _symbols);
 
-        for (int i = 0, bucketPos = 0; i < nbSymbols; i++) {
-            final int c = _symbols[i] & 0xFF;
+    final int[] _buckets = this.buckets;
+    final int[] _bucketEnds = this.bucketEnds;
+    final int[] _r2s = this.r2s;
 
-            if ((srcIdx + bucketPos < 0) || (srcIdx + bucketPos >= input.length))
-                return false;
+    for (int i = 0, bucketPos = 0; i < nbSymbols; i++) {
+      final int c = _symbols[i] & 0xFF;
 
-            _r2s[src[srcIdx + bucketPos] & 0xFF] = c;
-            _buckets[c] = bucketPos + 1;
-            bucketPos += _freqs[c];
-            _bucketEnds[c] = bucketPos;
-        }
+      if ((srcIdx + bucketPos < 0) || (srcIdx + bucketPos >= input.length))
+        return false;
 
-        int c = _r2s[0];
-        final byte[] dst = output.array;
-        final int dstIdx = output.index;
-
-        // decoding
-        for (int i = 0; i < count; i++) {
-            dst[dstIdx + i] = (byte) c;
-
-            if (_buckets[c] < _bucketEnds[c]) {
-                final int r = src[srcIdx + _buckets[c]] & 0xFF;
-                _buckets[c]++;
-
-                if (r == 0)
-                    continue;
-
-                for (int s = 0; s < r; s++)
-                    _r2s[s] = _r2s[s + 1];
-
-                _r2s[r] = c;
-                c = _r2s[0];
-            } else {
-                if (nbSymbols == 1)
-                    continue;
-
-                nbSymbols--;
-
-                for (int s = 0; s < nbSymbols; s++)
-                    _r2s[s] = _r2s[s + 1];
-
-                c = _r2s[0];
-            }
-        }
-
-        input.index += count;
-        output.index += count;
-        return true;
+      _r2s[src[srcIdx + bucketPos] & 0xFF] = c;
+      _buckets[c] = bucketPos + 1;
+      bucketPos += _freqs[c];
+      _bucketEnds[c] = bucketPos;
     }
 
-    /**
-     * Preprocesses the input frequencies and symbols.
-     *
-     * @param freqs   the frequencies array
-     * @param symbols the symbols array
-     * @return the number of symbols
-     */
-    private static int preprocess(int[] freqs, byte[] symbols) {
-        int nbSymbols = 0;
+    int c = _r2s[0];
+    final byte[] dst = output.array;
+    final int dstIdx = output.index;
 
-        for (int i = 0; i < 256; i++) {
-            if (freqs[i] > 0) {
-                symbols[nbSymbols] = (byte) i;
-                nbSymbols++;
-            }
-        }
+    // decoding
+    for (int i = 0; i < count; i++) {
+      dst[dstIdx + i] = (byte) c;
 
-        int h = 4;
+      if (_buckets[c] < _bucketEnds[c]) {
+        final int r = src[srcIdx + _buckets[c]] & 0xFF;
+        _buckets[c]++;
 
-        while (h < nbSymbols)
-            h = h * 3 + 1;
+        if (r == 0)
+          continue;
 
-        while (true) {
-            h /= 3;
+        for (int s = 0; s < r; s++)
+          _r2s[s] = _r2s[s + 1];
 
-            for (int i = h; i < nbSymbols; i++) {
-                final int t = symbols[i] & 0xFF;
-                int b = i - h;
+        _r2s[r] = c;
+        c = _r2s[0];
+      } else {
+        if (nbSymbols == 1)
+          continue;
 
-                while ((b >= 0) && ((freqs[symbols[b] & 0xFF] < freqs[t]) || ((freqs[t] == freqs[symbols[b] & 0xFF]) && (t < (symbols[b] & 0xFF))))) {
-                    symbols[b + h] = symbols[b];
-                    b -= h;
-                }
+        nbSymbols--;
 
-                symbols[b + h] = (byte) t;
-            }
+        for (int s = 0; s < nbSymbols; s++)
+          _r2s[s] = _r2s[s + 1];
 
-            if (h == 1)
-                break;
-        }
-
-        return nbSymbols;
+        c = _r2s[0];
+      }
     }
 
-    /**
-     * Encodes the header.
-     *
-     * @param freqs the frequencies array
-     * @param dst   the destination byte array
-     * @param dstIdx the current index in the destination array
-     * @return the updated index in the destination array
-     */
-    private static int encodeHeader(int[] freqs, byte[] dst, int dstIdx) {
-        for (int i = 0; i < 256; i++) {
-            int f = freqs[i];
+    input.index += count;
+    output.index += count;
+    return true;
+  }
 
-            while (f >= 128) {
-                dst[dstIdx++] = (byte) (0x80 | f);
-                f >>>= 7;
-            }
+  /**
+   * Preprocesses the input frequencies and symbols.
+   *
+   * @param freqs the frequencies array
+   * @param symbols the symbols array
+   * @return the number of symbols
+   */
+  private static int preprocess(int[] freqs, byte[] symbols) {
+    int nbSymbols = 0;
 
-            dst[dstIdx++] = (byte) f;
+    for (int i = 0; i < 256; i++) {
+      if (freqs[i] > 0) {
+        symbols[nbSymbols] = (byte) i;
+        nbSymbols++;
+      }
+    }
+
+    int h = 4;
+
+    while (h < nbSymbols)
+      h = h * 3 + 1;
+
+    while (true) {
+      h /= 3;
+
+      for (int i = h; i < nbSymbols; i++) {
+        final int t = symbols[i] & 0xFF;
+        int b = i - h;
+
+        while ((b >= 0) && ((freqs[symbols[b] & 0xFF] < freqs[t])
+            || ((freqs[t] == freqs[symbols[b] & 0xFF]) && (t < (symbols[b] & 0xFF))))) {
+          symbols[b + h] = symbols[b];
+          b -= h;
         }
 
-        return dstIdx;
+        symbols[b + h] = (byte) t;
+      }
+
+      if (h == 1)
+        break;
     }
 
-    /**
-     * Decodes the header.
-     *
-     * @param src   the source byte array
-     * @param srcIdx the current index in the source array
-     * @param freqs  the frequencies array
-     * @return the updated index in the source array
-     */
-    private static int decodeHeader(byte[] src, int srcIdx, int[] freqs) {
-        for (int i = 0; i < 256; i++) {
-            int val = src[srcIdx++] & 0xFF;
-            int res = val & 0x7F;
-            int shift = 7;
+    return nbSymbols;
+  }
 
-            while (val >= 128) {
-                val = src[srcIdx++] & 0xFF;
-                res |= ((val & 0x7F) << shift);
+  /**
+   * Encodes the header.
+   *
+   * @param freqs the frequencies array
+   * @param dst the destination byte array
+   * @param dstIdx the current index in the destination array
+   * @return the updated index in the destination array
+   */
+  private static int encodeHeader(int[] freqs, byte[] dst, int dstIdx) {
+    for (int i = 0; i < 256; i++) {
+      int f = freqs[i];
 
-                if (shift > 21)
-                    break;
+      while (f >= 128) {
+        dst[dstIdx++] = (byte) (0x80 | f);
+        f >>>= 7;
+      }
 
-                shift += 7;
-            }
-
-            freqs[i] = res;
-        }
-
-        return srcIdx;
+      dst[dstIdx++] = (byte) f;
     }
 
-    /**
-     * Returns the maximum encoded length, which includes some extra buffer for incompressible data.
-     *
-     * @param srcLen the source length
-     * @return the maximum encoded length
-     */
-    @Override
-    public int getMaxEncodedLength(int srcLen) {
-        return srcLen + MAX_HEADER_SIZE;
+    return dstIdx;
+  }
+
+  /**
+   * Decodes the header.
+   *
+   * @param src the source byte array
+   * @param srcIdx the current index in the source array
+   * @param freqs the frequencies array
+   * @return the updated index in the source array
+   */
+  private static int decodeHeader(byte[] src, int srcIdx, int[] freqs) {
+    for (int i = 0; i < 256; i++) {
+      int val = src[srcIdx++] & 0xFF;
+      int res = val & 0x7F;
+      int shift = 7;
+
+      while (val >= 128) {
+        val = src[srcIdx++] & 0xFF;
+        res |= ((val & 0x7F) << shift);
+
+        if (shift > 21)
+          break;
+
+        shift += 7;
+      }
+
+      freqs[i] = res;
     }
+
+    return srcIdx;
+  }
+
+  /**
+   * Returns the maximum encoded length, which includes some extra buffer for incompressible data.
+   *
+   * @param srcLen the source length
+   * @return the maximum encoded length
+   */
+  @Override
+  public int getMaxEncodedLength(int srcLen) {
+    return srcLen + MAX_HEADER_SIZE;
+  }
 }
