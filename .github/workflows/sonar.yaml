@@ -10,24 +10,25 @@ on:
 jobs:
   build:
     name: Build and analyze
+    if: github.ref == 'refs/heads/master' && github.repository == 'flanglet/kanzi'  # ✅ Only for master branch of main repo
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@main
         with:
           java-version: 17
           distribution: 'zulu' # Alternative distribution options are available.
       - name: Cache SonarCloud packages
-        uses: actions/cache@v3
+        uses: actions/cache@main
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
       - name: Cache Maven packages
-        uses: actions/cache@v3
+        uses: actions/cache@main
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
