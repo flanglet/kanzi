@@ -18,7 +18,6 @@
 
 package io.github.flanglet.kanzi.test;
 
-import io.github.flanglet.kanzi.BitStreamException;
 import io.github.flanglet.kanzi.entropy.BinaryEntropyDecoder;
 import io.github.flanglet.kanzi.entropy.BinaryEntropyEncoder;
 import java.io.ByteArrayInputStream;
@@ -46,8 +45,10 @@ import io.github.flanglet.kanzi.entropy.FPAQEncoder;
 import io.github.flanglet.kanzi.entropy.RangeDecoder;
 import io.github.flanglet.kanzi.entropy.RangeEncoder;
 import io.github.flanglet.kanzi.entropy.TPAQPredictor;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 
 public class TestEntropyCodec {
@@ -67,86 +68,41 @@ public class TestEntropyCodec {
       if (type.equals("ALL")) {
         System.out.println("\n\nTest Huffman Codec");
 
-        if (testCorrectness("HUFFMAN") == false)
-          System.exit(1);
 
         testSpeed("HUFFMAN", 200);
         System.out.println("\n\nTest ANS0 Codec");
 
-        if (testCorrectness("ANS0") == false)
-          System.exit(1);
 
         testSpeed("ANS0", 200);
         System.out.println("\n\nTest ANS1 Codec");
 
-        if (testCorrectness("ANS1") == false)
-          System.exit(1);
 
         testSpeed("ANS1", 150);
         System.out.println("\n\nTest Range Codec");
 
-        if (testCorrectness("RANGE") == false)
-          System.exit(1);
 
         testSpeed("RANGE", 150);
         System.out.println("\n\nTest FPAQ Codec");
 
-        if (testCorrectness("FPAQ") == false)
-          System.exit(1);
 
         testSpeed("FPAQ", 120);
         System.out.println("\n\nTest CM Codec");
 
-        if (testCorrectness("CM") == false)
-          System.exit(1);
 
         testSpeed("CM", 100);
         System.out.println("\n\nTestTPAQCodec");
 
-        if (testCorrectness("TPAQ") == false)
-          System.exit(1);
 
         testSpeed("TPAQ", 75);
         System.out.println("\n\nTestExpGolombCodec");
 
-        if (testCorrectness("EXPGOLOMB") == false)
-          System.exit(1);
 
         testSpeed("EXPGOLOMB", 150);
       } else {
         System.out.println("Test " + type + " Codec");
-        testCorrectness(type);
         testSpeed(type, 100);
       }
     }
-  }
-
-  @Test
-  public void testEntropy() {
-    System.out.println("\n\nTest Huffman Codec");
-    Assert.assertTrue(testCorrectness("HUFFMAN"));
-    // testSpeed("HUFFMAN");
-    System.out.println("\n\nTest ANS0 Codec");
-    Assert.assertTrue(testCorrectness("ANS0"));
-    // testSpeed("ANS0");
-    System.out.println("\n\nTest ANS1 Codec");
-    Assert.assertTrue(testCorrectness("ANS1"));
-    // testSpeed("ANS1");
-    System.out.println("\n\nTest Range Codec");
-    Assert.assertTrue(testCorrectness("RANGE"));
-    // testSpeed("RANGE");
-    System.out.println("\n\nTest FPAQ Codec");
-    Assert.assertTrue(testCorrectness("FPAQ"));
-    // testSpeed("FPAQ");
-    System.out.println("\n\nTest CM Codec");
-    Assert.assertTrue(testCorrectness("CM"));
-    // testSpeed("CM");
-    System.out.println("\n\nTest TPAQ Codec");
-    Assert.assertTrue(testCorrectness("TPAQ"));
-    // testSpeed("TPAQ");
-    System.out.println("\n\nTest ExpGolomb Codec");
-    Assert.assertTrue(testCorrectness("EXPGOLOMB"));
-    // testSpeed("EXPGOLOMB");
   }
 
 
@@ -233,96 +189,93 @@ public class TestEntropyCodec {
   }
 
 
-  public static boolean testCorrectness(String name) {
+  @ParameterizedTest
+  @CsvSource({"HUFFMAN", "ANS0", "ANS1", "RANGE", "FPAQ", "CM", "TPAQ", "TPAQ", "EXPGOLOMB"})
+  void testCorrectness(String name) {
     // Test behavior
     System.out.println("Correctness test for " + name);
 
     for (int ii = 1; ii < 20; ii++) {
       System.out.println("\n\nTest " + ii);
 
-      try {
-        byte[] values;
+      int finalii = ii;
+      Assertions.assertDoesNotThrow(new Executable() {
 
-        if (ii == 3)
-          values = new byte[] {0, 0, 32, 15, -4, 16, 0, 16, 0, 7, -1, -4, -32, 0, 31, -1};
-        else if (ii == 2)
-          values =
-              new byte[] {61, 77, 84, 71, 90, 54, 57, 38, 114, 111, 108, 101, 61, 112, 114, 101};
-        else if (ii == 1) {
-          values = new byte[40];
+        @Override
+        public void execute() throws Throwable {
+          byte[] values;
 
-          for (int i = 0; i < values.length; i++)
-            values[i] = (byte) 2; // all identical
-        } else if (ii == 4) {
-          values = new byte[40];
+          if (finalii == 3)
+            values = new byte[] {0, 0, 32, 15, -4, 16, 0, 16, 0, 7, -1, -4, -32, 0, 31, -1};
+          else if (finalii == 2)
+            values =
+                new byte[] {61, 77, 84, 71, 90, 54, 57, 38, 114, 111, 108, 101, 61, 112, 114, 101};
+          else if (finalii == 1) {
+            values = new byte[40];
 
-          for (int i = 0; i < values.length; i++)
-            values[i] = (byte) (2 + (i & 1)); // 2 symbols
-        } else if (ii == 5) {
-          values = new byte[] {42};
-        } else if (ii == 6) {
-          values = new byte[] {42, 42};
-        } else {
-          values = new byte[256];
+            for (int i = 0; i < values.length; i++)
+              values[i] = (byte) 2; // all identical
+          } else if (finalii == 4) {
+            values = new byte[40];
 
-          for (int i = 0; i < values.length; i++)
-            values[i] = (byte) (64 + 4 * ii + TestEntropyCodec.RANDOM.nextInt(8 * ii + 1));
-        }
+            for (int i = 0; i < values.length; i++)
+              values[i] = (byte) (2 + (i & 1)); // 2 symbols
+          } else if (finalii == 5) {
+            values = new byte[] {42};
+          } else if (finalii == 6) {
+            values = new byte[] {42, 42};
+          } else {
+            values = new byte[256];
 
-        System.out.println("Original:");
-
-        for (int i = 0; i < values.length; i++)
-          System.out.print((values[i] & 0xFF) + " ");
-
-        System.out.println();
-        System.out.println("\nEncoded:");
-        ByteArrayOutputStream os = new ByteArrayOutputStream(16384);
-        OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
-        DebugOutputBitStream dbgbs = new DebugOutputBitStream(obs, System.out);
-        dbgbs.showByte(true);
-        EntropyEncoder ec = getEncoder(name, dbgbs);
-
-        if (ec == null)
-          return false;
-
-        ec.encode(values, 0, values.length);
-        ec.dispose();
-        dbgbs.close();
-        byte[] buf = os.toByteArray();
-        InputBitStream ibs = new DefaultInputBitStream(new ByteArrayInputStream(buf), 1024);
-        EntropyDecoder ed = getDecoder(name, ibs);
-
-        if (ed == null)
-          return false;
-
-        System.out.println();
-        System.out.println("\nDecoded:");
-        boolean ok = true;
-        byte[] values2 = new byte[values.length];
-        ed.decode(values2, 0, values2.length);
-        ed.dispose();
-        ibs.close();
-
-        try {
-          for (int j = 0; j < values2.length; j++) {
-            if (values[j] != values2[j])
-              ok = false;
-
-            System.out.print((values2[j] & 0xFF) + " ");
+            for (int i = 0; i < values.length; i++)
+              values[i] =
+                  (byte) (64 + 4 * finalii + TestEntropyCodec.RANDOM.nextInt(8 * finalii + 1));
           }
-        } catch (BitStreamException e) {
-          e.printStackTrace();
-          return false;
+
+          System.out.println("Original:");
+
+          for (int i = 0; i < values.length; i++)
+            System.out.print((values[i] & 0xFF) + " ");
+
+          System.out.println();
+          System.out.println("\nEncoded:");
+          ByteArrayOutputStream os = new ByteArrayOutputStream(16384);
+          OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+          DebugOutputBitStream dbgbs = new DebugOutputBitStream(obs, System.out);
+          dbgbs.showByte(true);
+          EntropyEncoder ec = getEncoder(name, dbgbs);
+
+          Assertions.assertNotNull(ec);
+
+          ec.encode(values, 0, values.length);
+          ec.dispose();
+          dbgbs.close();
+          byte[] buf = os.toByteArray();
+          InputBitStream ibs = new DefaultInputBitStream(new ByteArrayInputStream(buf), 1024);
+          EntropyDecoder ed = getDecoder(name, ibs);
+
+          Assertions.assertNotNull(ed);
+
+          System.out.println();
+          System.out.println("\nDecoded:");
+          byte[] values2 = new byte[values.length];
+          ed.decode(values2, 0, values2.length);
+          ed.dispose();
+          ibs.close();
+
+          Assertions.assertDoesNotThrow(new Executable() {
+            @Override
+            public void execute() throws Throwable {
+              for (int j = 0; j < values2.length; j++) {
+                Assertions.assertEquals(values[j], values2[j]);
+                System.out.print((values2[j] & 0xFF) + " ");
+              }
+            }
+          });
+          // System.out.println("\n" + ((ok == true) ? "Identical" : "Different"));
         }
-
-        System.out.println("\n" + ((ok == true) ? "Identical" : "Different"));
-      } catch (Exception e) {
-        e.printStackTrace();
-        return false;
-      }
+      });
     }
-
-    return true;
   }
 
 

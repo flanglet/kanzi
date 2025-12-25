@@ -31,70 +31,60 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import io.github.flanglet.kanzi.io.CompressedInputStream;
 import io.github.flanglet.kanzi.io.CompressedOutputStream;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 
 public class TestCompressedStream {
   private static final ExecutorService pool = Executors.newFixedThreadPool(4);
   private final static Random RANDOM = new Random(Long.MAX_VALUE);
 
-
-  public static void main(String[] args) {
-    testCorrectness();
+  @AfterAll
+  static void shutDown() {
     pool.shutdown();
   }
 
-
   @Test
-  public void testCompressedtStream() {
-    Assert.assertTrue(testCorrectness());
-  }
-
-
-  public static boolean testCorrectness() {
+  void testCorrectness() {
     // Test correctness (byte aligned)
-    System.out.println("Correctness Test");
     byte[] values = new byte[65536 << 6];
     byte[] incompressible = new byte[65536 << 6];
-    long sum = 0;
 
-    try {
-      for (int test = 1; test <= 40; test++) {
-        final int length = 65536 << (test % 7);
+    for (int test = 1; test <= 40; test++) {
+      final int length = 65536 << (test % 7);
 
-        for (int i = 0; i < length; i++) {
-          values[i] = (byte) RANDOM.nextInt(4 * test + 1);
-          incompressible[i] = (byte) (RANDOM.nextInt());
-        }
-
-        System.out.println("\nIteration " + test + " (size " + length + ")");
-        long res;
-        res = compress1(values, length);
-        System.out.println((res == 0) ? "Success" : "Failure");
-        sum += res;
-        res = compress2(values, length);
-        System.out.println((res == 0) ? "Success" : "Failure");
-        sum += res;
-        res = compress3(incompressible, length);
-        System.out.println((res == 0) ? "Success" : "Failure");
-        sum += res;
-
-        if (test == 1) {
-          res = compress4(values, length);
-          System.out.println((res == 0) ? "Success" : "Failure");
-          sum += res;
-          res = compress5(values, length);
-          System.out.println((res == 0) ? "Success" : "Failure");
-          sum += res;
-        }
+      for (int i = 0; i < length; i++) {
+        values[i] = (byte) RANDOM.nextInt(4 * test + 1);
+        incompressible[i] = (byte) (RANDOM.nextInt());
       }
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
-    }
 
-    return sum == 0;
+      System.out.println("\nIteration " + test + " (size " + length + ")");
+
+      Assertions.assertEquals(0, compress1(values, length),
+          "Method `compress1()` failed on test=" + test);
+      Assertions.assertEquals(0, compress2(values, length),
+          "Method `compress2()` failed on test=" + test);
+      Assertions.assertEquals(0, compress3(incompressible, length),
+          "Method `compress3()` failed on test=" + test);
+
+      // Test for IOExceptions due to R/W after close only one time
+      if (test == 1) {
+        Assertions.assertThrows(IOException.class, new Executable() {
+          @Override
+          public void execute() throws Throwable {
+            compress4(values, length);
+          }
+        }, "Method `compress4()` failed on test=" + test);
+        Assertions.assertThrows(IOException.class, new Executable() {
+          @Override
+          public void execute() throws Throwable {
+            compress5(values, length);
+          }
+        }, "Method `compress5()` failed on test=" + test);
+      }
+    }
   }
 
   public static long compress1(byte[] block, int length) {
@@ -133,14 +123,9 @@ public class TestCompressedStream {
       long read = cis.getRead();
       int res = check(block, buf, length);
 
-      if (res != 0)
-        return res;
-
-      return read ^ written;
+      return (res == 0) ? read ^ written : res;
     } catch (IOException e) {
-      System.out.println("NONE&HUFFMAN");
-      System.out.println("Exception: " + e.getMessage());
-      return 2;
+      throw new RuntimeException("NONE&HUFFMAN", e);
     }
   }
 
@@ -192,9 +177,7 @@ public class TestCompressedStream {
 
       return read ^ written;
     } catch (IOException e) {
-      System.out.println("LZX&FPAQ");
-      System.out.println("Exception: " + e.getMessage());
-      return 2;
+      throw new RuntimeException("LZX&FPAQ", e);
     }
   }
 
@@ -242,78 +225,61 @@ public class TestCompressedStream {
 
       return read ^ written;
     } catch (IOException e) {
-      System.out.println("LZP+ZRLT&ANS0");
-      System.out.println("Exception: " + e.getMessage());
-      return 2;
+      throw new RuntimeException("LZP+ZRLT&ANS0", e);
     }
   }
 
-  public static long compress4(byte[] block, int length) {
-    try {
-      System.out.println("Test - write after close");
-      ByteArrayOutputStream baos = new ByteArrayOutputStream(2 * block.length);
-      OutputStream os = new BufferedOutputStream(baos);
-      HashMap<String, Object> ctx1 = new HashMap<>();
-      ctx1.put("transform", "NONE");
-      ctx1.put("entropy", "HUFFMAN");
-      ctx1.put("blockSize", length);
-      ctx1.put("checksum", 0);
-      ctx1.put("pool", pool);
-      ctx1.put("jobs", 1);
-      CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
-      cos.write(block, 0, length);
-      cos.close();
-      // cos.write(block, 0, length);
-      cos.write(123);
-      os.close();
+  // expected to throw an exception due to WRITE after CLOSE
+  void compress4(byte[] block, int length) throws IOException {
+    System.out.println("Test - write after close");
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(2 * block.length);
+    OutputStream os = new BufferedOutputStream(baos);
+    HashMap<String, Object> ctx1 = new HashMap<>();
+    ctx1.put("transform", "NONE");
+    ctx1.put("entropy", "HUFFMAN");
+    ctx1.put("blockSize", length);
+    ctx1.put("checksum", 0);
+    ctx1.put("pool", pool);
+    ctx1.put("jobs", 1);
+    CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
+    cos.write(block, 0, length);
+    cos.close();
 
-      System.out.println("Failure: no exception thrown in write after close");
-      return 1;
-    } catch (IOException e) {
-      System.out.println("NONE&HUFFMAN");
-      System.out.println("OK, exception: " + e.getMessage());
-      return 0;
-    }
+    // Write after close should throw IOException
+    cos.write(123);
+    os.close();
   }
 
-  public static long compress5(byte[] block, int length) {
-    try {
-      System.out.println("Test - read after close");
-      ByteArrayOutputStream baos = new ByteArrayOutputStream(2 * block.length);
-      OutputStream os = new BufferedOutputStream(baos);
-      HashMap<String, Object> ctx1 = new HashMap<>();
-      ctx1.put("transform", "NONE");
-      ctx1.put("entropy", "HUFFMAN");
-      ctx1.put("blockSize", 4 * 1024 * 1024);
-      ctx1.put("checksum", 0);
-      ctx1.put("pool", pool);
-      ctx1.put("jobs", 1);
-      CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
-      cos.write(block, 0, length);
-      cos.close();
-      os.close();
+  // expected to throw an exception due to READ after CLOSE
+  void compress5(byte[] block, int length) throws IOException {
+    System.out.println("Test - read after close");
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(2 * block.length);
+    OutputStream os = new BufferedOutputStream(baos);
+    HashMap<String, Object> ctx1 = new HashMap<>();
+    ctx1.put("transform", "NONE");
+    ctx1.put("entropy", "HUFFMAN");
+    ctx1.put("blockSize", 4 * 1024 * 1024);
+    ctx1.put("checksum", 0);
+    ctx1.put("pool", pool);
+    ctx1.put("jobs", 1);
+    CompressedOutputStream cos = new CompressedOutputStream(os, ctx1);
+    cos.write(block, 0, length);
+    cos.close();
+    os.close();
 
-      byte[] output = baos.toByteArray();
-      ByteArrayInputStream bais = new ByteArrayInputStream(output);
-      InputStream is = new BufferedInputStream(bais);
-      HashMap<String, Object> ctx2 = new HashMap<>();
-      CompressedInputStream cis = new CompressedInputStream(is, ctx2);
+    byte[] output = baos.toByteArray();
+    ByteArrayInputStream bais = new ByteArrayInputStream(output);
+    InputStream is = new BufferedInputStream(bais);
+    HashMap<String, Object> ctx2 = new HashMap<>();
+    CompressedInputStream cis = new CompressedInputStream(is, ctx2);
 
-      while (cis.read(block, 0, length) == length) {
-      }
-
-      cis.close();
-      // cis.read(block, 0, length);
-      cis.read();
-      is.close();
-
-      System.out.println("Failure: no exception thrown in read after close");
-      return 1;
-    } catch (IOException e) {
-      System.out.println("NONE&HUFFMAN");
-      System.out.println("OK, exception: " + e.getMessage());
-      return 0;
+    while (cis.read(block, 0, length) == length) {
     }
+    cis.close();
+
+    // Read after close should throw IOException
+    cis.read();
+    is.close();
   }
 
 

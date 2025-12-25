@@ -32,8 +32,10 @@ import io.github.flanglet.kanzi.transform.SBRT;
 import io.github.flanglet.kanzi.transform.SRT;
 import io.github.flanglet.kanzi.transform.TransformFactory;
 import io.github.flanglet.kanzi.transform.ZRLT;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 
 public class TestTransforms {
@@ -53,119 +55,55 @@ public class TestTransforms {
       if (type.equals("ALL")) {
         System.out.println("\n\nTestLZ");
 
-        if (testCorrectness("LZ") == false)
-          System.exit(1);
 
         testSpeed("LZ");
         System.out.println("\n\nTestLZX");
 
-        if (testCorrectness("LZX") == false)
-          System.exit(1);
 
         testSpeed("LZX");
         System.out.println("\n\nTestLZP");
 
-        if (testCorrectness("LZP") == false)
-          System.exit(1);
 
         // testSpeed("LZP"); skip (returns false if not good enough compression)
         System.out.println("\n\nTestROLZ");
 
-        if (testCorrectness("ROLZ") == false)
-          System.exit(1);
 
         testSpeed("ROLZ");
         System.out.println("\n\nTestROLZX");
 
-        if (testCorrectness("ROLZX") == false)
-          System.exit(1);
 
         testSpeed("ROLZX");
         System.out.println("\n\nTestZRLT");
 
-        if (testCorrectness("ZRLT") == false)
-          System.exit(1);
 
         testSpeed("ZRLT");
         System.out.println("\n\nTestRLT");
 
-        if (testCorrectness("RLT") == false)
-          System.exit(1);
 
         testSpeed("RLT");
         System.out.println("\n\nTestSRT");
 
-        if (testCorrectness("SRT") == false)
-          System.exit(1);
 
         testSpeed("SRT");
         System.out.println("\n\nTestRANK");
 
-        if (testCorrectness("RANK") == false)
-          System.exit(1);
 
         testSpeed("RANK");
         System.out.println("\n\nTestMTFT");
 
-        if (testCorrectness("MTFT") == false)
-          System.exit(1);
 
         testSpeed("MTFT");
         System.out.println("\n\nTestFSD");
-
-        if (testCorrectness("FSD") == false)
-          System.exit(1);
 
         // testSpeed("FSD"); no good data
       } else {
         System.out.println("Test" + type);
 
-        if (testCorrectness(type) == false)
-          System.exit(1);
 
         testSpeed(type);
       }
     }
   }
-
-
-  @Test
-  public void testTransforms() {
-    System.out.println("\n\nTestRANK");
-    Assert.assertTrue(testCorrectness("RANK"));
-    // testSpeed("RANK");
-    System.out.println("\n\nTestMTFT");
-    Assert.assertTrue(testCorrectness("MTFT"));
-    // testSpeed("MTFT");
-    System.out.println("\n\nTestSRT");
-    Assert.assertTrue(testCorrectness("SRT"));
-    // testSpeed("SRT");
-    System.out.println("\n\nTestLZ");
-    Assert.assertTrue(testCorrectness("LZ"));
-    // testSpeed("LZ");
-    System.out.println("\n\nTestLZX");
-    Assert.assertTrue(testCorrectness("LZX"));
-    // testSpeed("LZX");
-    System.out.println("\n\nTestLZP");
-    Assert.assertTrue(testCorrectness("LZP"));
-    // testSpeed("LZP");
-    System.out.println("\n\nTestROLZ");
-    Assert.assertTrue(testCorrectness("ROLZ"));
-    // testSpeed("ROLZ");
-    System.out.println("\n\nTestROLZX");
-    Assert.assertTrue(testCorrectness("ROLZX"));
-    // testSpeed("ROLZX");
-    System.out.println("\n\nTestZRLT");
-    Assert.assertTrue(testCorrectness("ZRLT"));
-    // testSpeed("ZRLT");
-    System.out.println("\n\nTestFSD");
-    Assert.assertTrue(testCorrectness("MM"));
-    // testSpeed("MM");
-    System.out.println("\n\nTestRLT");
-    Assert.assertTrue(testCorrectness("RLT"));
-    // testSpeed("RLT");
-  }
-
 
   private static ByteTransform getTransform(String name) {
     switch (name) {
@@ -212,8 +150,9 @@ public class TestTransforms {
     }
   }
 
-
-  private static boolean testCorrectness(String name) {
+  @ParameterizedTest
+  @CsvSource({"RANK", "MTFT", "SRT", "LZ", "LZX", "LZP", "ROLZ", "ROLZX", "ZRLT", "MM", "RLT"})
+  void testCorrectness(String name) {
     byte[] input;
     byte[] output;
     byte[] reverse;
@@ -224,7 +163,7 @@ public class TestTransforms {
 
     for (int ii = 0; ii <= 50; ii++) {
       System.out.println("\nTest " + ii);
-      int[] arr = new int[0];
+      int[] arr;
 
       if (ii == 0) {
         arr = new int[] {0, 1, 2, 2, 2, 2, 7, 9, 9, 16, 16, 16, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -343,10 +282,7 @@ public class TestTransforms {
       sa2.index = 0;
       sa3.index = 0;
 
-      if (f.inverse(sa2, sa3) == false) {
-        System.out.println("Decoding error");
-        return false;
-      }
+      Assertions.assertTrue(f.inverse(sa2, sa3));
 
       System.out.println();
       System.out.println("Decoded: ");
@@ -379,13 +315,13 @@ public class TestTransforms {
           System.out.println(i + ": " + sa1.array[i] + " " + sa3.array[i]);
 
         System.out.println(idx + ": " + sa1.array[idx] + "* " + sa3.array[idx] + "*");
-        return false;
       }
+
+      Assertions.assertEquals(-1, idx); // , "Different (index " + idx + ": " + input[idx] + " - " +
+                                        // reverse[idx] + ")");
 
       System.out.println();
     }
-
-    return true;
   }
 
 
