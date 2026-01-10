@@ -363,6 +363,13 @@ public final class LZCodec implements ByteTransform {
         if ((ref > minRef) && (differentInts(src, ref, srcIdx1) == false)) {
           bestLen = findMatch(src, srcIdx1, ref, Math.min(srcEnd - srcIdx1, MAX_MATCH));
         }
+        else {
+          ref = srcIdx1 - repd[repIdx];
+
+          if ((ref > minRef) && (differentInts(src, ref, srcIdx1) == false)) {
+            bestLen = findMatch(src, srcIdx1, ref, Math.min(srcEnd - srcIdx1, MAX_MATCH));
+          }
+        }
 
         if (bestLen < minMatch) {
           // Check match at position in hash table
@@ -374,8 +381,7 @@ public final class LZCodec implements ByteTransform {
 
           // No good match ?
           if (bestLen < minMatch) {
-            srcIdx++;
-            srcIdx += (srcInc >> 6);
+            srcIdx = srcIdx1 + (srcInc >> 6);
             srcInc++;
             repIdx = 0;
             continue;
@@ -401,7 +407,7 @@ public final class LZCodec implements ByteTransform {
             }
 
             if (this.extra == true) {
-              final int srcIdx2 = srcIdx + 2;
+              final int srcIdx2 = srcIdx1 + 1;
               final int h2 = hash(src, srcIdx2);
               final int ref2 = this.hashes[h2];
               this.hashes[h2] = srcIdx2;
@@ -469,19 +475,14 @@ public final class LZCodec implements ByteTransform {
           mLenTh = 3;
         } else {
           // Emit distance (since not repeat)
-          if (dist >= 65536) {
-            this.mBuf[mIdx] = (byte) (dist >> 16);
-            this.mBuf[mIdx + 1] = (byte) (dist >> 8);
-            mIdx += 2;
-            token = 0x18;
-          } else {
-            this.mBuf[mIdx] = (byte) (dist >> 8);
-            final int inc = (dist >= 256 ? 1 : 0);
-            mIdx += inc;
-            token = (inc + 1) << 3;
-          }
-
+          this.mBuf[mIdx] = (byte) (dist >> 16);
+          final int inc1 = dist >= 65536 ? 1 : 0;
+          mIdx += inc1;
+          this.mBuf[mIdx] = (byte) (dist >> 8);
+          final int inc2 = dist >= 256 ? 1 : 0;
+          mIdx += inc2;
           this.mBuf[mIdx++] = (byte) dist;
+          token = (inc1 + inc2 + 1) << 3;
           mLenTh = 7;
         }
 
