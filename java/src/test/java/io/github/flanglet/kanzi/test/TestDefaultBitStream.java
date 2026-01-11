@@ -34,236 +34,225 @@ import io.github.flanglet.kanzi.OutputBitStream;
 import io.github.flanglet.kanzi.bitstream.DebugOutputBitStream;
 import io.github.flanglet.kanzi.bitstream.DefaultInputBitStream;
 import io.github.flanglet.kanzi.bitstream.DefaultOutputBitStream;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 
 public class TestDefaultBitStream {
 
   private final static Random RANDOM = new Random(Long.MAX_VALUE);
 
+  // @todo: convert this into a PMD benchmark
   public static void main(String[] args) {
-    testCorrectnessAligned1();
-    testCorrectnessAligned2();
-    testCorrectnessMisaligned1();
-    testCorrectnessMisaligned2();
     testSpeed1(args); // Writes big output.bin file to local dir (or specified file name) !!!
     testSpeed2(args); // Writes big output.bin file to local dir (or specified file name) !!!
   }
 
-
   @Test
-  public void testDefaultBitStream() {
-    Assert.assertTrue(testCorrectnessAligned1());
-    Assert.assertTrue(testCorrectnessAligned2());
-    Assert.assertTrue(testCorrectnessMisaligned1());
-    Assert.assertTrue(testCorrectnessMisaligned2());
-  }
-
-
-  public static boolean testCorrectnessAligned1() {
+  void testCorrectnessAligned1() {
     // Test correctness (byte aligned)
     System.out.println("Correctness Test - write long - byte aligned");
     int[] values = new int[100];
-    Random rnd = new Random();
     System.out.println("\nInitial");
 
-    try {
-      // Check correctness of read() and written()
-      for (int t = 1; t <= 32; t++) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * values.length);
-        OutputStream os = new BufferedOutputStream(baos);
-        OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
-        System.out.println();
-        obs.writeBits(0x0123456789ABCDEFL, t);
-        System.out.println("Written (before close): " + obs.written());
-        // Close first to force flush()
-        obs.close();
-        System.out.println("Written (after close): " + obs.written());
-        byte[] output = baos.toByteArray();
-        ByteArrayInputStream bais = new ByteArrayInputStream(output);
-        InputStream is = new BufferedInputStream(bais);
-        InputBitStream ibs = new DefaultInputBitStream(is, 16384);
-        ibs.readBits(t);
-        System.out.println(ibs.read() == t ? "OK" : "KO");
-        System.out.println("Read (before close): " + ibs.read());
-        ibs.close();
-        System.out.println("Read (after close): " + ibs.read());
-        System.out.println();
+    Assertions.assertDoesNotThrow(new Executable() {
+      @Override
+      public void execute() throws Throwable {
+
+        // Check correctness of read() and written()
+        for (int t = 1; t <= 32; t++) {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * values.length);
+          OutputStream os = new BufferedOutputStream(baos);
+          OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+          System.out.println();
+          obs.writeBits(0x0123456789ABCDEFL, t);
+          System.out.println("Written (before close): " + obs.written());
+          // Close first to force flush()
+          obs.close();
+          System.out.println("Written (after close): " + obs.written());
+          byte[] output = baos.toByteArray();
+          ByteArrayInputStream bais = new ByteArrayInputStream(output);
+          InputStream is = new BufferedInputStream(bais);
+          InputBitStream ibs = new DefaultInputBitStream(is, 16384);
+          ibs.readBits(t);
+          System.out.println(ibs.read() == t ? "OK" : "KO");
+          System.out.println("Read (before close): " + ibs.read());
+          ibs.close();
+          System.out.println("Read (after close): " + ibs.read());
+          System.out.println();
+        }
+
+        for (int test = 1; test <= 10; test++) {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * values.length);
+          OutputStream os = new BufferedOutputStream(baos);
+          OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+          DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
+          dbs.showByte(true);
+
+          for (int i = 0; i < values.length; i++) {
+            values[i] = (test < 5) ? RANDOM.nextInt(test * 1000 + 100) : RANDOM.nextInt();
+            System.out.print(values[i] + " ");
+
+            if ((i % 20) == 19)
+              System.out.println();
+          }
+
+          System.out.println();
+          System.out.println();
+
+          for (int i = 0; i < values.length; i++) {
+            dbs.writeBits(values[i], 32);
+          }
+
+          // Close first to force flush()
+          dbs.close();
+          byte[] output = baos.toByteArray();
+          ByteArrayInputStream bais = new ByteArrayInputStream(output);
+          InputStream is = new BufferedInputStream(bais);
+          InputBitStream ibs = new DefaultInputBitStream(is, 16384);
+          System.out.println("Read:");
+          boolean ok = true;
+
+          for (int i = 0; i < values.length; i++) {
+            int x = (int) ibs.readBits(32);
+            System.out.print(x);
+            System.out.print((x == values[i]) ? " " : "* ");
+            ok &= (x == values[i]);
+
+            if ((i % 20) == 19)
+              System.out.println();
+          }
+
+          ibs.close();
+          System.out.println("\n");
+          System.out.println("Bits written: " + dbs.written());
+          System.out.println("Bits read: " + ibs.read());
+          System.out.println("\n" + ((ok) ? "Success" : "Failure"));
+          System.out.println();
+          System.out.println();
+        }
       }
-
-      for (int test = 1; test <= 10; test++) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * values.length);
-        OutputStream os = new BufferedOutputStream(baos);
-        OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
-        DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
-        dbs.showByte(true);
-
-        for (int i = 0; i < values.length; i++) {
-          values[i] = (test < 5) ? rnd.nextInt(test * 1000 + 100) : rnd.nextInt();
-          System.out.print(values[i] + " ");
-
-          if ((i % 20) == 19)
-            System.out.println();
-        }
-
-        System.out.println();
-        System.out.println();
-
-        for (int i = 0; i < values.length; i++) {
-          dbs.writeBits(values[i], 32);
-        }
-
-        // Close first to force flush()
-        dbs.close();
-        byte[] output = baos.toByteArray();
-        ByteArrayInputStream bais = new ByteArrayInputStream(output);
-        InputStream is = new BufferedInputStream(bais);
-        InputBitStream ibs = new DefaultInputBitStream(is, 16384);
-        System.out.println("Read:");
-        boolean ok = true;
-
-        for (int i = 0; i < values.length; i++) {
-          int x = (int) ibs.readBits(32);
-          System.out.print(x);
-          System.out.print((x == values[i]) ? " " : "* ");
-          ok &= (x == values[i]);
-
-          if ((i % 20) == 19)
-            System.out.println();
-        }
-
-        ibs.close();
-        System.out.println("\n");
-        System.out.println("Bits written: " + dbs.written());
-        System.out.println("Bits read: " + ibs.read());
-        System.out.println("\n" + ((ok) ? "Success" : "Failure"));
-        System.out.println();
-        System.out.println();
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    return true;
+    });
   }
 
 
-  public static boolean testCorrectnessMisaligned1() {
+  @Test
+  void testCorrectnessMisaligned1() {
     // Test correctness (not byte aligned)
     System.out.println("Correctness Test - write long - not byte aligned");
     int[] values = new int[100];
     Random rnd = new Random();
 
-    try {
-      // Check correctness of read() and written()
-      for (int t = 1; t < 32; t++) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * values.length);
-        OutputStream os = new BufferedOutputStream(baos);
-        OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
-        System.out.println();
-        obs.writeBit(1);
-        obs.writeBits(0x0123456789ABCDEFL, t);
-        System.out.println("Written (before close): " + obs.written());
-        // Close first to force flush()
-        obs.close();
-        System.out.println("Written (after close): " + obs.written());
-        byte[] output = baos.toByteArray();
-        ByteArrayInputStream bais = new ByteArrayInputStream(output);
-        InputStream is = new BufferedInputStream(bais);
-        InputBitStream ibs = new DefaultInputBitStream(is, 16384);
-        ibs.readBit();
-        ibs.readBits(t);
-        System.out.println(ibs.read() == t + 1 ? "OK" : "KO");
-        System.out.println("Read (before close): " + ibs.read());
-        ibs.close();
-        System.out.println("Read (after close): " + ibs.read());
-        System.out.println();
-      }
-
-      for (int test = 1; test <= 10; test++) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * values.length);
-        OutputStream os = new BufferedOutputStream(baos);
-        OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
-        DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
-        dbs.showByte(true);
-
-        for (int i = 0; i < values.length; i++) {
-          values[i] = (test < 5) ? rnd.nextInt(test * 1000 + 100) : rnd.nextInt();
-          final int mask = (1 << (1 + (i % 30))) - 1;
-          values[i] &= mask;
-          System.out.print(values[i] + " ");
-
-          if ((i % 20) == 19)
-            System.out.println();
+    Assertions.assertDoesNotThrow(new Executable() {
+      @Override
+      public void execute() throws Throwable {
+        // Check correctness of read() and written()
+        for (int t = 1; t < 32; t++) {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * values.length);
+          OutputStream os = new BufferedOutputStream(baos);
+          OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+          System.out.println();
+          obs.writeBit(1);
+          obs.writeBits(0x0123456789ABCDEFL, t);
+          System.out.println("Written (before close): " + obs.written());
+          // Close first to force flush()
+          obs.close();
+          System.out.println("Written (after close): " + obs.written());
+          byte[] output = baos.toByteArray();
+          ByteArrayInputStream bais = new ByteArrayInputStream(output);
+          InputStream is = new BufferedInputStream(bais);
+          InputBitStream ibs = new DefaultInputBitStream(is, 16384);
+          ibs.readBit();
+          ibs.readBits(t);
+          System.out.println(ibs.read() == t + 1 ? "OK" : "KO");
+          System.out.println("Read (before close): " + ibs.read());
+          ibs.close();
+          System.out.println("Read (after close): " + ibs.read());
+          System.out.println();
         }
 
-        System.out.println();
-        System.out.println();
+        for (int test = 1; test <= 10; test++) {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * values.length);
+          OutputStream os = new BufferedOutputStream(baos);
+          OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+          DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
+          dbs.showByte(true);
 
-        for (int i = 0; i < values.length; i++) {
-          dbs.writeBits(values[i], (1 + (i % 30)));
-        }
+          for (int i = 0; i < values.length; i++) {
+            values[i] = (test < 5) ? rnd.nextInt(test * 1000 + 100) : rnd.nextInt();
+            final int mask = (1 << (1 + (i % 30))) - 1;
+            values[i] &= mask;
+            System.out.print(values[i] + " ");
 
-        // Close first to force flush()
-        dbs.close();
+            if ((i % 20) == 19)
+              System.out.println();
+          }
 
-        if (test == 10) {
-          try {
-            System.out.println();
-            System.out.println("Trying to write to closed stream");
-            dbs.writeBit(1);
-          } catch (BitStreamException e) {
-            System.out.println("\nException: " + e.getMessage());
+          System.out.println();
+          System.out.println();
+
+          for (int i = 0; i < values.length; i++) {
+            dbs.writeBits(values[i], (1 + (i % 30)));
+          }
+
+          // Close first to force flush()
+          dbs.close();
+
+          if (test == 10) {
+            try {
+              System.out.println();
+              System.out.println("Trying to write to closed stream");
+              dbs.writeBit(1);
+            } catch (BitStreamException e) {
+              System.out.println("\nException: " + e.getMessage());
+            }
+          }
+
+          byte[] output = baos.toByteArray();
+          ByteArrayInputStream bais = new ByteArrayInputStream(output);
+          InputStream is = new BufferedInputStream(bais);
+          InputBitStream ibs = new DefaultInputBitStream(is, 16384);
+          System.out.println();
+          System.out.println("Read: ");
+          boolean ok = true;
+
+          for (int i = 0; i < values.length; i++) {
+            int x = (int) ibs.readBits((1 + (i % 30)));
+            System.out.print(x);
+            System.out.print((x == values[i]) ? " " : "* ");
+            ok &= (x == values[i]);
+
+            if ((i % 20) == 19)
+              System.out.println();
+          }
+
+          ibs.close();
+          System.out.println("\n");
+          System.out.println("Bits written: " + dbs.written());
+          System.out.println("Bits read: " + ibs.read());
+          System.out.println("\n" + ((ok) ? "Success" : "Failure"));
+          System.out.println();
+
+          Assertions.assertTrue(ok);
+
+          // Check for Exception on R/W after close only one time
+          if (test == 10) {
+            Assertions.assertThrows(BitStreamException.class, new Executable() {
+              @Override
+              public void execute() throws Throwable {
+                ibs.readBit();
+              }
+            }, "Trying to read from closed stream did not throw an exception.");
           }
         }
-
-        byte[] output = baos.toByteArray();
-        ByteArrayInputStream bais = new ByteArrayInputStream(output);
-        InputStream is = new BufferedInputStream(bais);
-        InputBitStream ibs = new DefaultInputBitStream(is, 16384);
-        System.out.println();
-        System.out.println("Read: ");
-        boolean ok = true;
-
-        for (int i = 0; i < values.length; i++) {
-          int x = (int) ibs.readBits((1 + (i % 30)));
-          System.out.print(x);
-          System.out.print((x == values[i]) ? " " : "* ");
-          ok &= (x == values[i]);
-
-          if ((i % 20) == 19)
-            System.out.println();
-        }
-
-        ibs.close();
-        System.out.println("\n");
-        System.out.println("Bits written: " + dbs.written());
-        System.out.println("Bits read: " + ibs.read());
-        System.out.println("\n" + ((ok) ? "Success" : "Failure"));
-        System.out.println();
-
-        if (test == 10) {
-          try {
-            System.out.println();
-            System.out.println("Trying to read from closed stream");
-            ibs.readBit();
-          } catch (BitStreamException e) {
-            System.out.println("\nException: " + e.getMessage());
-          }
-        }
       }
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    return true;
+    });
   }
 
 
-  public static boolean testCorrectnessAligned2() {
+  @Test
+  void testCorrectnessAligned2() {
     // Test correctness (byte aligned)
     System.out.println("Correctness Test - write array - byte aligned");
     byte[] input = new byte[100];
@@ -271,146 +260,146 @@ public class TestDefaultBitStream {
     Random rnd = new Random();
     System.out.println("\nInitial");
 
-    try {
-      for (int test = 1; test <= 10; test++) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * input.length);
-        OutputStream os = new BufferedOutputStream(baos);
-        OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
-        DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
-        dbs.showByte(true);
+    Assertions.assertDoesNotThrow(new Executable() {
+      @Override
+      public void execute() throws Throwable {
+        for (int test = 1; test <= 10; test++) {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * input.length);
+          OutputStream os = new BufferedOutputStream(baos);
+          OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+          DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
+          dbs.showByte(true);
 
-        for (int i = 0; i < input.length; i++) {
-          input[i] = (test <= 5) ? (byte) rnd.nextInt(test * 10 + 100) : (byte) rnd.nextInt();
-          System.out.print((input[i] & 0xFF) + " ");
-
-          if ((i % 20) == 19)
-            System.out.println();
-        }
-
-        int count = 24 + test * (20 + (test & 1)) + (test & 3);
-        System.out.println();
-        System.out.println();
-        dbs.writeBits(input, 0, count);
-        System.out.println(dbs.written());
-
-        // Close first to force flush()
-        dbs.close();
-        byte[] block = baos.toByteArray();
-        ByteArrayInputStream bais = new ByteArrayInputStream(block);
-        InputStream is = new BufferedInputStream(bais);
-        InputBitStream ibs = new DefaultInputBitStream(is, 16384);
-        System.out.println("Read:");
-
-        int chkSize8 = (count / 3) & -8;
-        int r = ibs.readBits(output, 0, chkSize8); // read in 2 chunks as a test
-        r += ibs.readBits(output, chkSize8 / 8, count - chkSize8);
-        boolean ok = r == count;
-
-        if (ok == true) {
-          for (int i = 0; i < (r >> 3); i++) {
-            System.out.print(output[i] & 0xFF);
-            System.out.print((output[i] == input[i]) ? " " : "* ");
-            ok &= (output[i] == input[i]);
+          for (int i = 0; i < input.length; i++) {
+            input[i] = (test <= 5) ? (byte) rnd.nextInt(test * 10 + 100) : (byte) rnd.nextInt();
+            System.out.print((input[i] & 0xFF) + " ");
 
             if ((i % 20) == 19)
               System.out.println();
           }
+
+          int count = 24 + test * (20 + (test & 1)) + (test & 3);
+          System.out.println();
+          System.out.println();
+          dbs.writeBits(input, 0, count);
+          System.out.println(dbs.written());
+
+          // Close first to force flush()
+          dbs.close();
+          byte[] block = baos.toByteArray();
+          ByteArrayInputStream bais = new ByteArrayInputStream(block);
+          InputStream is = new BufferedInputStream(bais);
+          InputBitStream ibs = new DefaultInputBitStream(is, 16384);
+          System.out.println("Read:");
+
+          int chkSize8 = (count / 3) & -8;
+          int r = ibs.readBits(output, 0, chkSize8); // read in 2 chunks as a test
+          r += ibs.readBits(output, chkSize8 / 8, count - chkSize8);
+          boolean ok = r == count;
+
+          if (ok) {
+            for (int i = 0; i < (r >> 3); i++) {
+              System.out.print(output[i] & 0xFF);
+              System.out.print((output[i] == input[i]) ? " " : "* ");
+              ok &= (output[i] == input[i]);
+
+              if ((i % 20) == 19)
+                System.out.println();
+            }
+          }
+
+          ibs.close();
+          System.out.println("\n");
+          System.out.println("Bits written: " + dbs.written());
+          System.out.println("Bits read: " + ibs.read());
+          System.out.println("\n" + ((ok) ? "Success" : "Failure"));
+          System.out.println();
+          System.out.println();
+
+          Assertions.assertTrue(ok);
         }
-
-        ibs.close();
-        System.out.println("\n");
-        System.out.println("Bits written: " + dbs.written());
-        System.out.println("Bits read: " + ibs.read());
-        System.out.println("\n" + ((ok) ? "Success" : "Failure"));
-        System.out.println();
-        System.out.println();
       }
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    return true;
+    });
   }
 
-
-  public static boolean testCorrectnessMisaligned2() {
+  @Test
+  void testCorrectnessMisaligned2() {
     // Test correctness (not byte aligned)
     System.out.println("Correctness Test - write array - not byte aligned");
     byte[] input = new byte[100];
     byte[] output = new byte[100];
-    Random rnd = new Random();
 
-    try {
-      for (int test = 1; test <= 10; test++) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * input.length);
-        OutputStream os = new BufferedOutputStream(baos);
-        OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
-        DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
-        dbs.showByte(true);
+    Assertions.assertDoesNotThrow(new Executable() {
+      @Override
+      public void execute() throws Throwable {
+        for (int test = 1; test <= 10; test++) {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream(4 * input.length);
+          OutputStream os = new BufferedOutputStream(baos);
+          OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+          DebugOutputBitStream dbs = new DebugOutputBitStream(obs, System.out);
+          dbs.showByte(true);
 
-        for (int i = 0; i < input.length; i++) {
-          input[i] = (test <= 5) ? (byte) rnd.nextInt(test * 10 + 100) : (byte) rnd.nextInt();
-          System.out.print((input[i] & 0xFF) + " ");
-
-          if ((i % 20) == 19)
-            System.out.println();
-        }
-
-        int count = 8 + test * (20 + (test & 1)) + (test & 3);
-        System.out.println();
-        System.out.println();
-        dbs.writeBit(0);
-        dbs.writeBits(input, 1, count);
-
-        // Close first to force flush()
-        dbs.close();
-
-        byte[] block = baos.toByteArray();
-        ByteArrayInputStream bais = new ByteArrayInputStream(block);
-        InputStream is = new BufferedInputStream(bais);
-        InputBitStream ibs = new DefaultInputBitStream(is, 16384);
-        System.out.println();
-        System.out.println("Read: ");
-
-        ibs.readBit();
-        int r = ibs.readBits(output, 1, count);
-        boolean ok = r == count;
-
-        if (ok == true) {
-          for (int i = 1; i < 1 + (r >> 3); i++) {
-            System.out.print(output[i] & 0xFF);
-            System.out.print((output[i] == input[i]) ? " " : "* ");
-            ok &= (output[i] == input[i]);
+          for (int i = 0; i < input.length; i++) {
+            input[i] =
+                (test <= 5) ? (byte) RANDOM.nextInt(test * 10 + 100) : (byte) RANDOM.nextInt();
+            System.out.print((input[i] & 0xFF) + " ");
 
             if ((i % 20) == 19)
               System.out.println();
           }
-        }
 
-        ibs.close();
-        System.out.println("\n");
-        System.out.println("Bits written: " + dbs.written());
-        System.out.println("Bits read: " + ibs.read());
-        System.out.println("\n" + ((ok) ? "Success" : "Failure"));
-        System.out.println();
+          int count = 8 + test * (20 + (test & 1)) + (test & 3);
+          System.out.println();
+          System.out.println();
+          dbs.writeBit(0);
+          dbs.writeBits(input, 1, count);
 
-        if (test == 10) {
-          try {
-            System.out.println();
-            System.out.println("Trying to read from closed stream");
-            ibs.readBits(1);
-          } catch (BitStreamException e) {
-            System.out.println("\nException: " + e.getMessage());
+          // Close first to force flush()
+          dbs.close();
+
+          byte[] block = baos.toByteArray();
+          ByteArrayInputStream bais = new ByteArrayInputStream(block);
+          InputStream is = new BufferedInputStream(bais);
+          InputBitStream ibs = new DefaultInputBitStream(is, 16384);
+          System.out.println();
+          System.out.println("Read: ");
+
+          ibs.readBit();
+          int r = ibs.readBits(output, 1, count);
+          boolean ok = r == count;
+
+          if (ok) {
+            for (int i = 1; i < 1 + (r >> 3); i++) {
+              System.out.print(output[i] & 0xFF);
+              System.out.print((output[i] == input[i]) ? " " : "* ");
+              ok &= (output[i] == input[i]);
+
+              if ((i % 20) == 19)
+                System.out.println();
+            }
+          }
+
+          ibs.close();
+          System.out.println("\n");
+          System.out.println("Bits written: " + dbs.written());
+          System.out.println("Bits read: " + ibs.read());
+          System.out.println("\n" + ((ok) ? "Success" : "Failure"));
+          System.out.println();
+
+          Assertions.assertTrue(ok);
+
+          // Check for Exception on R/W after close only one time
+          if (test == 10) {
+            Assertions.assertThrows(BitStreamException.class, new Executable() {
+              @Override
+              public void execute() throws Throwable {
+                ibs.readBits(1);
+              }
+            }, "Trying to read from closed stream did not throw an exception.");
           }
         }
       }
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    return true;
+    });
   }
 
 

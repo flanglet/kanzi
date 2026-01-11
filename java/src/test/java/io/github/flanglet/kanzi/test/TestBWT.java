@@ -18,25 +18,18 @@
 
 package io.github.flanglet.kanzi.test;
 
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
 import io.github.flanglet.kanzi.transform.BWT;
 import io.github.flanglet.kanzi.transform.BWTS;
-import org.junit.Assert;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 public class TestBWT {
   private final static Random RANDOM = new Random(Long.MAX_VALUE);
-
-  @Test
-  public void testBWT() {
-    Assert.assertTrue(testCorrectness(true, 200));
-    Assert.assertTrue(testCorrectness(false, 200));
-  }
 
 
   public static void printHexa(String s) {
@@ -72,19 +65,15 @@ public class TestBWT {
 
     System.out.println("TestBWT and TestBWTS");
 
-    if (testCorrectness(true, 20) == false)
-      System.exit(1);
-
-    if (testCorrectness(false, 20) == false)
-      System.exit(1);
-
     testSpeed(true, 200, 256 * 1024); // test MergeTPSI inverse
     testSpeed(true, 5, 10 * 1024 * 1024); // test BiPSIv2 inverse
     testSpeed(false, 200, 256 * 1024);
   }
 
 
-  public static boolean testCorrectness(boolean isBWT, int iters) {
+  @ParameterizedTest
+  @CsvSource({"true, 200", "false, 200"})
+  void testCorrectness(boolean isBWT, int iters) {
     System.out.println("\nBWT" + (!isBWT ? "S" : "") + " Correctness test");
 
     // Test behavior
@@ -171,9 +160,8 @@ public class TestBWT {
         System.out.println();
       }
 
-      if (str1.equals(str3) == true) {
-        System.out.println("Identical");
-      } else {
+      // @todo: Refactor this debugging related output
+      if (!str1.equals(str3)) {
         int idx = -1;
 
         for (int i = 0; i < buf1.length; i++) {
@@ -182,13 +170,11 @@ public class TestBWT {
             break;
           }
         }
-
         System.out.println("Different at index " + idx + " " + buf1[idx] + " <-> " + buf3[idx]);
-        return false;
       }
-    }
 
-    return true;
+      Assertions.assertEquals(str3, str1);
+    }
   }
 
 
@@ -206,14 +192,13 @@ public class TestBWT {
     for (int jj = 0; jj < 3; jj++) {
       long delta1 = 0;
       long delta2 = 0;
-      java.util.Random random = new java.util.Random();
       long before, after;
 
       for (int ii = 0; ii < iter; ii++) {
         ByteTransform bwt = (isBWT) ? new BWT() : new BWTS();
 
         for (int i = 0; i < size; i++)
-          buf1[i] = (byte) (random.nextInt(255) + 1);
+          buf1[i] = (byte) (RANDOM.nextInt(255) + 1);
 
         before = System.nanoTime();
         sa1.index = 0;
@@ -221,6 +206,7 @@ public class TestBWT {
         bwt.forward(sa1, sa2);
         after = System.nanoTime();
         delta1 += (after - before);
+
         before = System.nanoTime();
         sa2.index = 0;
         sa3.index = 0;
