@@ -212,7 +212,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
       printOut("Verbosity: " + this.verbosity, true);
       printOut("Overwrite: " + this.overwrite, true);
       printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
-      this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.DECODING, System.out));
+      this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.DECOMPRESSION, System.out));
     }
 
     int res = 0;
@@ -503,7 +503,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
       printOut("", verbosity > 3);
 
       if (this.listeners.isEmpty() == false) {
-        Event evt = new Event(Event.Type.DECOMPRESSION_START, -1, 0);
+        Event evt = new Event(Event.Type.DECOMPRESSION_START, 0, 0);
         Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
         notifyListeners(array, evt);
       }
@@ -633,7 +633,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
         }
 
         if (this.listeners.isEmpty() == false) {
-          Event evt = new Event(Event.Type.DECOMPRESSION_END, -1, this.cis.getRead());
+          Event evt = new Event(Event.Type.DECOMPRESSION_END, 0, this.cis.getRead());
           Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
           notifyListeners(array, evt);
         }

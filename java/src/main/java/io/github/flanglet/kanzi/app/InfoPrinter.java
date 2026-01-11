@@ -33,10 +33,10 @@ public class InfoPrinter implements Listener {
    * Enum representing the type of information to be printed.
    */
   public enum Type {
-    /** Represents encoding information. */
-    ENCODING,
-    /** Represents decoding information. */
-    DECODING
+    /** Represents compression information. */
+    COMPRESSION,
+    /** Represents decompression information. */
+    DECOMPRESSION
   }
 
   private final PrintStream ps;
@@ -62,7 +62,7 @@ public class InfoPrinter implements Listener {
     this.level = infoLevel;
     this.type = type;
     this.map = new ConcurrentHashMap<>();
-    this.thresholds = (type == Type.ENCODING)
+    this.thresholds = (type == Type.COMPRESSION)
         ? new Event.Type[] {Event.Type.COMPRESSION_START, Event.Type.BEFORE_TRANSFORM,
             Event.Type.AFTER_TRANSFORM, Event.Type.BEFORE_ENTROPY, Event.Type.AFTER_ENTROPY,
             Event.Type.COMPRESSION_END}
@@ -140,7 +140,7 @@ public class InfoPrinter implements Listener {
             bi.stage0Size, bi.stage1Size, duration1_ms, stage2Size, duration2_ms));
 
         // Add compression ratio for encoding
-        if ((this.type == Type.ENCODING) && (bi.stage0Size != 0))
+        if ((this.type == Type.COMPRESSION) && (bi.stage0Size != 0))
           msg.append(String.format(" (%d%%)", (stage2Size * 100L / bi.stage0Size)));
 
         // Optionally add hash

@@ -300,7 +300,7 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
       String ecodec = (NONE.equals(this.codec)) ? "no" : this.codec;
       printOut("Using " + ecodec + " entropy codec (stage 2)", true);
       printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
-      this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.ENCODING, System.out));
+      this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.COMPRESSION, System.out));
     }
 
     int res = 0;
@@ -801,7 +801,7 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
       }
 
       if (this.listeners.isEmpty() == false) {
-        Event evt = new Event(Event.Type.COMPRESSION_END, -1, this.cos.getWritten());
+        Event evt = new Event(Event.Type.COMPRESSION_END, 0, this.cos.getWritten());
         Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
         notifyListeners(array, evt);
       }
