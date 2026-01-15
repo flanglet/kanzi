@@ -163,6 +163,7 @@ public class EntropyUtils {
     }
 
     int sumScaledFreq = 0;
+    int sumFreq = 0;
     int idxMax = 0;
 
     // Scale frequencies by suqeezing/stretching distribution over complete range
@@ -174,27 +175,17 @@ public class EntropyUtils {
         continue;
 
       long sf = (long) freqs[i] * scale;
-      int scaledFreq;
-
-      if (sf <= totalFreq) {
-        // Quantum of frequency
-        scaledFreq = 1;
-      } else {
-        // Find best frequency rounding value
-        scaledFreq = (int) (sf / totalFreq);
-        long errCeiling = ((scaledFreq + 1) * (long) totalFreq) - sf;
-        long errFloor = sf - (scaledFreq * (long) totalFreq);
-
-        if (errCeiling < errFloor)
-          scaledFreq++;
-      }
-
+      final int scaledFreq = sf <= totalFreq ? 1 : (int) ((sf + ((long)(totalFreq) >> 1)) / (long)(totalFreq));
       alphabet[alphabetSize++] = i;
       sumScaledFreq += scaledFreq;
       freqs[i] = scaledFreq;
+      sumFreq += f;
 
       if (scaledFreq > freqs[idxMax])
         idxMax = i;
+
+      if (sumFreq >= totalFreq)
+        break;
     }
 
     if (alphabetSize == 0)
