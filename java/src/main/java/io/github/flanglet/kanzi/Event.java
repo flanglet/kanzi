@@ -106,6 +106,7 @@ public class Event {
   private final HashType hashType;
   private final long time;
   private final String msg;
+  private final HeaderInfo headerInfo;
 
   /**
    * Constructs an Event with the specified type, id, and size, with no hash.
@@ -145,6 +146,7 @@ public class Event {
     this.type = type;
     this.time = (time > 0) ? time : System.nanoTime();
     this.msg = msg;
+    this.headerInfo = null;
   }
 
   /**
@@ -178,7 +180,27 @@ public class Event {
     this.type = type;
     this.time = (time > 0) ? time : System.nanoTime();
     this.msg = null;
+    this.headerInfo = null;
   }
+
+   /**
+   * Constructs an Event with the specified type, id, and size, with no hash.
+   * @param type the type of event
+   * @param id the event id
+   * @param headerInfo the header information
+   * @param time the event timestamp
+   */
+  public Event(Type type, int id, HeaderInfo headerInfo, long time) {
+    this.id = id;
+    this.size = 0L;
+    this.hash = 0;
+    this.hashType = HashType.NO_HASH;
+    this.type = type;
+    this.time = (time > 0) ? time : System.nanoTime();
+    this.msg = null;
+    this.headerInfo = headerInfo;
+  }
+
 
   /**
    * Returns the event id.
@@ -235,28 +257,86 @@ public class Event {
   }
 
   /**
+   * Returns the header information of the event.
+   *
+   * @return the event header information
+   */
+  public String getMsg() {
+    return this.msg;
+  }
+
+  /**
+   * Returns the header information
+   * @return
+   */
+  public HeaderInfo getHeaderInfo() {
+    return this.headerInfo;
+  }
+
+  /**
    * Returns a string representation of the event.
    *
    * @return a string representation of the event
    */
   @Override
   public String toString() {
+    if (this.headerInfo != null) {
+      return this.headerInfo.toString();
+    }
+
     if (this.msg != null) {
       return this.msg;
     }
+
     StringBuilder sb = new StringBuilder(200);
     sb.append("{ \"type\":\"").append(this.getType()).append("\"");
+
     if (this.id >= 0) {
       sb.append(", \"id\":").append(this.getId());
     }
+
     sb.append(", \"size\":").append(this.getSize());
     sb.append(", \"time\":").append(this.getTime());
+
     if (this.hashType == HashType.SIZE_32) {
       sb.append(", \"hash\":\"").append(Integer.toHexString((int) this.getHash())).append("\"");
     } else if (this.hashType == HashType.SIZE_64) {
       sb.append(", \"hash\":\"").append(Long.toHexString(this.getHash())).append("\"");
     }
+
     sb.append(" }");
     return sb.toString();
   }
+
+
+public static class HeaderInfo {
+    public String inputName;
+    public int bsVersion;
+    public int checksumSize;
+    public int blockSize;
+    public String entropyType;
+    public String transformType;
+    public long originalSize;
+    public long fileSize;
+
+    public HeaderInfo(String inputName, int bsVersion, int checksumSize, int blockSize,
+                      String entropyType, String transformType, long originalSize, long fileSize) {
+      this.inputName = inputName;
+      this.bsVersion = bsVersion;
+      this.checksumSize = checksumSize;
+      this.blockSize = blockSize;
+      this.entropyType = entropyType;
+      this.transformType = transformType;
+      this.originalSize = originalSize;
+      this.fileSize = fileSize;
+    }
+
+    @Override
+    public String toString() {
+      return String.format(
+          "HeaderInfo{inputName='%s', bsVersion=%d, checksumSize=%d, blockSize=%d, entropyType='%s', transformType='%s', originalSize=%d, fileSize=%d}",
+          this.inputName, this.bsVersion, this.checksumSize, this.blockSize, this.entropyType, this.transformType, this.originalSize, this.fileSize);
+    }
+  }
+
 }

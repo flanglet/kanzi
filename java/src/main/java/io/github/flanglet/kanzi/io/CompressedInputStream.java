@@ -282,7 +282,7 @@ public class CompressedInputStream extends InputStream {
     this.listeners = new ArrayList<>(10);
     this.ctx = ctx;
     this.blockSize = 0;
-    this.outputSize = 0;
+    this.outputSize = -1;
     this.nbInputBlocks = 0;
     this.bufferThreshold = 0;
     this.entropyType = EntropyCodecFactory.NONE_TYPE;
@@ -477,36 +477,20 @@ public class CompressedInputStream extends InputStream {
     }
 
     if (this.listeners.isEmpty() == false) {
-      StringBuilder sb = new StringBuilder(200);
-      sb.append("Bitstream version: ").append(bsVersion).append("\n");
-      String cksum = "NONE";
-
-      if (this.hasher32 != null)
-        cksum = "32 bits";
-      else if (this.hasher64 != null)
-        cksum = "64 bits";
-
-      sb.append("Block checksum: ").append(cksum).append("\n");
-      sb.append("Block size: ").append(this.blockSize).append(" bytes\n");
-      String w1 = EntropyCodecFactory.getName(this.entropyType);
-
-      if ("NONE".equals(w1))
-        w1 = "no";
-
-      sb.append("Using ").append(w1).append(" entropy codec (stage 1)\n");
-      String w2 = new TransformFactory().getName(this.transformType);
-
-      if ("NONE".equals(w2))
-        w2 = "no";
-
-      sb.append("Using ").append(w2).append(" transform (stage 2)\n");
-
-      if (szMask != 0)
-        sb.append("Original size: ").append(this.outputSize).append(" byte(s)\n");
+      Event.HeaderInfo headerInfo = new Event.HeaderInfo(
+          (String) this.ctx.getOrDefault("inputName", "unknown"),
+          bsVersion,
+          (chkSize == 1) ? 32 : (chkSize == 2) ? 64 : 0,
+          this.blockSize,
+          EntropyCodecFactory.getName(this.entropyType),
+          new TransformFactory().getName(this.transformType),
+          this.outputSize,
+          (long) this.ctx.getOrDefault("fileSize", -1L)
+      );
 
       // Protect against future concurrent modification of the block listeners list
       Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
-      Event evt = new Event(Event.Type.AFTER_HEADER_DECODING, 0, sb.toString());
+      Event evt = new Event(Event.Type.AFTER_HEADER_DECODING, 0, headerInfo, System.nanoTime());
       notifyListeners(blockListeners, evt);
     }
   }
@@ -613,46 +597,70 @@ public class CompressedInputStream extends InputStream {
 
     int remaining = len;
 
-    while (remaining > 0) {
-      // Limit to number of available bytes in buffer
-      final int lenChunk = (int) Math.min((long) remaining, Math.min(this.available,
-          (long) (this.bufferThreshold - this.buffers[this.bufferId].index)));
+    try {
+      while (remaining > 0) {
+        // Limit to number of available bytes in buffer
+        final int lenChunk = (int) Math.min((long) remaining, Math.min(this.available,
+            (long) (this.bufferThreshold - this.buffers[this.bufferId].index)));
 
-      if (lenChunk > 0) {
-        // Process a chunk of in-buffer data. No access to bitstream required
-        System.arraycopy(this.buffers[this.bufferId].array, this.buffers[this.bufferId].index, data,
-            off, lenChunk);
-        this.buffers[this.bufferId].index += lenChunk;
-        off += lenChunk;
-        this.available -= lenChunk;
-        remaining -= lenChunk;
+        if (lenChunk > 0) {
+          // Process a chunk of in-buffer data. No access to bitstream required
+          System.arraycopy(this.buffers[this.bufferId].array, this.buffers[this.bufferId].index, data,
+              off, lenChunk);
+          this.buffers[this.bufferId].index += lenChunk;
+          off += lenChunk;
+          this.available -= lenChunk;
+          remaining -= lenChunk;
 
-        if ((this.bufferId < this.maxBufferId)
-            && (this.buffers[this.bufferId].index >= this.bufferThreshold)) {
-          if (this.bufferId + 1 >= this.jobs)
+          if ((this.bufferId < this.maxBufferId)
+              && (this.buffers[this.bufferId].index >= this.bufferThreshold)) {
+            if (this.bufferId + 1 >= this.jobs)
+              break;
+
+            this.bufferId++;
+          }
+
+          if (remaining == 0)
             break;
-
-          this.bufferId++;
         }
 
-        if (remaining == 0)
-          break;
+        // Buffer empty, time to decode
+        // Similar logic as in read() except EOF logic
+        if (this.available == 0) {
+          if (this.closed.get() == true)
+            throw new KanziIOException("Stream closed", Error.ERR_WRITE_FILE);
+
+          this.available = this.processBlock();
+
+          if (this.available == 0)
+            break;
+        }
+
+        int c2 = this.buffers[this.bufferId].array[this.buffers[this.bufferId].index++] & 0xFF;
+        this.available--;
+
+        // Is current read buffer empty ?
+        if ((this.bufferId < this.maxBufferId)
+            && (this.buffers[this.bufferId].index >= this.bufferThreshold))
+          this.bufferId++;
+
+        // EOF ?
+        if (c2 == -1) {
+          return -1;
+        }
+
+        data[off++] = (byte) c2;
+        remaining--;
       }
 
-      // Buffer empty, time to decode
-      int c2 = this.read();
-
-      // EOF ?
-      if (c2 == -1) {
-        // Return EOF if no byte read
-        return len == remaining ? -1 : len - remaining;
-      }
-
-      data[off++] = (byte) c2;
-      remaining--;
+      return len - remaining;
+    } catch (KanziIOException e) {
+      throw e;
+    } catch (BitStreamException e) {
+      throw new KanziIOException(e.getMessage(), Error.ERR_READ_FILE);
+    } catch (Exception e) {
+      throw new KanziIOException(e.getMessage(), Error.ERR_UNKNOWN);
     }
-
-    return len - remaining;
   }
 
   /**
@@ -1115,7 +1123,6 @@ public class CompressedInputStream extends InputStream {
 
           // Notify before entropy
           Event evt2 = new Event(Event.Type.BEFORE_ENTROPY, currentBlockId, r, checksum1, hashType);
-
           notifyListeners(this.listeners, evt2);
         }
 

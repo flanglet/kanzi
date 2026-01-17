@@ -20,9 +20,13 @@ package io.github.flanglet.kanzi.app;
 
 import io.github.flanglet.kanzi.Event;
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import io.github.flanglet.kanzi.Listener;
+import io.github.flanglet.kanzi.Event.HeaderInfo;
+
 
 /**
  * The {@code InfoPrinter} class implements the {@code Listener} interface and provides
@@ -36,7 +40,9 @@ public class InfoPrinter implements Listener {
     /** Represents compression information. */
     COMPRESSION,
     /** Represents decompression information. */
-    DECOMPRESSION
+    DECOMPRESSION,
+    /** Represents header information. */
+    INFO
   }
 
   private final PrintStream ps;
@@ -44,6 +50,7 @@ public class InfoPrinter implements Listener {
   private final Event.Type[] thresholds;
   private final Type type;
   private final int level;
+  private int headerInfo;
 
 
   /**
@@ -61,6 +68,7 @@ public class InfoPrinter implements Listener {
     this.ps = ps;
     this.level = infoLevel;
     this.type = type;
+    this.headerInfo = 0;
     this.map = new ConcurrentHashMap<>();
     this.thresholds = (type == Type.COMPRESSION)
         ? new Event.Type[] {Event.Type.COMPRESSION_START, Event.Type.BEFORE_TRANSFORM,
@@ -80,6 +88,11 @@ public class InfoPrinter implements Listener {
    */
   @Override
   public void processEvent(Event evt) {
+      if (this.type == Type.INFO) {
+       processHeaderInfo(evt);
+       return;
+    }
+
     int currentBlockId = evt.getId();
 
     if (evt.getType() == this.thresholds[1]) {
@@ -152,10 +165,125 @@ public class InfoPrinter implements Listener {
         this.ps.println(msg.toString());
       }
     } else if ((evt.getType() == Event.Type.AFTER_HEADER_DECODING) && (this.level >= 3)) {
-      this.ps.println(evt);
-    } else if (this.level >= 5) {
+      StringBuilder msg = new StringBuilder();
+      this.ps.println(msg.toString());
+      HeaderInfo info = evt.getHeaderInfo();
+
+      if (info == null)
+        return;
+
+      if (this.level >= 5) {
+        // JSON output
+        msg.append("\"inputName\": \"").append(info.inputName);
+        msg.append("\"bsVersion\": ").append(info.bsVersion);
+        msg.append(", \"checkSize\": ").append(info.checksumSize);
+        msg.append(", \"blockSize\": ").append(info.blockSize);
+        String str = (info.entropyType == null || info.entropyType  == "")  ? "none" : info.entropyType;
+        msg.append(", \"entropy\": \"").append(str).append('"');
+        str = (info.transformType == null || info.transformType  == "")  ? "none" : info.transformType;
+        msg.append(", \"transform\": \"").append(str).append('"');
+
+        if (info.fileSize >= 0)
+          msg.append(", \"compressed\": ").append(info.fileSize);
+
+        if (info.originalSize >= 0)
+          msg.append(", \"original\": ").append(info.originalSize);
+      }
+      else {
+        // Plain text output
+        msg.append("Bitstream version: ").append(info.bsVersion).append('\n');
+        String str = (info.checksumSize == 0) ? "NONE" : String.valueOf(info.checksumSize) + " bits";
+        msg.append("Block checksum: ").append(info.checksumSize).append('\n');
+        msg.append("Block size: ").append(info.blockSize).append(" bytes").append('\n');
+        str = ((info.entropyType == null) || (info.entropyType  == "")) ? "no" : info.entropyType;
+        msg.append("Using ").append(str).append(" entropy codec (stage 1)").append('\n');
+        str = ((info.transformType == null) || (info.transformType  == ""))  ? "no" : info.transformType;
+        msg.append("Using ").append(str).append(" transform (stage 2)").append('\n');
+
+        if (info.originalSize >= 0)
+          msg.append("Original size: ").append(String.valueOf(info.originalSize)+" bytes").append('\n');;
+      }
+
+      this.ps.println(msg.toString());
+    }
+    else if (this.level >= 5) {
       this.ps.println(evt);
     }
+  }
+
+
+  private void processHeaderInfo(Event evt) {
+    if ((this.level == 0) || (evt.getType() != Event.Type.AFTER_HEADER_DECODING))
+      return;
+
+    HeaderInfo info = evt.getHeaderInfo();
+
+    if (info == null)
+      return;
+
+    String spaces = "                              ";
+    StringBuilder sb = new StringBuilder(200);
+
+    if (this.headerInfo++ == 0) {
+      sb.append('\n');
+      sb.append("|     File Name      |Ver|Check|Block Size|  File Size | Orig. Size | Ratio |");
+
+      if (this.level >= 4) {
+        sb.append(" Entropy|        Transforms        |");
+      }
+
+      sb.append('\n');
+    }
+
+    Path fullPath = Paths.get(info.inputName);
+    String fileName = fullPath.getFileName().toString();
+
+    if (fileName.length() > 20)
+      fileName  = fileName.substring(0, 18) + "..";
+
+    sb.append('|').append(spaces.substring(0, 20 - fileName.length())).append(fileName);
+    String str = String.valueOf(info.bsVersion);
+    sb.append('|').append(spaces.substring(0, 3 - str.length())).append(str);
+    str = String.valueOf(info.checksumSize);
+    sb.append('|').append(spaces.substring(0, 5 - str.length())).append(str);
+    str = String.valueOf(info.blockSize);
+    sb.append('|').append(spaces.substring(0, 10 - str.length())).append(str);
+    str = formatSize(info.originalSize);
+    sb.append('|').append(spaces.substring(0, 12 - str.length())).append(str);
+
+    if (info.fileSize > 0) {
+      str = formatSize(info.fileSize);
+      sb.append('|').append(spaces.substring(0, 12 - str.length())).append(str);
+      float ratio = (info.originalSize == 0) ? 0 : ((float)(info.fileSize) / info.originalSize);
+      str = String.format("%.3f", ratio);
+      sb.append('|').append(spaces.substring(0, 7 - str.length())).append(str);
+    } else {
+      sb.append("|     N/A    ");
+    }
+
+    if (this.level >= 4) {
+      str = info.entropyType;
+      sb.append('|').append(spaces.substring(0, 8 - str.length())).append(str);
+      str = info.transformType;
+      sb.append('|').append(spaces.substring(0, 26 - str.length())).append(str);
+    }
+
+    sb.append('|');
+    this.ps.println(sb.toString());
+  }
+
+
+  private static  String formatSize(long size) {
+    if (size < 1024)
+      return String.valueOf(size);
+
+    if (size < 1024 * 1024)
+      return String.format("%.1f KiB", size / 1024.0);
+
+    if (size < 1024L * 1024L * 1024L)
+      return String.format("%.1f MiB", size / (1024.0 * 1024.0));
+
+    return String.format("%.1f GiB", size / (1024.0 * 1024.0 * 1024.0));
   }
 
 

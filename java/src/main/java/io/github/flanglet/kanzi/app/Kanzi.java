@@ -38,7 +38,7 @@ public class Kanzi {
    * An array of command line argument options.
    */
   private static final String[] CMD_LINE_ARGS = new String[] {"-c", "-d", "-i", "-o", "-b", "-t",
-      "-e", "-j", "-v", "-l", "-s", "-x", "-f", "-h"};
+      "-e", "-j", "-v", "-l", "-s", "-x", "-f", "-h", "-y"};
 
   private static final int MAX_CONCURRENCY = 64;
 
@@ -61,7 +61,7 @@ public class Kanzi {
   private static final String APP_HEADER = "Kanzi " + KANZI_VERSION + " (c) Frederic Langlet";
   private static final String APP_SUB_HEADER = "Fast lossless data compressor.";
   private static final String APP_USAGE =
-      "Usage: java -jar kanzi.jar [-c|-d] [flags and files in any order]";
+      "Usage: java -jar kanzi.jar [-c|-d|-y] [flags and files in any order]";
 
 
 
@@ -86,7 +86,7 @@ public class Kanzi {
     if (map.containsKey("mode") == false)
       System.exit(0);
 
-    char mode = (char) map.remove("mode");
+    char mode = (char) map.get("mode");
 
     if (mode == 'c') {
       BlockCompressor bc = null;
@@ -112,7 +112,7 @@ public class Kanzi {
       return (code);
     }
 
-    if (mode == 'd') {
+    if ((mode == 'd') || (mode == 'y')) {
       BlockDecompressor bd = null;
 
       try {
@@ -193,8 +193,8 @@ public class Kanzi {
 
       // Extract verbosity, output and mode first
       if (arg.equals("--compress") || (arg.equals("-c"))) {
-        if (mode == 'd') {
-          System.err.println("Both compression and decompression options were provided.");
+        if (mode != ' ') {
+          System.err.println("Only one mode can be provided (already got '" + mode + "'" );
           return io.github.flanglet.kanzi.Error.ERR_INVALID_PARAM;
         }
 
@@ -203,12 +203,22 @@ public class Kanzi {
       }
 
       if (arg.equals("--decompress") || (arg.equals("-d"))) {
-        if (mode == 'c') {
-          System.err.println("Both compression and decompression options were provided.");
+        if (mode != ' ') {
+          System.err.println("Only one mode can be provided (already got '" + mode + "'" );
           return io.github.flanglet.kanzi.Error.ERR_INVALID_PARAM;
         }
 
         mode = 'd';
+        continue;
+      }
+
+      if (arg.equals("--info") || (arg.equals("-y"))) {
+        if (mode != ' ') {
+          System.err.println("Only one mode can be provided (already got '" + mode + "'" );
+          return io.github.flanglet.kanzi.Error.ERR_INVALID_PARAM;
+        }
+
+        mode = 'y';
         continue;
       }
 
@@ -246,9 +256,18 @@ public class Kanzi {
     }
 
     // Overwrite verbosity if the output goes to stdout
-    if (((inputName.length() == 0) && (outputName.length() == 0))
-        || "STDOUT".equalsIgnoreCase(outputName))
-      verbose = 0;
+    if (outputName.length() == 0) {
+      if (inputName.length() == 0)
+        verbose = 0;
+    }
+    else {
+        if (mode == 'y') {
+          System.err.println("Warning: ignoring option [" + outputName + "]. Only applicable in compression or decompression mode.");
+        }
+        else if ("STDOUT".equalsIgnoreCase(outputName)) {
+          verbose = 0;
+        }
+    }
 
     if (showHeader == true) {
       printOut("\n" + APP_HEADER + "\n", verbose >= 1);
@@ -263,7 +282,7 @@ public class Kanzi {
       arg = arg.trim();
 
       if (arg.equals("--compress") || arg.equals("-c") || arg.equals("--decompress")
-          || arg.equals("-d")) {
+          || arg.equals("-d") || (arg.equals("--info") || arg.equals("-y"))) {
         if (ctx != -1) {
           printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
         }
@@ -273,8 +292,17 @@ public class Kanzi {
       }
 
       if (arg.equals("--force") || arg.equals("-f")) {
-        if (ctx != -1)
+        if (ctx != -1) {
           printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
+        }
+        else if (overwrite == true) {
+          printWarning(arg, " Duplicate 'overwrite' option.", verbose);
+        }
+
+        if (mode == 'y') {
+          printWarning(arg, " Only applicable in compress mode.", verbose);
+          continue;
+        }
 
         overwrite = true;
         ctx = -1;
@@ -300,8 +328,17 @@ public class Kanzi {
       }
 
       if (arg.equals("--rm")) {
-        if (ctx != -1)
+        if (ctx != -1) {
           printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
+        }
+        else if (remove == true) {
+          printWarning(arg, " Duplicate 'remove' option.", verbose);
+        }
+
+        if (mode == 'y') {
+          printWarning(arg, " Only applicable in compress mode.", verbose);
+          continue;
+        }
 
         remove = true;
         ctx = -1;
@@ -309,9 +346,12 @@ public class Kanzi {
       }
 
       if (arg.equals("--no-file-reorder")) {
-        if (ctx != -1)
+        if (ctx != -1) {
           printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
-
+        }
+        else if (remove == true) {
+          printWarning(arg, " Duplicate 'no-file-reorder' option.", verbose);
+        }
         ctx = -1;
 
         if (mode != 'c') {
@@ -324,8 +364,12 @@ public class Kanzi {
       }
 
       if (arg.equals("--skip-dot-files")) {
-        if (ctx != -1)
+        if (ctx != -1) {
           printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
+        }
+        else if (noDotFiles == true) {
+          printWarning(arg, " Duplicate 'skip-dot-files' option.", verbose);
+        }
 
         ctx = -1;
         noDotFiles = true;
@@ -333,8 +377,12 @@ public class Kanzi {
       }
 
       if (arg.equals("--skip-links")) {
-        if (ctx != -1)
+        if (ctx != -1) {
           printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
+        }
+        else if (noDotFiles == true) {
+          printWarning(arg, " Duplicate 'skip-dot-links' option.", verbose);
+        }
 
         ctx = -1;
         noLinks = true;
@@ -716,7 +764,7 @@ public class Kanzi {
     printOut("Options\n", true);
     printOut("   -h, --help", true);
 
-    if ((mode != 'c') && (mode != 'd')) {
+    if ((mode != 'c') && (mode != 'd') && (mode != 'y')) {
       printOut("        Display this message.", true);
       printOut("        Use in conjunction with -c to print information for compression,", true);
       printOut("        or -d to print information for decompression.\n", true);
@@ -724,11 +772,12 @@ public class Kanzi {
       printOut("        Compress mode\n", true);
       printOut("   -d, --decompress", true);
       printOut("        Decompress mode\n", true);
+      printOut("   -y, --info", true);
+      printOut("        Print information about the input file or directory.\n", true);
+
     } else {
       printOut("        Display this message.\n", true);
     }
-
-
 
     printOut("   -i, --input=<inputName>", true);
     printOut("        Name of the input file or directory or 'stdin'.", true);
@@ -737,20 +786,23 @@ public class Kanzi {
         + ". at the end of the directory name to avoid recursion", true);
     printOut("        (EG: myDir" + File.separator + ". => no recursion)", true);
     printOut("        If this option is not provided, kanzi reads data from stdin.\n", true);
-    printOut("   -o, --output=<outputName>", true);
 
-    if (mode == 'c') {
-      printOut("        Optional name of the output file or directory (defaults to", true);
-      printOut("        <inputName.knz> if input is <inputName> or 'stdout' if input is 'stdin').",
-          true);
-      printOut("        or 'none' or 'stdout'.\n", true);
-    } else if (mode == 'd') {
-      printOut("        Optional name of the output file or directory (defaults to", true);
-      printOut("        <inputName> if input is <inputName.knz> or 'stdout' if input is 'stdin').",
-          true);
-      printOut("        or 'none' or 'stdout'.\n", true);
-    } else {
-      printOut("        Optional name of the output file or 'none' or 'stdout'.\n", true);
+    if (mode != 'y') {
+      printOut("   -o, --output=<outputName>", true);
+
+      if (mode == 'c') {
+        printOut("        Optional name of the output file or directory (defaults to", true);
+        printOut("        <inputName.knz> if input is <inputName> or 'stdout' if input is 'stdin').",
+            true);
+        printOut("        or 'none' or 'stdout'.\n", true);
+      } else if (mode == 'd') {
+        printOut("        Optional name of the output file or directory (defaults to", true);
+        printOut("        <inputName> if input is <inputName.knz> or 'stdout' if input is 'stdin').",
+            true);
+        printOut("        or 'none' or 'stdout'.\n", true);
+      } else {
+        printOut("        Optional name of the output file or 'none' or 'stdout'.\n", true);
+      }
     }
 
     if (mode == 'c') {
@@ -798,10 +850,13 @@ public class Kanzi {
     printOut("        4=display block size and timings, 5=display extra information", true);
     printOut("        Verbosity is reduced to 1 when files are processed concurrently", true);
     printOut("        Verbosity is reduced to 0 when the output is 'stdout'\n", true);
-    printOut("   -f, --force", true);
-    printOut("        Overwrite the output file if it already exists\n", true);
-    printOut("   --rm", true);
-    printOut("        Remove the input file after successful (de)compression.", true);
+
+    if (mode != 'y') {
+      printOut("   -f, --force", true);
+      printOut("        Overwrite the output file if it already exists\n", true);
+      printOut("   --rm", true);
+      printOut("        Remove the input file after successful (de)compression.", true);
+    }
 
     if (mode == 'c') {
       printOut("        Remove the input file after successful compression.", true);

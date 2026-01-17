@@ -72,12 +72,13 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
   private final boolean noDotFiles;
   private final boolean noLinks;
   private final String inputName;
-  private final String outputName;
-  private final int jobs;
-  private final int from; // start block
-  private final int to; // end block
+  private String outputName;
+  private int jobs;
+  private int from; // start block
+  private int to; // end block
   private final ExecutorService pool;
   private final List<Listener> listeners;
+  private final Map<String, Object> ctx;
 
 
   /**
@@ -86,6 +87,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
    * @param map a map containing configuration options for the decompressor
    */
   public BlockDecompressor(Map<String, Object> map) {
+    this.ctx = map;
     this.overwrite = Boolean.TRUE.equals(map.remove("overwrite"));
     this.removeInput = Boolean.TRUE.equals(map.remove("remove"));
     this.noDotFiles = Boolean.TRUE.equals(map.remove("noDotFiles"));
@@ -105,7 +107,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
     this.verbosity = (Integer) map.remove("verbose");
     this.from = (map.containsKey("from") ? (Integer) map.remove("from") : -1);
     this.to = (map.containsKey("to") ? (Integer) map.remove("to") : -1);
-    int concurrency;
+    int concurrency = 1;
 
     if (map.containsKey("jobs")) {
       concurrency = (Integer) map.remove("jobs");
@@ -128,11 +130,6 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
     this.jobs = concurrency;
     this.pool = Executors.newFixedThreadPool(this.jobs);
     this.listeners = new ArrayList<>(10);
-
-    if ((this.verbosity > 0) && (map.isEmpty() == false)) {
-      for (String k : map.keySet())
-        printOut("Warning: Ignoring invalid option [" + k + "]", true); // this.verbosity>0
-    }
   }
 
 
@@ -168,6 +165,28 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
     long before = System.nanoTime();
     int nbFiles = 1;
     boolean isStdIn = STDIN.equalsIgnoreCase(this.inputName);
+
+    // In mode "info", we want to display the information in the stream header only.
+    // We can reuse the existing code but we need to:
+    //   create an InfoPrinter with a dedicated INFO type
+    //   disable logging outside of this printer (=> _verbosity=0)
+    //   decompress no block (=> _outputName = NONE and --from=1 and --to=1)
+    //   disable threading for proper display (=> _jobs=1)
+    char mode = (char) this.ctx.getOrDefault("mode", 'd');
+    boolean isInfo = mode == 'y';
+    final int vl = this.verbosity;
+
+    if (isInfo) {
+        this.jobs = 1;
+        this.verbosity = 0;
+        this.outputName = "NONE";
+        this.from = 1;
+        this.to = 1;
+        this.ctx.put("outputName", this.outputName);
+        this.ctx.put("from", 1);
+        this.ctx.put("to", 1);
+        this.ctx.put("jobs", 1);
+    }
 
     if (isStdIn == false) {
       try {
@@ -211,9 +230,14 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
     if (this.verbosity > 2) {
       printOut("Verbosity: " + this.verbosity, true);
       printOut("Overwrite: " + this.overwrite, true);
-      printOut("Using " + this.jobs + " job" + ((this.jobs > 1) ? "s" : ""), true);
-      this.addListener(new InfoPrinter(this.verbosity, InfoPrinter.Type.DECOMPRESSION, System.out));
+      printOut("Using " + this.jobs + ((this.jobs > 1) ? " jobs" : " job"), true);
     }
+
+    InfoPrinter infoPrinter = new InfoPrinter(vl,
+        isInfo ? InfoPrinter.Type.INFO : InfoPrinter.Type.DECOMPRESSION, System.out);
+
+    if ((vl > 2) || ((isInfo == true) && (vl > 0)))
+      this.addListener(infoPrinter);
 
     int res = 0;
 
