@@ -183,11 +183,12 @@ public class Event {
     this.headerInfo = null;
   }
 
-   /**
+  /**
    * Constructs an Event with the specified type, id, and size, with no hash.
+   * 
    * @param type the type of event
    * @param id the event id
-   * @param headerInfo the header information
+   * @param headerInfo the bitstream header information
    * @param time the event timestamp
    */
   public Event(Type type, int id, HeaderInfo headerInfo, long time) {
@@ -267,7 +268,8 @@ public class Event {
 
   /**
    * Returns the header information
-   * @return
+   *
+   * @return the header information
    */
   public HeaderInfo getHeaderInfo() {
     return this.headerInfo;
@@ -280,10 +282,6 @@ public class Event {
    */
   @Override
   public String toString() {
-    if (this.headerInfo != null) {
-      return this.headerInfo.toString();
-    }
-
     if (this.msg != null) {
       return this.msg;
     }
@@ -295,21 +293,27 @@ public class Event {
       sb.append(", \"id\":").append(this.getId());
     }
 
-    sb.append(", \"size\":").append(this.getSize());
-    sb.append(", \"time\":").append(this.getTime());
+    if (this.headerInfo != null) {
+      sb.append(this.headerInfo.toString());
+    } else {
+      sb.append(", \"size\":").append(this.getSize());
+      sb.append(", \"time\":").append(this.getTime());
 
-    if (this.hashType == HashType.SIZE_32) {
-      sb.append(", \"hash\":\"").append(Integer.toHexString((int) this.getHash())).append("\"");
-    } else if (this.hashType == HashType.SIZE_64) {
-      sb.append(", \"hash\":\"").append(Long.toHexString(this.getHash())).append("\"");
+      if (this.hashType == HashType.SIZE_32) {
+        sb.append(", \"hash\":\"").append(Integer.toHexString((int) this.getHash())).append("\"");
+      } else if (this.hashType == HashType.SIZE_64) {
+        sb.append(", \"hash\":\"").append(Long.toHexString(this.getHash())).append("\"");
+      }
     }
 
     sb.append(" }");
     return sb.toString();
   }
 
-
-public static class HeaderInfo {
+  /**
+   * Class representing bitstream header information.
+   */
+  public static class HeaderInfo {
     public String inputName;
     public int bsVersion;
     public int checksumSize;
@@ -320,7 +324,7 @@ public static class HeaderInfo {
     public long fileSize;
 
     public HeaderInfo(String inputName, int bsVersion, int checksumSize, int blockSize,
-                      String entropyType, String transformType, long originalSize, long fileSize) {
+        String entropyType, String transformType, long originalSize, long fileSize) {
       this.inputName = inputName;
       this.bsVersion = bsVersion;
       this.checksumSize = checksumSize;
@@ -333,9 +337,22 @@ public static class HeaderInfo {
 
     @Override
     public String toString() {
-      return String.format(
-          "HeaderInfo{inputName='%s', bsVersion=%d, checksumSize=%d, blockSize=%d, entropyType='%s', transformType='%s', originalSize=%d, fileSize=%d}",
-          this.inputName, this.bsVersion, this.checksumSize, this.blockSize, this.entropyType, this.transformType, this.originalSize, this.fileSize);
+      StringBuilder res = new StringBuilder(200);
+      res.append(", \"inputName\":\"").append(this.inputName);
+      res.append(", \"bsVersion\":").append(this.bsVersion);
+      res.append(", \"checksum\":").append(this.checksumSize);
+      res.append(", \"blockSize\":").append(this.blockSize);
+      String str = (this.entropyType == null || this.entropyType == "") ? "none" : this.entropyType;
+      res.append(", \"entropy\":\"").append(str).append('"');
+      str = (this.transformType == null || this.transformType == "") ? "none" : this.transformType;
+      res.append(", \"transform\":\"").append(str).append('"');
+      if (this.fileSize >= 0)
+        res.append(", \"compressed\":").append(this.fileSize);
+
+      if (this.originalSize >= 0)
+        res.append(", \"original\":").append(this.originalSize);
+
+      return res.toString();
     }
   }
 

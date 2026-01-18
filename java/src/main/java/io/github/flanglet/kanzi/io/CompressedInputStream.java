@@ -644,11 +644,6 @@ public class CompressedInputStream extends InputStream {
             && (this.buffers[this.bufferId].index >= this.bufferThreshold))
           this.bufferId++;
 
-        // EOF ?
-        if (c2 == -1) {
-          return -1;
-        }
-
         data[off++] = (byte) c2;
         remaining--;
       }

@@ -88,9 +88,9 @@ public class InfoPrinter implements Listener {
    */
   @Override
   public void processEvent(Event evt) {
-      if (this.type == Type.INFO) {
-       processHeaderInfo(evt);
-       return;
+    if (this.type == Type.INFO) {
+      processHeaderInfo(evt);
+      return;
     }
 
     int currentBlockId = evt.getId();
@@ -174,39 +174,27 @@ public class InfoPrinter implements Listener {
 
       if (this.level >= 5) {
         // JSON output
-        msg.append("\"inputName\": \"").append(info.inputName);
-        msg.append("\"bsVersion\": ").append(info.bsVersion);
-        msg.append(", \"checkSize\": ").append(info.checksumSize);
-        msg.append(", \"blockSize\": ").append(info.blockSize);
-        String str = (info.entropyType == null || info.entropyType  == "")  ? "none" : info.entropyType;
-        msg.append(", \"entropy\": \"").append(str).append('"');
-        str = (info.transformType == null || info.transformType  == "")  ? "none" : info.transformType;
-        msg.append(", \"transform\": \"").append(str).append('"');
-
-        if (info.fileSize >= 0)
-          msg.append(", \"compressed\": ").append(info.fileSize);
-
-        if (info.originalSize >= 0)
-          msg.append(", \"original\": ").append(info.originalSize);
-      }
-      else {
+        this.ps.println(evt.toString());
+      } else {
         // Plain text output
         msg.append("Bitstream version: ").append(info.bsVersion).append('\n');
-        String str = (info.checksumSize == 0) ? "NONE" : String.valueOf(info.checksumSize) + " bits";
+        String str =
+            (info.checksumSize == 0) ? "NONE" : String.valueOf(info.checksumSize) + " bits";
         msg.append("Block checksum: ").append(info.checksumSize).append('\n');
         msg.append("Block size: ").append(info.blockSize).append(" bytes").append('\n');
-        str = ((info.entropyType == null) || (info.entropyType  == "")) ? "no" : info.entropyType;
+        str = ((info.entropyType == null) || (info.entropyType == "")) ? "no" : info.entropyType;
         msg.append("Using ").append(str).append(" entropy codec (stage 1)").append('\n');
-        str = ((info.transformType == null) || (info.transformType  == ""))  ? "no" : info.transformType;
+        str = ((info.transformType == null) || (info.transformType == "")) ? "no"
+            : info.transformType;
         msg.append("Using ").append(str).append(" transform (stage 2)").append('\n');
 
         if (info.originalSize >= 0)
-          msg.append("Original size: ").append(String.valueOf(info.originalSize)+" bytes").append('\n');;
-      }
+          msg.append("Original size: ").append(String.valueOf(info.originalSize) + " byte(s)")
+              .append('\n');
 
-      this.ps.println(msg.toString());
-    }
-    else if (this.level >= 5) {
+        this.ps.println(msg.toString());
+      }
+    } else if (this.level >= 5) {
       this.ps.println(evt);
     }
   }
@@ -239,7 +227,7 @@ public class InfoPrinter implements Listener {
     String fileName = fullPath.getFileName().toString();
 
     if (fileName.length() > 20)
-      fileName  = fileName.substring(0, 18) + "..";
+      fileName = fileName.substring(0, 18) + "..";
 
     sb.append('|').append(spaces.substring(0, 20 - fileName.length())).append(fileName);
     String str = String.valueOf(info.bsVersion);
@@ -254,7 +242,7 @@ public class InfoPrinter implements Listener {
     if (info.fileSize > 0) {
       str = formatSize(info.fileSize);
       sb.append('|').append(spaces.substring(0, 12 - str.length())).append(str);
-      float ratio = (info.originalSize == 0) ? 0 : ((float)(info.fileSize) / info.originalSize);
+      float ratio = (info.originalSize == 0) ? 0 : ((float) (info.fileSize) / info.originalSize);
       str = String.format("%.3f", ratio);
       sb.append('|').append(spaces.substring(0, 7 - str.length())).append(str);
     } else {
@@ -273,7 +261,7 @@ public class InfoPrinter implements Listener {
   }
 
 
-  private static  String formatSize(long size) {
+  private static String formatSize(long size) {
     if (size < 1024)
       return String.valueOf(size);
 
