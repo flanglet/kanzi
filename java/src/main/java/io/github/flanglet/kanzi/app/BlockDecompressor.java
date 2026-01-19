@@ -78,8 +78,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
   private int to; // end block
   private final ExecutorService pool;
   private final List<Listener> listeners;
-  private final Map<String, Object> ctx;
-
+  private final char mode;
 
   /**
    * Constructs a {@code BlockDecompressor} with the specified parameters.
@@ -87,7 +86,6 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
    * @param map a map containing configuration options for the decompressor
    */
   public BlockDecompressor(Map<String, Object> map) {
-    this.ctx = map;
     this.overwrite = Boolean.TRUE.equals(map.remove("overwrite"));
     this.removeInput = Boolean.TRUE.equals(map.remove("remove"));
     this.noDotFiles = Boolean.TRUE.equals(map.remove("noDotFiles"));
@@ -130,6 +128,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
     this.jobs = concurrency;
     this.pool = Executors.newFixedThreadPool(this.jobs);
     this.listeners = new ArrayList<>(10);
+    this.mode = (map.containsKey("mode")) ? ((Character) map.remove("mode")).charValue() : 'd';
   }
 
 
@@ -172,8 +171,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
     //   disable logging outside of this printer (=> _verbosity=0)
     //   decompress no block (=> _outputName = NONE and --from=1 and --to=1)
     //   disable threading for proper display (=> _jobs=1)
-    char mode = (char) this.ctx.getOrDefault("mode", 'd');
-    boolean isInfo = mode == 'y';
+    boolean isInfo = this.mode == 'y';
     final int vl = this.verbosity;
 
     if (isInfo) {
@@ -182,10 +180,6 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
         this.outputName = "NONE";
         this.from = 1;
         this.to = 1;
-        this.ctx.put("outputName", this.outputName);
-        this.ctx.put("from", 1);
-        this.ctx.put("to", 1);
-        this.ctx.put("jobs", 1);
     }
 
     if (isStdIn == false) {
