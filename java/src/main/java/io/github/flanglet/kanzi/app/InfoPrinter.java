@@ -182,9 +182,9 @@ public class InfoPrinter implements Listener {
             (info.checksumSize == 0) ? "NONE" : String.valueOf(info.checksumSize) + " bits";
         msg.append("Block checksum: ").append(info.checksumSize).append('\n');
         msg.append("Block size: ").append(info.blockSize).append(" bytes").append('\n');
-        str = ((info.entropyType == null) || (info.entropyType == "")) ? "no" : info.entropyType;
+        str = ((info.entropyType == null) || (info.entropyType.isEmpty())) ? "no" : info.entropyType;
         msg.append("Using ").append(str).append(" entropy codec (stage 1)").append('\n');
-        str = ((info.transformType == null) || (info.transformType == "")) ? "no"
+        str = ((info.transformType == null) || (info.transformType.isEmpty())) ? "no"
             : info.transformType;
         msg.append("Using ").append(str).append(" transform (stage 2)").append('\n');
 
