@@ -1135,13 +1135,15 @@ public final class LZCodec implements ByteTransform {
 
         int mLen = minMatch;
 
-        while ((srcIdx < srcEnd) && (src[srcIdx] == (byte) 0xFE)) {
-          srcIdx++;
-          mLen += 254;
+        if (src[srcIdx] == (byte) 0xFE) {
+          while ((srcIdx < srcEnd) && (src[srcIdx] == (byte) 0xFE)) {
+             srcIdx++;
+             mLen += 254;
+          }
+ 
+          if (srcIdx >= srcEnd)
+            return false;
         }
-
-        if (srcIdx >= srcEnd)
-          return false;
 
         mLen += (src[srcIdx++] & 0xFF);
 
