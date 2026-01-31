@@ -815,7 +815,7 @@ public class Kanzi {
       printOut("   -l, --level=<compression>", true);
       printOut("        Set the compression level [0..9]", true);
       printOut("        Providing this option forces entropy and transform.", true);
-      printOut("        0=None&None (store)", true);
+      printOut("        0=None&None (store)\n", true);
       printOut("        1=LZX&NONE", true);
       printOut("        2=DNA+LZ&HUFFMAN", true);
       printOut("        3=TEXT+UTF+PACK+MM+LZX&HUFFMAN", true);
@@ -825,6 +825,10 @@ public class Kanzi {
       printOut("        7=LZP+TEXT+UTF+BWT+LZP&CM", true);
       printOut("        8=EXE+RLT+TEXT+UTF+DNA&TPAQ", true);
       printOut("        9=EXE+RLT+TEXT+UTF+DNA&TPAQX\n", true);
+      printOut("        Kanzi utilizes various algorithm combinations across different compression", true);
+      printOut("        levels. While these levels are calibrated to improve compression monotonically", true);
+      printOut("        this is not guaranteed. Certain data may respond better to specific algorithms", true);
+      printOut("        meaning higher compression levels could occasionally yield lower compression ratios.\n", true);
       printOut("   -e, --entropy=<codec>", true);
       printOut("        Entropy codec [None|Huffman|ANS0|ANS1|Range|FPAQ|TPAQ|TPAQX|CM]", true);
       printOut("        (default is ANS0)\n", true);
