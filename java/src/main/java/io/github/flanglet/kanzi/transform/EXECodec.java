@@ -111,6 +111,11 @@ public class EXECodec implements ByteTransform {
     if (input.length == 0)
       return true;
 
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
+
     if ((input.length < MIN_BLOCK_SIZE) || (input.length > MAX_BLOCK_SIZE))
       return false;
 
@@ -325,7 +330,7 @@ public class EXECodec implements ByteTransform {
       return false;
 
     input.index = end;
-    output.index += dstIdx;
+    output.index = dstIdx;
     return true;
   }
 
@@ -340,6 +345,11 @@ public class EXECodec implements ByteTransform {
   public boolean inverse(SliceByteArray input, SliceByteArray output) {
     if (input.length == 0)
       return true;
+
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
 
     if (input.array == output.array)
       return false;

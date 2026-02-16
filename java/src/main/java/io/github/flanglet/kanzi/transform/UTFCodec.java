@@ -69,6 +69,11 @@ public class UTFCodec implements ByteTransform {
     if (input.length == 0)
       return true;
 
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
+
     if (input.length < MIN_BLOCK_SIZE)
       return false;
 
@@ -209,8 +214,8 @@ public class UTFCodec implements ByteTransform {
     while (srcIdx < srcEnd + 4)
       dst[dstIdx++] = src[srcIdx++];
 
-    input.index += srcIdx;
-    output.index += dstIdx;
+    input.index = srcIdx;
+    output.index = dstIdx;
     return dstIdx < maxTarget;
   }
 
@@ -219,6 +224,11 @@ public class UTFCodec implements ByteTransform {
   public boolean inverse(SliceByteArray input, SliceByteArray output) {
     if (input.length == 0)
       return true;
+
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
 
     if (input.length < 4)
       return false;
@@ -288,8 +298,8 @@ public class UTFCodec implements ByteTransform {
       }
     }
 
-    input.index += srcIdx;
-    output.index += dstIdx;
+    input.index = srcIdx;
+    output.index = dstIdx;
     return res;
   }
 

@@ -85,6 +85,11 @@ public final class LZCodec implements ByteTransform {
     if (src.length == 0)
       return true;
 
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
+        || ((long) src.index + src.length > src.array.length)
+        || (dst.index > dst.array.length))
+      return false;
+
     if (src.array == dst.array)
       return false;
 
@@ -104,6 +109,11 @@ public final class LZCodec implements ByteTransform {
   public boolean inverse(SliceByteArray src, SliceByteArray dst) {
     if (src.length == 0)
       return true;
+
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
+        || ((long) src.index + src.length > src.array.length)
+        || (dst.index > dst.array.length))
+      return false;
 
     if (src.array == dst.array)
       return false;
@@ -288,7 +298,12 @@ public final class LZCodec implements ByteTransform {
      */
     public boolean forward(SliceByteArray input, SliceByteArray output) {
       if (input.length == 0)
-        return true;
+      return true;
+
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
 
       final int count = input.length;
 
@@ -610,7 +625,12 @@ public final class LZCodec implements ByteTransform {
      */
     public boolean inverseV6(SliceByteArray input, SliceByteArray output) {
       if (input.length == 0)
-        return true;
+      return true;
+
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
 
       if (input.length < 13)
         return false;
@@ -739,7 +759,12 @@ public final class LZCodec implements ByteTransform {
      */
     public boolean inverseV5(SliceByteArray input, SliceByteArray output) {
       if (input.length == 0)
-        return true;
+      return true;
+
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
 
       if (input.length < 13)
         return false;
@@ -978,7 +1003,12 @@ public final class LZCodec implements ByteTransform {
      */
     public boolean forward(SliceByteArray input, SliceByteArray output) {
       if (input.length == 0)
-        return true;
+      return true;
+
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
 
       final int count = input.length;
 
@@ -1084,7 +1114,12 @@ public final class LZCodec implements ByteTransform {
      */
     public boolean inverse(SliceByteArray input, SliceByteArray output) {
       if (input.length == 0)
-        return true;
+      return true;
+
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
 
       final int count = input.length;
       final byte[] src = input.array;

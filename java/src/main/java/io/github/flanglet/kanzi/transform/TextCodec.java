@@ -461,6 +461,11 @@ public final class TextCodec implements ByteTransform {
     if (src.length == 0)
       return true;
 
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
+        || ((long) src.index + src.length > src.array.length)
+        || (dst.index > dst.array.length))
+      return false;
+
     if ((src.length < MIN_BLOCK_SIZE) || (src.length > MAX_BLOCK_SIZE))
       return false;
 
@@ -475,6 +480,11 @@ public final class TextCodec implements ByteTransform {
   public boolean inverse(SliceByteArray src, SliceByteArray dst) {
     if (src.length == 0)
       return true;
+
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
+        || ((long) src.index + src.length > src.array.length)
+        || (dst.index > dst.array.length))
+      return false;
 
     if (src.length > MAX_BLOCK_SIZE) // ! no min check
       return false;
@@ -571,6 +581,11 @@ public final class TextCodec implements ByteTransform {
 
     @Override
     public boolean forward(SliceByteArray input, SliceByteArray output) {
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
       final int count = input.length;
 
       if (output.length - output.index < this.getMaxEncodedLength(count))
@@ -821,6 +836,11 @@ public final class TextCodec implements ByteTransform {
 
     @Override
     public boolean inverse(SliceByteArray input, SliceByteArray output) {
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
       this.reset(output.length);
       final int count = input.length;
       final byte[] src = input.array;
@@ -1067,6 +1087,11 @@ public final class TextCodec implements ByteTransform {
 
     @Override
     public boolean forward(SliceByteArray input, SliceByteArray output) {
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
       final int count = input.length;
 
       if (output.length - output.index < this.getMaxEncodedLength(count))
@@ -1351,6 +1376,11 @@ public final class TextCodec implements ByteTransform {
 
     @Override
     public boolean inverse(SliceByteArray input, SliceByteArray output) {
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
       this.reset(output.length);
       final int count = input.length;
       final byte[] src = input.array;

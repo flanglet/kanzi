@@ -78,6 +78,11 @@ public class NullTransform implements ByteTransform {
     if (input.length == 0)
       return true;
 
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
+
     final int count = input.length;
 
     if (output.length - output.index < count)

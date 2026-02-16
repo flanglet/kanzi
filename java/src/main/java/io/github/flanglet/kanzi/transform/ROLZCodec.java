@@ -208,6 +208,11 @@ public class ROLZCodec implements ByteTransform {
     if (src.length == 0)
       return true;
 
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
+        || ((long) src.index + src.length > src.array.length)
+        || (dst.index > dst.array.length))
+      return false;
+
     if (src.length < MIN_BLOCK_SIZE)
       return false;
 
@@ -234,6 +239,11 @@ public class ROLZCodec implements ByteTransform {
   public boolean inverse(SliceByteArray src, SliceByteArray dst) {
     if (src.length == 0)
       return true;
+
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
+        || ((long) src.index + src.length > src.array.length)
+        || (dst.index > dst.array.length))
+      return false;
 
     if (src.array == dst.array)
       return false;
@@ -407,6 +417,11 @@ public class ROLZCodec implements ByteTransform {
      */
     @Override
     public boolean forward(SliceByteArray input, SliceByteArray output) {
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
       final int count = input.length;
 
       if (output.length - output.index < this.getMaxEncodedLength(count))
@@ -641,7 +656,7 @@ public class ROLZCodec implements ByteTransform {
         input.index = srcEnd + 4;
       }
 
-      output.index += dstIdx;
+      output.index = dstIdx;
       return (input.index == srcEnd + 4) && (dstIdx < count);
     }
 
@@ -679,6 +694,11 @@ public class ROLZCodec implements ByteTransform {
      */
     @Override
     public boolean inverse(SliceByteArray input, SliceByteArray output) {
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
       final int count = input.length;
       final byte[] src = input.array;
       final byte[] dst = output.array;
@@ -1100,6 +1120,11 @@ public class ROLZCodec implements ByteTransform {
      */
     @Override
     public boolean forward(SliceByteArray input, SliceByteArray output) {
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
       final int count = input.length;
 
       if (output.length - output.index < this.getMaxEncodedLength(count))
@@ -1215,6 +1240,11 @@ public class ROLZCodec implements ByteTransform {
      */
     @Override
     public boolean inverse(SliceByteArray input, SliceByteArray output) {
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
       final int count = input.length;
       final byte[] src = input.array;
       final byte[] dst = output.array;

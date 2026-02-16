@@ -64,6 +64,11 @@ public class Sequence implements ByteTransform {
     if (src.length == 0)
       return true;
 
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
+        || ((long) src.index + src.length > src.array.length)
+        || (dst.index > dst.array.length))
+      return false;
+
     final int blockSize = count;
     final int requiredSize = this.getMaxEncodedLength(count);
     SliceByteArray[] sa = new SliceByteArray[] {src, dst};
@@ -132,6 +137,11 @@ public class Sequence implements ByteTransform {
   public boolean inverse(SliceByteArray src, SliceByteArray dst) {
     if (src.length == 0)
       return true;
+
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
+        || ((long) src.index + src.length > src.array.length)
+        || (dst.index > dst.array.length))
+      return false;
 
     int count = src.length;
 

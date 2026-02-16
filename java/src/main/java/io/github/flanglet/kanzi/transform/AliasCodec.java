@@ -79,6 +79,11 @@ public class AliasCodec implements ByteTransform {
     if (input.length == 0)
       return true;
 
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
+
     if (input.length < MIN_BLOCK_SIZE)
       return false;
 
@@ -251,7 +256,7 @@ public class AliasCodec implements ByteTransform {
         srcIdx += (alias >>> 8);
       }
 
-      if (srcIdx != count) {
+      if (srcIdx != srcEnd + 1) {
         dst[output.index + 1] = (byte) 1;
         dst[dstIdx++] = src[srcIdx++];
       }
@@ -274,6 +279,11 @@ public class AliasCodec implements ByteTransform {
   public boolean inverse(SliceByteArray input, SliceByteArray output) {
     if (input.length == 0)
       return true;
+
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+        || ((long) input.index + input.length > input.array.length)
+        || (output.index > output.array.length))
+      return false;
 
     if (input.array == output.array)
       return false;
