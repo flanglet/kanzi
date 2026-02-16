@@ -373,7 +373,7 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
           if (oName.isEmpty()) {
             oName = iName + ".knz";
           } else if ((inputIsDir == true) && (specialOutput == false)) {
-            oName = formattedOutName + iName.substring(formattedInName.length() + 1) + ".knz";
+            oName = formattedOutName + iName.substring(formattedInName.length()) + ".knz";
           }
         }
 
@@ -408,7 +408,7 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
           }
 
           if (oName.isEmpty()) {
-            oName = iName + ".bak";
+            oName = iName + ".knz";
           } else if ((inputIsDir == true) && (specialOutput == false)) {
             oName = formattedOutName + iName.substring(formattedInName.length()) + ".knz";
           }

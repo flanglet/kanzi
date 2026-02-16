@@ -349,7 +349,7 @@ public class Kanzi {
         if (ctx != -1) {
           printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
         }
-        else if (remove == true) {
+        else if (fileReorder == false) {
           printWarning(arg, " Duplicate 'no-file-reorder' option.", verbose);
         }
         ctx = -1;
@@ -380,8 +380,8 @@ public class Kanzi {
         if (ctx != -1) {
           printWarning(CMD_LINE_ARGS[ctx], " with no value.", verbose);
         }
-        else if (noDotFiles == true) {
-          printWarning(arg, " Duplicate 'skip-dot-links' option.", verbose);
+        else if (noLinks == true) {
+          printWarning(arg, " Duplicate 'skip-links' option.", verbose);
         }
 
         ctx = -1;
@@ -645,7 +645,7 @@ public class Kanzi {
 
           continue;
         } catch (NumberFormatException e) {
-          System.err.println("Invalid start block provided on command line: " + arg);
+          System.err.println("Invalid end block provided on command line: " + arg);
           return io.github.flanglet.kanzi.Error.ERR_INVALID_PARAM;
         }
       }
@@ -1024,4 +1024,3 @@ public class Kanzi {
       System.out.println(msg);
   }
 }
-
