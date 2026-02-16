@@ -591,9 +591,9 @@ public final class LZCodec implements ByteTransform {
       dstIdx += mIdx;
       System.arraycopy(this.mLenBuf, 0, dst, dstIdx, mLenIdx);
       dstIdx += mLenIdx;
-      input.index = count;
+      input.index += count;
       output.index = dstIdx;
-      return dstIdx <= count - (count / 100);
+      return (dstIdx - dstIdx0) <= count - (count / 100);
     }
 
     @Override

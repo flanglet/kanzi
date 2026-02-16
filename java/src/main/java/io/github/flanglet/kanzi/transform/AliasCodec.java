@@ -310,7 +310,7 @@ public class AliasCodec implements ByteTransform {
           return false;
 
         for (int i = 0; i < oSize; i++)
-          dst[i] = val;
+          dst[dstIdx + i] = val;
 
         srcIdx += count;
         dstIdx += oSize;

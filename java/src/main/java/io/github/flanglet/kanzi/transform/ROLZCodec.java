@@ -657,7 +657,7 @@ public class ROLZCodec implements ByteTransform {
       }
 
       output.index = dstIdx;
-      return (input.index == srcEnd + 4) && (dstIdx < count);
+      return (input.index == srcEnd + 4) && ((dstIdx - output.index) < count);
     }
 
 
@@ -1225,7 +1225,7 @@ public class ROLZCodec implements ByteTransform {
       re.dispose();
       input.index = srcIdx;
       output.index = sba1.index;
-      return (input.index == srcEnd + 4) && (output.index < count);
+      return (input.index == srcEnd + 4) && ((output.index - sba1.index) < count);
     }
 
 
