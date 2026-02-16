@@ -205,6 +205,7 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
     this.jobs = concurrency;
     this.pool = Executors.newFixedThreadPool(this.jobs);
     this.listeners = new ArrayList<>(10);
+    map.remove("mode");
 
     if ((this.verbosity > 0) && (map.size() > 0)) {
       for (String k : map.keySet())
