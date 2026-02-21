@@ -342,9 +342,9 @@ public class Event {
       res.append(", \"bsVersion\":").append(this.bsVersion);
       res.append(", \"checksum\":").append(this.checksumSize);
       res.append(", \"blockSize\":").append(this.blockSize);
-      String str = (this.entropyType == null || this.entropyType == "") ? "none" : this.entropyType;
+      String str = (this.entropyType == null || this.entropyType.isEmpty() == true) ? "none" : this.entropyType;
       res.append(", \"entropy\":\"").append(str).append('"');
-      str = (this.transformType == null || this.transformType == "") ? "none" : this.transformType;
+      str = (this.transformType == null || this.transformType.isEmpty() == true) ? "none" : this.transformType;
       res.append(", \"transform\":\"").append(str).append('"');
       if (this.fileSize >= 0)
         res.append(", \"compressed\":").append(this.fileSize);
