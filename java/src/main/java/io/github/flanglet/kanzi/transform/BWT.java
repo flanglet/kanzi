@@ -151,7 +151,7 @@ public class BWT implements ByteTransform {
       return true;
 
     if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
-        || ((long) src.index + src.length > src.array.length)
+        || (src.index + src.length > src.array.length)
         || (dst.index > dst.array.length))
       return false;
 
@@ -163,8 +163,7 @@ public class BWT implements ByteTransform {
     // Not a recoverable error: instead of silently fail the transform,
     // issue a fatal error.
     if (count > maxBlockSize())
-      throw new IllegalArgumentException(
-          "The max BWT block size is " + maxBlockSize() + ", got " + count);
+       return false;
 
     if (dst.index + count > dst.array.length)
       return false;
@@ -202,7 +201,7 @@ public class BWT implements ByteTransform {
       return true;
 
     if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
-        || ((long) src.index + src.length > src.array.length)
+        || (src.index + src.length > src.array.length)
         || (dst.index > dst.array.length))
       return false;
 
@@ -217,7 +216,7 @@ public class BWT implements ByteTransform {
       throw new IllegalArgumentException(
           "The max BWT block size is " + maxBlockSize() + ", got " + count);
 
-    if (dst.index + count > dst.array.length)
+    if ((long) dst.index + count > dst.array.length)
       return false;
 
     if (count == 1) {

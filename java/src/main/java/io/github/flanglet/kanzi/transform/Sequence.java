@@ -145,9 +145,6 @@ public class Sequence implements ByteTransform {
 
     int count = src.length;
 
-    if ((count < 0) || (count + src.index > src.array.length))
-      return false;
-
     if (this.skipFlags == SKIP_MASK) {
       if (src.array != dst.array)
         System.arraycopy(src.array, src.index, dst.array, dst.index, count);
