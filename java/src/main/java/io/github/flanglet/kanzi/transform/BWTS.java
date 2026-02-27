@@ -236,7 +236,7 @@ public class BWTS implements ByteTransform {
     if (src.length == 0)
       return true;
 
-    if ((src.index < 0) || (dst.index <= 0) || (src.length < 0) || (dst.length <= 0)
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0) || (dst.length <= 0)
         || (src.index + src.length > src.array.length)
         || (dst.index > dst.array.length))
       return false;
