@@ -37,7 +37,7 @@ import io.github.flanglet.kanzi.SliceByteArray;
  * </ul>
  */
 public class BWTBlockCodec implements ByteTransform {
-  private static final int BWT_MAX_HEADER_SIZE = 8 * 4;
+  private static final int BWT_MAX_HEADER_SIZE = 1 + 8 * 4;
 
   private final BWT bwt;
   private final int bsVersion;
