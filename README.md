@@ -127,7 +127,7 @@ Second option (maven):
 
 Third option (gradle):
 
-```gradle init && gradle build```
+```./gradlew clean build```
 
 Credits
 
