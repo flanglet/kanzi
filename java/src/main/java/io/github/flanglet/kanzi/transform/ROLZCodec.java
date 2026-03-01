@@ -367,7 +367,7 @@ public class ROLZCodec implements ByteTransform {
       final byte[] buf = sba.array;
       int bestLen = 0;
       int bestIdx = -1;
-      final int maxMatch = Math.min(MAX_MATCH, sba.length - pos) - 4;
+      final int maxMatch = Math.min(MAX_MATCH, sba.length - pos) - 8;
 
       // Check all recorded positions
       for (int i = counter; i > counter - this.posChecks; i--) {
@@ -385,15 +385,15 @@ public class ROLZCodec implements ByteTransform {
         int n = 0;
 
         while (n < maxMatch) {
-          final int diff = Memory.LittleEndian.readInt32(buf, ref + n)
-              ^ Memory.LittleEndian.readInt32(buf, pos + n);
+          final long diff = Memory.LittleEndian.readLong64(buf, ref + n)
+              ^ Memory.LittleEndian.readLong64(buf, pos + n);
 
           if (diff != 0) {
-            n += (Integer.numberOfTrailingZeros(diff) >> 3);
+            n += (Long.numberOfTrailingZeros(diff) >> 3);
             break;
           }
 
-          n += 4;
+          n += 8;
         }
 
         if (n > bestLen) {
@@ -1064,7 +1064,7 @@ public class ROLZCodec implements ByteTransform {
       final int counter = this.counters[key];
       int bestLen = 0;
       int bestIdx = -1;
-      final int maxMatch = Math.min(MAX_MATCH, sba.length - pos) - 4;
+      final int maxMatch = Math.min(MAX_MATCH, sba.length - pos) - 8;
 
       // Check all recorded positions
       for (int i = counter; i > counter - this.posChecks; i--) {
@@ -1082,15 +1082,15 @@ public class ROLZCodec implements ByteTransform {
         int n = 0;
 
         while (n < maxMatch) {
-          final int diff = Memory.LittleEndian.readInt32(buf, ref + n)
-              ^ Memory.LittleEndian.readInt32(buf, pos + n);
+          final long diff = Memory.LittleEndian.readLong64(buf, ref + n)
+              ^ Memory.LittleEndian.readLong64(buf, pos + n);
 
           if (diff != 0) {
-            n += (Integer.numberOfTrailingZeros(diff) >> 3);
+            n += (Long.numberOfTrailingZeros(diff) >> 3);
             break;
           }
 
-          n += 4;
+          n += 8;
         }
 
         if (n > bestLen) {

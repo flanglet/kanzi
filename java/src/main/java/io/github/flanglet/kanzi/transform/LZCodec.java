@@ -271,16 +271,16 @@ public final class LZCodec implements ByteTransform {
     private static int findMatch(byte[] src, final int srcIdx, final int ref, final int maxMatch) {
       int bestLen = 0;
 
-      while (bestLen + 4 <= maxMatch) {
-        final int diff = Memory.LittleEndian.readInt32(src, srcIdx + bestLen)
-            ^ Memory.LittleEndian.readInt32(src, ref + bestLen);
+      while (bestLen + 8 <= maxMatch) {
+        final long diff = Memory.LittleEndian.readLong64(src, srcIdx + bestLen)
+            ^ Memory.LittleEndian.readLong64(src, ref + bestLen);
 
         if (diff != 0) {
           bestLen += (Long.numberOfTrailingZeros(diff) >> 3);
           break;
         }
 
-        bestLen += 4;
+        bestLen += 8;
       }
 
       return bestLen;
@@ -336,7 +336,7 @@ public final class LZCodec implements ByteTransform {
       final int dstIdx0 = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int srcEnd = srcIdx0 + count - 16 - 1;
+      final int srcEnd = srcIdx0 + count - 16 - 2;
       final int maxDist = (srcEnd < 4 * MAX_DISTANCE1) ? MAX_DISTANCE1 : MAX_DISTANCE2;
       dst[dstIdx0 + 12] = (maxDist == MAX_DISTANCE1) ? (byte) 0 : (byte) 1;
       int mm = MIN_MATCH4;
@@ -353,7 +353,7 @@ public final class LZCodec implements ByteTransform {
       }
 
       // dst[12] = 0000MMMD (4 bits + 3 bits minMatch + 1 bit max distance)
-      dst[12] |= (byte) (((mm - 2) & 0x07) << 1); // minMatch in [2..9]
+      dst[dstIdx0 + 12] |= (byte) (((mm - 2) & 0x07) << 1); // minMatch in [2..9]
       final int minMatch = mm;
       int srcIdx = srcIdx0;
       int anchor = srcIdx0;
@@ -379,7 +379,7 @@ public final class LZCodec implements ByteTransform {
           bestLen = findMatch(src, srcIdx1, ref, Math.min(srcEnd - srcIdx1, MAX_MATCH));
         }
         else {
-          ref = srcIdx1 - repd[repIdx];
+          ref = srcIdx1 - repd[repIdx ^ 1];
 
           if ((ref > minRef) && (differentInts(src, ref, srcIdx1) == false)) {
             bestLen = findMatch(src, srcIdx1, ref, Math.min(srcEnd - srcIdx1, MAX_MATCH));
@@ -641,26 +641,26 @@ public final class LZCodec implements ByteTransform {
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int dstEnd = dst.length;
-      int tkIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
-      int mIdx = Memory.LittleEndian.readInt32(src, srcIdx0 + 4);
-      int mLenIdx = Memory.LittleEndian.readInt32(src, srcIdx0 + 8);
+      final int tkLen = Memory.LittleEndian.readInt32(src, srcIdx0);
+      final int mIdxLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 4);
+      final int mLenLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 8);
 
-      if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (mLenIdx < srcIdx0))
+      if ((tkLen < 0) || (mIdxLen < 0) || (mLenLen < 0))
         return false;
 
-      mIdx += tkIdx;
-      mLenIdx += mIdx;
-
-      if ((tkIdx > srcIdx0 + count) || (mIdx > srcIdx0 + count) || (mLenIdx > srcIdx0 + count))
+      if ((tkLen < 13) || (tkLen > count) || (mIdxLen > count - tkLen) || (mLenLen > count - tkLen - mIdxLen))
         return false;
 
-      final int srcEnd = srcIdx0 + tkIdx - 13;
+      int tkIdx = srcIdx0 + tkLen;
+      int mIdx = tkIdx + mIdxLen;
+      int mLenIdx = mIdx + mLenLen;
+      final int srcEnd = tkIdx - 13;
       final int maxDist = ((src[srcIdx0 + 12] & 1) == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
       final int minMatch = ((src[srcIdx0 + 12] >> 1) & 0x07) + 2;
       int srcIdx = srcIdx0 + 13;
       int dstIdx = dstIdx0;
-      int repd0 = 0;
-      int repd1 = 0;
+      int repd0 = count;
+      int repd1 = count;
       SliceByteArray sba1 = new SliceByteArray(src, srcIdx);
       SliceByteArray sba2 = new SliceByteArray(src, mLenIdx);
 
@@ -743,7 +743,7 @@ public final class LZCodec implements ByteTransform {
       }
 
       output.index = dstIdx;
-      input.index = mIdx;
+      input.index = srcIdx0 + count;
       return srcIdx == srcEnd + 13;
     }
 
@@ -775,20 +775,20 @@ public final class LZCodec implements ByteTransform {
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int dstEnd = dst.length;
-      int tkIdx = Memory.LittleEndian.readInt32(src, srcIdx0);
-      int mIdx = Memory.LittleEndian.readInt32(src, srcIdx0 + 4);
-      int mLenIdx = Memory.LittleEndian.readInt32(src, srcIdx0 + 8);
+      final int tkLen = Memory.LittleEndian.readInt32(src, srcIdx0);
+      final int mIdxLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 4);
+      final int mLenLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 8);
 
-      if ((tkIdx < srcIdx0) || (mIdx < srcIdx0) || (mLenIdx < srcIdx0))
+      if ((tkLen < 0) || (mIdxLen < 0) || (mLenLen < 0))
         return false;
 
-      mIdx += tkIdx;
-      mLenIdx += mIdx;
-
-      if ((tkIdx > srcIdx0 + count) || (mIdx > srcIdx0 + count) || (mLenIdx > srcIdx0 + count))
+      if ((tkLen < 13) || (tkLen > count) || (mIdxLen > count - tkLen) || (mLenLen > count - tkLen - mIdxLen))
         return false;
 
-      final int srcEnd = srcIdx0 + tkIdx - 13;
+      int tkIdx = srcIdx0 + tkLen;
+      int mIdx = tkIdx + mIdxLen;
+      int mLenIdx = mIdx + mLenLen;
+      final int srcEnd = tkIdx - 13;
       final int mFlag = src[srcIdx0 + 12] & 1;
       final int maxDist = (mFlag == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
       final int mmIdx = (src[srcIdx0 + 12] >> 1) & 0x03;
@@ -881,7 +881,7 @@ public final class LZCodec implements ByteTransform {
       }
 
       output.index = dstIdx;
-      input.index = mIdx;
+      input.index = srcIdx0 + count;
       return srcIdx == srcEnd + 13;
     }
 
@@ -1099,7 +1099,7 @@ public final class LZCodec implements ByteTransform {
 
       input.index = srcIdx;
       output.index = dstIdx;
-      return (srcIdx == count) && (dstIdx < dstEnd);
+      return (srcIdx == srcIdx0 + count) && (dstIdx < dstEnd);
     }
 
     @Override
