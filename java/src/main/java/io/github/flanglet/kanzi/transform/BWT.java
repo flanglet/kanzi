@@ -143,15 +143,14 @@ public class BWT implements ByteTransform {
    * @param src the source byte array
    * @param dst the destination byte array
    * @return true if the transform was successful, false otherwise
-   * @throws IllegalArgumentException if the source length exceeds the maximum block size
    */
   @Override
   public boolean forward(SliceByteArray src, SliceByteArray dst) {
     if (src.length == 0)
       return true;
 
-    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
-        || ((long) src.index + src.length > src.array.length)
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0) || (dst.length <= 0)
+        || (src.index + src.length > src.array.length)
         || (dst.index > dst.array.length))
       return false;
 
@@ -163,8 +162,7 @@ public class BWT implements ByteTransform {
     // Not a recoverable error: instead of silently fail the transform,
     // issue a fatal error.
     if (count > maxBlockSize())
-      throw new IllegalArgumentException(
-          "The max BWT block size is " + maxBlockSize() + ", got " + count);
+       return false;
 
     if (dst.index + count > dst.array.length)
       return false;
@@ -194,15 +192,14 @@ public class BWT implements ByteTransform {
    * @param src the source byte array
    * @param dst the destination byte array
    * @return true if the transform was successful, false otherwise
-   * @throws IllegalArgumentException if the source length exceeds the maximum block size
    */
   @Override
   public boolean inverse(SliceByteArray src, SliceByteArray dst) {
     if (src.length == 0)
       return true;
 
-    if ((src.index < 0) || (dst.index < 0) || (src.length < 0)
-        || ((long) src.index + src.length > src.array.length)
+    if ((src.index < 0) || (dst.index < 0) || (src.length < 0) || (dst.length <= 0)
+        || (src.index + src.length > src.array.length)
         || (dst.index > dst.array.length))
       return false;
 
@@ -211,11 +208,8 @@ public class BWT implements ByteTransform {
 
     final int count = src.length;
 
-    // Not a recoverable error: instead of silently fail the transform,
-    // issue a fatal error.
     if (count > maxBlockSize())
-      throw new IllegalArgumentException(
-          "The max BWT block size is " + maxBlockSize() + ", got " + count);
+      return false;
 
     if (dst.index + count > dst.array.length)
       return false;

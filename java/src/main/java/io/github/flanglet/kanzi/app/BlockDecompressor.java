@@ -180,6 +180,11 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
         this.outputName = "NONE";
         this.from = 1;
         this.to = 1;
+
+        if (isStdIn == true) {
+           System.err.println("STDIN not allowed in 'info' mode");
+           return Error.ERR_OPEN_FILE;
+        }
     }
 
     if (isStdIn == false) {
