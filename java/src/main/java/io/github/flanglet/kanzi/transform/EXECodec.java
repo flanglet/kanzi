@@ -164,7 +164,14 @@ public class EXECodec implements ByteTransform {
     int srcIdx = input.index + this.codeStart;
     int dstIdx = output.index + 9;
     final int dstEnd = output.length - 5;
+    boolean boundaryReached = false;
     int matches = 0;
+
+    if ((codeStart < input.index) || (codeStart > output.length) || (dstIdx + codeStart > output.length))
+       return false;
+
+    if ((this.codeEnd < codeStart) || (this.codeEnd > output.length))
+       return false;
 
     if (this.codeStart > input.index) {
       System.arraycopy(src, input.index, dst, dstIdx, this.codeStart - input.index);
@@ -173,6 +180,11 @@ public class EXECodec implements ByteTransform {
 
     while ((srcIdx < this.codeEnd) && (dstIdx < dstEnd)) {
       if (src[srcIdx] == X86_TWO_BYTE_PREFIX) {
+        if (srcIdx + 1 >= codeEnd) {
+           boundaryReached = true;
+           break;
+        }
+
         dst[dstIdx++] = src[srcIdx++];
 
         if ((src[srcIdx] & X86_MASK_JCC) != X86_INSTRUCTION_JCC) {
@@ -183,6 +195,11 @@ public class EXECodec implements ByteTransform {
           dst[dstIdx++] = src[srcIdx++];
           continue;
         }
+
+        if (srcIdx + 4 >= codeEnd) {
+          boundaryReached = true;
+          break;
+        }
       } else if ((src[srcIdx] & X86_MASK_JUMP) != X86_INSTRUCTION_JUMP) {
         // Not a relative call
         if (src[srcIdx] == X86_ESCAPE)
@@ -190,6 +207,9 @@ public class EXECodec implements ByteTransform {
 
         dst[dstIdx++] = src[srcIdx++];
         continue;
+      } else if (srcIdx + 4 >= codeEnd) {
+        boundaryReached = true;
+        break;
       }
 
       // Current instruction is a jump/call.
@@ -214,7 +234,7 @@ public class EXECodec implements ByteTransform {
 
     final int count = input.length;
 
-    if ((srcIdx < this.codeEnd) || (matches < 16))
+    if ((matches < 16) || ((srcIdx < this.codeEnd) && (boundaryReached == false)))
       return false;
 
     if (dstIdx + (count - srcIdx) > dstEnd)
@@ -652,7 +672,7 @@ public class EXECodec implements ByteTransform {
       return (byte) (NOT_EXE | dt.ordinal());
 
     // Ad-hoc thresholds
-    if ((jumpsX86 >= (count / 200)) && (histo[255] >= (count / 50)))
+    if (jumpsX86 >= (count / 200))
       return X86;
 
     if (jumpsARM64 >= (count / 200))
