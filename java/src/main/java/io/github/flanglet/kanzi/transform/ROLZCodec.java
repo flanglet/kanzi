@@ -782,16 +782,18 @@ public class ROLZCodec implements ByteTransform {
         sizeChunk = endChunk - startChunk;
         int dstIdx = output.index;
         boolean onlyLiterals = false;
+        int litLenDecoded = 0;
 
         // Scope to deallocate resources early
         {
           // Decode literal, match length and match index buffers
-          ByteArrayInputStream bais = new ByteArrayInputStream(src, srcIdx, count - srcIdx);
+          ByteArrayInputStream bais = new ByteArrayInputStream(src, srcIdx, srcEnd - srcIdx);
           InputBitStream ibs = new DefaultInputBitStream(bais, 65536);
           int litLen = (int) ibs.readBits(32);
           int tkLen = (int) ibs.readBits(32);
           int mLenLen = (int) ibs.readBits(32);
           int mIdxLen = (int) ibs.readBits(32);
+          final int firstLitLen = Math.min(sizeChunk, 8);
 
           if ((litLen < 0) || (tkLen < 0) || (mLenLen < 0) || (mIdxLen < 0)) {
             input.index = srcIdx;
@@ -805,6 +807,15 @@ public class ROLZCodec implements ByteTransform {
             output.index = dstIdx;
             return false;
           }
+
+          if ((litLen < firstLitLen) || (litLen > sizeChunk) || ((tkLen == 0) && (mIdxLen != 0))
+              || ((tkLen > 0) && (mIdxLen + 1 != tkLen))) {
+            input.index = srcIdx;
+            output.index = dstIdx;
+            return false;
+          }
+
+          litLenDecoded = litLen;
 
           ANSRangeDecoder litDec = new ANSRangeDecoder(ibs, this.ctx, litOrder);
           litDec.decode(litBuf.array, 0, litLen);
@@ -822,6 +833,12 @@ public class ROLZCodec implements ByteTransform {
 
         if (onlyLiterals == true) {
           // Shortcut when no match
+          if (litLenDecoded != sizeChunk) {
+            input.index = srcIdx;
+            output.index = dstIdx;
+            return false;
+          }
+
           System.arraycopy(litBuf.array, 0, output.array, output.index, sizeChunk);
           startChunk = endChunk;
           output.index += sizeChunk;
@@ -893,6 +910,12 @@ public class ROLZCodec implements ByteTransform {
 
         startChunk = endChunk;
         output.index = dstIdx;
+      }
+
+      // A valid ROLZ block must leave exactly 4 raw tail bytes.
+      if ((output.index + 4 > output.length) || (srcEnd - srcIdx != 4)) {
+        input.index = srcIdx;
+        return false;
       }
 
       // Emit last literals
