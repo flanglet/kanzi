@@ -144,17 +144,19 @@ public class EXECodec implements ByteTransform {
       return false;
 
     mode &= ~MASK_DT;
-
-    if (this.ctx != null)
-      this.ctx.put("dataType", Global.DataType.EXE);
+    boolean res;
 
     if (mode == X86)
-      return this.forwardX86(input, output);
+      res = this.forwardX86(input, output);
+    else if (mode == ARM64)
+      res = this.forwardARM(input, output);
+    else
+      return false;
 
-    if (mode == ARM64)
-      return this.forwardARM(input, output);
+    if ((res == true) && (this.ctx != null))
+      this.ctx.put("dataType", Global.DataType.EXE);
 
-    return false;
+    return res;
   }
 
   private boolean forwardX86(SliceByteArray input, SliceByteArray output) {
@@ -183,6 +185,13 @@ public class EXECodec implements ByteTransform {
         if (srcIdx + 1 >= codeEnd) {
            boundaryReached = true;
            break;
+        }
+
+        if ((src[srcIdx + 1] & X86_MASK_JCC) == X86_INSTRUCTION_JCC) {
+          if (srcIdx + 5 >= codeEnd) {
+            boundaryReached = true;
+            break;
+          }
         }
 
         dst[dstIdx++] = src[srcIdx++];
@@ -269,7 +278,7 @@ public class EXECodec implements ByteTransform {
       dstIdx += (this.codeStart - input.index);
     }
 
-    while ((srcIdx < this.codeEnd) && (dstIdx < dstEnd)) {
+    while ((srcIdx + 4 <= this.codeEnd) && (dstIdx < dstEnd)) {
       final int instr = LittleEndian.readInt32(src, srcIdx);
       final int opcode1 = instr & ARM_B_OPCODE_MASK;
       // final int opcode2 = instr & ARM_CB_OPCODE_MASK;
@@ -333,7 +342,7 @@ public class EXECodec implements ByteTransform {
 
     final int count = input.length;
 
-    if ((srcIdx < this.codeEnd) || (matches < 16))
+    if ((matches < 16) || ((srcIdx + 4 <= this.codeEnd) && (dstIdx >= dstEnd)))
       return false;
 
     if (dstIdx + (count - srcIdx) > dstEnd)
@@ -378,6 +387,9 @@ public class EXECodec implements ByteTransform {
     if (this.isBsVersion2)
       return inverseV2(input, output);
 
+    if (input.length < 9)
+      return false;
+
     byte mode = input.array[input.index];
 
     if (mode == X86)
@@ -392,10 +404,15 @@ public class EXECodec implements ByteTransform {
   private boolean inverseX86(SliceByteArray input, SliceByteArray output) {
     final byte[] src = input.array;
     final byte[] dst = output.array;
+    final int end = input.length + input.index;
     int srcIdx = input.index + 9;
     int dstIdx = output.index;
     this.codeStart = input.index + LittleEndian.readInt32(src, input.index + 1);
     this.codeEnd = input.index + LittleEndian.readInt32(src, input.index + 5);
+
+    if ((this.codeStart < input.index) || (this.codeEnd < srcIdx) || (this.codeEnd > end)
+        || (this.codeStart > this.codeEnd - 9) || (this.codeStart - input.index > output.length - dstIdx))
+      return false;
 
     if (this.codeStart > input.index) {
       System.arraycopy(src, input.index + 9, dst, dstIdx, this.codeStart - input.index);
@@ -405,24 +422,57 @@ public class EXECodec implements ByteTransform {
 
     while (srcIdx < this.codeEnd) {
       if (src[srcIdx] == X86_TWO_BYTE_PREFIX) {
+        if (srcIdx + 1 >= this.codeEnd) {
+          // Accept legacy streams where a trailing 0x0F was emitted in
+          // the code section and the remaining bytes were copied as tail.
+          if (dstIdx >= output.length)
+            return false;
+
+          dst[dstIdx++] = src[srcIdx++];
+          break;
+        }
+
+        if (dstIdx >= output.length)
+          return false;
+
         dst[dstIdx++] = src[srcIdx++];
 
         if ((src[srcIdx] & X86_MASK_JCC) != X86_INSTRUCTION_JCC) {
           // Not a relative jump
-          if (src[srcIdx] == X86_ESCAPE)
+          if (src[srcIdx] == X86_ESCAPE) {
             srcIdx++;
+
+            if (srcIdx >= this.codeEnd)
+              return false;
+          }
+
+          if (dstIdx >= output.length)
+            return false;
 
           dst[dstIdx++] = src[srcIdx++];
           continue;
         }
       } else if ((src[srcIdx] & X86_MASK_JUMP) != X86_INSTRUCTION_JUMP) {
         // Not a relative call
-        if (src[srcIdx] == X86_ESCAPE)
+        if (src[srcIdx] == X86_ESCAPE) {
           srcIdx++;
+
+          if (srcIdx >= this.codeEnd)
+            return false;
+        }
+
+        if (dstIdx >= output.length)
+          return false;
 
         dst[dstIdx++] = src[srcIdx++];
         continue;
       }
+
+      if (srcIdx + 4 >= this.codeEnd)
+        return false;
+
+      if (dstIdx + 5 > output.length)
+        return false;
 
       // Current instruction is a jump/call. Decode absolute address
       final int addr = BigEndian.readInt32(src, srcIdx + 1) ^ MASK_ADDRESS;
@@ -433,7 +483,9 @@ public class EXECodec implements ByteTransform {
       dstIdx += 4;
     }
 
-    final int end = input.length + input.index;
+    if (dstIdx + (end - srcIdx) > output.length)
+      return false;
+
     System.arraycopy(src, srcIdx, dst, dstIdx, end - srcIdx);
     dstIdx += (end - srcIdx);
     input.index = end;
@@ -454,12 +506,16 @@ public class EXECodec implements ByteTransform {
     if (input.index + count > input.array.length)
       return false;
 
+    if (output.index + count > output.length)
+      return false;
+
     // Aliasing
     final byte[] src = input.array;
     final byte[] dst = output.array;
     int srcIdx = input.index;
     int dstIdx = output.index;
-    final int end = count - 8;
+    final int srcEnd = input.index + count;
+    final int end = srcEnd - 8;
 
     while (srcIdx < end) {
       dst[dstIdx++] = src[srcIdx++];
@@ -493,7 +549,7 @@ public class EXECodec implements ByteTransform {
       dstIdx += 4;
     }
 
-    while (srcIdx < count)
+    while (srcIdx < srcEnd)
       dst[dstIdx++] = src[srcIdx++];
 
     input.index = srcIdx;
@@ -504,10 +560,15 @@ public class EXECodec implements ByteTransform {
   private boolean inverseARM(SliceByteArray input, SliceByteArray output) {
     final byte[] src = input.array;
     final byte[] dst = output.array;
+    final int end = input.length + input.index;
     int srcIdx = input.index + 9;
     int dstIdx = output.index;
     this.codeStart = input.index + LittleEndian.readInt32(src, input.index + 1);
     this.codeEnd = input.index + LittleEndian.readInt32(src, input.index + 5);
+
+    if ((this.codeStart < input.index) || (this.codeEnd < srcIdx) || (this.codeEnd > end)
+        || (this.codeStart > this.codeEnd - 9) || (this.codeStart - input.index > output.length - dstIdx))
+      return false;
 
     if (this.codeStart > input.index) {
       System.arraycopy(src, input.index + 9, dst, dstIdx, this.codeStart - input.index);
@@ -516,6 +577,12 @@ public class EXECodec implements ByteTransform {
     }
 
     while (srcIdx < this.codeEnd) {
+      if (srcIdx + 4 > this.codeEnd)
+        return false;
+
+      if (dstIdx + 4 > output.length)
+        return false;
+
       final int instr = LittleEndian.readInt32(src, srcIdx);
       final int opcode1 = instr & ARM_B_OPCODE_MASK;
       // final int opcode2 = instr & ARM_CB_OPCODE_MASK;
@@ -548,6 +615,9 @@ public class EXECodec implements ByteTransform {
       }
 
       if (addr == 0) {
+        if (srcIdx + 8 > this.codeEnd)
+          return false;
+
         dst[dstIdx] = src[srcIdx + 4];
         dst[dstIdx + 1] = src[srcIdx + 5];
         dst[dstIdx + 2] = src[srcIdx + 6];
@@ -562,7 +632,9 @@ public class EXECodec implements ByteTransform {
       dstIdx += 4;
     }
 
-    final int end = input.length + input.index;
+    if (dstIdx + (end - srcIdx) > output.length)
+      return false;
+
     System.arraycopy(src, srcIdx, dst, dstIdx, end - srcIdx);
     dstIdx += (end - srcIdx);
     input.index = end;
