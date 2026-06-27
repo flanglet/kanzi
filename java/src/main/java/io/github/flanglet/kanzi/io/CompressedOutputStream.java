@@ -106,6 +106,11 @@ public class CompressedOutputStream extends OutputStream {
   private final Map<String, Object> ctx;
   private final boolean headless;
 
+  private static int growStageBufferSize(int current, int required) {
+    final int grownSize = current + Math.max(current >> 2, 1 << 20);
+    return Math.max(required, Math.max(grownSize, 1024));
+  }
+
   /**
    * Constructs a {@link CompressedOutputStream} using the default output bitstream and provided
    * context.
@@ -891,6 +896,8 @@ public class CompressedOutputStream extends OutputStream {
         ee = null;
 
         os.close();
+        this.data.array = baos.getBuffer();
+        this.data.length = this.data.array.length;
         long written = os.written();
 
         // Lock free synchronization
@@ -1025,6 +1032,38 @@ public class CompressedOutputStream extends OutputStream {
 
       // Use the provided buffer
       this.buf = buffer;
+    }
+
+    private void ensureCapacity(int required) {
+      if (required <= this.buf.length)
+        return;
+
+      final byte[] newBuf = new byte[growStageBufferSize(this.buf.length, required)];
+      System.arraycopy(this.buf, 0, newBuf, 0, this.count);
+      this.buf = newBuf;
+    }
+
+    @Override
+    public synchronized void write(int value) {
+      this.ensureCapacity(this.count + 1);
+      this.buf[this.count++] = (byte) value;
+    }
+
+    @Override
+    public synchronized void write(byte[] buffer, int off, int len) {
+      if ((off < 0) || (len < 0) || (off > buffer.length - len))
+        throw new IndexOutOfBoundsException();
+
+      if (len == 0)
+        return;
+
+      this.ensureCapacity(this.count + len);
+      System.arraycopy(buffer, off, this.buf, this.count, len);
+      this.count += len;
+    }
+
+    public byte[] getBuffer() {
+      return this.buf;
     }
   }
 

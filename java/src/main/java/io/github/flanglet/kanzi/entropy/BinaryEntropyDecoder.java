@@ -130,14 +130,17 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
       length = (count < 8 * MAX_CHUNK_SIZE) ? count >> 3 : count >> 4;
     }
 
+    this.ensureCapacity(length + (length >> 3));
+
     // Split block into chunks, read bit array from bitstream and decode chunk
     while (startChunk < end) {
       final int chunkSize = Math.min(length, end - startChunk);
-
-      if (this.sba.array.length < (chunkSize + (chunkSize >> 3)))
-        this.sba.array = new byte[chunkSize + (chunkSize >> 3)];
-
       final int szBytes = EntropyUtils.readVarInt(this.bitstream);
+
+      if (szBytes > MAX_BLOCK_SIZE)
+        return -1;
+
+      this.ensureCapacity(szBytes);
       this.current = this.bitstream.readBits(56);
 
       if (szBytes != 0)
@@ -218,6 +221,19 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
     final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
     this.current = ((this.current << 32) | val) & MASK_0_56;
     this.sba.index += 4;
+  }
+
+  private void ensureCapacity(int required) {
+    if (this.sba.array.length >= required)
+      return;
+
+    final int grownSize = this.sba.array.length + Math.max(this.sba.array.length >>> 2, 1 << 20);
+    final byte[] buf = new byte[Math.max(required, Math.max(grownSize, 1024))];
+
+    if (this.sba.index > 0)
+      System.arraycopy(this.sba.array, 0, buf, 0, this.sba.index);
+
+    this.sba.array = buf;
   }
 
   /**

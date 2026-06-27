@@ -131,13 +131,11 @@ public class BinaryEntropyEncoder implements EntropyEncoder {
       length = (count < 8 * MAX_CHUNK_SIZE) ? count >> 3 : count >> 4;
     }
 
+    this.ensureCapacity(length + (length >> 3));
+
     // Split block into chunks, encode chunk and write bit array to bitstream
     while (startChunk < end) {
       final int chunkSize = Math.min(length, end - startChunk);
-
-      if (this.sba.array.length < (chunkSize + (chunkSize >> 3)))
-        this.sba.array = new byte[chunkSize + (chunkSize >> 3)];
-
       this.sba.index = 0;
       final int endChunk = startChunk + chunkSize;
 
@@ -211,10 +209,24 @@ public class BinaryEntropyEncoder implements EntropyEncoder {
    * </p>
    */
   private void flush() {
+    this.ensureCapacity(this.sba.index + 4);
     Memory.BigEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high >>> 24));
     this.sba.index += 4;
     this.low <<= 32;
     this.high = (this.high << 32) | MASK_0_32;
+  }
+
+  private void ensureCapacity(int required) {
+    if (this.sba.array.length >= required)
+      return;
+
+    final int grownSize = this.sba.array.length + Math.max(this.sba.array.length >>> 2, 1 << 20);
+    final byte[] buf = new byte[Math.max(required, Math.max(grownSize, 1024))];
+
+    if (this.sba.index > 0)
+      System.arraycopy(this.sba.array, 0, buf, 0, this.sba.index);
+
+    this.sba.array = buf;
   }
 
   /**
