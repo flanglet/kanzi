@@ -397,7 +397,7 @@ public class BWT implements ByteTransform {
 
     int pIdx = this.getPrimaryIndex(0);
 
-    if ((pIdx < 0) || (pIdx > count))
+    if ((pIdx <= 0) || (pIdx > count))
       return false;
 
     Global.computeHistogramOrder0(input, srcIdx, srcIdx + count, this.freqs, false);

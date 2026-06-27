@@ -384,7 +384,7 @@ public class RLT implements ByteTransform {
 
       run += (RUN_THRESHOLD - 1);
 
-      if ((dstIdx + run >= dstEnd) || (run > MAX_RUN)) {
+      if ((dstIdx + run > dstEnd) || (run > MAX_RUN)) {
         res = false;
         break;
       }

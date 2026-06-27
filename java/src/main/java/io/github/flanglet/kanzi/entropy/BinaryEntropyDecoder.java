@@ -136,8 +136,9 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
     while (startChunk < end) {
       final int chunkSize = Math.min(length, end - startChunk);
       final int szBytes = EntropyUtils.readVarInt(this.bitstream);
+      final long maxEncodedSize = Math.min(((long) chunkSize) << 5, (long) Integer.MAX_VALUE >> 3);
 
-      if (szBytes > MAX_BLOCK_SIZE)
+      if ((long) szBytes > maxEncodedSize)
         return -1;
 
       this.ensureCapacity(szBytes);

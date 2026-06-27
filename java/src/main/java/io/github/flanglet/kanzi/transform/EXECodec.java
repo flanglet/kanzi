@@ -137,8 +137,8 @@ public class EXECodec implements ByteTransform {
     }
 
     this.codeStart = input.index;
-    this.codeEnd = input.index + count - 8;
-    byte mode = detectType(input.array, input.index, count - 4);
+    this.codeEnd = input.index + count;
+    byte mode = detectType(input.array, input.index, count);
 
     if ((mode & NOT_EXE) != 0)
       return false;
@@ -667,8 +667,13 @@ public class EXECodec implements ByteTransform {
     // Best effort
     final int magic = Magic.getType(src, start);
     this.arch = 0;
+    final int blockSize = start + count;
 
     if (this.parseHeader(src, start, count, magic)) {
+      if ((this.codeStart < start) || (this.codeStart > blockSize) || (this.codeEnd < this.codeStart)
+          || (this.codeEnd > blockSize))
+        return (byte) (NOT_EXE | Global.DataType.UNDEFINED.ordinal());
+
       if ((this.arch == ELF_X86_ARCH) || (this.arch == ELF_AMD64_ARCH))
         return X86;
 
@@ -685,16 +690,23 @@ public class EXECodec implements ByteTransform {
         return ARM64;
     }
 
+    if ((this.codeStart < start) || (this.codeStart > blockSize) || (this.codeEnd < this.codeStart)
+        || (this.codeEnd > blockSize))
+      return (byte) (NOT_EXE | Global.DataType.UNDEFINED.ordinal());
+
+    if (count <= 0)
+      return (byte) (NOT_EXE | Global.DataType.UNDEFINED.ordinal());
+
     int jumpsX86 = 0;
     int jumpsARM64 = 0;
     int[] histo = new int[256];
-    final int end = start + count - 4;
+    final int end = start + count;
 
     for (int i = start; i < end; i++) {
       histo[src[i] & 0xFF]++;
 
       // X86
-      if ((src[i] & X86_MASK_JUMP) == X86_INSTRUCTION_JUMP) {
+      if ((i + 4 < end) && ((src[i] & X86_MASK_JUMP) == X86_INSTRUCTION_JUMP)) {
         /* `src[i + 4] == 0xFF` is equal to `(byte)(-1) == 255` which is always false!`
         * `& 0xFF` promotes the byte to an unsigned value in 0..255
         * */
@@ -704,20 +716,24 @@ public class EXECodec implements ByteTransform {
           // Count relative jumps (CALL = E8/ JUMP = E9 .. .. .. 00/FF)
           jumpsX86++;
         }
-      } else if ((src[i] == X86_TWO_BYTE_PREFIX)
-          && ((src[i + 1] & X86_MASK_JCC) == X86_INSTRUCTION_JCC)) {
-        i++;
+      } else if ((src[i] == X86_TWO_BYTE_PREFIX) && (i + 1 < end)) {
+        int j = i + 1;
 
-        if ((src[i] == 0x38) || (src[i] == 0x3A))
-          i++;
+        if (((src[j] == 0x38) || (src[j] == 0x3A)) && (j + 1 < end))
+          j++;
 
         // Count relative conditional jumps (0x0F 0x8?)
         // Only count those with 16/32 offsets
-        jumpsX86++;
+        if ((src[j] & X86_MASK_JCC) == X86_INSTRUCTION_JCC) {
+          jumpsX86++;
+          i = j;
+        } else {
+          i = j;
+        }
       }
 
       // ARM
-      if ((i & 3) != 0)
+      if (((i & 3) != 0) || (i + 4 > end))
         continue;
 
       final int instr = LittleEndian.readInt32(src, i);

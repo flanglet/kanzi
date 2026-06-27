@@ -391,15 +391,43 @@ public class AliasCodec implements ByteTransform {
         srcIdx += 3;
       }
 
-      while (srcIdx < srcEnd) {
-        final int val = map16[src[srcIdx++] & 0xFF];
-        dst[dstIdx] = (byte) val;
-        dst[dstIdx + 1] = (byte) (val >>> 8);
-        dstIdx += (val >>> 16);
+      final int nbAliases = srcEnd - srcIdx;
+      final int dstAvail = output.length - dstIdx;
+
+      if (nbAliases <= (dstAvail >> 1)) {
+        while (srcIdx < srcEnd) {
+          final int val = map16[src[srcIdx++] & 0xFF];
+          dst[dstIdx] = (byte) val;
+          dst[dstIdx + 1] = (byte) (val >>> 8);
+          dstIdx += (val >>> 16);
+        }
+      } else {
+        while ((srcIdx < srcEnd) && (dstIdx + 1 < output.length)) {
+          final int val = map16[src[srcIdx++] & 0xFF];
+          dst[dstIdx] = (byte) val;
+          dst[dstIdx + 1] = (byte) (val >>> 8);
+          dstIdx += (val >>> 16);
+        }
+
+        while (srcIdx < srcEnd) {
+          final int val = map16[src[srcIdx++] & 0xFF];
+          final int inc = val >>> 16;
+
+          if (dstIdx + inc > output.length)
+            return false;
+
+          dst[dstIdx + inc - 1] = (byte) (val >>> 8);
+          dst[dstIdx] = (byte) val;
+          dstIdx += inc;
+        }
       }
 
-      if (adjust != 0)
+      if (adjust != 0) {
+        if (dstIdx >= output.length)
+          return false;
+
         dst[dstIdx++] = src[srcIdx++];
+      }
     }
 
     output.index = dstIdx;
