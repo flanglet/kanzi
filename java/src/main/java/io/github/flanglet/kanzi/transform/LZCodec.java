@@ -655,6 +655,7 @@ public final class LZCodec implements ByteTransform {
       int mIdx = tkIdx + mIdxLen;
       int mLenIdx = mIdx + mLenLen;
       final int srcEnd = tkIdx - 13;
+      final int litEnd = tkIdx;
       final int maxDist = ((src[srcIdx0 + 12] & 1) == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
       final int minMatch = ((src[srcIdx0 + 12] >> 1) & 0x07) + 2;
       int srcIdx = srcIdx0 + 13;
@@ -672,6 +673,12 @@ public final class LZCodec implements ByteTransform {
           sba1.index = srcIdx;
           final int litLen = (token >= 0xE0) ? 7 + readLength(sba1) : token >> 5;
           srcIdx = sba1.index;
+
+          if ((litLen > dstEnd - dstIdx) || (litLen > litEnd - srcIdx)) {
+            input.index = srcIdx;
+            output.index = dstIdx;
+            return false;
+          }
 
           // Emit literals
           if (srcIdx + litLen >= srcEnd) {
@@ -789,6 +796,7 @@ public final class LZCodec implements ByteTransform {
       int mIdx = tkIdx + mIdxLen;
       int mLenIdx = mIdx + mLenLen;
       final int srcEnd = tkIdx - 13;
+      final int litEnd = tkIdx;
       final int mFlag = src[srcIdx0 + 12] & 1;
       final int maxDist = (mFlag == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
       final int mmIdx = (src[srcIdx0 + 12] >> 1) & 0x03;
@@ -809,6 +817,12 @@ public final class LZCodec implements ByteTransform {
           sba1.index = srcIdx;
           final int litLen = (token >= 0xE0) ? 7 + readLength(sba1) : token >> 5;
           srcIdx = sba1.index;
+
+          if ((litLen > dstEnd - dstIdx) || (litLen > litEnd - srcIdx)) {
+            input.index = srcIdx;
+            output.index = dstIdx;
+            return false;
+          }
 
           // Emit literals
           if (dstIdx + litLen >= dstEnd) {
