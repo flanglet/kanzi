@@ -18,6 +18,7 @@
 
 package io.github.flanglet.kanzi.test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,8 +31,10 @@ import io.github.flanglet.kanzi.transform.RLT;
 import io.github.flanglet.kanzi.transform.ROLZCodec;
 import io.github.flanglet.kanzi.transform.SBRT;
 import io.github.flanglet.kanzi.transform.SRT;
+import io.github.flanglet.kanzi.transform.TextCodec;
 import io.github.flanglet.kanzi.transform.TransformFactory;
 import io.github.flanglet.kanzi.transform.ZRLT;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -320,6 +323,39 @@ public class TestTransforms {
                                         // reverse[idx] + ")");
 
       System.out.println();
+    }
+  }
+
+  @Test
+  void testTextCodecSelfDescribing() {
+    byte[] sample = ("the be and of in to with it that for you he have on said say at "
+        + "but we by had they as would who or can may do this was is much any from not she what ")
+        .repeat(24).getBytes(StandardCharsets.UTF_8);
+
+    for (int encType = 1; encType <= 2; encType++) {
+      Map<String, Object> encCtx = new HashMap<>();
+      encCtx.put("textcodec", encType);
+      encCtx.put("bsVersion", 7);
+      encCtx.put("blockSize", sample.length);
+      TextCodec encoder = new TextCodec(encCtx);
+      byte[] encoded = new byte[encoder.getMaxEncodedLength(sample.length)];
+      SliceByteArray input = new SliceByteArray(sample, 0);
+      SliceByteArray output = new SliceByteArray(encoded, 0);
+      Assertions.assertTrue(encoder.forward(input, output), "encode failed for codec " + encType);
+      Assertions.assertEquals(sample.length, input.index, "unexpected read length for codec " + encType);
+      Assertions.assertTrue(output.index > 0, "empty output for codec " + encType);
+      Assertions.assertEquals(encType, ((encoded[0] & 0x10) != 0) ? 2 : 1, "invalid selector for codec " + encType);
+
+      Map<String, Object> decCtx = new HashMap<>();
+      decCtx.put("textcodec", 3 - encType);
+      decCtx.put("bsVersion", 7);
+      TextCodec decoder = new TextCodec(decCtx);
+      byte[] decoded = new byte[sample.length];
+      SliceByteArray encodedInput = new SliceByteArray(encoded, output.index, 0);
+      SliceByteArray reverse = new SliceByteArray(decoded, 0);
+      Assertions.assertTrue(decoder.inverse(encodedInput, reverse), "decode failed for codec " + encType);
+      Assertions.assertEquals(sample.length, reverse.index, "unexpected decoded length for codec " + encType);
+      Assertions.assertArrayEquals(sample, decoded, "round-trip mismatch for codec " + encType);
     }
   }
 

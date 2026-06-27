@@ -48,6 +48,7 @@ public final class TextCodec implements ByteTransform {
   private static final int MASK_NOT_TEXT = 0x80;
   private static final int MASK_CRLF = 0x40;
   private static final int MASK_XML_HTML = 0x20;
+  private static final int MASK_TEXT_CODEC = 0x10;
   private static final int MASK_DT = 0x0F;
   private static final int MASK_LENGTH = 0x0007FFFF; // 19 bits
 
@@ -177,18 +178,35 @@ public final class TextCodec implements ByteTransform {
   private static final int STATIC_DICT_WORDS =
       createDictionary(DICT_EN_1024, STATIC_DICTIONARY, 1024, 0);
 
-  private final ByteTransform delegate;
+  private ByteTransform delegate;
+  private Map<String, Object> ctx;
+  private int encodingType;
+  private int bsVersion;
 
 
   public TextCodec() {
-    this.delegate = new TextCodec1();
+    this.ctx = null;
+    this.encodingType = 0;
+    this.bsVersion = 7;
+    this.setEncodingType(1);
   }
 
 
   public TextCodec(Map<String, Object> ctx) {
-    // Encode the word indexes as varints with a token or with a mask
-    final int encodingType = (int) ctx.getOrDefault("textcodec", 1);
-    this.delegate = (encodingType == 1) ? new TextCodec1(ctx) : new TextCodec2(ctx);
+    this.ctx = ctx;
+    this.encodingType = 0;
+    this.bsVersion = (ctx == null) ? 7 : (int) ctx.getOrDefault("bsVersion", 7);
+    this.setEncodingType((ctx == null) ? 1 : (int) ctx.getOrDefault("textcodec", 1));
+  }
+
+  private void setEncodingType(int encodingType) {
+    if ((this.delegate != null) && (this.encodingType == encodingType))
+      return;
+
+    this.encodingType = encodingType;
+    this.delegate = (encodingType == 1) ?
+        ((this.ctx == null) ? new TextCodec1() : new TextCodec1(this.ctx)) :
+        ((this.ctx == null) ? new TextCodec2() : new TextCodec2(this.ctx));
   }
 
 
@@ -472,7 +490,17 @@ public final class TextCodec implements ByteTransform {
     if (src.array == dst.array)
       return false;
 
-    return this.delegate.forward(src, dst);
+    final int dstIdx = dst.index;
+    final boolean res = this.delegate.forward(src, dst);
+
+    if ((res == true) && (this.bsVersion >= 7)) {
+      if (this.encodingType == 1)
+        dst.array[dstIdx] &= ~MASK_TEXT_CODEC;
+      else
+        dst.array[dstIdx] |= MASK_TEXT_CODEC;
+    }
+
+    return res;
   }
 
 
@@ -491,6 +519,13 @@ public final class TextCodec implements ByteTransform {
 
     if (src.array == dst.array)
       return false;
+
+    // Since bsVersion 7, the transform header stores which TextCodec variant
+    // produced the bitstream, so switch delegate before decoding payload bytes.
+    if (this.bsVersion >= 7) {
+      final int encodingType = ((src.array[src.index] & MASK_TEXT_CODEC) == 0) ? 1 : 2;
+      this.setEncodingType(encodingType);
+    }
 
     return this.delegate.inverse(src, dst);
   }
