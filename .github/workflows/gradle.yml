@@ -32,6 +32,8 @@ jobs:
 
       - name: Run Gradle Check
         run: cd ./java && ./gradlew check -x pmdMain -x pmdTest -x checkstyleMain -x checkstyleTest
+        env:
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
 
 
   gradle_publish:
