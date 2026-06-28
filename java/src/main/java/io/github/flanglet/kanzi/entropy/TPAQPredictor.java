@@ -45,6 +45,7 @@ public class TPAQPredictor implements Predictor {
   private static final int MASK_4F4FFFFF = 0x4F4FFFFF;
   private static final int MASK_FFFF0000 = 0xFFFF0000;
   private static final int HASH_SEED = 0x7FEB352D;
+  private static final int TPAQX_LOGICAL_SHIFT_VERSION = 7;
 
   ///////////////////////// state table ////////////////////////
   // States represent a bit history within some context.
@@ -156,6 +157,7 @@ public class TPAQPredictor implements Predictor {
   private int ctx5;
   private int ctx6;
   private boolean extra;
+  private final boolean useLogicalCtx6Shift;
 
   /**
    * Creates a new {@code TPAQPredictor} with default settings.
@@ -180,6 +182,7 @@ public class TPAQPredictor implements Predictor {
     int hashSize = HASH_SIZE;
     int extraMem = 0;
     int bufferSize = BUFFER_SIZE;
+    boolean useLogicalCtx6Shift = false;
 
     if (ctx != null) {
       // If extra mode, add more memory for states table, hash table
@@ -187,6 +190,12 @@ public class TPAQPredictor implements Predictor {
       String codec = (String) ctx.getOrDefault("entropy", "NONE");
       this.extra = "TPAQX".equals(codec);
       extraMem = (this.extra == true) ? 1 : 0;
+
+      // TPAQX bitstreams drifted across implementations due to signed vs logical shifts
+      // in ctx6. Keep the legacy behavior for older bitstreams for backward compatibility.
+      final int bsVersion = (Integer) ctx.getOrDefault("bsVersion", 7);
+      useLogicalCtx6Shift =
+          (this.extra == true) && (bsVersion >= TPAQX_LOGICAL_SHIFT_VERSION);
 
       // Block size requested by the user
       // The user can request a big block size to force more states
@@ -221,6 +230,8 @@ public class TPAQPredictor implements Predictor {
       final int mxsz = absz < (1 << 26) ? absz * 16 : 1 << 30;
       hashSize = Math.min(HASH_SIZE, mxsz);
     }
+
+    this.useLogicalCtx6Shift = useLogicalCtx6Shift;
 
     mixersSize <<= (2 * extraMem);
     statesSize <<= (2 * extraMem);
@@ -296,7 +307,7 @@ public class TPAQPredictor implements Predictor {
               ((this.c4 & MASK_80808080) == 0) ? this.c4 & MASK_4F4FFFFF : this.c4 & MASK_80808080;
           final int h2 =
               ((this.c8 & MASK_80808080) == 0) ? this.c8 & MASK_4F4FFFFF : this.c8 & MASK_80808080;
-          this.ctx6 = hash(h1 << 2, h2 >> 2);
+          this.ctx6 = hash(h1 << 2, (this.useLogicalCtx6Shift == true) ? h2 >>> 2 : h2 >> 2);
         }
       } else {
         // Mostly binary
@@ -304,7 +315,9 @@ public class TPAQPredictor implements Predictor {
         this.ctx5 = this.ctx0 | (this.c8 << 16);
 
         if (this.extra == true)
-          this.ctx6 = hash(this.c4 & MASK_FFFF0000, this.c8 >> 16);
+          this.ctx6 =
+              hash(this.c4 & MASK_FFFF0000,
+                  (this.useLogicalCtx6Shift == true) ? this.c8 >>> 16 : this.c8 >> 16);
       }
 
       this.findMatch();
