@@ -712,7 +712,9 @@ public class ROLZCodec implements ByteTransform {
       int sizeChunk = Math.min(szBlock, CHUNK_SIZE);
       int startChunk = output.index;
       final SliceByteArray litBuf = new SliceByteArray(new byte[sizeChunk], 0);
-      final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk / 5], 0);
+      // Pad so readLength() can safely read up to 4 bytes past the logical end
+      // once the first byte has been validated.
+      final SliceByteArray lenBuf = new SliceByteArray(new byte[(sizeChunk / 5) + 4], 0);
       final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk / 4], 0);
       final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk / 4], 0);
 
@@ -783,6 +785,9 @@ public class ROLZCodec implements ByteTransform {
         int dstIdx = output.index;
         boolean onlyLiterals = false;
         int litLenDecoded = 0;
+        int tkLen = 0;
+        int mLenLen = 0;
+        int mIdxLen = 0;
 
         // Scope to deallocate resources early
         {
@@ -790,9 +795,9 @@ public class ROLZCodec implements ByteTransform {
           ByteArrayInputStream bais = new ByteArrayInputStream(src, srcIdx, srcEnd - srcIdx);
           InputBitStream ibs = new DefaultInputBitStream(bais, 65536);
           int litLen = (int) ibs.readBits(32);
-          int tkLen = (int) ibs.readBits(32);
-          int mLenLen = (int) ibs.readBits(32);
-          int mIdxLen = (int) ibs.readBits(32);
+          tkLen = (int) ibs.readBits(32);
+          mLenLen = (int) ibs.readBits(32);
+          mIdxLen = (int) ibs.readBits(32);
           final int firstLitLen = Math.min(sizeChunk, 8);
 
           if ((litLen < 0) || (tkLen < 0) || (mLenLen < 0) || (mIdxLen < 0)) {
@@ -801,7 +806,7 @@ public class ROLZCodec implements ByteTransform {
             return false;
           }
 
-          if ((litLen > litBuf.length) || (tkLen > tkBuf.length) || (mLenLen > lenBuf.length)
+          if ((litLen > litBuf.length) || (tkLen > tkBuf.length) || (mLenLen > lenBuf.length - 4)
               || (mIdxLen > mIdxBuf.length)) {
             input.index = srcIdx;
             output.index = dstIdx;
@@ -856,10 +861,29 @@ public class ROLZCodec implements ByteTransform {
           final int token = tkBuf.array[tkBuf.index++] & 0xFF;
           int matchLen = token & 0x07;
 
-          if (matchLen == 7)
-            matchLen = readLength(lenBuf) + 7;
+          if (matchLen == 7) {
+            if (lenBuf.index >= mLenLen) {
+              output.index = dstIdx;
+              input.index = srcIdx;
+              return false;
+            }
 
-          final int litLen = (token < 0xF8) ? token >> 3 : readLength(lenBuf) + 31;
+            matchLen = readLength(lenBuf) + 7;
+          }
+
+          final int litLen;
+
+          if (token < 0xF8) {
+            litLen = token >> 3;
+          } else {
+            if (lenBuf.index >= mLenLen) {
+              output.index = dstIdx;
+              input.index = srcIdx;
+              return false;
+            }
+
+            litLen = readLength(lenBuf) + 31;
+          }
 
           if (litLen > 0) {
             int srcInc = 0;
@@ -906,6 +930,13 @@ public class ROLZCodec implements ByteTransform {
           dstIdx = emitCopy(dst, dstIdx, ref, matchLen + this.minMatch);
           this.counters[key] = (this.counters[key] + 1) & this.maskChecks;
           this.matches[base + this.counters[key]] = savedIdx - output.index;
+        }
+
+        if ((tkBuf.index != tkLen) || (mIdxBuf.index != mIdxLen) || (litBuf.index != litLenDecoded)
+            || (lenBuf.index != mLenLen)) {
+          output.index = dstIdx;
+          input.index = srcIdx;
+          return false;
         }
 
         startChunk = endChunk;
