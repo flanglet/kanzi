@@ -341,6 +341,13 @@ public class TestTransforms {
     }
 
     {
+      BWT tf = new BWT();
+      SliceByteArray input = new SliceByteArray(src, 2, 1);
+      SliceByteArray output = new SliceByteArray(dst, 3, 0);
+      Assertions.assertFalse(tf.inverse(input, output), "BWT inverse should reject oversized input count");
+    }
+
+    {
       BWTS tf = new BWTS();
       SliceByteArray input = new SliceByteArray(src, 1, 0);
       SliceByteArray output = new SliceByteArray(dst, 1, 1);
@@ -348,10 +355,24 @@ public class TestTransforms {
     }
 
     {
+      BWTS tf = new BWTS();
+      SliceByteArray input = new SliceByteArray(src, 1, 0);
+      SliceByteArray output = new SliceByteArray(dst, 1, 1);
+      Assertions.assertFalse(tf.inverse(input, output), "BWTS inverse should reject oversized output count");
+    }
+
+    {
       SBRT tf = new SBRT(SBRT.MODE_RANK);
       SliceByteArray input = new SliceByteArray(src, 2, 1);
       SliceByteArray output = new SliceByteArray(dst, 3, 0);
       Assertions.assertFalse(tf.forward(input, output), "SBRT should reject oversized input count");
+    }
+
+    {
+      SBRT tf = new SBRT(SBRT.MODE_RANK);
+      SliceByteArray input = new SliceByteArray(src, 2, 1);
+      SliceByteArray output = new SliceByteArray(dst, 3, 0);
+      Assertions.assertFalse(tf.inverse(input, output), "SBRT inverse should reject oversized input count");
     }
   }
 
