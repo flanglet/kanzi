@@ -436,7 +436,7 @@ public class ANSRangeDecoder implements EntropyDecoder {
     for (int i = end4; i < end; i++)
       block[i] = this.buffer[n++];
 
-    return true;
+    return n == sz;
   }
 
   /**

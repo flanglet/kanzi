@@ -304,14 +304,10 @@ public class HuffmanDecoder implements EntropyDecoder {
           bits = bs + HuffmanCommon.MAX_SYMBOL_SIZE_V4;
         }
 
-        // Last bytes
-        int nbBits = idx * 8;
-
         while (n < endChunk) {
           while ((bits < HuffmanCommon.MAX_SYMBOL_SIZE_V4) && (idx < sz)) {
             state = (state << 8) | (this.buffer[idx] & 0xFF);
             idx++;
-            nbBits = (idx == sz) ? szBits : nbBits + 8;
 
             // 'bits' may overshoot when idx == sz due to padding state bits
             // It is necessary to compute proper table indexes
@@ -331,6 +327,9 @@ public class HuffmanDecoder implements EntropyDecoder {
           bits -= (val >>> 8);
           block[n++] = (byte) val;
         }
+
+        if (((idx << 3) - bits) != szBits)
+          return -1;
       }
 
       startChunk = endChunk;
@@ -415,10 +414,15 @@ public class HuffmanDecoder implements EntropyDecoder {
     for (int i = 0; i < this.buffer.length; i++)
       this.buffer[i] = 0;
 
-    int idx0 = 0 * (this.buffer.length / 4);
-    int idx1 = 1 * (this.buffer.length / 4);
-    int idx2 = 2 * (this.buffer.length / 4);
-    int idx3 = 3 * (this.buffer.length / 4);
+    final int stride = this.buffer.length / 4;
+    final int base0 = 0 * stride;
+    final int base1 = 1 * stride;
+    final int base2 = 2 * stride;
+    final int base3 = 3 * stride;
+    int idx0 = base0;
+    int idx1 = base1;
+    int idx2 = base2;
+    int idx3 = base3;
 
     // Read all compressed data from bitstream
     this.bitstream.readBits(this.buffer, idx0, szBits0);
@@ -547,6 +551,10 @@ public class HuffmanDecoder implements EntropyDecoder {
     int bs1 = bits1 + shift1 - HuffmanCommon.MAX_SYMBOL_SIZE_V4;
     int bs2 = bits2 + shift2 - HuffmanCommon.MAX_SYMBOL_SIZE_V4;
     int bs3 = bits3 + shift3 - HuffmanCommon.MAX_SYMBOL_SIZE_V4;
+    idx0 += (shift0 >>> 3);
+    idx1 += (shift1 >>> 3);
+    idx2 += (shift2 >>> 3);
+    idx3 += (shift3 >>> 3);
 
     while (n < szFrag) {
       // Decompress 1 symbol per stream
@@ -572,7 +580,10 @@ public class HuffmanDecoder implements EntropyDecoder {
     for (int i = count4; i < count; i++)
       block[blkptr + i] = (byte) this.bitstream.readBits(8);
 
-    return true;
+    return (((idx0 - base0) << 3) - (bs0 + HuffmanCommon.MAX_SYMBOL_SIZE_V4) == szBits0)
+        && (((idx1 - base1) << 3) - (bs1 + HuffmanCommon.MAX_SYMBOL_SIZE_V4) == szBits1)
+        && (((idx2 - base2) << 3) - (bs2 + HuffmanCommon.MAX_SYMBOL_SIZE_V4) == szBits2)
+        && (((idx3 - base3) << 3) - (bs3 + HuffmanCommon.MAX_SYMBOL_SIZE_V4) == szBits3);
   }
 
   /**

@@ -222,6 +222,9 @@ public class FPAQDecoder implements EntropyDecoder {
         }
       }
 
+      if (this.sba.index > szBytes)
+        return 0;
+
       startChunk = endChunk;
     }
 
