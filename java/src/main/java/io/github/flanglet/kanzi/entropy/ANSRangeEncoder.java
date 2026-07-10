@@ -112,9 +112,9 @@ public class ANSRangeEncoder implements EntropyEncoder {
       throw new IllegalArgumentException(
           "ANS Codec: The chunk size must be at most " + MAX_CHUNK_SIZE);
 
-    if ((logRange < 8) || (logRange > 16))
+    if ((logRange < 8) || (logRange > 15))
       throw new IllegalArgumentException(
-          "ANS Codec: Invalid range: " + logRange + " (must be in [8..16])");
+          "ANS Codec: Invalid range: " + logRange + " (must be in [8..15])");
 
     this.bitstream = bs;
     this.order = order;

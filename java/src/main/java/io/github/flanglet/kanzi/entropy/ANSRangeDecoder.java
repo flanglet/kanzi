@@ -452,9 +452,9 @@ public class ANSRangeDecoder implements EntropyDecoder {
   protected int decodeHeader(int[][] frequencies, int[] alphabet) {
     this.logRange = (int) (8 + this.bitstream.readBits(3));
 
-    if ((this.logRange < 8) || (this.logRange > 16))
+    if ((this.logRange < 8) || (this.logRange > 15))
       throw new BitStreamException(
-          "Invalid bitstream: range = " + this.logRange + " (must be in [8..16])",
+          "Invalid bitstream: range = " + this.logRange + " (must be in [8..15])",
           BitStreamException.INVALID_STREAM);
 
     int res = 0;

@@ -135,9 +135,9 @@ public final class RangeEncoder implements EntropyEncoder {
       throw new IllegalArgumentException(
           "Range codec: The chunk size must be at most " + MAX_CHUNK_SIZE);
 
-    if ((logRange < 8) || (logRange > 16))
+    if ((logRange < 8) || (logRange > 15))
       throw new IllegalArgumentException(
-          "Range codec: Invalid range parameter: " + logRange + " (must be in [8..16])");
+          "Range codec: Invalid range parameter: " + logRange + " (must be in [8..15])");
 
     this.bitstream = bs;
     this.alphabet = new int[256];

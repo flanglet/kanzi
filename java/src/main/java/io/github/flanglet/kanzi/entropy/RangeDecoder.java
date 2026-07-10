@@ -170,6 +170,12 @@ public final class RangeDecoder implements EntropyDecoder {
     }
 
     final int logRange = (int) (8 + this.bitstream.readBits(3));
+
+    if ((logRange < 8) || (logRange > 15))
+      throw new BitStreamException(
+          "Invalid bitstream: range = " + logRange + " (must be in [8..15])",
+          BitStreamException.INVALID_STREAM);
+
     final int scale = 1 << logRange;
     this.shift = logRange;
     int sum = 0;
