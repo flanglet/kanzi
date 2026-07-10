@@ -33,11 +33,13 @@ public interface OutputBitStream {
 
   /**
    * Writes a specified number of bits from the input long value to the bit stream.
+   * A zero length is a successful no-op regardless of the stream status.
    *
    * @param bits the long value containing the bits to write
-   * @param length the number of bits to write (must be between 1 and 64)
+   * @param length the number of bits to write (must be between 0 and 64)
    * @return the number of bits written
-   * @throws BitStreamException if the stream is closed or if an error occurs
+   * @throws BitStreamException if the stream is closed and length is not zero or if an error
+   *     occurs
    */
   public int writeBits(long bits, int length) throws BitStreamException;
 

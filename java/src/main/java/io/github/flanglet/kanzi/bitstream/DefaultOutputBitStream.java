@@ -91,12 +91,13 @@ public final class DefaultOutputBitStream implements OutputBitStream {
 
   /**
    * Writes a specified number of bits from the provided long value to the output stream.
+   * A zero count is a successful no-op, including when the stream is closed.
    *
    * @param value the long value containing the bits to write
-   * @param count the number of bits to write (must be in the range [1..64])
+   * @param count the number of bits to write (must be in the range [0..64])
    * @return the number of bits actually written
    * @throws IllegalArgumentException if the count is invalid
-   * @throws IllegalStateException if the stream is closed
+   * @throws IllegalStateException if the stream is closed and count is not zero
    */
   @Override
   public int writeBits(long value, int count) {
@@ -104,7 +105,7 @@ public final class DefaultOutputBitStream implements OutputBitStream {
       return 0;
 
     if (count > 64)
-      throw new IllegalArgumentException("Invalid bit count: " + count + " (must be in [1..64])");
+      throw new IllegalArgumentException("Invalid bit count: " + count + " (must be in [0..64])");
 
     this.current |= ((value << (64 - count)) >>> (64 - this.availBits));
 

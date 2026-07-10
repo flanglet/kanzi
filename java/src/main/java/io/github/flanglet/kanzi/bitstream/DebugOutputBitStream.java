@@ -192,9 +192,10 @@ public final class DebugOutputBitStream implements OutputBitStream {
   /**
    * Writes a specified number of bits from a long value to the underlying bitstream and prints them
    * for debugging.
+   * A zero length is a successful no-op regardless of the stream status.
    *
    * @param bits the bits to write
-   * @param length the number of bits to write
+   * @param length the number of bits to write (must be in the range [0..64])
    * @return the number of bits successfully written
    * @throws BitStreamException if an error occurs while writing
    */
