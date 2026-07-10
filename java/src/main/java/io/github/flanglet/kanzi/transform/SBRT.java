@@ -88,9 +88,10 @@ public class SBRT implements ByteTransform {
     if (input.length == 0)
       return true;
 
-    if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+    if ((input.index < 0) || (output.index < 0) || (input.length < 0) || (output.length < 0)
+        || (input.index > input.length) || (output.index > output.length)
         || ((long) input.index + input.length > input.array.length)
-        || (output.index > output.array.length))
+        || ((long) output.index + output.length > output.array.length))
       return false;
 
     if (input.array == output.array)
@@ -98,7 +99,7 @@ public class SBRT implements ByteTransform {
 
     final int count = input.length;
 
-    if (output.length < count)
+    if ((count > input.length - input.index) || (count > output.length - output.index))
       return false;
 
     if (output.index + count > output.array.length)

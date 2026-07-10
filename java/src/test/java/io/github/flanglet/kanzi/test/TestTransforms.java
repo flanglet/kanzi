@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Random;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.SliceByteArray;
+import io.github.flanglet.kanzi.transform.BWT;
+import io.github.flanglet.kanzi.transform.BWTS;
 import io.github.flanglet.kanzi.transform.FSDCodec;
 import io.github.flanglet.kanzi.transform.LZCodec;
 import io.github.flanglet.kanzi.transform.RLT;
@@ -323,6 +325,33 @@ public class TestTransforms {
                                         // reverse[idx] + ")");
 
       System.out.println();
+    }
+  }
+
+  @Test
+  void testTransformCapacityValidation() {
+    byte[] src = new byte[] {1, 2, 3};
+    byte[] dst = new byte[] {(byte) 0x7E, (byte) 0x7E, (byte) 0x7E};
+
+    {
+      BWT tf = new BWT();
+      SliceByteArray input = new SliceByteArray(src, 2, 1);
+      SliceByteArray output = new SliceByteArray(dst, 3, 0);
+      Assertions.assertFalse(tf.forward(input, output), "BWT should reject oversized input count");
+    }
+
+    {
+      BWTS tf = new BWTS();
+      SliceByteArray input = new SliceByteArray(src, 1, 0);
+      SliceByteArray output = new SliceByteArray(dst, 1, 1);
+      Assertions.assertFalse(tf.forward(input, output), "BWTS should reject oversized output count");
+    }
+
+    {
+      SBRT tf = new SBRT(SBRT.MODE_RANK);
+      SliceByteArray input = new SliceByteArray(src, 2, 1);
+      SliceByteArray output = new SliceByteArray(dst, 3, 0);
+      Assertions.assertFalse(tf.forward(input, output), "SBRT should reject oversized input count");
     }
   }
 

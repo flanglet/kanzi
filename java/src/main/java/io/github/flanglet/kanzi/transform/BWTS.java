@@ -71,14 +71,18 @@ public class BWTS implements ByteTransform {
       return true;
 
     if ((src.index < 0) || (dst.index < 0) || (src.length < 0) || (dst.length <= 0)
+        || (src.index > src.length) || (dst.index > dst.length)
         || (src.index + src.length > src.array.length)
-        || (dst.index > dst.array.length))
+        || (dst.index + dst.length > dst.array.length))
       return false;
 
     if (src.array == dst.array)
       return false;
 
     final int count = src.length;
+
+    if ((count > src.length - src.index) || (count > dst.length - dst.index))
+      return false;
 
     if (count > maxBlockSize())
       return false;
