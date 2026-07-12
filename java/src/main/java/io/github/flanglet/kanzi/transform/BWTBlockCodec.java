@@ -150,9 +150,6 @@ public class BWTBlockCodec implements ByteTransform {
     final int blockSize = input.length;
 
     if (this.bsVersion > 5) {
-      if (blockSize < 1)
-        return false;
-
       // Number of chunks and primary index size in bitstream since bsVersion 6
       byte mode = input.array[input.index++];
       final int logNbChunks = (mode >> 2) & 0x07;
