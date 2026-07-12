@@ -95,6 +95,7 @@ public class FPAQDecoder implements EntropyDecoder {
    * A {@link SliceByteArray} used as a buffer for reading data from the bitstream.
    */
   private SliceByteArray sba;
+  private int bufLimit;
   /**
    * A 2D array storing probability models for different contexts. `probs[i][j]` represents the
    * probability of the next bit being 1 in context `j` for a specific context level `i`.
@@ -187,6 +188,7 @@ public class FPAQDecoder implements EntropyDecoder {
         Arrays.fill(this.sba.array, szBytes, bufSize, (byte) 0);
 
       this.bitstream.readBits(this.sba.array, 0, 8 * szBytes);
+      this.bufLimit = szBytes;
       this.sba.index = 0;
       final int chunkSize = Math.min(DEFAULT_CHUNK_SIZE, end - startChunk);
       final int endChunk = startChunk + chunkSize;
@@ -204,6 +206,10 @@ public class FPAQDecoder implements EntropyDecoder {
           this.decodeBitV1(this.p[this.ctx] >>> 4);
           this.decodeBitV1(this.p[this.ctx] >>> 4);
           block[i] = (byte) this.ctx;
+
+          if (this.sba.index > szBytes)
+            return 0;
+
           this.p = this.probs[(this.ctx & 0xFF) >>> 6];
         }
       } else {
@@ -218,6 +224,10 @@ public class FPAQDecoder implements EntropyDecoder {
           this.decodeBitV2(this.p[this.ctx]);
           this.decodeBitV2(this.p[this.ctx]);
           block[i] = (byte) this.ctx;
+
+          if (this.sba.index > szBytes)
+            return 0;
+
           this.p = this.probs[(this.ctx & 0xFF) >>> 6];
         }
       }
@@ -312,6 +322,13 @@ public class FPAQDecoder implements EntropyDecoder {
   protected void read() {
     this.low = (this.low << 32) & MASK_0_56;
     this.high = ((this.high << 32) | MASK_0_32) & MASK_0_56;
+
+    if (this.sba.index + 4 > this.bufLimit) {
+      this.current = (this.current << 32) & MASK_0_56;
+      this.sba.index = this.bufLimit + 1;
+      return;
+    }
+
     final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
     this.current = ((this.current << 32) | val) & MASK_0_56;
     this.sba.index += 4;

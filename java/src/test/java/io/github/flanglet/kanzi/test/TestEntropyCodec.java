@@ -46,6 +46,7 @@ import io.github.flanglet.kanzi.entropy.RangeDecoder;
 import io.github.flanglet.kanzi.entropy.RangeEncoder;
 import io.github.flanglet.kanzi.entropy.TPAQPredictor;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -189,6 +190,16 @@ public class TestEntropyCodec {
   }
 
 
+  private static int varIntLength(byte[] buf) {
+    for (int i = 0; i < buf.length; i++) {
+      if ((buf[i] & 0x80) == 0)
+        return i + 1;
+    }
+
+    return 0;
+  }
+
+
   @ParameterizedTest
   @CsvSource({"HUFFMAN", "ANS0", "ANS1", "RANGE", "FPAQ", "CM", "TPAQ", "TPAQ", "EXPGOLOMB"})
   void testCorrectness(String name) {
@@ -276,6 +287,39 @@ public class TestEntropyCodec {
         }
       });
     }
+  }
+
+
+  @Test
+  void testFPAQZeroDeclaredSize() throws Exception {
+    final int size = 1 << 20;
+    final byte[] values = new byte[size];
+
+    for (int i = 0; i < size; i++)
+      values[i] = (byte) ((i * 17) & 0xFF);
+
+    ByteArrayOutputStream os = new ByteArrayOutputStream(16384);
+    OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+    EntropyEncoder ec = getEncoder("FPAQ", obs);
+    Assertions.assertNotNull(ec);
+    Assertions.assertEquals(size, ec.encode(values, 0, values.length));
+    ec.dispose();
+    obs.close();
+
+    byte[] encoded = os.toByteArray();
+    int skip = varIntLength(encoded);
+    Assertions.assertTrue(skip > 0);
+    byte[] mutated = new byte[1 + encoded.length - skip];
+    mutated[0] = 0;
+    System.arraycopy(encoded, skip, mutated, 1, encoded.length - skip);
+    InputBitStream ibs = new DefaultInputBitStream(new ByteArrayInputStream(mutated), 16384);
+    EntropyDecoder ed = getDecoder("FPAQ", ibs);
+    Assertions.assertNotNull(ed);
+    byte[] decoded = new byte[size];
+    int res = ed.decode(decoded, 0, decoded.length);
+    ed.dispose();
+    ibs.close();
+    Assertions.assertNotEquals(size, res);
   }
 
 

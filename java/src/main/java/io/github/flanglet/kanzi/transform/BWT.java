@@ -408,6 +408,13 @@ public class BWT implements ByteTransform {
     if ((pIdx <= 0) || (pIdx > count))
       return false;
 
+    for (int i = 1; i < 8; i++) {
+      final int p = this.getPrimaryIndex(i);
+
+      if ((p <= 0) || (p > count))
+        return false;
+    }
+
     Global.computeHistogramOrder0(input, srcIdx, srcIdx + count, this.freqs, false);
     final int[] b = this.buckets;
     final int[] freqs_ = this.freqs;

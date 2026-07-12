@@ -150,6 +150,9 @@ public class BWTBlockCodec implements ByteTransform {
     final int blockSize = input.length;
 
     if (this.bsVersion > 5) {
+      if (blockSize < 1)
+        return false;
+
       // Number of chunks and primary index size in bitstream since bsVersion 6
       byte mode = input.array[input.index++];
       final int logNbChunks = (mode >> 2) & 0x07;
@@ -166,7 +169,7 @@ public class BWTBlockCodec implements ByteTransform {
       // Read header
       for (int i = 0; i < chunks; i++) {
         int shift = (pIndexSize - 1) << 3;
-        int primaryIndex = 0;
+        long primaryIndex = 0;
 
         // Extract BWT primary index
         while (shift >= 0) {
@@ -174,7 +177,10 @@ public class BWTBlockCodec implements ByteTransform {
           shift -= 8;
         }
 
-        if (!this.bwt.setPrimaryIndex(i, primaryIndex + 1))
+        if (primaryIndex >= 0x7FFFFFFFL)
+          return false;
+
+        if (!this.bwt.setPrimaryIndex(i, (int) primaryIndex + 1))
           return false;
       }
 

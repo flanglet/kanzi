@@ -178,6 +178,50 @@ public class TestBWT {
   }
 
 
+  @ParameterizedTest
+  @CsvSource({"256, 1024", "1024, 4096"})
+  void testInvalidSecondaryIndex(int smallSize, int largeSize) {
+    final BWT encoder = new BWT();
+    final BWT decoder = new BWT();
+    final byte[] largeInput = new byte[largeSize];
+    final byte[] largeTransform = new byte[largeSize];
+    final byte[] largeReverse = new byte[largeSize];
+
+    for (int i = 0; i < largeSize; i++)
+      largeInput[i] = (byte) i;
+
+    SliceByteArray sa1 = new SliceByteArray(largeInput, 0);
+    SliceByteArray sa2 = new SliceByteArray(largeTransform, 0);
+    SliceByteArray sa3 = new SliceByteArray(largeReverse, 0);
+    Assertions.assertTrue(encoder.forward(sa1, sa2));
+
+    for (int i = 0; i < BWT.getBWTChunks(largeSize); i++)
+      decoder.setPrimaryIndex(i, encoder.getPrimaryIndex(i));
+
+    sa2.index = 0;
+    Assertions.assertTrue(decoder.inverse(sa2, sa3));
+
+    final byte[] smallInput = new byte[smallSize];
+    final byte[] smallTransform = new byte[smallSize];
+    final byte[] smallReverse = new byte[smallSize];
+
+    for (int i = 0; i < smallSize; i++)
+      smallInput[i] = (byte) ((i * 17) & 0xFF);
+
+    sa1 = new SliceByteArray(smallInput, 0);
+    sa2 = new SliceByteArray(smallTransform, 0);
+    sa3 = new SliceByteArray(smallReverse, 0);
+    Assertions.assertTrue(encoder.forward(sa1, sa2));
+
+    for (int i = 0; i < BWT.getBWTChunks(smallSize); i++)
+      decoder.setPrimaryIndex(i, encoder.getPrimaryIndex(i));
+
+    decoder.setPrimaryIndex(1, smallSize + 1);
+    sa2.index = 0;
+    Assertions.assertFalse(decoder.inverse(sa2, sa3));
+  }
+
+
   public static void testSpeed(boolean isBWT, int iter, int size) {
     System.out.println("\nBWT" + (!isBWT ? "S" : "") + " Speed test");
     byte[] buf1 = new byte[size];
