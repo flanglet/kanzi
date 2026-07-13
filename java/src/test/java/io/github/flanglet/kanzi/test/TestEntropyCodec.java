@@ -323,6 +323,35 @@ public class TestEntropyCodec {
   }
 
 
+  @Test
+  void testBinaryEntropyZeroDeclaredSize() throws Exception {
+    final int size = 1 << 20;
+    final byte[] values = new byte[size];
+    ByteArrayOutputStream os = new ByteArrayOutputStream(16384);
+    OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+    EntropyEncoder ec = getEncoder("CM", obs);
+    Assertions.assertNotNull(ec);
+    Assertions.assertEquals(size, ec.encode(values, 0, values.length));
+    ec.dispose();
+    obs.close();
+
+    byte[] encoded = os.toByteArray();
+    int skip = varIntLength(encoded);
+    Assertions.assertTrue(skip > 0);
+    byte[] mutated = new byte[1 + encoded.length - skip];
+    mutated[0] = 0;
+    System.arraycopy(encoded, skip, mutated, 1, encoded.length - skip);
+    InputBitStream ibs = new DefaultInputBitStream(new ByteArrayInputStream(mutated), 16384);
+    EntropyDecoder ed = getDecoder("CM", ibs);
+    Assertions.assertNotNull(ed);
+    byte[] decoded = new byte[size];
+    int res = ed.decode(decoded, 0, decoded.length);
+    ed.dispose();
+    ibs.close();
+    Assertions.assertNotEquals(size, res);
+  }
+
+
   public static void testSpeed(String name, int iter) {
     // Test speed
     System.out.println("\n\nSpeed test for " + name);

@@ -72,6 +72,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
    * A {@link SliceByteArray} used as a buffer for reading data from the bitstream.
    */
   private SliceByteArray sba;
+  private int bufLimit;
 
   /**
    * Creates a new {@code BinaryEntropyDecoder}.
@@ -97,6 +98,7 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
     this.bitstream = bitstream;
     this.predictor = predictor;
     this.sba = new SliceByteArray(new byte[0], 0);
+    this.bufLimit = 0;
   }
 
   /**
@@ -147,11 +149,16 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
       if (szBytes != 0)
         this.bitstream.readBits(this.sba.array, 0, 8 * szBytes);
 
+      this.bufLimit = szBytes;
       this.sba.index = 0;
       final int endChunk = startChunk + chunkSize;
 
-      for (int i = startChunk; i < endChunk; i++)
+      for (int i = startChunk; i < endChunk; i++) {
         block[i] = this.decodeByte();
+
+        if (this.sba.index > szBytes)
+          return -1;
+      }
 
       startChunk = endChunk;
     }
@@ -219,6 +226,13 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
   protected void read() {
     this.low = (this.low << 32) & MASK_0_56;
     this.high = ((this.high << 32) | MASK_0_32) & MASK_0_56;
+
+    if (this.sba.index + 4 > this.bufLimit) {
+      this.current = (this.current << 32) & MASK_0_56;
+      this.sba.index = this.bufLimit + 1;
+      return;
+    }
+
     final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
     this.current = ((this.current << 32) | val) & MASK_0_56;
     this.sba.index += 4;
