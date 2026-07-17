@@ -514,14 +514,23 @@ public class Global {
           return p1.compareTo(p2);
 
         // First, compare parent directory paths
-        final int res = p1.getParent().compareTo(p2.getParent());
+        final Path parent1 = p1.getParent();
+        final Path parent2 = p2.getParent();
+        final int res;
+
+        if (parent1 == null)
+          res = (parent2 == null) ? 0 : -1;
+        else if (parent2 == null)
+          res = 1;
+        else
+          res = parent1.compareTo(parent2);
 
         if (res != 0)
           return res;
 
         try {
           // Then, compare file sizes (decreasing order)
-          return (int) (Files.size(p2) - Files.size(p1));
+          return Long.compare(Files.size(p2), Files.size(p1));
         } catch (IOException e) {
           return -1;
         }
