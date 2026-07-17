@@ -43,6 +43,14 @@ dependencies {
     xmlDoclet('com.manticore-projects.tools:xml-doclet:+') { changing = true }
 }
 
+def gitVersion = providers.exec {
+    commandLine 'git', '--no-pager', '-C', project.projectDir, 'describe', '--tags', '--always', '--dirty=-SNAPSHOT'
+}.standardOutput.asText.map { it.trim() }
+
+def gitCommit = providers.exec {
+    commandLine 'git', '--no-pager', '-C', project.projectDir, 'rev-parse', '--short', 'HEAD'
+}.standardOutput.asText.map { it.trim() }
+
 def getVersion = { boolean considerSnapshot ->
     Integer major = 0
     Integer minor = 0
@@ -51,9 +59,7 @@ def getVersion = { boolean considerSnapshot ->
     String commit = null
     String snapshot = ""
 
-    def versionStr = providers.exec {
-        commandLine "git", "--no-pager", "-C", project.projectDir, "describe", "--tags", "--always", "--dirty=-SNAPSHOT"
-    }.standardOutput.asText.get().trim()
+    def versionStr = gitVersion.get()
 
     def pattern = /(?<major>\d*)\.(?<minor>\d*)(\.(?<patch>\d*))?(-(?<build>\d*)-(?<commit>[a-zA-Z\d]*))?/
     def matcher = versionStr =~ pattern
@@ -78,34 +84,54 @@ def getVersion = { boolean considerSnapshot ->
             snapshot
 }
 
-// for publishing a release, call Gradle with Environment Variable RELEASE:
-// RELEASE=true gradle JSQLFormatter:publish
+// For publishing a release, call Gradle with the RELEASE environment variable:
+// RELEASE=true ./gradlew publish
 version = getVersion(!System.getenv("RELEASE"))
 
 group = 'io.github.flanglet'
 description = 'Kanzi Compression'
 
-tasks.register('generateBuildInfo') {
-    outputs.dir layout.buildDirectory.file("resources/main")
+def buildInfoSourceDir = layout.buildDirectory.dir('generated/sources/buildinfo/java/main')
+def buildProjectName = project.name
+
+def generateBuildInfo = tasks.register('generateBuildInfo') {
+    inputs.property 'projectName', buildProjectName
+    inputs.property 'gitVersion', gitVersion
+    inputs.property 'gitCommit', gitCommit
+    outputs.dir buildInfoSourceDir
     doLast {
-        def outputDir = new File(layout.buildDirectory.file("generated/sources/buildinfo/java/main").get().asFile, "io/github/flanglet/kanzi")
+        def outputDir = new File(buildInfoSourceDir.get().asFile, 'io/github/flanglet/kanzi')
         outputDir.mkdirs()
 
-        def gitVersionStr = providers.exec {
-            commandLine "git", "--no-pager", "-C", project.projectDir, "describe", "--tags", "--always", "--dirty=-SNAPSHOT"
-        }.standardOutput.asText.get().trim()
-
-        def gitCommitStr = providers.exec {
-            commandLine "git", "--no-pager", "-C", project.projectDir, "rev-parse", "--short", "HEAD"
-        }.standardOutput.asText.get().trim()
+        def gitVersionStr = gitVersion.get()
+        def gitCommitStr = gitCommit.get()
 
         def buildTime = Instant.now().toString()
+        def creationYear = buildTime.substring(0, 4)
 
         def content = """\
+            |/*
+            | * Kanzi is a modern, modular, portable, and efficient lossless data compressor.
+            | *
+            | * Copyright (C) ${creationYear} Frederic Langlet
+            | *
+            | * Licensed under the Apache License, Version 2.0 (the "License");
+            | * you may not use this file except in compliance with the License.
+            | *
+            | * You may obtain a copy of the License at
+            | *     http://www.apache.org/licenses/LICENSE-2.0
+            | *
+            | * Unless required by applicable law or agreed to in writing, software
+            | * distributed under the License is distributed on an "AS IS" BASIS,
+            | * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+            | * See the License for the specific language governing permissions and
+            | * limitations under the License.
+            | */
+            |
             |package io.github.flanglet.kanzi;
             |
             |public final class BuildInfo {
-            |  public static final String NAME = "${project.name}";
+            |  public static final String NAME = "${buildProjectName}";
             |  public static final String VERSION = "${gitVersionStr}";
             |  public static final String GIT_COMMIT = "${gitCommitStr ?: 'unknown'}";
             |  public static final String BUILD_TIME = "${buildTime}";
@@ -120,13 +146,13 @@ tasks.register('generateBuildInfo') {
 sourceSets {
     main {
         java {
-            srcDir layout.buildDirectory.file("generated/sources/buildinfo/java/main").get().asFile
+            srcDir generateBuildInfo
         }
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    mustRunAfter("generateBuildInfo")
+tasks.named('compileJava') {
+    dependsOn generateBuildInfo
 }
 
 java {
@@ -214,6 +240,7 @@ license {
     rule(file("../java/LICENSE_HEADER"))
     include("**/*.java") // Include Java files into the file resolution.
     exclude("**/*.properties") // Exclude properties files from the file resolution.
+    //ext.CREATION_YEAR = Calendar.getInstance().get(Calendar.YEAR).toString()
 }
 
 
@@ -312,8 +339,8 @@ mavenPublishing {
     coordinates(group, "kanzi", version)
 
     pom {
-        name = 'JSQLFormatter library'
-        description = 'Format and pretty print SQL Statements'
+        name = 'Kanzi Compression'
+        description = 'Fast lossless data compressor in Java'
         url = 'https://github.com/flanglet/kanzi'
         licenses {
             license {
