@@ -231,6 +231,11 @@ tasks.register('xmldoc', Javadoc) {
 test {
     useJUnitPlatform()
 
+    testLogging {
+        events "started", "skipped", "failed"
+        showStandardStreams = false
+    }
+
     // set heap size for the test JVM(s)
     minHeapSize = "128m"
     maxHeapSize = "1G"
