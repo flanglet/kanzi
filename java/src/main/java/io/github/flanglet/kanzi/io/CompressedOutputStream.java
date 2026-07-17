@@ -75,7 +75,7 @@ public class CompressedOutputStream extends OutputStream {
 
   // Constant values for compression parameters
   private static final int BITSTREAM_TYPE = 0x4B414E5A; // "KANZ"
-  private static final int BITSTREAM_FORMAT_VERSION = 6;
+  private static final int BITSTREAM_FORMAT_VERSION = 7;
   private static final int COPY_BLOCK_MASK = 0x80;
   private static final int TRANSFORMS_MASK = 0x10;
   private static final int MIN_BITSTREAM_BLOCK_SIZE = 1024;
@@ -85,6 +85,12 @@ public class CompressedOutputStream extends OutputStream {
   private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
   private static final int MAX_CONCURRENCY = 64;
   private static final int CANCEL_TASKS_ID = -1;
+
+  private static int mix32(int checksum, int hash, int value) {
+    checksum ^= hash * ~value;
+    checksum = Integer.rotateLeft(checksum, 13);
+    return checksum * 5 + 0x52DCE729;
+  }
 
   private final int blockSize;
   private int bufferId; // index of current write buffer
@@ -203,6 +209,7 @@ public class CompressedOutputStream extends OutputStream {
     this.initialized = new AtomicBoolean(false);
     this.buffers = new SliceByteArray[2 * this.jobs];
     this.headless = (Boolean) ctx.getOrDefault("headerless", false);
+    ctx.put("bsVersion", BITSTREAM_FORMAT_VERSION);
 
     // Allocate first buffer and add padding for incompressible blocks
     final int bufSize = Math.max(this.blockSize + (this.blockSize >> 3), 256 * 1024);
@@ -288,15 +295,15 @@ public class CompressedOutputStream extends OutputStream {
     final int seed = 0x01030507 * BITSTREAM_FORMAT_VERSION;
     final int HASH = 0x1E35A7BD;
     int cksum = HASH * seed;
-    cksum ^= (HASH * ~chkSize);
-    cksum ^= (HASH * ~this.entropyType);
-    cksum ^= (HASH * (int) (~this.transformType >>> 32));
-    cksum ^= (HASH * (int) ~this.transformType);
-    cksum ^= (HASH * ~this.blockSize);
+    cksum = mix32(cksum, HASH, chkSize);
+    cksum = mix32(cksum, HASH, this.entropyType);
+    cksum = mix32(cksum, HASH, (int) (this.transformType >>> 32));
+    cksum = mix32(cksum, HASH, (int) this.transformType);
+    cksum = mix32(cksum, HASH, this.blockSize);
 
     if (szMask > 0) {
-      cksum ^= (HASH * (int) (~this.inputSize >>> 32));
-      cksum ^= (HASH * (int) ~this.inputSize);
+      cksum = mix32(cksum, HASH, (int) (this.inputSize >>> 32));
+      cksum = mix32(cksum, HASH, (int) this.inputSize);
     }
 
     cksum = (cksum >>> 23) ^ (cksum >>> 3);
@@ -440,9 +447,9 @@ public class CompressedOutputStream extends OutputStream {
 
       this.buffers[this.bufferId].array[this.buffers[this.bufferId].index++] = (byte) b;
     } catch (BitStreamException e) {
-      throw new KanziIOException(e.getMessage(), Error.ERR_READ_FILE);
+      throw new KanziIOException(e.getMessage(), e, Error.ERR_READ_FILE);
     } catch (Exception e) {
-      throw new KanziIOException(e.getMessage(), Error.ERR_UNKNOWN);
+      throw new KanziIOException(e.getMessage(), e, Error.ERR_UNKNOWN);
     }
   }
 
@@ -485,7 +492,7 @@ public class CompressedOutputStream extends OutputStream {
       this.obs.writeBits(0, 3);
       this.obs.close();
     } catch (BitStreamException e) {
-      throw new KanziIOException(e.getMessage(), e.getErrorCode());
+      throw new KanziIOException(e.getMessage(), e, e.getErrorCode());
     }
 
     this.listeners.clear();
@@ -574,7 +581,7 @@ public class CompressedOutputStream extends OutputStream {
 
       int errorCode = (e instanceof BitStreamException) ? ((BitStreamException) e).getErrorCode()
           : Error.ERR_UNKNOWN;
-      throw new KanziIOException(e.getMessage(), errorCode);
+      throw new KanziIOException(e.getMessage(), e, errorCode);
     }
   }
 
@@ -854,9 +861,16 @@ public class CompressedOutputStream extends OutputStream {
         CustomByteArrayOutputStream baos =
             new CustomByteArrayOutputStream(this.data.array, this.data.length);
         DefaultOutputBitStream os = new DefaultOutputBitStream(baos, 16384);
+        int headerSkipFlags = skipFlags;
 
         if (((mode & COPY_BLOCK_MASK) != 0) || (nbFunctions <= 4)) {
           mode |= (skipFlags >>> 4);
+
+          if ((mode & COPY_BLOCK_MASK) != 0)
+            headerSkipFlags = 0;
+          else
+            headerSkipFlags = ((mode << 4) | 0x0F) & 0xFF;
+
           os.writeBits(mode, 8);
         } else {
           mode |= TRANSFORMS_MASK;
@@ -865,6 +879,15 @@ public class CompressedOutputStream extends OutputStream {
         }
 
         os.writeBits(postTransformLength, 8 * dataSize);
+        // Reserve the block header checksum byte. The encoded block length is
+        // only known after entropy coding, so patch this byte once the complete
+        // temporary block has been written.
+        int headerChecksumIndex = 1 + dataSize;
+
+        if (((mode & COPY_BLOCK_MASK) == 0) && (nbFunctions > 4))
+          headerChecksumIndex++;
+
+        os.writeBits(0, 8);
 
         // Write checksum
         if (this.hasher32 != null)
@@ -899,6 +922,67 @@ public class CompressedOutputStream extends OutputStream {
         this.data.array = baos.getBuffer();
         this.data.length = this.data.array.length;
         long written = os.written();
+
+        if ((mode & COPY_BLOCK_MASK) == 0) {
+          final long rawPayloadBytes = postTransformLength;
+          final long entropyPayloadBytes = (written + 7) >> 3;
+
+          if (rawPayloadBytes < entropyPayloadBytes) {
+            this.data.index = 0;
+            CustomByteArrayOutputStream copyBaos =
+                new CustomByteArrayOutputStream(this.data.array, this.data.length);
+            DefaultOutputBitStream copyOs = new DefaultOutputBitStream(copyBaos, 16384);
+            final int copyMode = mode | COPY_BLOCK_MASK | TRANSFORMS_MASK;
+            copyOs.writeBits(copyMode, 8);
+
+            if (nbFunctions > 4)
+              copyOs.writeBits(skipFlags, 8);
+
+            copyOs.writeBits(postTransformLength, 8 * dataSize);
+            headerChecksumIndex = 1 + dataSize;
+
+            if (nbFunctions > 4) {
+              headerChecksumIndex++;
+              headerSkipFlags = skipFlags;
+            } else {
+              headerSkipFlags = ((copyMode << 4) | 0x0F) & 0xFF;
+            }
+
+            copyOs.writeBits(0, 8);
+
+            if (this.hasher32 != null)
+              copyOs.writeBits(checksum, 32);
+            else if (this.hasher64 != null)
+              copyOs.writeBits(checksum, 64);
+
+            int remaining = postTransformLength;
+
+            for (int srcIdx = 0; remaining > 0;) {
+              final int chunk = Math.min(remaining, 1 << 23);
+              copyOs.writeBits(buffer.array, srcIdx, chunk << 3);
+              srcIdx += chunk;
+              remaining -= chunk;
+            }
+
+            copyOs.close();
+            this.data.array = copyBaos.getBuffer();
+            this.data.length = this.data.array.length;
+            written = copyOs.written();
+            mode = (byte) copyMode;
+          }
+        }
+
+        // Protect the block header and its outer encoded bit length independently
+        // from the optional checksum of the decoded payload.
+        final int HASH = 0x1E35A7BD;
+        int cksum = HASH * 0x01030507;
+        cksum = mix32(cksum, HASH, mode & 0xFF);
+        cksum = mix32(cksum, HASH, headerSkipFlags & 0xFF);
+        cksum = mix32(cksum, HASH, postTransformLength);
+        cksum = mix32(cksum, HASH, (int) (written >>> 32));
+        cksum = mix32(cksum, HASH, (int) written);
+        cksum = (cksum >>> 23) ^ (cksum >>> 3);
+        this.data.array[headerChecksumIndex] = (byte) cksum;
 
         // Lock free synchronization
         while (true) {
@@ -1034,7 +1118,7 @@ public class CompressedOutputStream extends OutputStream {
       this.buf = buffer;
     }
 
-    private void ensureCapacity(int required) {
+    private void ensureBufferCapacity(int required) {
       if (required <= this.buf.length)
         return;
 
@@ -1045,7 +1129,7 @@ public class CompressedOutputStream extends OutputStream {
 
     @Override
     public synchronized void write(int value) {
-      this.ensureCapacity(this.count + 1);
+      this.ensureBufferCapacity(this.count + 1);
       this.buf[this.count++] = (byte) value;
     }
 
@@ -1057,7 +1141,7 @@ public class CompressedOutputStream extends OutputStream {
       if (len == 0)
         return;
 
-      this.ensureCapacity(this.count + len);
+      this.ensureBufferCapacity(this.count + len);
       System.arraycopy(buffer, off, this.buf, this.count, len);
       this.count += len;
     }

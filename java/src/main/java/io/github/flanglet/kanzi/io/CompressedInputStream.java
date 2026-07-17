@@ -55,9 +55,10 @@ import io.github.flanglet.kanzi.Listener;
  * bit-level reading.
  *
  * <p>
- * This class is thread-safe and can be used with multiple concurrent tasks for decompression. The
- * compression format is identified by a unique bitstream type ("KANZ") and supports multiple
- * versions and transformations.
+ * Internal block decompression may use multiple concurrent tasks, but instances of this class are
+ * not thread-safe. Calls to the public stream and listener methods require external synchronization
+ * when made from multiple threads. The compression format is identified by a unique bitstream type
+ * ("KANZ") and supports multiple versions and transformations.
  * </p>
  *
  * @see CompressedOutputStream
@@ -72,7 +73,7 @@ public class CompressedInputStream extends InputStream {
   /**
    * The version of the bitstream format used for decompression.
    */
-  private static final int BITSTREAM_FORMAT_VERSION = 6;
+  private static final int BITSTREAM_FORMAT_VERSION = 7;
 
   /**
    * Default buffer size used for reading compressed data.
@@ -105,6 +106,11 @@ public class CompressedInputStream extends InputStream {
   private static final int MAX_BITSTREAM_BLOCK_SIZE = 1024 * 1024 * 1024;
 
   /**
+   * Version introducing transformed copy blocks.
+   */
+  private static final int TRANSFORMED_COPY_VERSION = 7;
+
+  /**
    * An empty byte array.
    */
   private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
@@ -118,6 +124,16 @@ public class CompressedInputStream extends InputStream {
    * Maximum concurrency level for decompression tasks.
    */
   private static final int MAX_CONCURRENCY = 64;
+
+  private static int mix32_v6(int checksum, int hash, int value) {
+    return checksum ^ (hash * ~value);
+  }
+
+  private static int mix32_v7(int checksum, int hash, int value) {
+    checksum ^= hash * ~value;
+    checksum = Integer.rotateLeft(checksum, 13);
+    return checksum * 5 + 0x52DCE729;
+  }
 
   /**
    * Maximum block ID used during the decompression process.
@@ -435,18 +451,25 @@ public class CompressedInputStream extends InputStream {
       final int cksum1 = (int) this.ibs.readBits(crcSize);
       final int HASH = 0x1E35A7BD;
       int cksum2 = HASH * seed;
+      final boolean isV7 = (bsVersion >= 7);
 
       if (bsVersion >= 6)
-        cksum2 ^= (HASH * ~chkSize);
+        cksum2 = isV7 ? mix32_v7(cksum2, HASH, chkSize) : mix32_v6(cksum2, HASH, chkSize);
 
-      cksum2 ^= (HASH * ~this.entropyType);
-      cksum2 ^= (HASH * (int) (~this.transformType >>> 32));
-      cksum2 ^= (HASH * (int) ~this.transformType);
-      cksum2 ^= (HASH * ~this.blockSize);
+      cksum2 = isV7 ? mix32_v7(cksum2, HASH, this.entropyType)
+          : mix32_v6(cksum2, HASH, this.entropyType);
+      cksum2 = isV7 ? mix32_v7(cksum2, HASH, (int) (this.transformType >>> 32))
+          : mix32_v6(cksum2, HASH, (int) (this.transformType >>> 32));
+      cksum2 = isV7 ? mix32_v7(cksum2, HASH, (int) this.transformType)
+          : mix32_v6(cksum2, HASH, (int) this.transformType);
+      cksum2 =
+          isV7 ? mix32_v7(cksum2, HASH, this.blockSize) : mix32_v6(cksum2, HASH, this.blockSize);
 
       if (szMask > 0) {
-        cksum2 ^= (HASH * (int) (~this.outputSize >>> 32));
-        cksum2 ^= (HASH * (int) ~this.outputSize);
+        cksum2 = isV7 ? mix32_v7(cksum2, HASH, (int) (this.outputSize >>> 32))
+            : mix32_v6(cksum2, HASH, (int) (this.outputSize >>> 32));
+        cksum2 = isV7 ? mix32_v7(cksum2, HASH, (int) this.outputSize)
+            : mix32_v6(cksum2, HASH, (int) this.outputSize);
       }
 
       cksum2 = (cksum2 >>> 23) ^ (cksum2 >>> 3);
@@ -477,16 +500,12 @@ public class CompressedInputStream extends InputStream {
     }
 
     if (this.listeners.isEmpty() == false) {
-      Event.HeaderInfo headerInfo = new Event.HeaderInfo(
-          (String) this.ctx.getOrDefault("inputName", "unknown"),
-          bsVersion,
-          (chkSize == 1) ? 32 : (chkSize == 2) ? 64 : 0,
-          this.blockSize,
-          EntropyCodecFactory.getName(this.entropyType),
-          new TransformFactory().getName(this.transformType),
-          this.outputSize,
-          (long) this.ctx.getOrDefault("fileSize", -1L)
-      );
+      Event.HeaderInfo headerInfo =
+          new Event.HeaderInfo((String) this.ctx.getOrDefault("inputName", "unknown"), bsVersion,
+              (chkSize == 1) ? 32 : (chkSize == 2) ? 64 : 0, this.blockSize,
+              EntropyCodecFactory.getName(this.entropyType),
+              new TransformFactory().getName(this.transformType), this.outputSize,
+              (long) this.ctx.getOrDefault("fileSize", -1L));
 
       // Protect against future concurrent modification of the block listeners list
       Listener[] blockListeners = this.listeners.toArray(new Listener[this.listeners.size()]);
@@ -530,7 +549,7 @@ public class CompressedInputStream extends InputStream {
     try {
       if (this.available == 0) {
         if (this.closed.get() == true)
-          throw new KanziIOException("Stream closed", Error.ERR_WRITE_FILE);
+          throw new KanziIOException("Stream closed", Error.ERR_READ_FILE);
 
         this.available = this.processBlock();
 
@@ -550,9 +569,9 @@ public class CompressedInputStream extends InputStream {
     } catch (KanziIOException e) {
       throw e;
     } catch (BitStreamException e) {
-      throw new KanziIOException(e.getMessage(), Error.ERR_READ_FILE);
+      throw new KanziIOException(e.getMessage(), e, Error.ERR_READ_FILE);
     } catch (Exception e) {
-      throw new KanziIOException(e.getMessage(), Error.ERR_UNKNOWN);
+      throw new KanziIOException(e.getMessage(), e, Error.ERR_UNKNOWN);
     }
   }
 
@@ -595,6 +614,9 @@ public class CompressedInputStream extends InputStream {
     if ((off < 0) || (len < 0) || (len + off > data.length))
       throw new IndexOutOfBoundsException();
 
+    if (len == 0)
+      return 0;
+
     int remaining = len;
 
     try {
@@ -605,8 +627,8 @@ public class CompressedInputStream extends InputStream {
 
         if (lenChunk > 0) {
           // Process a chunk of in-buffer data. No access to bitstream required
-          System.arraycopy(this.buffers[this.bufferId].array, this.buffers[this.bufferId].index, data,
-              off, lenChunk);
+          System.arraycopy(this.buffers[this.bufferId].array, this.buffers[this.bufferId].index,
+              data, off, lenChunk);
           this.buffers[this.bufferId].index += lenChunk;
           off += lenChunk;
           this.available -= lenChunk;
@@ -628,7 +650,7 @@ public class CompressedInputStream extends InputStream {
         // Similar logic as in read() except EOF logic
         if (this.available == 0) {
           if (this.closed.get() == true)
-            throw new KanziIOException("Stream closed", Error.ERR_WRITE_FILE);
+            throw new KanziIOException("Stream closed", Error.ERR_READ_FILE);
 
           this.available = this.processBlock();
 
@@ -648,13 +670,13 @@ public class CompressedInputStream extends InputStream {
         remaining--;
       }
 
-      return len - remaining;
+      return (remaining == len) ? -1 : len - remaining;
     } catch (KanziIOException e) {
       throw e;
     } catch (BitStreamException e) {
-      throw new KanziIOException(e.getMessage(), Error.ERR_READ_FILE);
+      throw new KanziIOException(e.getMessage(), e, Error.ERR_READ_FILE);
     } catch (Exception e) {
-      throw new KanziIOException(e.getMessage(), Error.ERR_UNKNOWN);
+      throw new KanziIOException(e.getMessage(), e, Error.ERR_UNKNOWN);
     }
   }
 
@@ -796,7 +818,7 @@ public class CompressedInputStream extends InputStream {
 
       int errorCode = (e instanceof BitStreamException) ? ((BitStreamException) e).getErrorCode()
           : Error.ERR_UNKNOWN;
-      throw new KanziIOException(e.getMessage(), errorCode);
+      throw new KanziIOException(e.getMessage(), e, errorCode);
     }
   }
 
@@ -813,7 +835,7 @@ public class CompressedInputStream extends InputStream {
     try {
       this.ibs.close();
     } catch (BitStreamException e) {
-      throw new KanziIOException(e.getMessage(), e.getErrorCode());
+      throw new KanziIOException(e.getMessage(), e, e.getErrorCode());
     }
 
     // Release resources, force error on any subsequent write attempt
@@ -983,6 +1005,95 @@ public class CompressedInputStream extends InputStream {
           this.blockId);
     }
 
+    private static final class ParsedBlockHeader {
+      final byte[] bytes;
+      final byte skipFlags;
+      final int preTransformLength;
+      final boolean transformedCopy;
+      final boolean rawCopy;
+
+      ParsedBlockHeader(byte[] bytes, byte skipFlags, int preTransformLength,
+          boolean transformedCopy, boolean rawCopy) {
+        this.bytes = bytes;
+        this.skipFlags = skipFlags;
+        this.preTransformLength = preTransformLength;
+        this.transformedCopy = transformedCopy;
+        this.rawCopy = rawCopy;
+      }
+    }
+
+    private ParsedBlockHeader readBlockHeader(InputBitStream is, int bsVersion,
+        long encodedBlockLength, long blockTransformType) throws KanziIOException {
+      if (encodedBlockLength < 8)
+        throw new KanziIOException("Invalid block size", Error.ERR_BLOCK_SIZE);
+
+      final byte mode = (byte) is.readBits(8);
+      byte skipFlags = 0;
+      boolean hasSkipFlags = false;
+      boolean transformedCopy = false;
+      final boolean copyBlock = (mode & COPY_BLOCK_MASK) != 0;
+
+      if (copyBlock == true) {
+        if ((bsVersion >= TRANSFORMED_COPY_VERSION) && ((mode & TRANSFORMS_MASK) != 0)) {
+          transformedCopy = true;
+          final int nbFunctions =
+              new TransformFactory().newFunction(this.ctx, blockTransformType).getNbFunctions();
+
+          if (nbFunctions > 4)
+            hasSkipFlags = true;
+          else
+            skipFlags = (byte) ((mode << 4) | 0x0F);
+        }
+      } else if ((mode & TRANSFORMS_MASK) != 0) {
+        hasSkipFlags = true;
+      } else {
+        skipFlags = (byte) ((mode << 4) | 0x0F);
+      }
+
+      final int dataSize = 1 + ((mode >> 5) & 0x03);
+      final int headerSize = 1 + (hasSkipFlags ? 1 : 0) + dataSize + ((bsVersion >= 7) ? 1 : 0);
+
+      if (encodedBlockLength < (headerSize << 3))
+        throw new KanziIOException("Invalid block size", Error.ERR_BLOCK_SIZE);
+
+      final byte[] bytes = new byte[headerSize];
+      bytes[0] = mode;
+      int idx = 1;
+
+      if (hasSkipFlags == true) {
+        skipFlags = (byte) is.readBits(8);
+        bytes[idx++] = skipFlags;
+      }
+
+      int preTransformLength = 0;
+
+      for (int i = 0; i < dataSize; i++) {
+        final int value = (int) is.readBits(8);
+        bytes[idx++] = (byte) value;
+        preTransformLength = (preTransformLength << 8) | value;
+      }
+
+      if (bsVersion >= 7) {
+        final int headerChecksum = (int) is.readBits(8) & 0xFF;
+        bytes[idx] = (byte) headerChecksum;
+        final int HASH = 0x1E35A7BD;
+        int cksum = HASH * 0x01030507;
+        cksum = mix32_v7(cksum, HASH, mode & 0xFF);
+        cksum = mix32_v7(cksum, HASH, skipFlags & 0xFF);
+        cksum = mix32_v7(cksum, HASH, preTransformLength);
+        cksum = mix32_v7(cksum, HASH, (int) (encodedBlockLength >>> 32));
+        cksum = mix32_v7(cksum, HASH, (int) encodedBlockLength);
+        cksum = (cksum >>> 23) ^ (cksum >>> 3);
+
+        if (headerChecksum != (cksum & 0xFF))
+          throw new KanziIOException("Invalid bitstream, block header checksum mismatch",
+              Error.ERR_CRC_CHECK);
+      }
+
+      return new ParsedBlockHeader(bytes, skipFlags, preTransformLength, transformedCopy,
+          copyBlock && !transformedCopy);
+    }
+
     // Decode mode + transformed entropy coded data
     // mode | 0b10000000 => copy block
     // | 0b0yy00000 => size(size(block))-1
@@ -1015,23 +1126,60 @@ public class CompressedInputStream extends InputStream {
       final long blockOffset = this.ibs.read();
       final int lr = (int) this.ibs.readBits(5) + 3;
       long read = this.ibs.readBits(lr);
+      final int bsVersion = (Integer) this.ctx.getOrDefault("bsVersion", BITSTREAM_FORMAT_VERSION);
 
       if (read == 0) {
         this.processedBlockId.set(CANCEL_TASKS_ID);
         return new Status(data, currentBlockId, 0, 0, 0, "Success");
       }
 
-      if (read > 1L << 34) {
+      final long encodedBlockBytes = (read + 7) >> 3;
+      final long encodedBlockLength = read;
+      ParsedBlockHeader blockHeader = null;
+      final int maxTransformLength =
+          Math.min(Math.max(this.blockSize + this.blockSize / 2, 2048), MAX_BITSTREAM_BLOCK_SIZE);
+
+      if (bsVersion >= 7) {
+        try {
+          blockHeader =
+              this.readBlockHeader(this.ibs, bsVersion, encodedBlockLength, blockTransformType);
+        } catch (KanziIOException e) {
+          this.processedBlockId.set(CANCEL_TASKS_ID);
+          return new Status(data, currentBlockId, 0, 0, e.getErrorCode(), e.getMessage());
+        }
+
+        if ((blockHeader.preTransformLength < 0)
+            || (blockHeader.preTransformLength > maxTransformLength)) {
+          this.processedBlockId.set(CANCEL_TASKS_ID);
+          return new Status(data, currentBlockId, 0, 0, Error.ERR_READ_FILE,
+              "Invalid compressed block length: " + blockHeader.preTransformLength);
+        }
+
+        final int checksumSize = (this.hasher64 != null) ? 8 : ((this.hasher32 != null) ? 4 : 0);
+        final long maxEncodedBlockBytes =
+            (long) blockHeader.preTransformLength + blockHeader.bytes.length + checksumSize;
+
+        if (encodedBlockBytes > maxEncodedBlockBytes) {
+          this.processedBlockId.set(CANCEL_TASKS_ID);
+          return new Status(data, currentBlockId, 0, 0, Error.ERR_BLOCK_SIZE, "Invalid block size");
+        }
+
+        read -= blockHeader.bytes.length << 3;
+      } else if (encodedBlockBytes > Integer.MAX_VALUE) {
         this.processedBlockId.set(CANCEL_TASKS_ID);
         return new Status(data, currentBlockId, 0, 0, Error.ERR_BLOCK_SIZE, "Invalid block size");
       }
 
-      final int r = (int) ((read + 7) >> 3);
+      final int r = (int) encodedBlockBytes;
+      final byte[] blockHeaderBytes = (blockHeader == null) ? EMPTY_BYTE_ARRAY : blockHeader.bytes;
+      final int blockHeaderSize = blockHeaderBytes.length;
 
       if (data.array.length < Math.max(this.blockSize, r))
         data.array = new byte[Math.max(this.blockSize, r)];
 
-      for (int n = 0; read > 0;) {
+      System.arraycopy(blockHeaderBytes, 0, data.array, 0, blockHeaderSize);
+
+      for (int n = blockHeaderSize; read > 0;) {
         final int chkSize = (read < (1L << 30)) ? (int) read : 1 << 30;
         this.ibs.readBits(data.array, n, chkSize);
         n += ((chkSize + 7) >> 3);
@@ -1057,33 +1205,35 @@ public class CompressedInputStream extends InputStream {
       EntropyDecoder ed = null;
 
       try {
-        // Extract block header directly from bitstream
-        byte mode = (byte) is.readBits(8);
-        byte skipFlags = 0;
-
-        if ((mode & COPY_BLOCK_MASK) != 0) {
-          blockTransformType = TransformFactory.NONE_TYPE;
-          blockEntropyType = EntropyCodecFactory.NONE_TYPE;
+        if (blockHeader == null) {
+          try {
+            blockHeader =
+                this.readBlockHeader(is, bsVersion, encodedBlockLength, blockTransformType);
+          } catch (KanziIOException e) {
+            this.processedBlockId.set(CANCEL_TASKS_ID);
+            return new Status(data, currentBlockId, 0, checksum1, e.getErrorCode(), e.getMessage());
+          }
         } else {
-          if ((mode & TRANSFORMS_MASK) != 0)
-            skipFlags = (byte) is.readBits(8);
-          else
-            skipFlags = (byte) ((mode << 4) | 0x0F);
+          // The version 7 header was parsed and verified before allocating the payload buffer.
+          is.readBits(blockHeader.bytes.length << 3);
         }
 
-        final int dataSize = 1 + ((mode >> 5) & 0x03);
-        final int length = dataSize << 3;
-        final long mask = (1L << length) - 1;
-        int preTransformLength = (int) (is.readBits(length) & mask);
+        final byte skipFlags = blockHeader.skipFlags;
+        final boolean transformedCopy = blockHeader.transformedCopy;
+        final int preTransformLength = blockHeader.preTransformLength;
+
+        if (blockHeader.rawCopy == true) {
+          blockTransformType = TransformFactory.NONE_TYPE;
+          blockEntropyType = EntropyCodecFactory.NONE_TYPE;
+        } else if (transformedCopy == true) {
+          blockEntropyType = EntropyCodecFactory.NONE_TYPE;
+        }
 
         if (preTransformLength == 0) {
           // Last block is empty, return success and cancel pending tasks
           this.processedBlockId.set(CANCEL_TASKS_ID);
           return new Status(data, currentBlockId, 0, checksum1, 0, null);
         }
-
-        final int maxTransformLength =
-            Math.min(Math.max(this.blockSize + this.blockSize / 2, 2048), MAX_BITSTREAM_BLOCK_SIZE);
 
         if ((preTransformLength < 0) || (preTransformLength > maxTransformLength)) {
           // Error => cancel concurrent decoding tasks
@@ -1133,21 +1283,40 @@ public class CompressedInputStream extends InputStream {
         final int savedIdx = data.index;
         this.ctx.put("size", preTransformLength);
 
-        // Each block is decoded separately
-        // Rebuild the entropy decoder to reset block statistics
-        ed = EntropyCodecFactory.newDecoder(is, this.ctx, blockEntropyType);
+        if (transformedCopy == true) {
+          int remaining = preTransformLength;
 
-        // Block entropy decode
-        if (ed.decode(buffer.array, 0, preTransformLength) != preTransformLength) {
-          // Error => cancel concurrent decoding tasks
-          this.processedBlockId.set(CANCEL_TASKS_ID);
-          return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK,
-              "Entropy decoding failed");
+          for (int dstIdx = 0; remaining > 0;) {
+            final int chunk = Math.min(remaining, 1 << 23);
+            final int bits = chunk << 3;
+
+            if (is.readBits(buffer.array, dstIdx, bits) != bits) {
+              this.processedBlockId.set(CANCEL_TASKS_ID);
+              return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK,
+                  "Transformed copy block read failed");
+            }
+
+            dstIdx += chunk;
+            remaining -= chunk;
+          }
+        } else {
+          // Each block is decoded separately
+          // Rebuild the entropy decoder to reset block statistics
+          ed = EntropyCodecFactory.newDecoder(is, this.ctx, blockEntropyType);
+
+          // Block entropy decode
+          if (ed.decode(buffer.array, 0, preTransformLength) != preTransformLength) {
+            // Error => cancel concurrent decoding tasks
+            this.processedBlockId.set(CANCEL_TASKS_ID);
+            return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK,
+                "Entropy decoding failed");
+          }
+
+          ed.dispose();
+          ed = null;
         }
 
         is.close();
-        ed.dispose();
-        ed = null;
 
         if (this.listeners.length > 0) {
           // Notify after entropy (block size set to size in bitstream)
