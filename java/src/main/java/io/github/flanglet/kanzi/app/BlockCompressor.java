@@ -640,7 +640,7 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
 
       boolean overwrite = (Boolean) this.ctx.get("overwrite");
 
-      OutputStream os;
+      OutputStream os = null;
       File output = null;
 
       try {
@@ -663,15 +663,30 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
               return new FileCompressResult(Error.ERR_OVERWRITE_FILE, 0, 0);
             }
 
-            Path path1 = FileSystems.getDefault().getPath(inputName).toAbsolutePath();
-            Path path2 = FileSystems.getDefault().getPath(outputName).toAbsolutePath();
+            Path path1 = FileSystems.getDefault().getPath(inputName).toAbsolutePath().normalize();
+            Path path2 = FileSystems.getDefault().getPath(outputName).toAbsolutePath().normalize();
 
-            if (path1.equals(path2)) {
+            if (path1.equals(path2) || Files.isSameFile(path1, path2)) {
               System.err.println("The input and output files must be different");
               return new FileCompressResult(Error.ERR_CREATE_FILE, 0, 0);
             }
           }
+        }
+      } catch (Exception e) {
+        System.err
+            .println("Cannot validate output file '" + outputName + "': " + e.getMessage());
+        return new FileCompressResult(Error.ERR_CREATE_FILE, 0, 0);
+      }
 
+      try {
+        this.is = (STDIN.equalsIgnoreCase(inputName)) ? System.in : new FileInputStream(inputName);
+      } catch (Exception e) {
+        System.err.println("Cannot open input file '" + inputName + "': " + e.getMessage());
+        return new FileCompressResult(Error.ERR_OPEN_FILE, 0, 0);
+      }
+
+      if (output != null) {
+        try {
           try {
             os = new FileOutputStream(output);
           } catch (IOException e1) {
@@ -686,28 +701,41 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
               throw e1;
             }
           }
-        }
-
-        try {
-          this.cos = new CompressedOutputStream(os, this.ctx);
-
-          for (Listener bl : this.listeners)
-            this.cos.addListener(bl);
         } catch (Exception e) {
-          System.err.println("Cannot create compressed stream: " + e.getMessage());
-          return new FileCompressResult(Error.ERR_CREATE_COMPRESSOR, 0, 0);
+          try {
+            this.is.close();
+          } catch (IOException e2) {
+            // Ignore
+          }
+
+          System.err
+              .println("Cannot open output file '" + outputName + "' for writing: " + e.getMessage());
+          return new FileCompressResult(Error.ERR_CREATE_FILE, 0, 0);
         }
-      } catch (Exception e) {
-        System.err
-            .println("Cannot open output file '" + outputName + "' for writing: " + e.getMessage());
-        return new FileCompressResult(Error.ERR_CREATE_FILE, 0, 0);
       }
 
       try {
-        this.is = (STDIN.equalsIgnoreCase(inputName)) ? System.in : new FileInputStream(inputName);
+        this.cos = new CompressedOutputStream(os, this.ctx);
+
+        for (Listener bl : this.listeners)
+          this.cos.addListener(bl);
       } catch (Exception e) {
-        System.err.println("Cannot open input file '" + inputName + "': " + e.getMessage());
-        return new FileCompressResult(Error.ERR_OPEN_FILE, 0, 0);
+        try {
+          this.is.close();
+        } catch (IOException e2) {
+          // Ignore
+        }
+
+        if (os != System.out) {
+          try {
+            os.close();
+          } catch (IOException e2) {
+            // Ignore
+          }
+        }
+
+        System.err.println("Cannot create compressed stream: " + e.getMessage());
+        return new FileCompressResult(Error.ERR_CREATE_COMPRESSOR, 0, 0);
       }
 
       // Encode

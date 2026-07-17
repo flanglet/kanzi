@@ -539,6 +539,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
         checkOutputSize = !outputName.equalsIgnoreCase("/DEV/NULL");
       }
 
+      File output = null;
+
       if (NONE.equalsIgnoreCase(outputName)) {
         this.os = new NullOutputStream();
         checkOutputSize = false;
@@ -547,7 +549,7 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
         checkOutputSize = false;
       } else {
         try {
-          File output = new File(outputName);
+          output = new File(outputName);
 
           if (output.exists()) {
             if (output.isDirectory()) {
@@ -561,15 +563,32 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
               return new FileDecompressResult(Error.ERR_OVERWRITE_FILE, 0);
             }
 
-            Path path1 = FileSystems.getDefault().getPath(inputName).toAbsolutePath();
-            Path path2 = FileSystems.getDefault().getPath(outputName).toAbsolutePath();
+            Path path1 = FileSystems.getDefault().getPath(inputName).toAbsolutePath().normalize();
+            Path path2 = FileSystems.getDefault().getPath(outputName).toAbsolutePath().normalize();
 
-            if (path1.equals(path2)) {
+            if (path1.equals(path2) || Files.isSameFile(path1, path2)) {
               System.err.println("The input and output files must be different");
               return new FileDecompressResult(Error.ERR_CREATE_FILE, 0);
             }
           }
+        } catch (Exception e) {
+          System.err.println("Cannot validate output file '" + outputName + "': " + e.getMessage());
+          return new FileDecompressResult(Error.ERR_CREATE_FILE, 0);
+        }
+      }
 
+      InputStream is;
+
+      try {
+        is = (STDIN.equalsIgnoreCase(inputName)) ? System.in
+            : new FileInputStream(new File(inputName));
+      } catch (Exception e) {
+        System.err.println("Cannot open input file '" + inputName + "': " + e.getMessage());
+        return new FileDecompressResult(Error.ERR_OPEN_FILE, 0);
+      }
+
+      if (output != null) {
+        try {
           try {
             this.os = new FileOutputStream(output);
           } catch (IOException e1) {
@@ -585,30 +604,40 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
             }
           }
         } catch (Exception e) {
+          try {
+            is.close();
+          } catch (IOException e2) {
+            // Ignore
+          }
+
           System.err.println(
               "Cannot open output file '" + outputName + "' for writing: " + e.getMessage());
           return new FileDecompressResult(Error.ERR_CREATE_FILE, 0);
         }
       }
 
-      InputStream is;
-
       try {
-        is = (STDIN.equalsIgnoreCase(inputName)) ? System.in
-            : new FileInputStream(new File(inputName));
+        this.cis = new CompressedInputStream(is, this.ctx);
 
-        try {
-          this.cis = new CompressedInputStream(is, this.ctx);
-
-          for (Listener bl : this.listeners)
-            this.cis.addListener(bl);
-        } catch (Exception e) {
-          System.err.println("Cannot create compressed stream: " + e.getMessage());
-          return new FileDecompressResult(Error.ERR_CREATE_DECOMPRESSOR, 0);
-        }
+        for (Listener bl : this.listeners)
+          this.cis.addListener(bl);
       } catch (Exception e) {
-        System.err.println("Cannot open input file '" + inputName + "': " + e.getMessage());
-        return new FileDecompressResult(Error.ERR_OPEN_FILE, 0);
+        try {
+          is.close();
+        } catch (IOException e2) {
+          // Ignore
+        }
+
+        if (this.os != System.out) {
+          try {
+            this.os.close();
+          } catch (IOException e2) {
+            // Ignore
+          }
+        }
+
+        System.err.println("Cannot create compressed stream: " + e.getMessage());
+        return new FileDecompressResult(Error.ERR_CREATE_DECOMPRESSOR, 0);
       }
 
       long before = System.nanoTime();
@@ -618,25 +647,16 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
         int decodedBlock;
 
         // Decode next block
-        do {
-          decodedBlock = this.cis.read(sa.array, 0, sa.length);
-
-          if (decodedBlock < 0) {
-            System.err.println("Reached end of stream");
-            return new FileDecompressResult(Error.ERR_READ_FILE, this.cis.getRead());
-          }
-
+        while ((decodedBlock = this.cis.read(sa.array, 0, sa.length)) != -1) {
           try {
-            if (decodedBlock > 0) {
-              this.os.write(sa.array, 0, decodedBlock);
-              decoded += decodedBlock;
-            }
+            this.os.write(sa.array, 0, decodedBlock);
+            decoded += decodedBlock;
           } catch (Exception e) {
             System.err.print("Failed to write decompressed block to file '" + outputName + "': ");
             System.err.println(e.getMessage());
             return new FileDecompressResult(Error.ERR_READ_FILE, this.cis.getRead());
           }
-        } while (decodedBlock == sa.array.length);
+        }
       } catch (KanziIOException e) {
         System.err.println("An unexpected condition happened. Exiting ...");
         System.err.println(e.getMessage());
