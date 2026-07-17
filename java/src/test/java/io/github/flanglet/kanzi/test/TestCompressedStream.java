@@ -32,9 +32,12 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import io.github.flanglet.kanzi.Error;
 import io.github.flanglet.kanzi.app.BlockDecompressor;
+import io.github.flanglet.kanzi.bitstream.DefaultInputBitStream;
 import io.github.flanglet.kanzi.io.CompressedInputStream;
 import io.github.flanglet.kanzi.io.CompressedOutputStream;
+import io.github.flanglet.kanzi.io.KanziIOException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -105,8 +108,8 @@ public class TestCompressedStream {
       cos.write(input);
     }
 
-    try (CompressedInputStream cis = new CompressedInputStream(
-        new ByteArrayInputStream(baos.toByteArray()), new HashMap<>())) {
+    try (CompressedInputStream cis =
+        new CompressedInputStream(new ByteArrayInputStream(baos.toByteArray()), new HashMap<>())) {
       byte[] output = new byte[8];
       Assertions.assertEquals(input.length, cis.read(output));
       Assertions.assertArrayEquals(input, Arrays.copyOf(output, input.length));
@@ -114,6 +117,17 @@ public class TestCompressedStream {
       Assertions.assertEquals(-1, cis.read(output));
       Assertions.assertEquals(0, cis.read(output, 0, 0));
     }
+  }
+
+  @Test
+  void testReadAfterCloseErrorCode() throws IOException {
+    CompressedInputStream cis =
+        new CompressedInputStream(new ByteArrayInputStream(new byte[0]), new HashMap<>());
+    cis.close();
+    KanziIOException e = Assertions.assertThrows(KanziIOException.class, cis::read);
+    Assertions.assertEquals(Error.ERR_READ_FILE, e.getErrorCode());
+    e = Assertions.assertThrows(KanziIOException.class, () -> cis.read(new byte[1]));
+    Assertions.assertEquals(Error.ERR_READ_FILE, e.getErrorCode());
   }
 
   @Test
@@ -130,8 +144,8 @@ public class TestCompressedStream {
     compressionCtx.put("entropy", "NONE");
     compressionCtx.put("blockSize", 1024);
 
-    try (CompressedOutputStream cos = new CompressedOutputStream(
-        Files.newOutputStream(compressed), compressionCtx)) {
+    try (CompressedOutputStream cos =
+        new CompressedOutputStream(Files.newOutputStream(compressed), compressionCtx)) {
       cos.write(input);
     }
 
@@ -149,6 +163,122 @@ public class TestCompressedStream {
     }
 
     Assertions.assertArrayEquals(input, Files.readAllBytes(output));
+  }
+
+  @Test
+  void testBlockHeaderChecksumCheckedBeforePayloadRead() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    HashMap<String, Object> ctx = new HashMap<>();
+    ctx.put("transform", "NONE");
+    ctx.put("entropy", "NONE");
+    ctx.put("blockSize", 1024);
+
+    try (CompressedOutputStream cos = new CompressedOutputStream(baos, ctx)) {
+      cos.write(new byte[] {1, 2, 3, 4, 5, 6, 7, 8});
+    }
+
+    byte[] encoded = baos.toByteArray();
+    long headerChecksumOffset;
+    DefaultInputBitStream ibs = new DefaultInputBitStream(new ByteArrayInputStream(encoded), 1024);
+
+    try {
+      ibs.readBits(32); // Stream type
+      ibs.readBits(4); // Bitstream version
+      ibs.readBits(2); // Block checksum size
+      ibs.readBits(5); // Entropy codec
+      ibs.readBits(48); // Transform
+      ibs.readBits(28); // Block size
+      final int sizeMask = (int) ibs.readBits(2);
+
+      if (sizeMask != 0)
+        ibs.readBits(16 * sizeMask);
+
+      ibs.readBits(15); // Padding
+      ibs.readBits(24); // Stream header checksum
+      final int lr = (int) ibs.readBits(5) + 3;
+      ibs.readBits(lr); // Encoded block length
+      final int mode = (int) ibs.readBits(8);
+      Assertions.assertNotEquals(0, mode & 0x80); // Small blocks are copied
+      final int dataSize = 1 + ((mode >> 5) & 0x03);
+      ibs.readBits(dataSize << 3);
+      headerChecksumOffset = ibs.read();
+    } finally {
+      ibs.close();
+    }
+
+    final int checksumByte = (int) (headerChecksumOffset >> 3);
+    final int checksumBit = 7 - ((int) headerChecksumOffset & 7);
+    encoded[checksumByte] ^= 1 << checksumBit;
+    encoded = Arrays.copyOf(encoded, (int) ((headerChecksumOffset + 15) >> 3));
+
+    try (CompressedInputStream cis =
+        new CompressedInputStream(new ByteArrayInputStream(encoded), new HashMap<>())) {
+      KanziIOException e =
+          Assertions.assertThrows(KanziIOException.class, () -> cis.read(new byte[16]));
+      Assertions.assertEquals(Error.ERR_CRC_CHECK, e.getErrorCode());
+    }
+  }
+
+  @Test
+  void testEncodedBlockLengthBoundCheckedBeforePayloadRead() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    HashMap<String, Object> ctx = new HashMap<>();
+    ctx.put("transform", "NONE");
+    ctx.put("entropy", "NONE");
+    ctx.put("blockSize", 1024);
+
+    try (CompressedOutputStream cos = new CompressedOutputStream(baos, ctx)) {
+      cos.write(new byte[] {1, 2, 3, 4, 5, 6, 7, 8});
+    }
+
+    byte[] encoded = baos.toByteArray();
+    long encodedLengthOffset;
+    long encodedBlockLength;
+    long headerChecksumOffset;
+    int lr;
+    int mode;
+    int preTransformLength;
+    DefaultInputBitStream ibs = new DefaultInputBitStream(new ByteArrayInputStream(encoded), 1024);
+
+    try {
+      ibs.readBits(32); // Stream type
+      ibs.readBits(4); // Bitstream version
+      ibs.readBits(2); // Block checksum size
+      ibs.readBits(5); // Entropy codec
+      ibs.readBits(48); // Transform
+      ibs.readBits(28); // Block size
+      final int sizeMask = (int) ibs.readBits(2);
+
+      if (sizeMask != 0)
+        ibs.readBits(16 * sizeMask);
+
+      ibs.readBits(15); // Padding
+      ibs.readBits(24); // Stream header checksum
+      lr = (int) ibs.readBits(5) + 3;
+      encodedLengthOffset = ibs.read();
+      encodedBlockLength = ibs.readBits(lr);
+      mode = (int) ibs.readBits(8);
+      Assertions.assertNotEquals(0, mode & 0x80); // Small blocks are copied
+      final int dataSize = 1 + ((mode >> 5) & 0x03);
+      preTransformLength = (int) ibs.readBits(dataSize << 3);
+      headerChecksumOffset = ibs.read();
+    } finally {
+      ibs.close();
+    }
+
+    final long oversizedBlockLength = encodedBlockLength + 8;
+    Assertions.assertTrue(oversizedBlockLength < (1L << lr));
+    writeBits(encoded, encodedLengthOffset, oversizedBlockLength, lr);
+    int checksum = computeBlockHeaderChecksum(mode, 0, preTransformLength, oversizedBlockLength);
+    writeBits(encoded, headerChecksumOffset, checksum & 0xFF, 8);
+    encoded = Arrays.copyOf(encoded, (int) ((headerChecksumOffset + 15) >> 3));
+
+    try (CompressedInputStream cis =
+        new CompressedInputStream(new ByteArrayInputStream(encoded), new HashMap<>())) {
+      KanziIOException e =
+          Assertions.assertThrows(KanziIOException.class, () -> cis.read(new byte[16]));
+      Assertions.assertEquals(Error.ERR_BLOCK_SIZE, e.getErrorCode());
+    }
   }
 
   public static long compress1(byte[] block, int length) {
@@ -344,6 +474,36 @@ public class TestCompressedStream {
     // Read after close should throw IOException
     cis.read();
     is.close();
+  }
+
+  private static int computeBlockHeaderChecksum(int mode, int skipFlags, int length,
+      long encodedBlockLength) {
+    final int hash = 0x1E35A7BD;
+    int checksum = hash * 0x01030507;
+    checksum = mix32(checksum, hash, mode);
+    checksum = mix32(checksum, hash, skipFlags);
+    checksum = mix32(checksum, hash, length);
+    checksum = mix32(checksum, hash, (int) (encodedBlockLength >>> 32));
+    checksum = mix32(checksum, hash, (int) encodedBlockLength);
+    return (checksum >>> 23) ^ (checksum >>> 3);
+  }
+
+  private static int mix32(int checksum, int hash, int value) {
+    checksum ^= hash * ~value;
+    checksum = Integer.rotateLeft(checksum, 13);
+    return checksum * 5 + 0x52DCE729;
+  }
+
+  private static void writeBits(byte[] data, long offset, long value, int length) {
+    for (int i = 0; i < length; i++) {
+      final int index = (int) offset + i;
+      final int mask = 1 << (7 - (index & 7));
+
+      if (((value >>> (length - 1 - i)) & 1) == 0)
+        data[index >> 3] &= ~mask;
+      else
+        data[index >> 3] |= mask;
+    }
   }
 
 
