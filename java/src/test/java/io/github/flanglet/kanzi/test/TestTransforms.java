@@ -44,6 +44,21 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 public class TestTransforms {
   private final static Random RANDOM = new Random(Long.MAX_VALUE);
+  private final static int MAX_DEBUG_VALUES = 128;
+
+
+  private static void printValues(byte[] values, int length) {
+    final int count = Math.min(length, MAX_DEBUG_VALUES);
+    final StringBuilder builder = new StringBuilder(count * 4 + 48);
+
+    for (int i = 0; i < count; i++)
+      builder.append(values[i] & 255).append(' ');
+
+    if (length > count)
+      builder.append("... (").append(length).append(" values total)");
+
+    System.out.print(builder);
+  }
 
   public static void main(String[] args) {
     if (args.length == 0) {
@@ -257,9 +272,7 @@ public class TestTransforms {
       if (ii == 1) {
         System.out.print("1 8 (" + (arr.length - 1) + " times)");
       } else {
-        for (int i = 0; i < input.length; i++) {
-          System.out.print((input[i] & 255) + " ");
-        }
+        printValues(input, input.length);
       }
 
       if (f.forward(sa1, sa2) == false) {
@@ -275,10 +288,7 @@ public class TestTransforms {
       System.out.println("\nCoded: ");
       // java.util.Arrays.fill(input, (byte) 0);
 
-      for (int i = 0; i < sa2.index; i++) {
-        System.out.print((output[i] & 255) + " "); // +"("+Integer.toBinaryString(output[i] &
-                                                   // 255)+") ");
-      }
+      printValues(output, sa2.index);
 
       f = getTransform(name);
       sa2.length = sa2.index;
@@ -303,9 +313,7 @@ public class TestTransforms {
         if (ii == 1) {
           System.out.println("1 8 (" + (arr.length - 1) + " times)");
         } else {
-          for (int i = 0; i < reverse.length; i++)
-            System.out.print((reverse[i] & 255) + " ");
-
+          printValues(reverse, reverse.length);
           System.out.println();
         }
 

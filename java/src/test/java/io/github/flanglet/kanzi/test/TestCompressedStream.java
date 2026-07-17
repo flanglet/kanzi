@@ -131,6 +131,15 @@ public class TestCompressedStream {
   }
 
   @Test
+  void testKanziIOExceptionRetainsCause() {
+    IOException cause = new IOException("Source failure");
+    KanziIOException e = new KanziIOException("Wrapped failure", cause, Error.ERR_READ_FILE);
+    Assertions.assertEquals("Wrapped failure", e.getMessage());
+    Assertions.assertEquals(Error.ERR_READ_FILE, e.getErrorCode());
+    Assertions.assertSame(cause, e.getCause());
+  }
+
+  @Test
   void testBlockDecompressorAcceptsEndOfStream(@TempDir Path tempDir) throws IOException {
     byte[] input = new byte[65536];
 
