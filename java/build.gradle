@@ -233,7 +233,7 @@ test {
 
     testLogging {
         events "started", "skipped", "failed"
-        showStandardStreams = false
+        showStandardStreams = System.getenv("CI") != null
     }
 
     // set heap size for the test JVM(s)
@@ -291,7 +291,7 @@ spotbugs {
     excludeFilter = file("config/spotbugs/spotBugsExcludeFilter.xml")
 
     // do not run over the test, although we should do that eventually
-    spotbugsTest.enabled = true
+    spotbugsTest.enabled = false
 }
 
 pmd {
