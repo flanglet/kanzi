@@ -25,7 +25,9 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -46,10 +48,19 @@ public class IOUtil {
    */
   public static void createFileList(String target, List<Path> files, boolean isRecursive,
       boolean ignoreLinks, boolean ignoreDotFiles) throws IOException {
+    createFileList(target, files, isRecursive, ignoreLinks, ignoreDotFiles, new HashSet<>());
+  }
+
+  private static void createFileList(String target, List<Path> files, boolean isRecursive,
+      boolean ignoreLinks, boolean ignoreDotFiles, Set<Path> visitedDirectories)
+      throws IOException {
     if (target == null)
       return;
 
     Path root = Paths.get(target);
+
+    if (ignoreLinks && Files.isSymbolicLink(root))
+      return;
 
     if (!Files.exists(root))
       throw new IOException("Cannot access input file '" + root + "'");
@@ -58,8 +69,7 @@ public class IOUtil {
       throw new IOException("Cannot access input file '" + root + "'");
 
     if (Files.isRegularFile(root)) {
-      if (!ignoreLinks || !Files.isSymbolicLink(root))
-        files.add(root);
+      files.add(root);
       return;
     }
 
@@ -78,9 +88,15 @@ public class IOUtil {
       }
     }
 
+    if (!visitedDirectories.add(root.toRealPath()))
+      return;
+
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) {
       for (Path entry : stream) {
         if (!Files.exists(entry))
+          continue;
+
+        if (ignoreLinks && Files.isSymbolicLink(entry))
           continue;
 
         if (Files.isRegularFile(entry)) {
@@ -95,10 +111,10 @@ public class IOUtil {
             }
           }
 
-          if (!ignoreLinks || !Files.isSymbolicLink(entry))
-            files.add(entry);
+          files.add(entry);
         } else if (isRecursive && Files.isDirectory(entry)) {
-          createFileList(entry.toString(), files, isRecursive, ignoreLinks, ignoreDotFiles);
+          createFileList(entry.toString(), files, isRecursive, ignoreLinks, ignoreDotFiles,
+              visitedDirectories);
         }
       }
     } catch (DirectoryIteratorException e) {
@@ -106,4 +122,3 @@ public class IOUtil {
     }
   }
 }
-
