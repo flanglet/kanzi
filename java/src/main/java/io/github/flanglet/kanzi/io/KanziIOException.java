@@ -40,6 +40,19 @@ public class KanziIOException extends java.io.IOException {
   }
 
   /**
+   * Constructs a new {@code KanziIOException} with the specified detail message, error code and
+   * cause.
+   *
+   * @param msg the detail message explaining the reason for the exception
+   * @param cause the cause of this exception, or {@code null} if the cause is unknown
+   * @param code an integer error code that provides additional context about the error
+   */
+  public KanziIOException(String msg, Throwable cause, int code) {
+    super(msg, cause);
+    this.code = code;
+  }
+
+  /**
    * Returns the error code associated with this exception.
    *
    * @return the error code indicating the type of I/O error

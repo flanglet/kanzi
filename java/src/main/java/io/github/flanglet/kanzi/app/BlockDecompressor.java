@@ -610,9 +610,9 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
                 }
               }
             } catch (Exception e) {
-              throw failure(
-                  "Cannot open output file '" + outputName + "' for writing: " + e.getMessage(),
-                  Error.ERR_CREATE_FILE, e);
+              throw new KanziIOException(
+                  "Cannot open output file '" + outputName + "' for writing: " + e.getMessage(), e,
+                  Error.ERR_CREATE_FILE);
             }
           }
 
@@ -623,8 +623,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
               for (Listener bl : this.listeners)
                 this.cis.addListener(bl);
             } catch (Exception e) {
-              throw failure("Cannot create compressed stream: " + e.getMessage(),
-                  Error.ERR_CREATE_DECOMPRESSOR, e);
+              throw new KanziIOException("Cannot create compressed stream: " + e.getMessage(), e,
+                  Error.ERR_CREATE_DECOMPRESSOR);
             }
 
             try (CompressedInputStream compressedStream = this.cis) {
@@ -637,8 +637,8 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
                   outputStream.write(sa.array, 0, decodedBlock);
                   decoded += decodedBlock;
                 } catch (Exception e) {
-                  throw failure("Failed to write decompressed block to file '" + outputName + "': "
-                      + e.getMessage(), Error.ERR_READ_FILE, e);
+                  throw new KanziIOException("Failed to write decompressed block to file '"
+                      + outputName + "': " + e.getMessage(), e, Error.ERR_READ_FILE);
                 }
               }
             }
@@ -743,12 +743,6 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
       try (OutputStream output = this.os; CompressedInputStream input = this.cis) {
         // Nothing to do
       }
-    }
-
-    private static KanziIOException failure(String message, int code, Exception cause) {
-      KanziIOException exception = new KanziIOException(message, code);
-      exception.initCause(cause);
-      return exception;
     }
   }
 

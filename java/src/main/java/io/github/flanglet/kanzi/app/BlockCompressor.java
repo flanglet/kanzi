@@ -713,9 +713,9 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
                 }
               }
             } catch (Exception e) {
-              throw failure(
-                  "Cannot open output file '" + outputName + "' for writing: " + e.getMessage(),
-                  Error.ERR_CREATE_FILE, e);
+              throw new KanziIOException(
+                  "Cannot open output file '" + outputName + "' for writing: " + e.getMessage(), e,
+                  Error.ERR_CREATE_FILE);
             }
           }
 
@@ -726,8 +726,8 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
               for (Listener bl : this.listeners)
                 this.cos.addListener(bl);
             } catch (Exception e) {
-              throw failure("Cannot create compressed stream: " + e.getMessage(),
-                  Error.ERR_CREATE_COMPRESSOR, e);
+              throw new KanziIOException("Cannot create compressed stream: " + e.getMessage(), e,
+                  Error.ERR_CREATE_COMPRESSOR);
             }
 
             try (CompressedOutputStream compressedStream = this.cos) {
@@ -750,9 +750,9 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
                 try {
                   len = inputStream.read(sa.array, 0, sa.length);
                 } catch (Exception e) {
-                  throw failure(
-                      "Failed to read block from file '" + inputName + "': " + e.getMessage(),
-                      Error.ERR_READ_FILE, e);
+                  throw new KanziIOException(
+                      "Failed to read block from file '" + inputName + "': " + e.getMessage(), e,
+                      Error.ERR_READ_FILE);
                 }
 
                 if (len <= 0)
@@ -852,12 +852,6 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
       try (InputStream input = this.is; CompressedOutputStream output = this.cos) {
         // Nothing to do
       }
-    }
-
-    private static KanziIOException failure(String message, int code, Exception cause) {
-      KanziIOException exception = new KanziIOException(message, code);
-      exception.initCause(cause);
-      return exception;
     }
   }
 
