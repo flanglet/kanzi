@@ -25,16 +25,21 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import io.github.flanglet.kanzi.app.BlockDecompressor;
 import io.github.flanglet.kanzi.io.CompressedInputStream;
 import io.github.flanglet.kanzi.io.CompressedOutputStream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.api.io.TempDir;
 
 
 public class TestCompressedStream {
@@ -85,6 +90,65 @@ public class TestCompressedStream {
         }, "Method `compress5()` failed on test=" + test);
       }
     }
+  }
+
+  @Test
+  void testBulkReadEndOfStream() throws IOException {
+    byte[] input = new byte[] {1, 2, 3};
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    HashMap<String, Object> ctx = new HashMap<>();
+    ctx.put("transform", "NONE");
+    ctx.put("entropy", "NONE");
+    ctx.put("blockSize", 1024);
+
+    try (CompressedOutputStream cos = new CompressedOutputStream(baos, ctx)) {
+      cos.write(input);
+    }
+
+    try (CompressedInputStream cis = new CompressedInputStream(
+        new ByteArrayInputStream(baos.toByteArray()), new HashMap<>())) {
+      byte[] output = new byte[8];
+      Assertions.assertEquals(input.length, cis.read(output));
+      Assertions.assertArrayEquals(input, Arrays.copyOf(output, input.length));
+      Assertions.assertEquals(-1, cis.read(output));
+      Assertions.assertEquals(-1, cis.read(output));
+      Assertions.assertEquals(0, cis.read(output, 0, 0));
+    }
+  }
+
+  @Test
+  void testBlockDecompressorAcceptsEndOfStream(@TempDir Path tempDir) throws IOException {
+    byte[] input = new byte[65536];
+
+    for (int i = 0; i < input.length; i++)
+      input[i] = (byte) i;
+
+    Path compressed = tempDir.resolve("input.knz");
+    Path output = tempDir.resolve("output.bin");
+    HashMap<String, Object> compressionCtx = new HashMap<>();
+    compressionCtx.put("transform", "NONE");
+    compressionCtx.put("entropy", "NONE");
+    compressionCtx.put("blockSize", 1024);
+
+    try (CompressedOutputStream cos = new CompressedOutputStream(
+        Files.newOutputStream(compressed), compressionCtx)) {
+      cos.write(input);
+    }
+
+    HashMap<String, Object> decompressionCtx = new HashMap<>();
+    decompressionCtx.put("inputName", compressed.toString());
+    decompressionCtx.put("outputName", output.toString());
+    decompressionCtx.put("verbose", 0);
+    decompressionCtx.put("jobs", 1);
+    BlockDecompressor decompressor = new BlockDecompressor(decompressionCtx);
+
+    try {
+      Assertions.assertEquals(0, decompressor.call());
+    } finally {
+      decompressor.dispose();
+    }
+
+    Assertions.assertArrayEquals(input, Files.readAllBytes(output));
   }
 
   public static long compress1(byte[] block, int length) {
