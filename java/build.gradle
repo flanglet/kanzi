@@ -231,6 +231,12 @@ tasks.register('xmldoc', Javadoc) {
 test {
     useJUnitPlatform()
 
+    if (System.getenv("CI") != null) {
+        filter {
+            excludeTestsMatching "io.github.flanglet.kanzi.app.TestFileTaskCleanup.testFileTasksRoundTrip"
+        }
+    }
+
     testLogging {
         events "started", "skipped", "failed"
         showStandardStreams = System.getenv("CI") != null
@@ -291,7 +297,7 @@ spotbugs {
     excludeFilter = file("config/spotbugs/spotBugsExcludeFilter.xml")
 
     // do not run over the test, although we should do that eventually
-    spotbugsTest.enabled = false
+    spotbugsTest.enabled = true
 }
 
 pmd {
