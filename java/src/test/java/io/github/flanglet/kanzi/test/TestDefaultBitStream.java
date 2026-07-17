@@ -402,6 +402,28 @@ public class TestDefaultBitStream {
     });
   }
 
+  @Test
+  void testReadBitsTruncatedInput() {
+    InputBitStream ibs =
+        new DefaultInputBitStream(new ByteArrayInputStream(new byte[] {(byte) 0xAB}), 1024);
+
+    BitStreamException e =
+        Assertions.assertThrows(BitStreamException.class, () -> ibs.readBits(16));
+    Assertions.assertEquals(BitStreamException.END_OF_STREAM, e.getErrorCode());
+  }
+
+  @Test
+  void testReadBitsAcrossShortReads() {
+    InputStream is = new ByteArrayInputStream(new byte[] {(byte) 0xAB, (byte) 0xCD}) {
+      @Override
+      public synchronized int read(byte[] data, int off, int len) {
+        return super.read(data, off, Math.min(len, 1));
+      }
+    };
+    InputBitStream ibs = new DefaultInputBitStream(is, 1024);
+    Assertions.assertEquals(0xABCDL, ibs.readBits(16));
+  }
+
 
   public static boolean testSpeed1(String[] args) {
     // Test speed

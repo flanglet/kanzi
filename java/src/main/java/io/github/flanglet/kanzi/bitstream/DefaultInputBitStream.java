@@ -108,8 +108,7 @@ public final class DefaultInputBitStream implements InputBitStream {
     count -= this.availBits;
     final long res = this.current & ((1L << this.availBits) - 1);
     this.pullCurrent();
-    this.availBits -= count;
-    return (res << count) | (this.current >>> this.availBits);
+    return (res << count) | this.readBits(count);
   }
 
   /**
@@ -316,4 +315,3 @@ public final class DefaultInputBitStream implements InputBitStream {
     return this.closed;
   }
 }
-
