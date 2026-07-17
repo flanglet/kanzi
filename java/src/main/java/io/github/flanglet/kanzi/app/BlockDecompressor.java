@@ -577,128 +577,117 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
         }
       }
 
-      InputStream is;
-
-      try {
-        is = (STDIN.equalsIgnoreCase(inputName)) ? System.in
-            : new FileInputStream(new File(inputName));
-      } catch (Exception e) {
-        System.err.println("Cannot open input file '" + inputName + "': " + e.getMessage());
-        return new FileDecompressResult(Error.ERR_OPEN_FILE, 0);
-      }
-
-      if (output != null) {
-        try {
-          try {
-            this.os = new FileOutputStream(output);
-          } catch (IOException e1) {
-            if (overwrite == false)
-              throw e1;
-
-            try {
-              // Attempt to create the full folder hierarchy to file
-              Files.createDirectories(FileSystems.getDefault().getPath(outputName).getParent());
-              this.os = new FileOutputStream(output);
-            } catch (IOException e2) {
-              throw e1;
-            }
-          }
-        } catch (Exception e) {
-          try {
-            is.close();
-          } catch (IOException e2) {
-            // Ignore
-          }
-
-          System.err.println(
-              "Cannot open output file '" + outputName + "' for writing: " + e.getMessage());
-          return new FileDecompressResult(Error.ERR_CREATE_FILE, 0);
-        }
-      }
-
-      try {
-        this.cis = new CompressedInputStream(is, this.ctx);
-
-        for (Listener bl : this.listeners)
-          this.cis.addListener(bl);
-      } catch (Exception e) {
-        try {
-          is.close();
-        } catch (IOException e2) {
-          // Ignore
-        }
-
-        if (this.os != System.out) {
-          try {
-            this.os.close();
-          } catch (IOException e2) {
-            // Ignore
-          }
-        }
-
-        System.err.println("Cannot create compressed stream: " + e.getMessage());
-        return new FileDecompressResult(Error.ERR_CREATE_DECOMPRESSOR, 0);
-      }
-
+      final boolean deleteOutputOnFailure = (output != null) && (output.exists() == false);
+      boolean success = false;
       long before = System.nanoTime();
 
       try {
-        SliceByteArray sa = new SliceByteArray(new byte[DEFAULT_BUFFER_SIZE], 0);
-        int decodedBlock;
+        InputStream input;
 
-        // Decode next block
-        while ((decodedBlock = this.cis.read(sa.array, 0, sa.length)) != -1) {
-          try {
-            this.os.write(sa.array, 0, decodedBlock);
-            decoded += decodedBlock;
-          } catch (Exception e) {
-            System.err.print("Failed to write decompressed block to file '" + outputName + "': ");
-            System.err.println(e.getMessage());
-            return new FileDecompressResult(Error.ERR_READ_FILE, this.cis.getRead());
+        try {
+          input = (STDIN.equalsIgnoreCase(inputName)) ? System.in
+              : new FileInputStream(new File(inputName));
+        } catch (Exception e) {
+          System.err.println("Cannot open input file '" + inputName + "': " + e.getMessage());
+          return new FileDecompressResult(Error.ERR_OPEN_FILE, 0);
+        }
+
+        try (InputStream inputStream = input) {
+          if (output != null) {
+            try {
+              try {
+                this.os = new FileOutputStream(output);
+              } catch (IOException e1) {
+                if (overwrite == false)
+                  throw e1;
+
+                try {
+                  // Attempt to create the full folder hierarchy to file
+                  Files.createDirectories(FileSystems.getDefault().getPath(outputName).getParent());
+                  this.os = new FileOutputStream(output);
+                } catch (IOException e2) {
+                  throw e1;
+                }
+              }
+            } catch (Exception e) {
+              throw failure(
+                  "Cannot open output file '" + outputName + "' for writing: " + e.getMessage(),
+                  Error.ERR_CREATE_FILE, e);
+            }
+          }
+
+          try (OutputStream outputStream = this.os) {
+            try {
+              this.cis = new CompressedInputStream(inputStream, this.ctx);
+
+              for (Listener bl : this.listeners)
+                this.cis.addListener(bl);
+            } catch (Exception e) {
+              throw failure("Cannot create compressed stream: " + e.getMessage(),
+                  Error.ERR_CREATE_DECOMPRESSOR, e);
+            }
+
+            try (CompressedInputStream compressedStream = this.cis) {
+              SliceByteArray sa = new SliceByteArray(new byte[DEFAULT_BUFFER_SIZE], 0);
+              int decodedBlock;
+
+              // Decode next block
+              while ((decodedBlock = compressedStream.read(sa.array, 0, sa.length)) != -1) {
+                try {
+                  outputStream.write(sa.array, 0, decodedBlock);
+                  decoded += decodedBlock;
+                } catch (Exception e) {
+                  throw failure("Failed to write decompressed block to file '" + outputName + "': "
+                      + e.getMessage(), Error.ERR_READ_FILE, e);
+                }
+              }
+            }
           }
         }
+
+        // If the whole input stream has been decoded and the original data size is present,
+        // check that the output size matches the original data size.
+        if ((checkOutputSize == true) && (this.ctx.containsKey("to") == false)
+            && (this.ctx.containsKey("from") == false)) {
+          final long outputSize = (Long) this.ctx.getOrDefault("outputSize", 0L);
+
+          if ((outputSize != 0) && (decoded != outputSize)) {
+            String msg =
+                String.format("Corrupted bitstream: invalid output size (expected %d, got %d)",
+                    outputSize, decoded);
+            System.err.println(msg);
+            return new FileDecompressResult(Error.ERR_INVALID_FILE, decoded);
+          }
+        }
+
+        success = true;
       } catch (KanziIOException e) {
-        System.err.println("An unexpected condition happened. Exiting ...");
         System.err.println(e.getMessage());
-        return new FileDecompressResult(e.getErrorCode(), this.cis.getRead());
+        long read = (this.cis == null) ? 0 : this.cis.getRead();
+        return new FileDecompressResult(e.getErrorCode(), read);
       } catch (Exception e) {
         System.err.println("An unexpected condition happened. Exiting ...");
         System.err.println(e.getMessage());
-        return new FileDecompressResult(Error.ERR_UNKNOWN, this.cis.getRead());
+        return new FileDecompressResult(Error.ERR_UNKNOWN,
+            (this.cis == null) ? 0 : this.cis.getRead());
       } finally {
-        // Close streams to ensure all data are flushed
-        this.dispose();
-
-        try {
-          is.close();
-        } catch (IOException e) {
-          // Ignore
-        }
-
-        if (this.listeners.isEmpty() == false) {
+        if ((this.cis != null) && (this.listeners.isEmpty() == false)) {
           Event evt = new Event(Event.Type.DECOMPRESSION_END, 0, this.cis.getRead());
           Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
           notifyListeners(array, evt);
+        }
+
+        if ((success == false) && deleteOutputOnFailure) {
+          try {
+            Files.deleteIfExists(output.toPath());
+          } catch (IOException e) {
+            // Ignore
+          }
         }
       }
 
       long after = System.nanoTime();
       long delta = (after - before) / 1000000L; // convert to ms
-
-      // If the whole input stream has been decoded and the original data size is present,
-      // check that the output size matches the original data size.
-      if ((checkOutputSize == true) && (this.ctx.containsKey("to") == false)
-          && (this.ctx.containsKey("from") == false)) {
-        final long outputSize = (Long) this.ctx.getOrDefault("outputSize", 0L);
-
-        if ((outputSize != 0) && (decoded != outputSize)) {
-          String msg =
-              String.format("Corrupted bitstream: invalid output size (expected %d, got %d)",
-                  outputSize, decoded);
-          System.err.println(msg);
-          return new FileDecompressResult(Error.ERR_INVALID_FILE, decoded);
-        }
-      }
 
       String str;
 
@@ -751,11 +740,15 @@ public class BlockDecompressor implements Runnable, Callable<Integer> {
      * @throws IOException if an error occurs while closing resources
      */
     public void dispose() throws IOException {
-      if (this.cis != null)
-        this.cis.close();
+      try (OutputStream output = this.os; CompressedInputStream input = this.cis) {
+        // Nothing to do
+      }
+    }
 
-      if (this.os != null)
-        this.os.close();
+    private static KanziIOException failure(String message, int code, Exception cause) {
+      KanziIOException exception = new KanziIOException(message, code);
+      exception.initCause(cause);
+      return exception;
     }
   }
 

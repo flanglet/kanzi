@@ -673,177 +673,174 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
           }
         }
       } catch (Exception e) {
-        System.err
-            .println("Cannot validate output file '" + outputName + "': " + e.getMessage());
+        System.err.println("Cannot validate output file '" + outputName + "': " + e.getMessage());
         return new FileCompressResult(Error.ERR_CREATE_FILE, 0, 0);
       }
 
+      final boolean deleteOutputOnFailure = (output != null) && (output.exists() == false);
+      boolean success = false;
+      long read = 0;
+      long before = 0;
+      long after = 0;
+
       try {
-        this.is = (STDIN.equalsIgnoreCase(inputName)) ? System.in : new FileInputStream(inputName);
-      } catch (Exception e) {
-        System.err.println("Cannot open input file '" + inputName + "': " + e.getMessage());
-        return new FileCompressResult(Error.ERR_OPEN_FILE, 0, 0);
-      }
+        InputStream input;
 
-      if (output != null) {
         try {
-          try {
-            os = new FileOutputStream(output);
-          } catch (IOException e1) {
-            if (overwrite == false)
-              throw e1;
+          input = (STDIN.equalsIgnoreCase(inputName)) ? System.in : new FileInputStream(inputName);
+        } catch (Exception e) {
+          System.err.println("Cannot open input file '" + inputName + "': " + e.getMessage());
+          return new FileCompressResult(Error.ERR_OPEN_FILE, 0, 0);
+        }
 
+        try (InputStream inputStream = input) {
+          this.is = inputStream;
+
+          if (output != null) {
             try {
-              // Attempt to create the full folder hierarchy to file
-              Files.createDirectories(FileSystems.getDefault().getPath(outputName).getParent());
-              os = new FileOutputStream(output);
-            } catch (IOException e2) {
-              throw e1;
+              try {
+                os = new FileOutputStream(output);
+              } catch (IOException e1) {
+                if (overwrite == false)
+                  throw e1;
+
+                try {
+                  // Attempt to create the full folder hierarchy to file
+                  Files.createDirectories(FileSystems.getDefault().getPath(outputName).getParent());
+                  os = new FileOutputStream(output);
+                } catch (IOException e2) {
+                  throw e1;
+                }
+              }
+            } catch (Exception e) {
+              throw failure(
+                  "Cannot open output file '" + outputName + "' for writing: " + e.getMessage(),
+                  Error.ERR_CREATE_FILE, e);
             }
           }
-        } catch (Exception e) {
-          try {
-            this.is.close();
-          } catch (IOException e2) {
-            // Ignore
+
+          try (OutputStream outputStream = os) {
+            try {
+              this.cos = new CompressedOutputStream(outputStream, this.ctx);
+
+              for (Listener bl : this.listeners)
+                this.cos.addListener(bl);
+            } catch (Exception e) {
+              throw failure("Cannot create compressed stream: " + e.getMessage(),
+                  Error.ERR_CREATE_COMPRESSOR, e);
+            }
+
+            try (CompressedOutputStream compressedStream = this.cos) {
+              // Encode
+              printOut("\nCompressing " + inputName + " ...", verbosity > 1);
+              printOut("", verbosity > 3);
+              SliceByteArray sa = new SliceByteArray(new byte[DEFAULT_BUFFER_SIZE], 0);
+              int len;
+
+              if (this.listeners.isEmpty() == false) {
+                long inputSize = (Long) this.ctx.getOrDefault("fileSize", 0L);
+                Event evt = new Event(Event.Type.COMPRESSION_START, 0, inputSize);
+                Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
+                notifyListeners(array, evt);
+              }
+
+              before = System.nanoTime();
+
+              while (true) {
+                try {
+                  len = inputStream.read(sa.array, 0, sa.length);
+                } catch (Exception e) {
+                  throw failure(
+                      "Failed to read block from file '" + inputName + "': " + e.getMessage(),
+                      Error.ERR_READ_FILE, e);
+                }
+
+                if (len <= 0)
+                  break;
+
+                // Just write block to the compressed output stream !
+                read += len;
+                compressedStream.write(sa.array, 0, len);
+              }
+
+              after = System.nanoTime();
+            }
           }
-
-          System.err
-              .println("Cannot open output file '" + outputName + "' for writing: " + e.getMessage());
-          return new FileCompressResult(Error.ERR_CREATE_FILE, 0, 0);
-        }
-      }
-
-      try {
-        this.cos = new CompressedOutputStream(os, this.ctx);
-
-        for (Listener bl : this.listeners)
-          this.cos.addListener(bl);
-      } catch (Exception e) {
-        try {
-          this.is.close();
-        } catch (IOException e2) {
-          // Ignore
         }
 
-        if (os != System.out) {
-          try {
-            os.close();
-          } catch (IOException e2) {
-            // Ignore
-          }
-        }
+        long delta = (after - before) / 1000000L; // convert to ms
+        String str;
 
-        System.err.println("Cannot create compressed stream: " + e.getMessage());
-        return new FileCompressResult(Error.ERR_CREATE_COMPRESSOR, 0, 0);
-      }
+        if (verbosity >= 1) {
+          printOut("", verbosity > 1);
 
-      // Encode
-      printOut("\nCompressing " + inputName + " ...", verbosity > 1);
-      printOut("", verbosity > 3);
-      long read = 0;
-      SliceByteArray sa = new SliceByteArray(new byte[DEFAULT_BUFFER_SIZE], 0);
-      int len;
+          if (delta >= 100000)
+            str = String.format("%1$.1f", (float) delta / 1000) + " s";
+          else
+            str = String.valueOf(delta) + " ms";
 
-      if (this.listeners.isEmpty() == false) {
-        long inputSize = (Long) this.ctx.getOrDefault("fileSize", 0L);
-        Event evt = new Event(Event.Type.COMPRESSION_START, 0, inputSize);
-        Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
-        notifyListeners(array, evt);
-      }
+          if (verbosity > 1) {
+            printOut("Compression time:  " + str, true);
+            printOut("Input size:        " + read, true);
+            printOut("Output size:       " + this.cos.getWritten(), true);
 
-      long before = System.nanoTime();
-
-      try {
-        while (true) {
-          try {
-            len = this.is.read(sa.array, 0, sa.length);
-          } catch (Exception e) {
-            System.err.print("Failed to read block from file '" + inputName + "': ");
-            System.err.println(e.getMessage());
-            return new FileCompressResult(Error.ERR_READ_FILE, read, this.cos.getWritten());
-          }
-
-          if (len <= 0)
-            break;
-
-          // Just write block to the compressed output stream !
-          read += len;
-          this.cos.write(sa.array, 0, len);
-        }
-      } catch (KanziIOException e) {
-        System.err.println("An unexpected condition happened. Exiting ...");
-        System.err.println(e.getMessage());
-        return new FileCompressResult(e.getErrorCode(), read, this.cos.getWritten());
-      } catch (Exception e) {
-        System.err.println("An unexpected condition happened. Exiting ...");
-        System.err.println(e.getMessage());
-        return new FileCompressResult(Error.ERR_UNKNOWN, read, this.cos.getWritten());
-      } finally {
-        // Close streams to ensure all data are flushed
-        this.dispose();
-
-        try {
-          os.close();
-        } catch (IOException e) {
-          // Ignore
-        }
-      }
-
-      long after = System.nanoTime();
-      long delta = (after - before) / 1000000L; // convert to ms
-      String str;
-
-      if (verbosity >= 1) {
-        printOut("", verbosity > 1);
-
-        if (delta >= 100000)
-          str = String.format("%1$.1f", (float) delta / 1000) + " s";
-        else
-          str = String.valueOf(delta) + " ms";
-
-        if (verbosity > 1) {
-          printOut("Compression time:  " + str, true);
-          printOut("Input size:        " + read, true);
-          printOut("Output size:       " + this.cos.getWritten(), true);
-
-          if (read != 0)
-            printOut("Compression ratio: "
-                + String.format("%1$.6f", (this.cos.getWritten() / (float) read)), true);
-        } else {
-          if (read == 0) {
-            str = String.format("Compressed %s: %d => %d in %s", inputName, read,
-                this.cos.getWritten(), str);
+            if (read != 0)
+              printOut("Compression ratio: "
+                  + String.format("%1$.6f", (this.cos.getWritten() / (float) read)), true);
           } else {
-            float f = this.cos.getWritten() / (float) read;
-            str = String.format("Compressed %s: %d => %d (%.2f%%) in %s", inputName, read,
-                this.cos.getWritten(), 100 * f, str);
+            if (read == 0) {
+              str = String.format("Compressed %s: %d => %d in %s", inputName, read,
+                  this.cos.getWritten(), str);
+            } else {
+              float f = this.cos.getWritten() / (float) read;
+              str = String.format("Compressed %s: %d => %d (%.2f%%) in %s", inputName, read,
+                  this.cos.getWritten(), 100 * f, str);
+            }
+
+            printOut(str, true);
           }
 
-          printOut(str, true);
+          if ((verbosity > 1) && (delta != 0) && (read != 0))
+            printOut("Throughput (KiB/s): " + (((read * 1000L) >> 10) / delta), true);
+
+          printOut("", verbosity > 1);
         }
 
-        if ((verbosity > 1) && (delta != 0) && (read != 0))
-          printOut("Throughput (KiB/s): " + (((read * 1000L) >> 10) / delta), true);
+        if (this.listeners.isEmpty() == false) {
+          Event evt = new Event(Event.Type.COMPRESSION_END, 0, this.cos.getWritten());
+          Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
+          notifyListeners(array, evt);
+        }
 
-        printOut("", verbosity > 1);
+        success = true;
+
+        if (Boolean.TRUE.equals(this.ctx.get("remove"))) {
+          // Delete input file
+          if (inputName.equals("STDIN"))
+            printOut("Warning: ignoring remove option with STDIN", verbosity > 0);
+          else if (Files.deleteIfExists(Paths.get(inputName)) == false)
+            printOut("Warning: input file could not be deleted", verbosity > 0);
+        }
+
+        return new FileCompressResult(0, read, this.cos.getWritten());
+      } catch (KanziIOException e) {
+        System.err.println(e.getMessage());
+        return new FileCompressResult(e.getErrorCode(), read,
+            (this.cos == null) ? 0 : this.cos.getWritten());
+      } catch (Exception e) {
+        System.err.println("An unexpected condition happened. Exiting ...");
+        System.err.println(e.getMessage());
+        return new FileCompressResult(Error.ERR_UNKNOWN, read,
+            (this.cos == null) ? 0 : this.cos.getWritten());
+      } finally {
+        if ((success == false) && deleteOutputOnFailure) {
+          try {
+            Files.deleteIfExists(output.toPath());
+          } catch (IOException e) {
+            // Ignore
+          }
+        }
       }
-
-      if (this.listeners.isEmpty() == false) {
-        Event evt = new Event(Event.Type.COMPRESSION_END, 0, this.cos.getWritten());
-        Listener[] array = this.listeners.toArray(new Listener[this.listeners.size()]);
-        notifyListeners(array, evt);
-      }
-
-      if (Boolean.TRUE.equals(this.ctx.get("remove"))) {
-        // Delete input file
-        if (inputName.equals("STDIN"))
-          printOut("Warning: ignoring remove option with STDIN", verbosity > 0);
-        else if (Files.deleteIfExists(Paths.get(inputName)) == false)
-          printOut("Warning: input file could not be deleted", verbosity > 0);
-      }
-
-      return new FileCompressResult(0, read, this.cos.getWritten());
     }
 
     /**
@@ -852,11 +849,15 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
      * @throws IOException if an error occurs while closing resources
      */
     public void dispose() throws IOException {
-      if (this.is != null)
-        this.is.close();
+      try (InputStream input = this.is; CompressedOutputStream output = this.cos) {
+        // Nothing to do
+      }
+    }
 
-      if (this.cos != null)
-        this.cos.close();
+    private static KanziIOException failure(String message, int code, Exception cause) {
+      KanziIOException exception = new KanziIOException(message, code);
+      exception.initCause(cause);
+      return exception;
     }
   }
 
