@@ -952,10 +952,11 @@ public final class LZCodec implements ByteTransform {
      * </p>
      *
      * @param srcLen The length of the source data.
-     * @return The maximum length of the encoded data.
-     */
+    * @return The maximum length of the encoded data.
+    */
     public int getMaxEncodedLength(int srcLen) {
-      return (srcLen <= 1024) ? srcLen + 16 : srcLen + (srcLen / 64);
+      // Keep the same two-byte tail as the other LZ implementations.
+      return ((srcLen <= 1024) ? srcLen + 16 : srcLen + (srcLen / 64)) + 2;
     }
   }
 
