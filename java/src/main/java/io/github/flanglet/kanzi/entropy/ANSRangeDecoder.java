@@ -92,7 +92,7 @@ public class ANSRangeDecoder implements EntropyDecoder {
           "ANS Codec: The chunk size must be at most " + MAX_CHUNK_SIZE);
 
     this.bitstream = bs;
-    this.chunkSize = Math.min(chunkSize << (8 * order), MAX_CHUNK_SIZE);
+    this.chunkSize = (int) Math.min(((long) chunkSize) << (8 * order), MAX_CHUNK_SIZE);
     this.order = order;
     final int dim = 255 * order + 1;
     this.freqs = new int[dim][256];
@@ -128,7 +128,7 @@ public class ANSRangeDecoder implements EntropyDecoder {
 
     // Value for chunk size prior to bitstream version 4
     final int ckSize = (this.bsVersion < 4) ? 32768 : DEFAULT_ANS0_CHUNK_SIZE;
-    this.chunkSize = Math.min(ckSize << (8 * order), MAX_CHUNK_SIZE);
+    this.chunkSize = (int) Math.min(((long) ckSize) << (8 * order), MAX_CHUNK_SIZE);
     this.order = order;
     final int dim = 255 * order + 1;
     this.freqs = new int[dim][256];
@@ -161,7 +161,7 @@ public class ANSRangeDecoder implements EntropyDecoder {
 
     this.bsVersion = (ctx == null) ? 4 : (Integer) ctx.getOrDefault("bsVersion", 4);
     this.bitstream = bs;
-    this.chunkSize = Math.min(chunkSize << (8 * order), MAX_CHUNK_SIZE);
+    this.chunkSize = (int) Math.min(((long) chunkSize) << (8 * order), MAX_CHUNK_SIZE);
     this.order = order;
     final int dim = 255 * order + 1;
     this.freqs = new int[dim][256];

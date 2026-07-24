@@ -56,7 +56,7 @@ public class Sequence implements ByteTransform {
   public boolean forward(SliceByteArray src, SliceByteArray dst) {
     int count = src.length;
 
-    if ((count < 0) || (count + src.index > src.array.length))
+    if ((count < 0) || (count > src.array.length - src.index))
       return false;
 
     this.skipFlags = SKIP_MASK;
@@ -115,7 +115,7 @@ public class Sequence implements ByteTransform {
     }
 
     if (saIdx != 1) {
-      if (sa[1].index + count > sa[1].array.length)
+      if (count > sa[1].array.length - sa[1].index)
         this.skipFlags = SKIP_MASK;
       else
         System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
@@ -192,7 +192,7 @@ public class Sequence implements ByteTransform {
     }
 
     if ((res == true) && (saIdx != 1)) {
-      if (sa[1].index + count > sa[1].array.length)
+      if (count > sa[1].array.length - sa[1].index)
         res = false;
       else
         System.arraycopy(sa[0].array, sa[0].index, sa[1].array, sa[1].index, count);
