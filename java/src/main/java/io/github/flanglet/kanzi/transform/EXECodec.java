@@ -772,13 +772,14 @@ public class EXECodec implements ByteTransform {
   }
 
   /**
-   * Parses the header of the provided byte array to detect known headers.
+   * Sets the absolute code range from a relative range in the current block.
    *
-   * @param src the source byte array
-   * @param start the start index in the byte array
-   * @param count the number of bytes to check
-   * @param magic the detected magic number of the file
-   * @return true if a known header is detected, false otherwise
+   * @param start the start index of the current block
+   * @param count the number of bytes in the current block
+   * @param rangeStart the relative start of the code range
+   * @param rangeLength the length of the code range
+   * @param updateStart whether to update the code start unconditionally
+   * @return true if the range is valid, false otherwise
    */
   private boolean setCodeRange(int start, int count, long rangeStart, long rangeLength, boolean updateStart) {
     if ((start < 0) || (count < 0) || (rangeStart < 0) || (rangeLength < 0)
@@ -788,7 +789,7 @@ public class EXECodec implements ByteTransform {
     final long absoluteStart = (long) start + rangeStart;
     final long absoluteEnd = absoluteStart + rangeLength;
 
-    if ((absoluteStart < start) || (absoluteEnd < absoluteStart) || (absoluteEnd > Integer.MAX_VALUE))
+    if ((absoluteEnd < absoluteStart) || (absoluteEnd > Integer.MAX_VALUE))
       return false;
 
     if (updateStart || (this.codeStart == 0))
@@ -950,7 +951,7 @@ public class EXECodec implements ByteTransform {
         int cmd = 0;
 
         while (cmd < nbCmds) {
-          if ((pos < 0) || (pos > count - 8))
+          if (pos > count - 8)
             return false;
 
           int ldCmd = LittleEndian.readInt32(src, start + pos);
