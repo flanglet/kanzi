@@ -568,7 +568,7 @@ public final class LZCodec implements ByteTransform {
       // Emit last literals
       final int litLen = count - anchor;
 
-      if (dstIdx + litLen + tkIdx + mIdx >= output.index + count)
+      if (dstIdx + litLen + tkIdx + mIdx + mLenIdx >= output.index + count)
         return false;
 
       if (litLen >= 7) {
@@ -736,7 +736,8 @@ public final class LZCodec implements ByteTransform {
         // Copy match
         if (dist >= 16) {
           do {
-            // No overlap
+            // The stream decoder supplies trailing padding for this 16-byte copy,
+            // which may write up to 15 bytes past mEnd.
             System.arraycopy(dst, ref, dst, dstIdx, 16);
             ref += 16;
             dstIdx += 16;
@@ -881,7 +882,8 @@ public final class LZCodec implements ByteTransform {
         // Copy match
         if (dist >= 16) {
           do {
-            // No overlap
+            // The stream decoder supplies trailing padding for this 16-byte copy,
+            // which may write up to 15 bytes past mEnd.
             System.arraycopy(dst, ref, dst, dstIdx, 16);
             ref += 16;
             dstIdx += 16;
@@ -941,6 +943,8 @@ public final class LZCodec implements ByteTransform {
      * @param len The number of literals to emit.
      */
     private static void emitLiterals(byte[] src, int srcIdx, byte[] dst, int dstIdx, int len) {
+      // Callers provide trailing padding for this 8-byte copy, which may read
+      // and write up to 7 bytes past the requested literal length.
       for (int i = 0; i < len; i += 8)
         arrayChunkCopy(src, srcIdx + i, dst, dstIdx + i);
     }
@@ -1077,8 +1081,12 @@ public final class LZCodec implements ByteTransform {
           ctx = (ctx << 8) | val;
           dst[dstIdx++] = src[srcIdx++];
 
-          if ((ref != 0) && (val == MATCH_FLAG))
+          if ((ref != 0) && (val == MATCH_FLAG)) {
+            if (dstIdx >= dstEnd)
+              return false;
+
             dst[dstIdx++] = (byte) 0xFF;
+          }
 
           continue;
         }
@@ -1097,6 +1105,9 @@ public final class LZCodec implements ByteTransform {
             break;
         }
 
+        if (dstIdx >= dstEnd)
+          return false;
+
         dst[dstIdx++] = (byte) bestLen;
       }
 
@@ -1108,8 +1119,12 @@ public final class LZCodec implements ByteTransform {
         ctx = (ctx << 8) | val;
         dst[dstIdx++] = src[srcIdx++];
 
-        if ((ref != 0) && (val == MATCH_FLAG))
+        if ((ref != 0) && (val == MATCH_FLAG)) {
+          if (dstIdx >= dstEnd)
+            return false;
+
           dst[dstIdx++] = (byte) 0xFF;
+        }
       }
 
       input.index = srcIdx;
@@ -1145,6 +1160,9 @@ public final class LZCodec implements ByteTransform {
       int dstIdx = output.index;
       final int minMatch = (this.isBsVersion3 == true) ? MIN_MATCH96 : MIN_MATCH64;
 
+      if (output.length - output.index < count)
+        return false;
+
       if (this.hashes.length == 0) {
         this.hashes = new int[1 << HASH_LOG];
       } else {
@@ -1166,6 +1184,9 @@ public final class LZCodec implements ByteTransform {
         this.hashes[h] = dstIdx;
 
         if ((ref == 0) || (src[srcIdx] != (byte) MATCH_FLAG)) {
+          if (dstIdx >= dstEnd)
+            return false;
+
           dst[dstIdx] = src[srcIdx];
           ctx = (ctx << 8) | (dst[dstIdx] & 0xFF);
           srcIdx++;
@@ -1175,7 +1196,13 @@ public final class LZCodec implements ByteTransform {
 
         srcIdx++;
 
+        if (srcIdx >= srcEnd)
+          return false;
+
         if (src[srcIdx] == (byte) 0xFF) {
+          if (dstIdx >= dstEnd)
+            return false;
+
           dst[dstIdx] = (byte) MATCH_FLAG;
           ctx = (ctx << 8) | MATCH_FLAG;
           srcIdx++;
