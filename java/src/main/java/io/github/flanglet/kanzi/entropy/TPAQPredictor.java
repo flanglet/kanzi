@@ -231,6 +231,11 @@ public class TPAQPredictor implements Predictor {
       hashSize = Math.min(HASH_SIZE, mxsz);
     }
 
+    // The ring buffer and hash table use bit masks for indexing.
+    // Normalize their sizes to powers of two before creating the masks.
+    bufferSize = 1 << Global.log2(bufferSize);
+    hashSize = 1 << Global.log2(hashSize);
+
     this.useLogicalCtx6Shift = useLogicalCtx6Shift;
 
     mixersSize <<= (2 * extraMem);

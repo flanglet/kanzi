@@ -55,7 +55,8 @@ import io.github.flanglet.kanzi.Global;
    * @param rate The update rate for adapting probabilities.
    */
   FastLogisticAdaptiveProbMap(int n, int rate) {
-    this.data = new int[n * 32];
+    final int size = (n == 0) ? 32 : n * 32;
+    this.data = new int[size];
     this.rate = rate;
 
     for (int j = 0; j < 32; j++) {
