@@ -182,7 +182,7 @@ public class TPAQPredictor implements Predictor {
     int hashSize = HASH_SIZE;
     int extraMem = 0;
     int bufferSize = BUFFER_SIZE;
-    boolean useLogicalCtx6Shift = false;
+    int bsVersion = 7;
 
     if (ctx != null) {
       // If extra mode, add more memory for states table, hash table
@@ -193,9 +193,7 @@ public class TPAQPredictor implements Predictor {
 
       // TPAQX bitstreams drifted across implementations due to signed vs logical shifts
       // in ctx6. Keep the legacy behavior for older bitstreams for backward compatibility.
-      final int bsVersion = (Integer) ctx.getOrDefault("bsVersion", 7);
-      useLogicalCtx6Shift =
-          (this.extra == true) && (bsVersion >= TPAQX_LOGICAL_SHIFT_VERSION);
+      bsVersion = (Integer) ctx.getOrDefault("bsVersion", 7);
 
       // Block size requested by the user
       // The user can request a big block size to force more states
@@ -231,13 +229,14 @@ public class TPAQPredictor implements Predictor {
       hashSize = Math.min(HASH_SIZE, mxsz);
     }
 
-    // The ring buffer and hash table use bit masks for indexing.
-    // Normalize their sizes to powers of two before creating the masks.
-    bufferSize = 1 << Global.log2(bufferSize);
-    hashSize = 1 << Global.log2(hashSize);
+    if (bsVersion > 6) {
+      // The ring buffer and hash table use bit masks for indexing.
+      // Normalize their sizes to powers of two before creating the masks.
+      bufferSize = 1 << Global.log2(bufferSize);
+      hashSize = 1 << Global.log2(hashSize);
+    }
 
-    this.useLogicalCtx6Shift = useLogicalCtx6Shift;
-
+    this.useLogicalCtx6Shift = (this.extra == true) && (bsVersion >= TPAQX_LOGICAL_SHIFT_VERSION);
     mixersSize <<= (2 * extraMem);
     statesSize <<= (2 * extraMem);
     hashSize <<= (2 * extraMem);
