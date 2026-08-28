@@ -47,6 +47,9 @@ public final class ExpGolombDecoder implements EntropyDecoder {
     while (this.bitstream.readBit() == 0)
       log2++;
 
+    final int maxLog2 = this.signed ? 7 : 8;
+    log2 = Math.min(log2, maxLog2);
+
     if (this.signed == true) {
       // Decode signed: read value + sign
       long res = this.bitstream.readBits(log2 + 1);

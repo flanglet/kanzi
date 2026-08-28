@@ -289,6 +289,31 @@ public class TestEntropyCodec {
     }
   }
 
+  @Test
+  void testExpGolombUnsignedRoundTrip() throws Exception {
+    final byte[] values = new byte[256];
+
+    for (int i = 0; i < values.length; i++)
+      values[i] = (byte) i;
+
+    final ByteArrayOutputStream os = new ByteArrayOutputStream(1024);
+    final OutputBitStream obs = new DefaultOutputBitStream(os, 1024);
+    final ExpGolombEncoder encoder = new ExpGolombEncoder(obs, false);
+    Assertions.assertEquals(values.length, encoder.encode(values, 0, values.length));
+    encoder.dispose();
+    obs.close();
+
+    final InputBitStream ibs =
+        new DefaultInputBitStream(new ByteArrayInputStream(os.toByteArray()), 1024);
+    final ExpGolombDecoder decoder = new ExpGolombDecoder(ibs, false);
+    final byte[] decoded = new byte[values.length];
+    Assertions.assertEquals(values.length, decoder.decode(decoded, 0, decoded.length));
+    decoder.dispose();
+    ibs.close();
+
+    Assertions.assertArrayEquals(values, decoded);
+  }
+
 
   @Test
   void testFPAQZeroDeclaredSize() throws Exception {
