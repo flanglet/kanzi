@@ -156,6 +156,9 @@ public final class LZCodec implements ByteTransform {
     private static final int MIN_MATCH9 = 9;
     private static final int MAX_MATCH = 65535 + 254 + MIN_MATCH4;
     private static final int MIN_BLOCK_LENGTH = 24;
+    private static final int READ_LENGTH_GUARD = 4;
+    private static final int[] DIST_SHIFT = {0, 24, 16, 8};
+    private static final int[] DIST_BIAS = {0, 1, 257, 65793};
 
     private int[] hashes;
     private byte[] mBuf;
@@ -490,14 +493,25 @@ public final class LZCodec implements ByteTransform {
           mLenTh = 3;
         } else {
           // Emit distance (since not repeat)
-          this.mBuf[mIdx] = (byte) (dist >> 16);
-          final int inc1 = dist >= 65536 ? 1 : 0;
-          mIdx += inc1;
-          this.mBuf[mIdx] = (byte) (dist >> 8);
-          final int inc2 = dist >= 256 ? 1 : 0;
-          mIdx += inc2;
-          this.mBuf[mIdx++] = (byte) dist;
-          token = (inc1 + inc2 + 1) << 3;
+          //   1-byte distance: dist - 1
+          //   2-byte distance: dist - 257
+          //   3-byte distance: dist - 65793
+          final int encodedDist = dist - 1;
+
+          if (encodedDist < 256) {
+            this.mBuf[mIdx++] = (byte) encodedDist;
+            token = 0x08;
+          } else if (encodedDist < 65792) {
+            final int value = (encodedDist - 256) << 16;
+            Memory.BigEndian.writeInt32(this.mBuf, mIdx, value);
+            mIdx += 2;
+            token = 0x10;
+          } else {
+            final int value = (encodedDist - 65792) << 8;
+            Memory.BigEndian.writeInt32(this.mBuf, mIdx, value);
+            mIdx += 3;
+            token = 0x18;
+          }
           mLenTh = 7;
         }
 
@@ -610,7 +624,10 @@ public final class LZCodec implements ByteTransform {
       if (this.bsVersion < 6)
         return inverseV5(input, output); // old encoding bitstream version < 6
 
-      return inverseV6(input, output);
+      if (this.bsVersion < 7)
+        return inverseV6(input, output);
+
+      return inverseV7(input, output);
     }
 
     /**
@@ -633,6 +650,10 @@ public final class LZCodec implements ByteTransform {
       return false;
 
       if (input.length < 13)
+        return false;
+
+      if ((input.array.length - input.index < READ_LENGTH_GUARD)
+          || (input.length > input.array.length - input.index - READ_LENGTH_GUARD))
         return false;
 
       final int count = input.length;
@@ -758,6 +779,152 @@ public final class LZCodec implements ByteTransform {
     /**
      * <p>
      * Decodes the provided data in the source slice and puts the result in the destination slice
+     * (version 7).
+     * </p>
+     *
+     * @param input The source slice of bytes.
+     * @param output The destination slice of bytes.
+     * @return {@code true} if the decoding was successful, {@code false} otherwise.
+     */
+    public boolean inverseV7(SliceByteArray input, SliceByteArray output) {
+      if (input.length == 0)
+        return true;
+
+      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+          || ((long) input.index + input.length > input.array.length)
+          || (output.index > output.array.length))
+        return false;
+
+      if (input.length < 13)
+        return false;
+
+      if ((input.array.length - input.index < READ_LENGTH_GUARD)
+          || (input.length > input.array.length - input.index - READ_LENGTH_GUARD))
+        return false;
+
+      final int count = input.length;
+      final int srcIdx0 = input.index;
+      final int dstIdx0 = output.index;
+      final byte[] src = input.array;
+      final byte[] dst = output.array;
+      final int dstEnd = dst.length;
+      final int tkLen = Memory.LittleEndian.readInt32(src, srcIdx0);
+      final int mIdxLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 4);
+      final int mLenLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 8);
+
+      if ((tkLen < 0) || (mIdxLen < 0) || (mLenLen < 0))
+        return false;
+
+      if ((tkLen < 13) || (tkLen > count) || (mIdxLen > count - tkLen)
+          || (mLenLen > count - tkLen - mIdxLen))
+        return false;
+
+      int tkIdx = srcIdx0 + tkLen;
+      int mIdx = tkIdx + mIdxLen;
+      int mLenIdx = mIdx + mLenLen;
+      final int srcEnd = tkIdx - 13;
+      final int litEnd = tkIdx;
+      final int maxDist = ((src[srcIdx0 + 12] & 1) == 0) ? MAX_DISTANCE1 : MAX_DISTANCE2;
+      final int minMatch = ((src[srcIdx0 + 12] >> 1) & 0x07) + 2;
+      int srcIdx = srcIdx0 + 13;
+      int dstIdx = dstIdx0;
+      int repd0 = count;
+      int repd1 = count;
+      SliceByteArray sba1 = new SliceByteArray(src, srcIdx);
+      SliceByteArray sba2 = new SliceByteArray(src, mLenIdx);
+
+      while (true) {
+        final int token = src[tkIdx++] & 0xFF;
+
+        if (token >= 32) {
+          // Get literal length
+          sba1.index = srcIdx;
+          final int litLen = (token >= 0xE0) ? 7 + readLength(sba1) : token >> 5;
+          srcIdx = sba1.index;
+
+          if ((litLen > dstEnd - dstIdx) || (litLen > litEnd - srcIdx)) {
+            input.index = srcIdx;
+            output.index = dstIdx;
+            return false;
+          }
+
+          // Emit literals
+          if (srcIdx + litLen >= srcEnd) {
+            System.arraycopy(src, srcIdx, dst, dstIdx, litLen);
+          } else {
+            emitLiterals(src, srcIdx, dst, dstIdx, litLen);
+          }
+
+          srcIdx += litLen;
+          dstIdx += litLen;
+
+          if (srcIdx >= srcEnd)
+            break;
+        }
+
+        // Get match length and distance
+        int mLen, dist;
+        final int f = token & 0x18;
+
+        if (f == 0) {
+          // Repetition distance, read mLen fully outside of token
+          mLen = token & 0x03;
+          sba2.index = mLenIdx;
+          mLen += (mLen == 3) ? minMatch + readLength(sba2) : minMatch;
+          mLenIdx = sba2.index;
+          dist = ((token & 0x04) == 0) ? repd0 : repd1;
+        } else {
+          // Read mLen remainder (if any) outside of token
+          mLen = token & 0x07;
+          sba2.index = mLenIdx;
+          mLen += (mLen == 7 ? minMatch + readLength(sba2) : minMatch);
+          mLenIdx = sba2.index;
+
+          // The distance is stored as dist - 1, dist - 257, or dist - 65793
+          // depending on the number of bytes indicated by the token.
+          final int width = (token >> 3) & 3;
+          final int value = Memory.BigEndian.readInt32(src, mIdx);
+          dist = (value >>> DIST_SHIFT[width]) + DIST_BIAS[width];
+          mIdx += width;
+        }
+
+        repd1 = repd0;
+        repd0 = dist;
+        final int mEnd = dstIdx + mLen;
+        int ref = dstIdx - dist;
+
+        // Sanity check
+        if ((ref < dstIdx0) || (dist > maxDist) || (mEnd > dstEnd)) {
+          input.index = srcIdx;
+          output.index = dstIdx;
+          return false;
+        }
+
+        // Copy match
+        if (dist >= 16) {
+          do {
+            // The stream decoder supplies trailing padding for this 16-byte copy,
+            // which may write up to 15 bytes past mEnd.
+            System.arraycopy(dst, ref, dst, dstIdx, 16);
+            ref += 16;
+            dstIdx += 16;
+          } while (dstIdx < mEnd);
+        } else {
+          for (int i = 0; i < mLen; i++)
+            dst[dstIdx + i] = dst[ref + i];
+        }
+
+        dstIdx = mEnd;
+      }
+
+      output.index = dstIdx;
+      input.index = srcIdx0 + count;
+      return srcIdx == srcEnd + 13;
+    }
+
+    /**
+     * <p>
+     * Decodes the provided data in the source slice and puts the result in the destination slice
      * (version 5).
      * </p>
      *
@@ -775,6 +942,10 @@ public final class LZCodec implements ByteTransform {
       return false;
 
       if (input.length < 13)
+        return false;
+
+      if ((input.array.length - input.index < READ_LENGTH_GUARD)
+          || (input.length > input.array.length - input.index - READ_LENGTH_GUARD))
         return false;
 
       final int count = input.length;
@@ -959,8 +1130,8 @@ public final class LZCodec implements ByteTransform {
     * @return The maximum length of the encoded data.
     */
     public int getMaxEncodedLength(int srcLen) {
-      // Keep the same two-byte tail as the other LZ implementations.
-      return ((srcLen <= 1024) ? srcLen + 16 : srcLen + (srcLen / 64)) + 2;
+      // Keep the same four-byte tail as the other LZ implementations.
+      return ((srcLen <= 1024) ? srcLen + 16 : srcLen + (srcLen / 64)) + READ_LENGTH_GUARD;
     }
   }
 

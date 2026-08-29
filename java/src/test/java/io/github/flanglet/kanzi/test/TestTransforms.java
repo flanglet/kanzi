@@ -127,11 +127,14 @@ public class TestTransforms {
   private static ByteTransform getTransform(String name) {
     switch (name) {
       case "LZ":
-        return new LZCodec();
+        Map<String, Object> ctx0 = new HashMap<>();
+        ctx0.put("bsVersion", 7);
+        return new LZCodec(ctx0);
 
       case "LZX":
         Map<String, Object> ctx1 = new HashMap<>();
         ctx1.put("lz", TransformFactory.LZX_TYPE);
+        ctx1.put("bsVersion", 7);
         return new LZCodec(ctx1);
 
       case "LZP":
