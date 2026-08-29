@@ -213,7 +213,7 @@ public class BWT implements ByteTransform {
 
     final int count = src.length;
 
-    if ((count > src.length - src.index) || (count > dst.length - dst.index))
+    if (count > dst.length - dst.index)
       return false;
 
     if (count > maxBlockSize())
