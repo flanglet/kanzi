@@ -1300,6 +1300,10 @@ public class ROLZCodec implements ByteTransform {
         return false;
 
       final int count = input.length;
+
+      if (count < 5)
+        return false;
+
       final byte[] src = input.array;
       final byte[] dst = output.array;
       final int srcEnd = input.index + count;
@@ -1332,7 +1336,7 @@ public class ROLZCodec implements ByteTransform {
       final int mm = this.minMatch;
       final int dt = delta;
       SliceByteArray sba = new SliceByteArray(src, srcIdx);
-      ROLZDecoder rd = new ROLZDecoder(9, this.logPosChecks, sba);
+      ROLZDecoder rd = new ROLZDecoder(9, this.logPosChecks, sba, srcEnd);
 
       for (int i = 0; i < this.counters.length; i++)
         this.counters[i] = 0;
@@ -1352,6 +1356,11 @@ public class ROLZCodec implements ByteTransform {
         for (int j = 0; j < n; j++) {
           int val1 = rd.decode9Bits();
 
+          if (rd.isValid() == false) {
+            output.index = dstIdx;
+            return false;
+          }
+
           // Sanity check
           if ((val1 >>> 8) == MATCH_FLAG) {
             output.index = dstIdx;
@@ -1370,6 +1379,11 @@ public class ROLZCodec implements ByteTransform {
           rd.setContext(LITERAL_CTX, dst[dstIdx - 1]);
           final int val = rd.decode9Bits();
 
+          if (rd.isValid() == false) {
+            output.index = dstIdx;
+            return false;
+          }
+
           if ((val >>> 8) == LITERAL_FLAG) {
             // Read one literal
             dst[dstIdx++] = (byte) val;
@@ -1385,6 +1399,12 @@ public class ROLZCodec implements ByteTransform {
 
             rd.setContext(MATCH_CTX, dst[dstIdx - 1]);
             final int matchIdx = rd.decodeBits(this.logPosChecks);
+
+            if (rd.isValid() == false) {
+              output.index = dstIdx;
+              return false;
+            }
+
             final int ref = output.index
                 + this.matches[base + ((this.counters[key] - matchIdx) & this.maskChecks)];
             dstIdx = emitCopy(dst, dstIdx, ref, matchLen + mm);
@@ -1618,6 +1638,8 @@ public class ROLZCodec implements ByteTransform {
     private static final int PSCALE = 0xFFFF;
 
     private final SliceByteArray sba;
+    private final int end;
+    private boolean valid;
     private long low;
     private long high;
     private long current;
@@ -1633,8 +1655,9 @@ public class ROLZCodec implements ByteTransform {
      * @param litLogSize The logarithm base 2 of the context size for literals.
      * @param mLogSize The logarithm base 2 of the context size for matches.
      * @param sba The slice byte array to read encoded data from.
+     * @param end The exclusive end index of the encoded data.
      */
-    public ROLZDecoder(int litLogSize, int mLogSize, SliceByteArray sba) {
+    public ROLZDecoder(int litLogSize, int mLogSize, SliceByteArray sba, int end) {
       if (sba == null) {
         throw new IllegalArgumentException("Invalid null slice byte array");
       }
@@ -1642,12 +1665,17 @@ public class ROLZCodec implements ByteTransform {
       this.low = 0L;
       this.high = TOP;
       this.sba = sba;
+      this.end = end;
       this.current = 0;
+      this.valid = (this.sba.index >= 0) && (this.sba.index <= this.end)
+          && (this.end - this.sba.index >= 8);
 
-      for (int i = 0; i < 8; i++)
-        this.current = (this.current << 8) | (this.sba.array[this.sba.index + i] & 0xFFL);
+      if (this.valid) {
+        for (int i = 0; i < 8; i++)
+          this.current = (this.current << 8) | (this.sba.array[this.sba.index + i] & 0xFFL);
 
-      this.sba.index += 8;
+        this.sba.index += 8;
+      }
       this.pIdx = LITERAL_CTX;
       this.c1 = 1;
       this.probs = new int[2][];
@@ -1731,6 +1759,9 @@ public class ROLZCodec implements ByteTransform {
      * @return The decoded bit (0 or 1).
      */
     public int decodeBit() {
+      if (this.valid == false)
+        return 0;
+
       // Calculate interval split
       final long mid = this.low + ((((this.high - this.low) >>> 4)
           * (this.probs[this.pIdx][this.ctx + this.c1] >>> 4)) >>> 8);
@@ -1753,6 +1784,12 @@ public class ROLZCodec implements ByteTransform {
 
       // Read 32 bits from bitstream
       while (((this.low ^ this.high) >>> 24) == 0) {
+        if ((this.sba.index < 0) || (this.sba.index > this.end)
+            || (this.end - this.sba.index < 4)) {
+          this.valid = false;
+          return bit;
+        }
+
         this.low = (this.low << 32) & MASK_0_56;
         this.high = ((this.high << 32) | MASK_0_32) & MASK_0_56;
         final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & MASK_0_32;
@@ -1761,6 +1798,10 @@ public class ROLZCodec implements ByteTransform {
       }
 
       return bit;
+    }
+
+    public boolean isValid() {
+      return this.valid;
     }
 
     /**

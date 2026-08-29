@@ -388,6 +388,62 @@ public class TestTransforms {
   }
 
   @Test
+  void testSRTMalformedFrequencyTable() {
+    final int headerSize = 257;
+    final int dataSize = 1024;
+    byte[] encoded = new byte[headerSize + dataSize];
+    encoded[0] = (byte) 0xFF; // frequency[0] = 1023
+    encoded[1] = 0x07;
+    encoded[2] = 2; // frequency[1] = 2
+    encoded[headerSize + 1] = 1;
+    encoded[headerSize + dataSize - 1] = 1;
+
+    byte[] decoded = new byte[dataSize];
+    Arrays.fill(decoded, (byte) 0x7E);
+    byte[] expected = new byte[dataSize];
+    Arrays.fill(expected, (byte) 0x7E);
+    SliceByteArray input = new SliceByteArray(encoded, encoded.length, 0);
+    SliceByteArray output = new SliceByteArray(decoded, 0);
+
+    Assertions.assertFalse(new SRT().inverse(input, output));
+    Assertions.assertEquals(0, input.index);
+    Assertions.assertEquals(0, output.index);
+    Assertions.assertArrayEquals(expected, decoded);
+  }
+
+  @Test
+  void testROLZXTruncatedStream() {
+    byte[] encoded = new byte[] {
+        0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x7F,
+        (byte) 0xB1, 0x47, 0x07, (byte) 0x91, 0x2F, (byte) 0xBF};
+    byte[] decoded = new byte[512];
+    Arrays.fill(decoded, (byte) 0x7E);
+    Map<String, Object> ctx = new HashMap<>();
+    ctx.put("transform", "ROLZX");
+    ROLZCodec codec = new ROLZCodec(ctx);
+    SliceByteArray input = new SliceByteArray(encoded, encoded.length, 0);
+    SliceByteArray output = new SliceByteArray(decoded, 0);
+
+    Assertions.assertFalse(codec.inverse(input, output));
+  }
+
+  @Test
+  void testTextCodecTruncatedSequences() {
+    final byte[][] encoded = new byte[][] {
+        {0x00, 0x0F},
+        {0x10, 0x0F}
+    };
+
+    for (byte[] stream : encoded) {
+      byte[] decoded = new byte[16];
+      TextCodec codec = new TextCodec();
+      SliceByteArray input = new SliceByteArray(stream, stream.length, 0);
+      SliceByteArray output = new SliceByteArray(decoded, 0);
+      Assertions.assertFalse(codec.inverse(input, output));
+    }
+  }
+
+  @Test
   void testTextCodecSelfDescribing() {
     byte[] sample = ("the be and of in to with it that for you he have on said say at "
         + "but we by had they as would who or can may do this was is much any from not she what ")

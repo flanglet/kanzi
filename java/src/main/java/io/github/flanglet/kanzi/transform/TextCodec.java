@@ -517,6 +517,9 @@ public final class TextCodec implements ByteTransform {
     if (src.length > MAX_BLOCK_SIZE) // ! no min check
       return false;
 
+    if (src.length < 2)
+      return false;
+
     if (src.array == dst.array)
       return false;
 
@@ -871,7 +874,7 @@ public final class TextCodec implements ByteTransform {
 
     @Override
     public boolean inverse(SliceByteArray input, SliceByteArray output) {
-      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+      if ((input.index < 0) || (output.index < 0) || (input.length < 2)
           || ((long) input.index + input.length > input.array.length)
           || (output.index > output.array.length))
         return false;
@@ -953,14 +956,31 @@ public final class TextCodec implements ByteTransform {
         if ((cur == ESCAPE_TOKEN1) || (cur == ESCAPE_TOKEN2)) {
           // Word in dictionary
           // Read word index (varint 5 bits + 7 bits + 7 bits)
+          if (srcIdx >= srcEnd) {
+            res = false;
+            break;
+          }
+
           int idx = src[srcIdx++] & 0xFF;
 
           if (idx >= 128) {
             idx &= 0x7F;
+
+            if (srcIdx >= srcEnd) {
+              res = false;
+              break;
+            }
+
             int idx2 = src[srcIdx++];
 
             if ((idx2 & 0x80) != 0) {
               idx = ((idx & 0x1F) << 7) | (idx2 & 0x7F);
+
+              if (srcIdx >= srcEnd) {
+                res = false;
+                break;
+              }
+
               idx2 = src[srcIdx++] & 0x7F;
             }
 
@@ -1411,7 +1431,7 @@ public final class TextCodec implements ByteTransform {
 
     @Override
     public boolean inverse(SliceByteArray input, SliceByteArray output) {
-      if ((input.index < 0) || (output.index < 0) || (input.length < 0)
+      if ((input.index < 0) || (output.index < 0) || (input.length < 2)
           || ((long) input.index + input.length > input.array.length)
           || (output.index > output.array.length))
         return false;
@@ -1502,10 +1522,25 @@ public final class TextCodec implements ByteTransform {
             idx = cur & 0x1F;
 
             if ((cur & 0x40) != 0) {
+              if (srcIdx >= srcEnd) {
+                res = false;
+                break;
+              }
+
               int idx2 = src[srcIdx++];
 
               if ((idx2 & 0x80) != 0) {
+                if (srcIdx >= srcEnd) {
+                  res = false;
+                  break;
+                }
+
                 idx = (idx << 7) | (idx2 & 0x7F);
+                if (srcIdx >= srcEnd) {
+                  res = false;
+                  break;
+                }
+
                 idx2 = src[srcIdx++] & 0x7F;
               }
 
@@ -1521,6 +1556,12 @@ public final class TextCodec implements ByteTransform {
             if (cur == MASK_FLIP_CASE) {
               // Flip first char case
               flipMask = 0x20;
+
+              if (srcIdx >= srcEnd) {
+                res = false;
+                break;
+              }
+
               cur = src[srcIdx++];
             }
 
@@ -1532,9 +1573,19 @@ public final class TextCodec implements ByteTransform {
 
             if (idx >= 64) {
               if (idx >= 112) {
+                if (srcEnd - srcIdx < 2) {
+                  res = false;
+                  break;
+                }
+
                 idx = ((idx & 0x0F) << 16) | ((src[srcIdx] & 0xFF) << 8) | (src[srcIdx + 1] & 0xFF);
                 srcIdx += 2;
               } else {
+                if (srcIdx >= srcEnd) {
+                  res = false;
+                  break;
+                }
+
                 idx = ((idx & 0x1F) << 8) | (src[srcIdx] & 0xFF);
                 srcIdx++;
               }
@@ -1585,6 +1636,11 @@ public final class TextCodec implements ByteTransform {
           }
         } else {
           if (cur == ESCAPE_TOKEN1) {
+            if (srcIdx >= srcEnd) {
+              res = false;
+              break;
+            }
+
             dst[dstIdx++] = src[srcIdx++];
           } else {
             if ((_isCRLF == true) && (cur == LF)) {

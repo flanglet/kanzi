@@ -189,8 +189,24 @@ public class SRT implements ByteTransform {
 
     final int[] _freqs = this.freqs;
     final int headerSize = decodeHeader(input.array, input.index, _freqs);
-    input.index += headerSize;
     final int count = input.length - headerSize;
+
+    if (headerSize < 0 || count < 0)
+      return false;
+
+    long totalFreq = 0;
+
+    for (int i = 0; i < 256; i++) {
+      if (_freqs[i] < 0)
+        return false;
+
+      totalFreq += _freqs[i];
+    }
+
+    if (totalFreq != count)
+      return false;
+
+    input.index += headerSize;
 
     if (count > output.length - output.index)
       return false;
