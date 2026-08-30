@@ -1353,7 +1353,11 @@ public class CompressedInputStream extends InputStream {
             return new Status(data, currentBlockId, decoded, checksum1, Error.ERR_CRC_CHECK,
                 "Corrupted bitstream: expected checksum " + Integer.toHexString((int) checksum1)
                     + ", found " + Integer.toHexString(checksum2));
-        } else if (this.hasher64 != null) {
+        } else if ((this.hasher64 != null) && (bsVersion >= 7)) {
+          // Version 6 Java 64-bit checksums are incompatible with other
+          // implementations due to a bug. This discrepancy is fixed in
+          // version 7. The checksum has already been consumed above, so skip
+          // only its validation for legacy streams.
           final long checksum2 = this.hasher64.hash(data.array, savedIdx, decoded);
 
           if (checksum2 != checksum1)

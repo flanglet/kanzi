@@ -135,7 +135,7 @@ public class XXHash64 {
     }
 
     while (idx + 4 <= end) {
-      h64 ^= (Memory.LittleEndian.readInt32(data, idx) * PRIME64_1);
+      h64 ^= ((Memory.LittleEndian.readInt32(data, idx) & 0xFFFFFFFFL) * PRIME64_1);
       h64 = ((h64 << 23) | (h64 >>> 41)) * PRIME64_2 + PRIME64_3;
       idx += 4;
     }
@@ -178,5 +178,4 @@ public class XXHash64 {
     return acc * PRIME64_1 + PRIME64_4;
   }
 }
-
 
