@@ -119,6 +119,11 @@ public class TPAQPredictor implements Predictor {
     return (h >> 1) ^ (h >> 9) ^ (x >> 2) ^ (y >> 3) ^ HASH_SEED;
   }
 
+  static int hashLogical(int x, int y) {
+    final int h = x * HASH_SEED ^ y * HASH_SEED;
+    return (h >> 1) ^ (h >> 9) ^ (x >>> 2) ^ (y >>> 3) ^ HASH_SEED;
+  }
+
   private int pr; // next predicted value (0-4095)
   private int c0; // bitwise context: last 0-7 bits with a leading 1 (1-255)
   private int c4; // last 4 whole bytes, last is in low 8 bits
@@ -157,7 +162,7 @@ public class TPAQPredictor implements Predictor {
   private int ctx5;
   private int ctx6;
   private boolean extra;
-  private final boolean useLogicalCtx6Shift;
+  private final boolean useLogicalShift;
 
   /**
    * Creates a new {@code TPAQPredictor} with default settings.
@@ -191,8 +196,8 @@ public class TPAQPredictor implements Predictor {
       this.extra = "TPAQX".equals(codec);
       extraMem = (this.extra == true) ? 1 : 0;
 
-      // TPAQX bitstreams drifted across implementations due to signed vs logical shifts
-      // in ctx6. Keep the legacy behavior for older bitstreams for backward compatibility.
+      // Java and Go bitstreams generated in version 6 drifted from the C++ bitstreams.
+      // Version 7 reconciles the implementations while preserving legacy behavior.
       bsVersion = (Integer) ctx.getOrDefault("bsVersion", 7);
 
       // Block size requested by the user
@@ -236,7 +241,7 @@ public class TPAQPredictor implements Predictor {
       hashSize = 1 << Global.log2(hashSize);
     }
 
-    this.useLogicalCtx6Shift = (this.extra == true) && (bsVersion >= TPAQX_LOGICAL_SHIFT_VERSION);
+    this.useLogicalShift = bsVersion >= TPAQX_LOGICAL_SHIFT_VERSION;
     mixersSize <<= (2 * extraMem);
     statesSize <<= (2 * extraMem);
     hashSize <<= (2 * extraMem);
@@ -304,14 +309,17 @@ public class TPAQPredictor implements Predictor {
       if (this.binCount < (this.pos >> 2)) {
         // Mostly text or mixed
         this.ctx4 = createContext(this.ctx1, this.c4 ^ (this.c8 & 0xFFFF));
-        this.ctx5 = (this.c8 & MASK_F0F0F000) | ((this.c4 & MASK_F0F0F000) >> 4);
+        this.ctx5 = (this.c8 & MASK_F0F0F000)
+            | ((this.useLogicalShift == true) ? (this.c4 & MASK_F0F0F000) >>> 4
+                                                : (this.c4 & MASK_F0F0F000) >> 4);
 
         if (this.extra == true) {
           final int h1 =
               ((this.c4 & MASK_80808080) == 0) ? this.c4 & MASK_4F4FFFFF : this.c4 & MASK_80808080;
           final int h2 =
               ((this.c8 & MASK_80808080) == 0) ? this.c8 & MASK_4F4FFFFF : this.c8 & MASK_80808080;
-          this.ctx6 = hash(h1 << 2, (this.useLogicalCtx6Shift == true) ? h2 >>> 2 : h2 >> 2);
+          this.ctx6 = (this.useLogicalShift == true)
+              ? hashLogical(h1 << 2, h2 >>> 2) : hash(h1 << 2, h2 >> 2);
         }
       } else {
         // Mostly binary
@@ -320,8 +328,9 @@ public class TPAQPredictor implements Predictor {
 
         if (this.extra == true)
           this.ctx6 =
-              hash(this.c4 & MASK_FFFF0000,
-                  (this.useLogicalCtx6Shift == true) ? this.c8 >>> 16 : this.c8 >> 16);
+              (this.useLogicalShift == true)
+                  ? hashLogical(this.c4 & MASK_FFFF0000, this.c8 >>> 16)
+                  : hash(this.c4 & MASK_FFFF0000, this.c8 >> 16);
       }
 
       this.findMatch();
