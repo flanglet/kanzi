@@ -187,6 +187,9 @@ public class BWTBlockCodec implements ByteTransform {
 
       for (int i = 0; i < chunks; i++) {
         // Read block header (mode + primary index). See top of file for format
+        if (input.index >= input.array.length)
+          return false;
+
         final int blockMode = input.array[input.index++] & 0xFF;
         final int pIndexSizeBytes = 1 + ((blockMode >>> 6) & 0x03);
 
