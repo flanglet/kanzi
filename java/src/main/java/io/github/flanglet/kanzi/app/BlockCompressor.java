@@ -763,11 +763,12 @@ public class BlockCompressor implements Runnable, Callable<Integer> {
                 compressedStream.write(sa.array, 0, len);
               }
 
-              after = System.nanoTime();
             }
           }
         }
 
+        // Include the compressed stream close, which flushes pending blocks.
+        after = System.nanoTime();
         long delta = (after - before) / 1000000L; // convert to ms
         String str;
 
