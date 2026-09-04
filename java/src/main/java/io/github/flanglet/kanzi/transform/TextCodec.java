@@ -33,6 +33,8 @@ public final class TextCodec implements ByteTransform {
   private static final int THRESHOLD2 = THRESHOLD1 * THRESHOLD1;
   private static final int THRESHOLD3 = 64;
   private static final int THRESHOLD4 = THRESHOLD3 * 128;
+  private static final int V7_INDEX_BASE2 = 63;
+  private static final int V7_INDEX_BASE3 = 8255;
   private static final int MAX_DICT_SIZE = 1 << 19;
   private static final int MAX_WORD_LENGTH = 31;
   private static final int MIN_BLOCK_SIZE = 1024;
@@ -1406,26 +1408,25 @@ public final class TextCodec implements ByteTransform {
 
     private static int emitWordIndex(byte[] dst, int dstIdx, int wIdx) {
       // 0x80 is reserved to first symbol case flip
-      wIdx++;
+      if (wIdx < V7_INDEX_BASE2) {
+        dst[dstIdx] = (byte) (0x80 | (wIdx + 1));
+        return dstIdx + 1;
+      }
 
-      if (wIdx >= THRESHOLD3) {
-        if (wIdx >= THRESHOLD4) {
-          // 3 byte index (1111xxxx xxxxxxxx xxxxxxxx)
-          dst[dstIdx + 0] = (byte) (0xF0 | (wIdx >> 16));
-          dst[dstIdx + 1] = (byte) (wIdx >> 8);
-          dst[dstIdx + 2] = (byte) (wIdx);
-          return dstIdx + 3;
-        }
-
-        // 2 byte index (110xxxxx xxxxxxxx)
+      if (wIdx < V7_INDEX_BASE3) {
+        // Encode the rank relative to the one-byte range.
+        wIdx -= V7_INDEX_BASE2;
         dst[dstIdx] = (byte) (0xC0 | (wIdx >> 8));
-        dst[dstIdx + 1] = (byte) (wIdx);
+        dst[dstIdx + 1] = (byte) wIdx;
         return dstIdx + 2;
       }
 
-      // 1 byte index (10xxxxxx) with 0x80 excluded
-      dst[dstIdx] = (byte) (0x80 | wIdx);
-      return dstIdx + 1;
+      // Encode the rank relative to the one- and two-byte ranges.
+      wIdx -= V7_INDEX_BASE3;
+      dst[dstIdx] = (byte) (0xF0 | (wIdx >> 16));
+      dst[dstIdx + 1] = (byte) (wIdx >> 8);
+      dst[dstIdx + 2] = (byte) wIdx;
+      return dstIdx + 3;
     }
 
 
@@ -1553,6 +1554,8 @@ public final class TextCodec implements ByteTransform {
               }
             }
           } else {
+            final boolean rankedEncoding = this.bsVersion >= 7;
+
             if (cur == MASK_FLIP_CASE) {
               // Flip first char case
               flipMask = 0x20;
@@ -1570,9 +1573,12 @@ public final class TextCodec implements ByteTransform {
             // 110xxxxx => 2 bytes
             // 1111xxxx => 3 bytes
             idx = cur & 0x7F;
+            final boolean oneByte = idx < 64;
 
             if (idx >= 64) {
-              if (idx >= 112) {
+              final boolean threeBytes = idx >= 112;
+
+              if (threeBytes) {
                 if (srcEnd - srcIdx < 2) {
                   res = false;
                   break;
@@ -1590,18 +1596,39 @@ public final class TextCodec implements ByteTransform {
                 srcIdx++;
               }
 
-              // Sanity check before adjusting index
-              if (idx > this.dictSize) {
+              if (rankedEncoding) {
+                // Add the rank of the shorter forms. This prevents
+                // zero or negative dictionary indexes for malformed
+                // multi-byte encodings such as C0 00 or F0 00 00.
+                idx += threeBytes ? V7_INDEX_BASE3 : V7_INDEX_BASE2;
+
+                if (idx >= this.dictSize) {
+                  res = false;
+                  break;
+                }
+              } else if (idx > this.dictSize) {
                 res = false;
                 break;
               }
-            } else if (idx == 0) {
-              res = false;
-              break;
             }
 
-            // Adjust index
-            idx--;
+            if (rankedEncoding) {
+              if (idx == 0) {
+                res = false;
+                break;
+              }
+
+              if (oneByte)
+                idx--;
+            } else {
+              if (idx == 0) {
+                res = false;
+                break;
+              }
+
+              // Adjust the original V6 one-based index.
+              idx--;
+            }
           }
 
           final DictEntry e = this.dictList[idx];
