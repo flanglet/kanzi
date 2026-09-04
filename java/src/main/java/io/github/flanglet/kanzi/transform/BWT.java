@@ -607,7 +607,8 @@ public class BWT implements ByteTransform {
       int c = this.firstChunk;
 
       // Process each chunk sequentially
-      if (start + 4 * this.ckSize < this.total) {
+      if (((this.ckSize & 1) == 0)
+          && (start + (this.lastChunk - c) * this.ckSize <= this.total)) {
         for (; c + 3 < this.lastChunk; c += 4) {
           final int end = start + this.ckSize;
           int p0 = BWT.this.getPrimaryIndex(c);
