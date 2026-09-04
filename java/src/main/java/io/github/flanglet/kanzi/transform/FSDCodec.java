@@ -37,11 +37,14 @@ public class FSDCodec implements ByteTransform {
   private static final int[] DISTANCES = {0, 1, 2, 3, 4, 8, 16};
 
   private Map<String, Object> ctx;
+  private int bsVersion;
 
   /**
    * Default constructor.
    */
-  public FSDCodec() {}
+  public FSDCodec() {
+    this.bsVersion = 7;
+  }
 
   /**
    * Constructor with a context map.
@@ -50,6 +53,7 @@ public class FSDCodec implements ByteTransform {
    */
   public FSDCodec(Map<String, Object> ctx) {
     this.ctx = ctx;
+    this.bsVersion = (ctx == null) ? 7 : (int) ctx.getOrDefault("bsVersion", 7);
   }
 
   /**
@@ -171,17 +175,16 @@ public class FSDCodec implements ByteTransform {
     for (int i = 2 * count5; i < 3 * count5; i++) {
       final int delta = (src[i] & 0xFF) - (src[i - dist] & 0xFF);
 
-      if ((delta < -127) || (delta > 127))
-        largeDeltas++;
+      largeDeltas += (((delta + 127) < 0) || ((delta + 127) > 254)) ? 1 : 0;
     }
 
-    // Delta coding works better for pictures & xor coding better for wav files
-    // Select xor coding if large deltas are over 3% (ad-hoc threshold)
-    final byte mode = (largeDeltas > (count5 >> 5)) ? XOR_CODING : DELTA_CODING;
+    // Select xor coding if large signed deltas approach the rate expected for
+    // unrelated byte pairs. With modular delta coding, large signed deltas
+    // no longer cause expansion, so the old 3% threshold is too conservative.
+    final byte mode = (largeDeltas > (count5 >> 2)) ? XOR_CODING : DELTA_CODING;
     int srcIdx = input.index;
     int dstIdx = output.index;
     final int srcEnd = srcIdx + count;
-    final int dstEnd = dstIdx + this.getMaxEncodedLength(count);
     dst[dstIdx] = mode;
     dst[dstIdx + 1] = (byte) dist;
     dstIdx += 2;
@@ -192,18 +195,11 @@ public class FSDCodec implements ByteTransform {
 
     // Emit modified bytes
     if (mode == DELTA_CODING) {
-      while ((srcIdx < srcEnd) && (dstIdx < dstEnd - 1)) {
-        final int delta = (src[srcIdx] & 0xFF) - (src[srcIdx - dist] & 0xFF);
-
-        if ((delta < -127) || (delta > 127)) {
-          // Skip delta, encode with escape
-          dst[dstIdx++] = ESCAPE_TOKEN;
-          dst[dstIdx++] = (byte) (src[srcIdx] ^ src[srcIdx - dist]);
-          srcIdx++;
-          continue;
-        }
-
-        dst[dstIdx++] = (byte) ((delta >> 31) ^ (delta << 1)); // zigzag encode delta
+      while (srcIdx < srcEnd) {
+        final int residual = ((src[srcIdx] & 0xFF) - (src[srcIdx - dist] & 0xFF)) & 0xFF;
+        final int zigzag = ((residual & 0x80) != 0) ? ((256 - residual) << 1) - 1
+            : residual << 1;
+        dst[dstIdx++] = (byte) zigzag;
         srcIdx++;
       }
     } else { // mode == XOR_CODING
@@ -256,6 +252,9 @@ public class FSDCodec implements ByteTransform {
     if (input.array == output.array)
       return false;
 
+    if (this.bsVersion >= 7)
+      return this.inverseV7(input, output);
+
     final int count = input.length;
     final byte[] src = input.array;
     final byte[] dst = output.array;
@@ -299,6 +298,61 @@ public class FSDCodec implements ByteTransform {
       }
     } else if (mode == XOR_CODING) {
       while (srcIdx < srcEnd) {
+        dst[dstIdx] = (byte) (src[srcIdx] ^ dst[dstIdx - dist]);
+        srcIdx++;
+        dstIdx++;
+      }
+    } else {
+      // Invalid mode
+      return false;
+    }
+
+    input.index = srcIdx;
+    output.index = dstIdx;
+    return srcIdx == srcEnd;
+  }
+
+  private boolean inverseV7(SliceByteArray input, SliceByteArray output) {
+    final int count = input.length;
+
+    if (count < 4)
+      return false;
+
+    final byte[] src = input.array;
+    final byte[] dst = output.array;
+    final int srcStart = input.index;
+    final int srcEnd = srcStart + count;
+    final int dstStart = output.index;
+    final int dstEnd = output.length;
+
+    // Retrieve mode & step value
+    final byte mode = src[srcStart];
+    final int dist = src[srcStart + 1] & 0xFF;
+
+    // Sanity check
+    if ((dist < 1) || ((dist > 4) && (dist != 8) && (dist != 16)))
+      return false;
+
+    if ((count < dist + 2) || (dstEnd - dstStart < dist))
+      return false;
+
+    // Emit first bytes
+    int srcIdx = srcStart + 2;
+    int dstIdx = dstStart;
+
+    for (int i = 0; i < dist; i++)
+      dst[dstIdx++] = src[srcIdx++];
+
+    // Recover original bytes
+    if (mode == DELTA_CODING) {
+      while ((srcIdx < srcEnd) && (dstIdx < dstEnd)) {
+        final int value = src[srcIdx++] & 0xFF;
+        final int delta = (value >> 1) ^ -(value & 1);
+        dst[dstIdx] = (byte) ((dst[dstIdx - dist] & 0xFF) + delta);
+        dstIdx++;
+      }
+    } else if (mode == XOR_CODING) {
+      while ((srcIdx < srcEnd) && (dstIdx < dstEnd)) {
         dst[dstIdx] = (byte) (src[srcIdx] ^ dst[dstIdx - dist]);
         srcIdx++;
         dstIdx++;
