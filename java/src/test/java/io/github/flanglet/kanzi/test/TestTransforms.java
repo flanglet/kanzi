@@ -260,7 +260,7 @@ public class TestTransforms {
       ByteTransform f = getTransform(name);
       input = new byte[size];
       output = new byte[f.getMaxEncodedLength(size)];
-      reverse = new byte[size];
+      reverse = new byte[size + (name.equals("LZ") || name.equals("LZX") ? 16 : 0)];
       SliceByteArray sa1 = new SliceByteArray(input, 0);
       SliceByteArray sa2 = new SliceByteArray(output, 0);
       SliceByteArray sa3 = new SliceByteArray(reverse, 0);
@@ -494,7 +494,7 @@ public class TestTransforms {
       ByteTransform f = getTransform(name);
       input = new byte[size];
       output = new byte[f.getMaxEncodedLength(size)];
-      reverse = new byte[size];
+      reverse = new byte[size + (name.equals("LZ") || name.equals("LZX") ? 16 : 0)];
       SliceByteArray sa1 = new SliceByteArray(input, 0);
       SliceByteArray sa2 = new SliceByteArray(output, 0);
       SliceByteArray sa3 = new SliceByteArray(reverse, 0);
