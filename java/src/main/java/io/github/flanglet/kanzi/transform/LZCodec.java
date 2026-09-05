@@ -685,7 +685,7 @@ public final class LZCodec implements ByteTransform {
       final int dstIdx0 = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int dstEnd = dst.length;
+      final int dstEnd = dst.length - 16;
       final int tkLen = Memory.LittleEndian.readInt32(src, srcIdx0);
       final int mIdxLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 4);
       final int mLenLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 8);
@@ -855,7 +855,7 @@ public final class LZCodec implements ByteTransform {
       final int dstIdx0 = output.index;
       final byte[] src = input.array;
       final byte[] dst = output.array;
-      final int dstEnd = dst.length;
+      final int dstEnd = dst.length - 16;
       final int tkLen = Memory.LittleEndian.readInt32(src, srcIdx0);
       final int mIdxLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 4);
       final int mLenLen = Memory.LittleEndian.readInt32(src, srcIdx0 + 8);

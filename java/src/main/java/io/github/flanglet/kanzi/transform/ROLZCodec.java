@@ -1309,7 +1309,7 @@ public class ROLZCodec implements ByteTransform {
       final int srcEnd = input.index + count;
       final int szBlock = Memory.BigEndian.readInt32(src, input.index);
 
-      if ((szBlock <= 0) || (szBlock > output.length))
+      if ((szBlock <= 0) || (szBlock > output.length - output.index))
         return false;
 
       final int dstEnd = output.index + szBlock;
@@ -1390,13 +1390,12 @@ public class ROLZCodec implements ByteTransform {
           } else {
             // Read one match length and index
             final int matchLen = val & 0xFF;
+            final int copyLen = matchLen + mm;
 
-            // CompressedInputStream provides trailing output padding.
-            // The +3 bound is the regular minimum match length; DNA mode
-            // adds four more bytes, and emitCopy() may write up to seven
-            // bytes past the logical match end.
-            // Sanity check
-            if (dstIdx + matchLen + 3 > dstEnd) {
+            // Sanity check against the remaining space in the current
+            // chunk. The match length is stored without the minimum match
+            // size, which is data type dependent.
+            if (copyLen > endChunk - dstIdx) {
               output.index = dstIdx;
               return false;
             }
@@ -1411,7 +1410,7 @@ public class ROLZCodec implements ByteTransform {
 
             final int ref = output.index
                 + this.matches[base + ((this.counters[key] - matchIdx) & this.maskChecks)];
-            dstIdx = emitCopy(dst, dstIdx, ref, matchLen + mm);
+            dstIdx = emitCopy(dst, dstIdx, ref, copyLen);
           }
 
           // Update map

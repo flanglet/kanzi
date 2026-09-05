@@ -285,6 +285,12 @@ public class UTFCodec implements ByteTransform {
         alias = ((src[srcIdx++] & 0xFF) << 7) + (alias & 0x7F);
 
       UTFSymbol s = m[alias];
+
+      // The symbol length controls the logical output advance, but the
+      // decoder always writes four bytes from the packed symbol value.
+      if (dstIdx + 4 > output.length)
+        return false;
+
       LittleEndian.writeInt32(dst, dstIdx, s.value);
       dstIdx += s.length;
     }
