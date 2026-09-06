@@ -262,6 +262,12 @@ public class HuffmanDecoder implements EntropyDecoder {
       // Read chunk size
       final int szBits = EntropyUtils.readVarInt(this.bitstream);
 
+      // A non-empty chunk with multiple symbols cannot have an empty
+      // encoded payload. Reject malformed input instead of reporting a
+      // successful decode while leaving the destination untouched.
+      if (szBits <= 0)
+        return -1;
+
       // Read compressed data from the bitstream
       if (szBits != 0) {
         final int sz = (szBits + 7) >>> 3;

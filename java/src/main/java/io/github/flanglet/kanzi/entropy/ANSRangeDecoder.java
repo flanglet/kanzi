@@ -464,8 +464,13 @@ public class ANSRangeDecoder implements EntropyDecoder {
     for (int k = 0; k < dim; k++) {
       int alphabetSize = EntropyUtils.decodeAlphabet(this.bitstream, alphabet);
 
-      if (alphabetSize == 0)
+      if (alphabetSize == 0) {
+        if ((this.order == 1) && (k == 0))
+          throw new BitStreamException("Invalid bitstream: missing ANS1 context 0",
+              BitStreamException.INVALID_STREAM);
+
         continue;
+      }
 
       int llr = 3;
 
