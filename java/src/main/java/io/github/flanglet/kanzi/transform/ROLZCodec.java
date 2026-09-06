@@ -777,9 +777,6 @@ public class ROLZCodec implements ByteTransform {
         mIdxBuf.index = 0;
         tkBuf.index = 0;
 
-        for (int i = 0; i < this.matches.length; i++)
-          this.matches[i] = 0;
-
         final int endChunk = Math.min(startChunk + sizeChunk, dstEnd);
         sizeChunk = endChunk - startChunk;
         int dstIdx = output.index;
@@ -849,6 +846,9 @@ public class ROLZCodec implements ByteTransform {
           output.index += sizeChunk;
           continue;
         }
+
+        for (int i = 0; i < this.matches.length; i++)
+          this.matches[i] = 0;
 
         final int n = (bsVersion < 3) ? 2 : Math.min(dstEnd - dstIdx, 8);
 
@@ -1233,6 +1233,7 @@ public class ROLZCodec implements ByteTransform {
           this.matches[i] = 0;
 
         final int endChunk = Math.min(startChunk + sizeChunk, srcEnd);
+        re.reset();
         final SliceByteArray sba2 = new SliceByteArray(src, endChunk, startChunk);
         srcIdx = startChunk;
 
@@ -1341,6 +1342,8 @@ public class ROLZCodec implements ByteTransform {
       for (int i = 0; i < this.counters.length; i++)
         this.counters[i] = 0;
 
+      boolean firstChunk = true;
+
       // Main loop
       while (startChunk < dstEnd) {
         for (int i = 0; i < this.matches.length; i++)
@@ -1348,6 +1351,9 @@ public class ROLZCodec implements ByteTransform {
 
         final int endChunk = (startChunk + sizeChunk < dstEnd) ? startChunk + sizeChunk : dstEnd;
         int dstIdx = output.index;
+
+        if (firstChunk == false)
+          rd.reset();
 
         // First literals
         final int n = (bsVersion < 3) ? 2 : Math.min(dstEnd - startChunk, 8);
@@ -1420,6 +1426,7 @@ public class ROLZCodec implements ByteTransform {
 
         startChunk = endChunk;
         output.index = dstIdx;
+        firstChunk = false;
       }
 
       rd.dispose();

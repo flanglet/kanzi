@@ -278,21 +278,79 @@ public class UTFCodec implements ByteTransform {
       dst[dstIdx++] = src[srcIdx++];
 
     // Emit data
-    while ((srcIdx < srcEnd) && (dstIdx < dstEnd)) {
-      int alias = src[srcIdx++] & 0xFF;
+    if (n <= 128) {
+      // All valid aliases fit in one byte.
+      while (srcIdx < srcEnd) {
+        final int alias = src[srcIdx++] & 0xFF;
 
-      if (alias >= 128)
-        alias = ((src[srcIdx++] & 0xFF) << 7) + (alias & 0x7F);
+        if (alias >= n)
+          return false;
 
-      UTFSymbol s = m[alias];
+        final UTFSymbol s = m[alias];
 
-      // The symbol length controls the logical output advance, but the
-      // decoder always writes four bytes from the packed symbol value.
-      if (dstIdx + 4 > output.length)
-        return false;
+        // The symbol length controls the logical output advance, but the
+        // decoder always writes four bytes from the packed symbol value.
+        if (dstIdx + 4 > output.length)
+          return false;
 
-      LittleEndian.writeInt32(dst, dstIdx, s.value);
-      dstIdx += s.length;
+        LittleEndian.writeInt32(dst, dstIdx, s.value);
+        dstIdx += s.length;
+      }
+    }
+    else {
+      // Decode the next alias and load its value before storing the current
+      // one. This allows independent dictionary lookups to overlap.
+      while (srcIdx < srcEnd) {
+        int alias = src[srcIdx++] & 0xFF;
+
+        if (alias >= 128) {
+          if (srcIdx >= srcEnd)
+            return false;
+
+          alias = ((src[srcIdx++] & 0xFF) << 7) + (alias & 0x7F);
+        }
+
+        if (alias >= n)
+          return false;
+
+        final UTFSymbol s0 = m[alias];
+        final int val0 = s0.value;
+        final int len0 = s0.length;
+
+        if (srcIdx >= srcEnd) {
+          if (dstIdx + 4 > output.length)
+            return false;
+
+          LittleEndian.writeInt32(dst, dstIdx, val0);
+          dstIdx += len0;
+          break;
+        }
+
+        alias = src[srcIdx++] & 0xFF;
+
+        if (alias >= 128) {
+          if (srcIdx >= srcEnd)
+            return false;
+
+          alias = ((src[srcIdx++] & 0xFF) << 7) + (alias & 0x7F);
+        }
+
+        if (alias >= n)
+          return false;
+
+        final UTFSymbol s1 = m[alias];
+        final int val1 = s1.value;
+        final int len1 = s1.length;
+        final int needed = len0 + len1 + 4;
+
+        if (output.length - dstIdx < needed)
+          return false;
+
+        LittleEndian.writeInt32(dst, dstIdx, val0);
+        dstIdx += len0;
+        LittleEndian.writeInt32(dst, dstIdx, val1);
+        dstIdx += len1;
+      }
     }
 
     if (res == true) {

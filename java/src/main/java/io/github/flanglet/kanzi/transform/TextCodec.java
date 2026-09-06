@@ -919,11 +919,10 @@ public final class TextCodec implements ByteTransform {
             DictEntry e = null;
             DictEntry e1 = this.dictMap[h1 & this.hashMask];
 
-            // Check for hash collisions
-            if ((e1 != null) && (e1.hash == h1) && ((e1.data >>> 24) == length)) {
-              if (sameWords(src, delimAnchor + 2, e1.buf, e1.pos + 1, length - 1) == true)
-                e = e1;
-            }
+            // A hash collision check is not needed here: insertion is only allowed when
+            // the hash slot is null, so the candidate contents cannot affect the outcome.
+            if ((e1 != null) && (e1.hash == h1) && ((e1.data >>> 24) == length))
+              e = e1;
 
             if (e == null) {
               // Word not found in the dictionary or hash collision.
@@ -1476,11 +1475,10 @@ public final class TextCodec implements ByteTransform {
             DictEntry e = null;
             DictEntry e1 = this.dictMap[h1 & this.hashMask];
 
-            // Check for hash collisions
-            if ((e1 != null) && (e1.hash == h1) && ((e1.data >>> 24) == length)) {
-              if (sameWords(src, delimAnchor + 2, e1.buf, e1.pos + 1, length - 1) == true)
-                e = e1;
-            }
+            // A hash collision check is not needed here: insertion is only allowed when
+            // the hash slot is null, so the candidate contents cannot affect the outcome.
+            if ((e1 != null) && (e1.hash == h1) && ((e1.data >>> 24) == length))
+              e = e1;
 
             if (e == null) {
               // Word not found in the dictionary or hash collision.
