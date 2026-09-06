@@ -370,7 +370,9 @@ public class ANSRangeDecoder implements EntropyDecoder {
     if (start == end)
       return true;
 
-    final int minBufSize = Math.max(2 * (end - start), 256); // protect against corrupted bitstream
+    final int size = Math.min(this.chunkSize, end - start);
+    final int extra = Math.max(size >> 3, Math.min(size, 1 << 16));
+    final int minBufSize = size + extra + 2; // protect against corrupted bitstream
 
     if (this.buffer.length < minBufSize)
       this.buffer = new byte[minBufSize];

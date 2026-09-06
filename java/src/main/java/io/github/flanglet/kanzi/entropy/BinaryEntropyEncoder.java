@@ -49,7 +49,6 @@ public class BinaryEntropyEncoder implements EntropyEncoder {
   private static final long MASK_0_32 = 0x00000000FFFFFFFFL;
   private static final int MAX_BLOCK_SIZE = 1 << 30;
   private static final int MAX_CHUNK_SIZE = 1 << 26;
-  private static final int BUFFER_FLOOR = 8 << 20;
 
   /**
    * The {@link Predictor} used for probability estimation.
@@ -132,7 +131,8 @@ public class BinaryEntropyEncoder implements EntropyEncoder {
       length = (count < 8 * MAX_CHUNK_SIZE) ? count >> 3 : count >> 4;
     }
 
-    this.ensureCapacity(Math.max(length + (length >> 3), BUFFER_FLOOR));
+    final int extra = Math.max(length >> 3, Math.min(length, 1 << 16));
+    this.ensureCapacity(length + extra);
 
     // Split block into chunks, encode chunk and write bit array to bitstream
     while (startChunk < end) {
@@ -221,7 +221,7 @@ public class BinaryEntropyEncoder implements EntropyEncoder {
     if (this.sba.array.length >= required)
       return;
 
-    final int grownSize = this.sba.array.length + Math.max(this.sba.array.length >>> 2, 1 << 20);
+    final int grownSize = this.sba.array.length + Math.max(this.sba.array.length >>> 2, 1 << 10);
     final byte[] buf = new byte[Math.max(required, Math.max(grownSize, 1024))];
 
     if (this.sba.index > 0)

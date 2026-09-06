@@ -281,11 +281,13 @@ public class ANSRangeEncoder implements EntropyEncoder {
         syms[i] = new Symbol();
     }
 
-    final int size = Math.max(Math.min(sizeChunk + (sizeChunk >> 3), 2 * count), 65536);
+    final int size = Math.min(sizeChunk, count);
+    final int extra = Math.max(size >> 3, Math.min(size, 1 << 16));
+    final int bufSize = size + extra;
 
     // Add some padding
-    if (this.buffer.length < size)
-      this.buffer = new byte[size];
+    if (this.buffer.length < bufSize)
+      this.buffer = new byte[bufSize];
 
     while (startChunk < end) {
       final int endChunk = Math.min(startChunk + sizeChunk, end);

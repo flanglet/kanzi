@@ -135,13 +135,16 @@ public class FPAQEncoder implements EntropyEncoder {
 
     int startChunk = blkptr;
     final int end = blkptr + count;
+    final int size = Math.min(DEFAULT_CHUNK_SIZE, count);
+    final int extra = Math.max(size >> 3, Math.min(size, 1 << 16));
+    final int bufSize = Math.max(size + extra, 1024);
+
+    if (this.sba.array.length < bufSize)
+      this.sba.array = new byte[bufSize];
 
     // Split block into chunks, encode chunk and write bit array to bitstream
     while (startChunk < end) {
       final int chunkSize = Math.min(DEFAULT_CHUNK_SIZE, end - startChunk);
-
-      if (this.sba.array.length < (chunkSize + (chunkSize >> 3)))
-        this.sba.array = new byte[chunkSize + (chunkSize >> 3)];
 
       this.sba.index = 0;
       final int endChunk = startChunk + chunkSize;
@@ -206,6 +209,9 @@ public class FPAQEncoder implements EntropyEncoder {
    * </p>
    */
   private void flush() {
+    if (this.sba.index + 4 > this.sba.array.length)
+      this.sba.array = Arrays.copyOf(this.sba.array, this.sba.index + 4);
+
     Memory.BigEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high >>> 24));
     this.sba.index += 4;
     this.low <<= 32;
