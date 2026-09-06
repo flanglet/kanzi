@@ -81,8 +81,9 @@ package io.github.flanglet.kanzi.entropy;
     // Find index: 65*ctx + quantized prediction in [0..64]
     this.index = (pr >> 6) + (ctx << 6) + ctx;
 
-    // Return interpolated probability
-    final int w = pr & 127;
-    return (this.data[this.index] * (128 - w) + this.data[this.index + 1] * w) >> 11;
+    // Return interpolated probability. The table index advances every 64
+    // prediction units, so use the matching 6-bit fractional part.
+    final int w = pr & 63;
+    return (this.data[this.index] * (64 - w) + this.data[this.index + 1] * w) >> 10;
   }
 }
