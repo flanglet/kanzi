@@ -599,6 +599,7 @@ public class BWT implements ByteTransform {
       final int[] b = BWT.this.buckets;
       final short[] fastBits = BWT.this.buffer2;
       int start = this.dstIdx;
+      final int limit = this.dstIdx + this.total;
       int shift = 0;
 
       while ((this.total >>> shift) > MASK_FASTBITS)
@@ -606,38 +607,203 @@ public class BWT implements ByteTransform {
 
       int c = this.firstChunk;
 
-      // Process each chunk sequentially
-      if (((this.ckSize & 1) == 0)
-          && (start + (this.lastChunk - c) * this.ckSize <= this.total)) {
+      if (start + 7 * this.ckSize <= limit) {
+        for (; c + 7 < this.lastChunk; c += 8) {
+          final int end = start + this.ckSize - 1;
+          final int end8 = Math.min(end, limit - 7 * this.ckSize - 1);
+          int p0 = BWT.this.getPrimaryIndex(c);
+          int p1 = BWT.this.getPrimaryIndex(c + 1);
+          int p2 = BWT.this.getPrimaryIndex(c + 2);
+          int p3 = BWT.this.getPrimaryIndex(c + 3);
+          int p4 = BWT.this.getPrimaryIndex(c + 4);
+          int p5 = BWT.this.getPrimaryIndex(c + 5);
+          int p6 = BWT.this.getPrimaryIndex(c + 6);
+          int p7 = BWT.this.getPrimaryIndex(c + 7);
+
+          for (int i = start + 1; i <= end8; i += 2) {
+            int s0 = fastBits[p0 >> shift] & 0xFFFF;
+            int s1 = fastBits[p1 >> shift] & 0xFFFF;
+            int s2 = fastBits[p2 >> shift] & 0xFFFF;
+            int s3 = fastBits[p3 >> shift] & 0xFFFF;
+            int s4 = fastBits[p4 >> shift] & 0xFFFF;
+            int s5 = fastBits[p5 >> shift] & 0xFFFF;
+            int s6 = fastBits[p6 >> shift] & 0xFFFF;
+            int s7 = fastBits[p7 >> shift] & 0xFFFF;
+            while (b[s0] <= p0) s0++;
+            while (b[s1] <= p1) s1++;
+            while (b[s2] <= p2) s2++;
+            while (b[s3] <= p3) s3++;
+            while (b[s4] <= p4) s4++;
+            while (b[s5] <= p5) s5++;
+            while (b[s6] <= p6) s6++;
+            while (b[s7] <= p7) s7++;
+            this.output[i - 1] = (byte) (s0 >>> 8);
+            this.output[i] = (byte) s0;
+            this.output[this.ckSize + i - 1] = (byte) (s1 >>> 8);
+            this.output[this.ckSize + i] = (byte) s1;
+            this.output[2 * this.ckSize + i - 1] = (byte) (s2 >>> 8);
+            this.output[2 * this.ckSize + i] = (byte) s2;
+            this.output[3 * this.ckSize + i - 1] = (byte) (s3 >>> 8);
+            this.output[3 * this.ckSize + i] = (byte) s3;
+            this.output[4 * this.ckSize + i - 1] = (byte) (s4 >>> 8);
+            this.output[4 * this.ckSize + i] = (byte) s4;
+            this.output[5 * this.ckSize + i - 1] = (byte) (s5 >>> 8);
+            this.output[5 * this.ckSize + i] = (byte) s5;
+            this.output[6 * this.ckSize + i - 1] = (byte) (s6 >>> 8);
+            this.output[6 * this.ckSize + i] = (byte) s6;
+            this.output[7 * this.ckSize + i - 1] = (byte) (s7 >>> 8);
+            this.output[7 * this.ckSize + i] = (byte) s7;
+            p0 = data[p0];
+            p1 = data[p1];
+            p2 = data[p2];
+            p3 = data[p3];
+            p4 = data[p4];
+            p5 = data[p5];
+            p6 = data[p6];
+            p7 = data[p7];
+          }
+
+          final boolean oddCommon = ((end8 - start + 1) & 1) != 0;
+
+          if (oddCommon) {
+            int s0 = fastBits[p0 >> shift] & 0xFFFF;
+            int s1 = fastBits[p1 >> shift] & 0xFFFF;
+            int s2 = fastBits[p2 >> shift] & 0xFFFF;
+            int s3 = fastBits[p3 >> shift] & 0xFFFF;
+            int s4 = fastBits[p4 >> shift] & 0xFFFF;
+            int s5 = fastBits[p5 >> shift] & 0xFFFF;
+            int s6 = fastBits[p6 >> shift] & 0xFFFF;
+            int s7 = fastBits[p7 >> shift] & 0xFFFF;
+            while (b[s0] <= p0) s0++;
+            while (b[s1] <= p1) s1++;
+            while (b[s2] <= p2) s2++;
+            while (b[s3] <= p3) s3++;
+            while (b[s4] <= p4) s4++;
+            while (b[s5] <= p5) s5++;
+            while (b[s6] <= p6) s6++;
+            while (b[s7] <= p7) s7++;
+            this.output[end8] = (byte) (s0 >>> 8);
+            this.output[this.ckSize + end8] = (byte) (s1 >>> 8);
+            this.output[2 * this.ckSize + end8] = (byte) (s2 >>> 8);
+            this.output[3 * this.ckSize + end8] = (byte) (s3 >>> 8);
+            this.output[4 * this.ckSize + end8] = (byte) (s4 >>> 8);
+            this.output[5 * this.ckSize + end8] = (byte) (s5 >>> 8);
+            this.output[6 * this.ckSize + end8] = (byte) (s6 >>> 8);
+            this.output[7 * this.ckSize + end8] = (byte) (s7 >>> 8);
+
+            if (end8 < end) {
+              this.output[end8 + 1] = (byte) s0;
+              this.output[this.ckSize + end8 + 1] = (byte) s1;
+              this.output[2 * this.ckSize + end8 + 1] = (byte) s2;
+              this.output[3 * this.ckSize + end8 + 1] = (byte) s3;
+              this.output[4 * this.ckSize + end8 + 1] = (byte) s4;
+              this.output[5 * this.ckSize + end8 + 1] = (byte) s5;
+              this.output[6 * this.ckSize + end8 + 1] = (byte) s6;
+            }
+
+            p0 = data[p0];
+            p1 = data[p1];
+            p2 = data[p2];
+            p3 = data[p3];
+            p4 = data[p4];
+            p5 = data[p5];
+            p6 = data[p6];
+            p7 = data[p7];
+          }
+
+          if (end8 < end) {
+            final int nextPos = end8 + (oddCommon ? 2 : 1);
+            final int tailStart = nextPos + 1;
+
+            for (int i = tailStart; i <= end; i += 2) {
+              int s0 = fastBits[p0 >> shift] & 0xFFFF;
+              int s1 = fastBits[p1 >> shift] & 0xFFFF;
+              int s2 = fastBits[p2 >> shift] & 0xFFFF;
+              int s3 = fastBits[p3 >> shift] & 0xFFFF;
+              int s4 = fastBits[p4 >> shift] & 0xFFFF;
+              int s5 = fastBits[p5 >> shift] & 0xFFFF;
+              int s6 = fastBits[p6 >> shift] & 0xFFFF;
+              while (b[s0] <= p0) s0++;
+              while (b[s1] <= p1) s1++;
+              while (b[s2] <= p2) s2++;
+              while (b[s3] <= p3) s3++;
+              while (b[s4] <= p4) s4++;
+              while (b[s5] <= p5) s5++;
+              while (b[s6] <= p6) s6++;
+              this.output[i - 1] = (byte) (s0 >>> 8);
+              this.output[i] = (byte) s0;
+              this.output[this.ckSize + i - 1] = (byte) (s1 >>> 8);
+              this.output[this.ckSize + i] = (byte) s1;
+              this.output[2 * this.ckSize + i - 1] = (byte) (s2 >>> 8);
+              this.output[2 * this.ckSize + i] = (byte) s2;
+              this.output[3 * this.ckSize + i - 1] = (byte) (s3 >>> 8);
+              this.output[3 * this.ckSize + i] = (byte) s3;
+              this.output[4 * this.ckSize + i - 1] = (byte) (s4 >>> 8);
+              this.output[4 * this.ckSize + i] = (byte) s4;
+              this.output[5 * this.ckSize + i - 1] = (byte) (s5 >>> 8);
+              this.output[5 * this.ckSize + i] = (byte) s5;
+              this.output[6 * this.ckSize + i - 1] = (byte) (s6 >>> 8);
+              this.output[6 * this.ckSize + i] = (byte) s6;
+              p0 = data[p0];
+              p1 = data[p1];
+              p2 = data[p2];
+              p3 = data[p3];
+              p4 = data[p4];
+              p5 = data[p5];
+              p6 = data[p6];
+            }
+
+            if ((nextPos <= end) && (((end - nextPos + 1) & 1) != 0)) {
+              int s0 = fastBits[p0 >> shift] & 0xFFFF;
+              int s1 = fastBits[p1 >> shift] & 0xFFFF;
+              int s2 = fastBits[p2 >> shift] & 0xFFFF;
+              int s3 = fastBits[p3 >> shift] & 0xFFFF;
+              int s4 = fastBits[p4 >> shift] & 0xFFFF;
+              int s5 = fastBits[p5 >> shift] & 0xFFFF;
+              int s6 = fastBits[p6 >> shift] & 0xFFFF;
+              while (b[s0] <= p0) s0++;
+              while (b[s1] <= p1) s1++;
+              while (b[s2] <= p2) s2++;
+              while (b[s3] <= p3) s3++;
+              while (b[s4] <= p4) s4++;
+              while (b[s5] <= p5) s5++;
+              while (b[s6] <= p6) s6++;
+              this.output[end] = (byte) (s0 >>> 8);
+              this.output[this.ckSize + end] = (byte) (s1 >>> 8);
+              this.output[2 * this.ckSize + end] = (byte) (s2 >>> 8);
+              this.output[3 * this.ckSize + end] = (byte) (s3 >>> 8);
+              this.output[4 * this.ckSize + end] = (byte) (s4 >>> 8);
+              this.output[5 * this.ckSize + end] = (byte) (s5 >>> 8);
+              this.output[6 * this.ckSize + end] = (byte) (s6 >>> 8);
+            }
+          }
+
+          start += 8 * this.ckSize;
+        }
+      }
+
+      if ((start + 3 * this.ckSize <= limit) && ((this.ckSize & 1) == 0)) {
         for (; c + 3 < this.lastChunk; c += 4) {
-          final int end = start + this.ckSize;
+          final int end = start + this.ckSize - 1;
+          final int end4 = Math.min(end, limit - 3 * this.ckSize - 1);
           int p0 = BWT.this.getPrimaryIndex(c);
           int p1 = BWT.this.getPrimaryIndex(c + 1);
           int p2 = BWT.this.getPrimaryIndex(c + 2);
           int p3 = BWT.this.getPrimaryIndex(c + 3);
 
-          for (int i = start + 1; i <= end; i += 2) {
+          for (int i = start + 1; i <= end4; i += 2) {
             int s0 = fastBits[p0 >> shift] & 0xFFFF;
             int s1 = fastBits[p1 >> shift] & 0xFFFF;
             int s2 = fastBits[p2 >> shift] & 0xFFFF;
             int s3 = fastBits[p3 >> shift] & 0xFFFF;
-
-            while (b[s0] <= p0)
-              s0++;
-
-            while (b[s1] <= p1)
-              s1++;
-
-            while (b[s2] <= p2)
-              s2++;
-
-            while (b[s3] <= p3)
-              s3++;
-
+            while (b[s0] <= p0) s0++;
+            while (b[s1] <= p1) s1++;
+            while (b[s2] <= p2) s2++;
+            while (b[s3] <= p3) s3++;
             this.output[i - 1] = (byte) (s0 >>> 8);
             this.output[i] = (byte) s0;
-            this.output[1 * this.ckSize + i - 1] = (byte) (s1 >>> 8);
-            this.output[1 * this.ckSize + i] = (byte) s1;
+            this.output[this.ckSize + i - 1] = (byte) (s1 >>> 8);
+            this.output[this.ckSize + i] = (byte) s1;
             this.output[2 * this.ckSize + i - 1] = (byte) (s2 >>> 8);
             this.output[2 * this.ckSize + i] = (byte) s2;
             this.output[3 * this.ckSize + i - 1] = (byte) (s3 >>> 8);
@@ -648,12 +814,70 @@ public class BWT implements ByteTransform {
             p3 = data[p3];
           }
 
-          start = end + 3 * this.ckSize;
+          if (end4 < end) {
+            final int tailStart = end4 + 1 + (end4 & 1);
+
+            for (int i = tailStart; i <= end; i += 2) {
+              int s0 = fastBits[p0 >> shift] & 0xFFFF;
+              int s1 = fastBits[p1 >> shift] & 0xFFFF;
+              int s2 = fastBits[p2 >> shift] & 0xFFFF;
+              while (b[s0] <= p0) s0++;
+              while (b[s1] <= p1) s1++;
+              while (b[s2] <= p2) s2++;
+              this.output[i - 1] = (byte) (s0 >>> 8);
+              this.output[i] = (byte) s0;
+              this.output[this.ckSize + i - 1] = (byte) (s1 >>> 8);
+              this.output[this.ckSize + i] = (byte) s1;
+              this.output[2 * this.ckSize + i - 1] = (byte) (s2 >>> 8);
+              this.output[2 * this.ckSize + i] = (byte) s2;
+              p0 = data[p0];
+              p1 = data[p1];
+              p2 = data[p2];
+            }
+          }
+
+          start += 4 * this.ckSize;
+        }
+      }
+
+      if ((start + this.ckSize <= limit) && ((this.ckSize & 1) == 0)) {
+        for (; c + 1 < this.lastChunk; c += 2) {
+          final int end = start + this.ckSize - 1;
+          final int end2 = Math.min(end, limit - this.ckSize - 1);
+          int p0 = BWT.this.getPrimaryIndex(c);
+          int p1 = BWT.this.getPrimaryIndex(c + 1);
+
+          for (int i = start + 1; i <= end2; i += 2) {
+            int s0 = fastBits[p0 >> shift] & 0xFFFF;
+            int s1 = fastBits[p1 >> shift] & 0xFFFF;
+            while (b[s0] <= p0) s0++;
+            while (b[s1] <= p1) s1++;
+            this.output[i - 1] = (byte) (s0 >>> 8);
+            this.output[i] = (byte) s0;
+            this.output[this.ckSize + i - 1] = (byte) (s1 >>> 8);
+            this.output[this.ckSize + i] = (byte) s1;
+            p0 = data[p0];
+            p1 = data[p1];
+          }
+
+          if (end2 < end) {
+            final int tailStart = end2 + 1 + (end2 & 1);
+
+            for (int i = tailStart; i <= end; i += 2) {
+              int s0 = fastBits[p0 >> shift] & 0xFFFF;
+              while (b[s0] <= p0) s0++;
+              this.output[i - 1] = (byte) (s0 >>> 8);
+              this.output[i] = (byte) s0;
+              p0 = data[p0];
+            }
+          }
+
+          start += 2 * this.ckSize;
         }
       }
 
       for (; c < this.lastChunk; c++) {
-        final int end = Math.min(start + this.ckSize, this.total - 1);
+        final int end = Math.min(start + this.ckSize, limit - 1);
         int p = BWT.this.getPrimaryIndex(c);
 
         for (int i = start + 1; i <= end; i += 2) {
