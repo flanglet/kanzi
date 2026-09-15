@@ -19,6 +19,7 @@
 package io.github.flanglet.kanzi.entropy;
 
 import io.github.flanglet.kanzi.Predictor;
+import io.github.flanglet.kanzi.BitStreamException;
 import io.github.flanglet.kanzi.EntropyDecoder;
 import io.github.flanglet.kanzi.InputBitStream;
 import io.github.flanglet.kanzi.Memory;
@@ -160,6 +161,9 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
           return -1;
       }
 
+      if (this.sba.index != szBytes)
+        return -1;
+
       startChunk = endChunk;
     }
 
@@ -224,14 +228,12 @@ public class BinaryEntropyDecoder implements EntropyDecoder {
    * </p>
    */
   protected void read() {
+    if (this.sba.index + 4 > this.bufLimit)
+      throw new BitStreamException("Invalid bitstream: binary entropy payload underrun",
+          BitStreamException.INVALID_STREAM);
+
     this.low = (this.low << 32) & MASK_0_56;
     this.high = ((this.high << 32) | MASK_0_32) & MASK_0_56;
-
-    if (this.sba.index + 4 > this.bufLimit) {
-      this.current = (this.current << 32) & MASK_0_56;
-      this.sba.index = this.bufLimit + 1;
-      return;
-    }
 
     final long val = Memory.BigEndian.readInt32(this.sba.array, this.sba.index) & 0xFFFFFFFFL;
     this.current = ((this.current << 32) | val) & MASK_0_56;
