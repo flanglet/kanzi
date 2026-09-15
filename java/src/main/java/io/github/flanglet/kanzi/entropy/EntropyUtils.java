@@ -154,7 +154,7 @@ public class EntropyUtils {
 
     // shortcut
     if (totalFreq == scale) {
-      for (int i = 0; i < 256; i++) {
+      for (int i = 0; i < freqs.length && i < 256; i++) {
         if (freqs[i] != 0)
           alphabet[alphabetSize++] = i;
       }
@@ -175,7 +175,8 @@ public class EntropyUtils {
         continue;
 
       long sf = (long) freqs[i] * scale;
-      final int scaledFreq = sf <= totalFreq ? 1 : (int) ((sf + ((long)(totalFreq) >> 1)) / (long)(totalFreq));
+      final int scaledFreq =
+          sf <= totalFreq ? 1 : (int) ((sf + ((long) (totalFreq) >> 1)) / (long) (totalFreq));
       alphabet[alphabetSize++] = i;
       sumScaledFreq += scaledFreq;
       freqs[i] = scaledFreq;
