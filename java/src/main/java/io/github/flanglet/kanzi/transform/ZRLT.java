@@ -21,6 +21,7 @@ package io.github.flanglet.kanzi.transform;
 import java.util.Map;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.Global;
+import io.github.flanglet.kanzi.Memory.LittleEndian;
 import io.github.flanglet.kanzi.SliceByteArray;
 
 /**
@@ -195,6 +196,31 @@ public final class ZRLT implements ByteTransform {
       }
 
       // Regular data processing
+      if (val != 0xFF) {
+        final int startIdx = srcIdx;
+
+        while ((srcIdx + 4 <= srcEnd) && (dstIdx + 4 <= dstEnd)) {
+          final int word = LittleEndian.readInt32(src, srcIdx);
+          // Detect bytes below 2 or equal to 0xFF before lane-wise subtraction.
+          final int invalid = (((word - 0x02020202) & ~word)
+              | ((~word - 0x01010101) & word)) & 0x80808080;
+
+          if (invalid != 0)
+            break;
+
+          LittleEndian.writeInt32(dst, dstIdx, word - 0x01010101);
+          srcIdx += 4;
+          dstIdx += 4;
+        }
+
+        if (srcIdx != startIdx) {
+          if ((srcIdx >= srcEnd) || (dstIdx >= dstEnd))
+            break;
+
+          continue;
+        }
+      }
+
       if (val == 0xFF) {
         srcIdx++;
 
