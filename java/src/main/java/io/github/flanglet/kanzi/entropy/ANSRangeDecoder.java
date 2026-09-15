@@ -471,6 +471,15 @@ public class ANSRangeDecoder implements EntropyDecoder {
           throw new BitStreamException("Invalid bitstream: missing ANS1 context 0",
               BitStreamException.INVALID_STREAM);
 
+        if (this.order == 1) {
+          // Empty ANS1 alphabets implicitly model the singleton {0}.
+          if (this.f2s[k].length < scale)
+            this.f2s[k] = new byte[scale];
+
+          Arrays.fill(this.f2s[k], 0, scale, (byte) 0);
+          this.symbols[k][0].reset(0, scale, this.logRange);
+        }
+
         continue;
       }
 

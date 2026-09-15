@@ -192,6 +192,11 @@ public class ANSRangeEncoder implements EntropyEncoder {
         }
       }
 
+      if ((this.order == 1) && (alphabetSize == 0)) {
+        // The empty alphabet marker implicitly models the singleton {0}.
+        symb[0].reset(0, 1 << lr, lr);
+      }
+
       this.encodeHeader(alphabetSize, alphabet, f, lr);
       res += alphabetSize;
     }

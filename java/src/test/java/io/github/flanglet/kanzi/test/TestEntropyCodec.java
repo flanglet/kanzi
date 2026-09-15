@@ -22,11 +22,13 @@ import io.github.flanglet.kanzi.entropy.BinaryEntropyDecoder;
 import io.github.flanglet.kanzi.entropy.BinaryEntropyEncoder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import io.github.flanglet.kanzi.EntropyDecoder;
 import io.github.flanglet.kanzi.EntropyEncoder;
+import io.github.flanglet.kanzi.BitStreamException;
 import io.github.flanglet.kanzi.InputBitStream;
 import io.github.flanglet.kanzi.OutputBitStream;
 import io.github.flanglet.kanzi.bitstream.DebugOutputBitStream;
@@ -45,6 +47,7 @@ import io.github.flanglet.kanzi.entropy.FPAQEncoder;
 import io.github.flanglet.kanzi.entropy.RangeDecoder;
 import io.github.flanglet.kanzi.entropy.RangeEncoder;
 import io.github.flanglet.kanzi.entropy.TPAQPredictor;
+import io.github.flanglet.kanzi.entropy.EntropyUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -370,10 +373,75 @@ public class TestEntropyCodec {
     EntropyDecoder ed = getDecoder("CM", ibs);
     Assertions.assertNotNull(ed);
     byte[] decoded = new byte[size];
-    int res = ed.decode(decoded, 0, decoded.length);
+    int res;
+
+    try {
+      res = ed.decode(decoded, 0, decoded.length);
+    } catch (BitStreamException e) {
+      res = -1;
+    }
+
     ed.dispose();
     ibs.close();
     Assertions.assertNotEquals(size, res);
+  }
+
+
+  @Test
+  void testANS1ImplicitContext() throws Exception {
+    final int size = 40;
+    final int[] alphabet = new int[] {1};
+    final int[] emptyAlphabet = new int[0];
+
+    // Exercise both freshly allocated tables and tables from an earlier chunk.
+    for (int warm = 0; warm < 2; warm++) {
+      final ByteArrayOutputStream os = new ByteArrayOutputStream(1024);
+      final OutputBitStream obs = new DefaultOutputBitStream(os, 1024);
+      final byte[] previous = new byte[size];
+      Arrays.fill(previous, (byte) 1);
+
+      if (warm != 0) {
+        final ANSRangeEncoder encoder = new ANSRangeEncoder(obs, 1);
+        Assertions.assertEquals(size, encoder.encode(previous, 0, size));
+        encoder.dispose();
+      }
+
+      // Context 0 emits 1; empty contexts implicitly emit 0.
+      obs.writeBits(0, 3); // log range = 8
+      Assertions.assertEquals(1, EntropyUtils.encodeAlphabet(obs, alphabet, 1));
+
+      for (int i = 1; i < 256; i++)
+        Assertions.assertEquals(0, EntropyUtils.encodeAlphabet(obs, emptyAlphabet, 0));
+
+      EntropyUtils.writeVarInt(obs, 8);
+
+      for (int i = 0; i < 4; i++)
+        obs.writeBits(1 << 15, 32);
+
+      obs.writeBits(0, 64);
+      obs.close();
+
+      final InputBitStream ibs =
+          new DefaultInputBitStream(new ByteArrayInputStream(os.toByteArray()), 1024);
+      final Map<String, Object> ctx = new HashMap<>();
+      ctx.put("bsVersion", 6);
+      final ANSRangeDecoder decoder = new ANSRangeDecoder(ibs, ctx, 1);
+      final byte[] decoded = new byte[size];
+
+      if (warm != 0) {
+        Assertions.assertEquals(size, decoder.decode(decoded, 0, size));
+        Assertions.assertArrayEquals(previous, decoded);
+      }
+
+      Assertions.assertEquals(size, decoder.decode(decoded, 0, size));
+
+      for (int i = 0; i < size; i++)
+        Assertions.assertEquals(1 - ((i % (size / 4)) & 1), decoded[i] & 0xFF,
+            "Unexpected ANS1 implicit-context output at byte " + i);
+
+      decoder.dispose();
+      ibs.close();
+    }
   }
 
 
