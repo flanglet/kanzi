@@ -50,11 +50,6 @@ public final class HuffmanCommon {
   public static final int MAX_SYMBOL_SIZE_V4 = 12;
 
   /**
-   * The size of the internal buffer used for sorting symbols.
-   */
-  private static final int BUFFER_SIZE = (MAX_SYMBOL_SIZE_V3 << 8) + 256;
-
-  /**
    * Generates canonical Huffman codes based on the provided symbol sizes. Symbols are sorted first
    * by increasing size, then by increasing value.
    *
@@ -70,29 +65,52 @@ public final class HuffmanCommon {
    */
   public static int generateCanonicalCodes(short[] sizes, int[] codes, int[] symbols, int count,
       final int maxSymbolSize) {
+    if (count == 0)
+      return 0;
+
+    if ((count < 0) || (count > 256))
+      return -1;
+
     // Sort symbols by increasing size (first key) and increasing value (second key)
     if (count > 1) {
-      byte[] buf = new byte[BUFFER_SIZE];
+      final byte[] present = new byte[256];
+      final short[] offsets = new short[MAX_SYMBOL_SIZE_V4 + 1];
 
       for (int i = 0; i < count; i++) {
         final int s = symbols[i];
 
-        if (((s & 0xFF) != s) || (sizes[s] > maxSymbolSize))
+        if ((s < 0) || (s > 255))
           return -1;
 
-        buf[((sizes[s] - 1) << 8) | s] = 1;
+        final int len = sizes[s];
+
+        if (len <= 0)
+          return -1;
+
+        if ((len > maxSymbolSize) || (len > MAX_SYMBOL_SIZE_V4))
+          return -1;
+
+        if (present[s] != 0)
+          return -1;
+
+        present[s] = 1;
+        offsets[len]++;
       }
 
-      int n = 0;
+      short offset = 0;
 
-      for (int i = 0; i < BUFFER_SIZE; i++) {
-        if (buf[i] == 0)
-          continue;
+      for (int len = 1; len <= MAX_SYMBOL_SIZE_V4; len++) {
+        final short n = offsets[len];
+        offsets[len] = offset;
+        offset += n;
+      }
 
-        symbols[n++] = i & 0xFF;
-
-        if (n == count)
-          break;
+      // Scanning symbols in value order preserves the previous tie break.
+      for (int s = 0; s < 256; s++) {
+        if (present[s] != 0) {
+          final int len = sizes[s];
+          symbols[offsets[len]++] = s;
+        }
       }
     }
 
