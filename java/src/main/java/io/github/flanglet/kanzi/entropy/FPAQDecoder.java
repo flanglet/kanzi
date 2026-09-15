@@ -171,26 +171,27 @@ public class FPAQDecoder implements EntropyDecoder {
 
     // Read bit array from bitstream and decode chunk
     while (startChunk < end) {
+      final int chunkSize = Math.min(DEFAULT_CHUNK_SIZE, end - startChunk);
       final int szBytes = EntropyUtils.readVarInt(this.bitstream);
 
-      // Sanity check
-      if (szBytes >= 2 * count)
+      // A payload belongs to one chunk, not to the whole block. Besides
+      // preventing excessive allocations, this keeps the bit count below
+      // the range where 8*szBytes could overflow.
+      if ((szBytes < 0) || ((long) szBytes > ((long) chunkSize << 1)))
         return 0;
 
-      final int bufSize = Math.max(szBytes + (szBytes >> 2), 1024);
-
-      if (this.sba.array.length < bufSize)
-        this.sba.array = new byte[bufSize];
+      if (this.sba.array.length < szBytes)
+        this.sba.array = new byte[szBytes];
 
       this.current = this.bitstream.readBits(56);
 
-      if (bufSize > szBytes)
-        Arrays.fill(this.sba.array, szBytes, bufSize, (byte) 0);
+      // read() checks bufLimit before accessing the buffer, so no padding or
+      // clearing beyond the payload is necessary.
+      if (szBytes != 0)
+        this.bitstream.readBits(this.sba.array, 0, 8 * szBytes);
 
-      this.bitstream.readBits(this.sba.array, 0, 8 * szBytes);
       this.bufLimit = szBytes;
       this.sba.index = 0;
-      final int chunkSize = Math.min(DEFAULT_CHUNK_SIZE, end - startChunk);
       final int endChunk = startChunk + chunkSize;
       this.p = this.probs[0];
 
