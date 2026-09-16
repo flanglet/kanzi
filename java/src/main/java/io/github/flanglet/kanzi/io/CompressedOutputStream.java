@@ -837,6 +837,15 @@ public class CompressedOutputStream extends OutputStream {
 
         // Record size of 'block size' - 1 in bytes
         mode |= (((dataSize - 1) & 0x03) << 5);
+        boolean transformedCopy = false;
+
+        // Entropy coding cannot represent blocks at or above its maximum size.
+        // Keep the transformed bytes and use the transformed-copy representation.
+        if (((mode & COPY_BLOCK_MASK) == 0)
+            && (postTransformLength >= MAX_BITSTREAM_BLOCK_SIZE)) {
+          transformedCopy = true;
+          mode |= COPY_BLOCK_MASK | TRANSFORMS_MASK;
+        }
 
         if (this.listeners.length > 0) {
           // Notify after transform
@@ -863,7 +872,19 @@ public class CompressedOutputStream extends OutputStream {
         DefaultOutputBitStream os = new DefaultOutputBitStream(baos, 16384);
         int headerSkipFlags = skipFlags;
 
-        if (((mode & COPY_BLOCK_MASK) != 0) || (nbFunctions <= 4)) {
+        if (transformedCopy == true) {
+          if (nbFunctions <= 4) {
+            mode |= (skipFlags >>> 4);
+            headerSkipFlags = ((mode << 4) | 0x0F) & 0xFF;
+          } else {
+            headerSkipFlags = skipFlags;
+          }
+
+          os.writeBits(mode, 8);
+
+          if (nbFunctions > 4)
+            os.writeBits(skipFlags, 8);
+        } else if (((mode & COPY_BLOCK_MASK) != 0) || (nbFunctions <= 4)) {
           mode |= (skipFlags >>> 4);
 
           if ((mode & COPY_BLOCK_MASK) != 0)
@@ -884,7 +905,7 @@ public class CompressedOutputStream extends OutputStream {
         // temporary block has been written.
         int headerChecksumIndex = 1 + dataSize;
 
-        if (((mode & COPY_BLOCK_MASK) == 0) && (nbFunctions > 4))
+        if (((mode & TRANSFORMS_MASK) != 0) && (nbFunctions > 4))
           headerChecksumIndex++;
 
         os.writeBits(0, 8);
@@ -902,26 +923,44 @@ public class CompressedOutputStream extends OutputStream {
           notifyListeners(this.listeners, evt);
         }
 
-        // Each block is encoded separately
-        // Rebuild the entropy encoder to reset block statistics
-        ee = EntropyCodecFactory.newEncoder(os, this.ctx, blockEntropyType);
+        long written;
 
-        // Entropy encode block
-        if (ee.encode(buffer.array, 0, postTransformLength) != postTransformLength) {
-          this.processedBlockId.set(CANCEL_TASKS_ID);
-          return new Status(currentBlockId, Error.ERR_PROCESS_BLOCK, "Entropy coding failed");
+        if (transformedCopy == true) {
+          int remaining = postTransformLength;
+
+          for (int srcIdx = 0; remaining > 0;) {
+            final int chunk = Math.min(remaining, 1 << 23);
+            os.writeBits(buffer.array, srcIdx, chunk << 3);
+            srcIdx += chunk;
+            remaining -= chunk;
+          }
+
+          os.close();
+          this.data.array = baos.getBuffer();
+          this.data.length = this.data.array.length;
+          written = os.written();
+        } else {
+          // Each block is encoded separately
+          // Rebuild the entropy encoder to reset block statistics
+          ee = EntropyCodecFactory.newEncoder(os, this.ctx, blockEntropyType);
+
+          // Entropy encode block
+          if (ee.encode(buffer.array, 0, postTransformLength) != postTransformLength) {
+            this.processedBlockId.set(CANCEL_TASKS_ID);
+            return new Status(currentBlockId, Error.ERR_PROCESS_BLOCK, "Entropy coding failed");
+          }
+
+          // Dispose before displaying statistics. Dispose may write to the bitstream
+          ee.dispose();
+
+          // Force ee to null to avoid double dispose (in the finally section)
+          ee = null;
+
+          os.close();
+          this.data.array = baos.getBuffer();
+          this.data.length = this.data.array.length;
+          written = os.written();
         }
-
-        // Dispose before displaying statistics. Dispose may write to the bitstream
-        ee.dispose();
-
-        // Force ee to null to avoid double dispose (in the finally section)
-        ee = null;
-
-        os.close();
-        this.data.array = baos.getBuffer();
-        this.data.length = this.data.array.length;
-        long written = os.written();
 
         if ((mode & COPY_BLOCK_MASK) == 0) {
           final long rawPayloadBytes = postTransformLength;

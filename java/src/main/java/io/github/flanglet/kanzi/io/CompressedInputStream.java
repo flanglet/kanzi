@@ -1136,8 +1136,9 @@ public class CompressedInputStream extends InputStream {
       final long encodedBlockBytes = (read + 7) >> 3;
       final long encodedBlockLength = read;
       ParsedBlockHeader blockHeader = null;
-      final int maxTransformLength =
-          Math.min(Math.max(this.blockSize + this.blockSize / 2, 2048), MAX_BITSTREAM_BLOCK_SIZE);
+      final int maxTransformedCopyLength = Math.max(this.blockSize + this.blockSize / 2, 2048);
+      final int maxEntropyTransformLength =
+          Math.min(maxTransformedCopyLength, MAX_BITSTREAM_BLOCK_SIZE);
 
       if (bsVersion >= 7) {
         try {
@@ -1148,8 +1149,11 @@ public class CompressedInputStream extends InputStream {
           return new Status(data, currentBlockId, 0, 0, e.getErrorCode(), e.getMessage());
         }
 
+        final int maxAllowedTransformLength = blockHeader.transformedCopy
+            ? maxTransformedCopyLength : maxEntropyTransformLength;
+
         if ((blockHeader.preTransformLength < 0)
-            || (blockHeader.preTransformLength > maxTransformLength)) {
+            || (blockHeader.preTransformLength > maxAllowedTransformLength)) {
           this.processedBlockId.set(CANCEL_TASKS_ID);
           return new Status(data, currentBlockId, 0, 0, Error.ERR_READ_FILE,
               "Invalid compressed block length: " + blockHeader.preTransformLength);
@@ -1235,7 +1239,10 @@ public class CompressedInputStream extends InputStream {
           return new Status(data, currentBlockId, 0, checksum1, 0, null);
         }
 
-        if ((preTransformLength < 0) || (preTransformLength > maxTransformLength)) {
+        final int maxAllowedTransformLength = transformedCopy
+            ? maxTransformedCopyLength : maxEntropyTransformLength;
+
+        if ((preTransformLength < 0) || (preTransformLength > maxAllowedTransformLength)) {
           // Error => cancel concurrent decoding tasks
           this.processedBlockId.set(CANCEL_TASKS_ID);
           return new Status(data, currentBlockId, 0, checksum1, Error.ERR_READ_FILE,
