@@ -151,8 +151,7 @@ public class BWT implements ByteTransform {
 
     if ((src.index < 0) || (dst.index < 0) || (src.length < 0) || (dst.length <= 0)
         || (src.index > src.length) || (dst.index > dst.length)
-        || (src.index + src.length > src.array.length)
-        || (dst.index + dst.length > dst.array.length))
+        || (src.index + src.length > src.array.length))
       return false;
 
     if (src.array == dst.array)
@@ -204,8 +203,7 @@ public class BWT implements ByteTransform {
 
     if ((src.index < 0) || (dst.index < 0) || (src.length < 0) || (dst.length <= 0)
         || (src.index > src.length) || (dst.index > dst.length)
-        || (src.index + src.length > src.array.length)
-        || (dst.index + dst.length > dst.array.length))
+        || (src.index + src.length > src.array.length))
       return false;
 
     if (src.array == dst.array)
