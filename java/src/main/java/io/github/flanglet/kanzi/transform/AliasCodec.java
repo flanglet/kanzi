@@ -485,7 +485,7 @@ public class AliasCodec implements ByteTransform {
       if (r != 0)
         return r;
 
-      return other.val - this.val;
+      return Integer.compare(other.val, this.val);
     }
 
     /**
