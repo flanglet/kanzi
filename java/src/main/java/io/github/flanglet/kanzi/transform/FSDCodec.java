@@ -181,7 +181,11 @@ public class FSDCodec implements ByteTransform {
     // Select xor coding if large signed deltas approach the rate expected for
     // unrelated byte pairs. With modular delta coding, large signed deltas
     // no longer cause expansion, so the old 3% threshold is too conservative.
-    final byte mode = (largeDeltas > (count5 >> 2)) ? XOR_CODING : DELTA_CODING;
+    final byte coding = (largeDeltas > (count5 >> 2)) ? XOR_CODING : DELTA_CODING;
+    // Keep triplet-correlated data interleaved since phase bucketing can
+    // disrupt downstream matches for this layout.
+    final boolean bucketed = (dist > 1) && (dist != 3) && (dist != 16);
+    final byte mode = (byte) (coding | (bucketed ? 2 : 0));
     int srcIdx = input.index;
     int dstIdx = output.index;
     final int srcEnd = srcIdx + count;
@@ -193,8 +197,37 @@ public class FSDCodec implements ByteTransform {
     for (int i = 0; i < dist; i++)
       dst[dstIdx++] = src[srcIdx++];
 
-    // Emit modified bytes
-    if (mode == DELTA_CODING) {
+    // Emit modified bytes. The bucketed layout keeps each phase together in
+    // 32 KiB source tiles so entropy chunks can use phase-specific statistics.
+    if (bucketed) {
+      final int bucketLength = 1 << 15;
+      final int tileLength = dist * bucketLength;
+      final int sourceStart = input.index;
+
+      for (int tileStart = sourceStart; tileStart < srcEnd; tileStart += tileLength) {
+        final int tileEnd = Math.min(tileStart + tileLength, srcEnd);
+
+        for (int lane = 0; lane < dist; lane++) {
+          int firstPos = tileStart + lane;
+
+          if (tileStart == sourceStart)
+            firstPos += dist;
+
+          for (int pos = firstPos; pos < tileEnd; pos += dist) {
+            if (coding == DELTA_CODING) {
+              final int residual = ((src[pos] & 0xFF) - (src[pos - dist] & 0xFF)) & 0xFF;
+              final int zigzag = ((residual & 0x80) != 0) ? ((256 - residual) << 1) - 1
+                  : residual << 1;
+              dst[dstIdx++] = (byte) zigzag;
+            } else {
+              dst[dstIdx++] = (byte) (src[pos] ^ src[pos - dist]);
+            }
+          }
+        }
+      }
+
+      srcIdx = srcEnd;
+    } else if (coding == DELTA_CODING) {
       while (srcIdx < srcEnd) {
         final int residual = ((src[srcIdx] & 0xFF) - (src[srcIdx - dist] & 0xFF)) & 0xFF;
         final int zigzag = ((residual & 0x80) != 0) ? ((256 - residual) << 1) - 1
@@ -202,7 +235,7 @@ public class FSDCodec implements ByteTransform {
         dst[dstIdx++] = (byte) zigzag;
         srcIdx++;
       }
-    } else { // mode == XOR_CODING
+    } else { // coding == XOR_CODING
       while (srcIdx < srcEnd) {
         dst[dstIdx++] = (byte) (src[srcIdx] ^ src[srcIdx - dist]);
         srcIdx++;
@@ -252,32 +285,48 @@ public class FSDCodec implements ByteTransform {
     if (input.array == output.array)
       return false;
 
-    if (this.bsVersion >= 7)
-      return this.inverseV7(input, output);
-
     final int count = input.length;
+
+    if (count < 4)
+      return false;
+
     final byte[] src = input.array;
     final byte[] dst = output.array;
-    int srcIdx = input.index;
-    int dstIdx = output.index;
-    final int srcEnd = srcIdx + count;
+    final int srcStart = input.index;
+    final int srcEnd = srcStart + count;
+    final int dstStart = output.index;
     final int dstEnd = output.length;
 
     // Retrieve mode & step value
-    final byte mode = src[srcIdx];
-    final int dist = src[srcIdx + 1] & 0xFF;
-    srcIdx += 2;
+    final byte mode = src[srcStart];
+    final int modeValue = mode & 0xFF;
+    final byte coding = (byte) (modeValue & 1);
+    final boolean bucketed = ((modeValue & 2) != 0);
+    final int dist = src[srcStart + 1] & 0xFF;
 
     // Sanity check
     if ((dist < 1) || ((dist > 4) && (dist != 8) && (dist != 16)))
       return false;
+
+    if ((this.bsVersion >= 7) && ((modeValue & ~3) != 0))
+      return false;
+
+    final int dataLength = count - 2;
+
+    if ((count < dist + 2) || (dstEnd - dstStart < dist)
+        || (bucketed && (dstEnd - dstStart < dataLength)))
+      return false;
+
+    int srcIdx = srcStart + 2;
+    int dstIdx = dstStart;
 
     // Copy first bytes
     for (int i = 0; i < dist; i++)
       dst[dstIdx++] = src[srcIdx++];
 
     // Recover original bytes
-    if (mode == DELTA_CODING) {
+    if (this.bsVersion < 7) {
+      if (mode == DELTA_CODING) {
       while ((srcIdx < srcEnd) && (dstIdx < dstEnd)) {
         if (src[srcIdx] == ESCAPE_TOKEN) {
           srcIdx++;
@@ -296,62 +345,52 @@ public class FSDCodec implements ByteTransform {
         srcIdx++;
         dstIdx++;
       }
-    } else if (mode == XOR_CODING) {
-      while (srcIdx < srcEnd) {
-        dst[dstIdx] = (byte) (src[srcIdx] ^ dst[dstIdx - dist]);
-        srcIdx++;
-        dstIdx++;
+      } else if (mode == XOR_CODING) {
+        while ((srcIdx < srcEnd) && (dstIdx < dstEnd)) {
+          dst[dstIdx] = (byte) (src[srcIdx] ^ dst[dstIdx - dist]);
+          srcIdx++;
+          dstIdx++;
+        }
+      } else {
+        // Invalid mode
+        return false;
       }
-    } else {
-      // Invalid mode
-      return false;
-    }
+    } else if (bucketed) {
+      final int bucketLength = 1 << 15;
+      final int tileLength = dist * bucketLength;
 
-    input.index = srcIdx;
-    output.index = dstIdx;
-    return srcIdx == srcEnd;
-  }
+      for (int tileStart = 0; tileStart < dataLength; tileStart += tileLength) {
+        final int tileEnd = Math.min(tileStart + tileLength, dataLength);
 
-  private boolean inverseV7(SliceByteArray input, SliceByteArray output) {
-    final int count = input.length;
+        for (int lane = 0; lane < dist; lane++) {
+          int firstPos = tileStart + lane;
 
-    if (count < 4)
-      return false;
+          if (tileStart == 0)
+            firstPos += dist;
 
-    final byte[] src = input.array;
-    final byte[] dst = output.array;
-    final int srcStart = input.index;
-    final int srcEnd = srcStart + count;
-    final int dstStart = output.index;
-    final int dstEnd = output.length;
+          for (int pos = firstPos; pos < tileEnd; pos += dist) {
+            final int dstPos = dstStart + pos;
 
-    // Retrieve mode & step value
-    final byte mode = src[srcStart];
-    final int dist = src[srcStart + 1] & 0xFF;
+            if (coding == DELTA_CODING) {
+              final int value = src[srcIdx++] & 0xFF;
+              final int delta = (value >> 1) ^ -(value & 1);
+              dst[dstPos] = (byte) ((dst[dstPos - dist] & 0xFF) + delta);
+            } else {
+              dst[dstPos] = (byte) (src[srcIdx++] ^ dst[dstPos - dist]);
+            }
+          }
+        }
+      }
 
-    // Sanity check
-    if ((dist < 1) || ((dist > 4) && (dist != 8) && (dist != 16)))
-      return false;
-
-    if ((count < dist + 2) || (dstEnd - dstStart < dist))
-      return false;
-
-    // Emit first bytes
-    int srcIdx = srcStart + 2;
-    int dstIdx = dstStart;
-
-    for (int i = 0; i < dist; i++)
-      dst[dstIdx++] = src[srcIdx++];
-
-    // Recover original bytes
-    if (mode == DELTA_CODING) {
+      dstIdx = dstStart + dataLength;
+    } else if (coding == DELTA_CODING) {
       while ((srcIdx < srcEnd) && (dstIdx < dstEnd)) {
         final int value = src[srcIdx++] & 0xFF;
         final int delta = (value >> 1) ^ -(value & 1);
         dst[dstIdx] = (byte) ((dst[dstIdx - dist] & 0xFF) + delta);
         dstIdx++;
       }
-    } else if (mode == XOR_CODING) {
+    } else if (coding == XOR_CODING) {
       while ((srcIdx < srcEnd) && (dstIdx < dstEnd)) {
         dst[dstIdx] = (byte) (src[srcIdx] ^ dst[dstIdx - dist]);
         srcIdx++;

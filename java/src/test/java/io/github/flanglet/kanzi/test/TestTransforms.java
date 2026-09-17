@@ -340,6 +340,93 @@ public class TestTransforms {
   }
 
   @Test
+  void testFSDBucketedRoundTrip() {
+    final int dist = 4;
+    final int bucketLength = 1 << 15;
+    final int size = 2 * dist * bucketLength;
+    byte[] data = new byte[size];
+
+    for (int lane = 0; lane < dist; lane++) {
+      int value = lane * 37 + 17;
+
+      for (int sample = 0; sample < size / dist; sample++) {
+        data[sample * dist + lane] = (byte) value;
+
+        if ((sample * 17 + lane * 13) % 5 == 0)
+          value++;
+      }
+    }
+
+    Map<String, Object> ctx = new HashMap<>();
+    ctx.put("bsVersion", 7);
+    FSDCodec codec = new FSDCodec(ctx);
+    byte[] encoded = new byte[codec.getMaxEncodedLength(size)];
+    SliceByteArray input = new SliceByteArray(data, 0);
+    SliceByteArray output = new SliceByteArray(encoded, 0);
+
+    Assertions.assertTrue(codec.forward(input, output));
+    Assertions.assertEquals(size, input.index);
+    Assertions.assertEquals(size + 2, output.index);
+    Assertions.assertEquals(dist, encoded[1] & 0xFF);
+    Assertions.assertNotEquals(0, encoded[0] & 2);
+
+    int outputIndex = 2 + dist;
+    final int tileLength = dist * bucketLength;
+
+    for (int tileStart = 0; tileStart < size; tileStart += tileLength) {
+      final int tileEnd = Math.min(tileStart + tileLength, size);
+
+      for (int lane = 0; lane < dist; lane++) {
+        int firstPos = tileStart + lane;
+
+        if (tileStart == 0)
+          firstPos += dist;
+
+        for (int pos = firstPos; pos < tileEnd; pos += dist) {
+          final int expected;
+
+          if ((encoded[0] & 1) == 0) {
+            final int residual = ((data[pos] & 0xFF) - (data[pos - dist] & 0xFF)) & 0xFF;
+            expected = ((residual & 0x80) != 0) ? ((256 - residual) << 1) - 1 : residual << 1;
+          } else {
+            expected = (data[pos] ^ data[pos - dist]) & 0xFF;
+          }
+
+          Assertions.assertEquals(expected, encoded[outputIndex++] & 0xFF,
+              "bucketed FSD output order mismatch");
+        }
+      }
+    }
+
+    Assertions.assertEquals(output.index, outputIndex);
+    byte[] decoded = new byte[size];
+    SliceByteArray encodedInput = new SliceByteArray(encoded, output.index, 0);
+    SliceByteArray decodedOutput = new SliceByteArray(decoded, 0);
+
+    Assertions.assertTrue(codec.inverse(encodedInput, decodedOutput));
+    Assertions.assertEquals(output.index, encodedInput.index);
+    Assertions.assertEquals(size, decodedOutput.index);
+    Assertions.assertArrayEquals(data, decoded);
+  }
+
+  @Test
+  void testFSDLegacyInverse() {
+    byte[] encoded = new byte[] {0, 2, 10, 20, 2, 3, 0, 2};
+    byte[] expected = new byte[] {10, 20, 11, 18, 11, 19};
+    byte[] decoded = new byte[expected.length];
+    Map<String, Object> ctx = new HashMap<>();
+    ctx.put("bsVersion", 6);
+    FSDCodec codec = new FSDCodec(ctx);
+    SliceByteArray input = new SliceByteArray(encoded, encoded.length, 0);
+    SliceByteArray output = new SliceByteArray(decoded, 0);
+
+    Assertions.assertTrue(codec.inverse(input, output));
+    Assertions.assertEquals(encoded.length, input.index);
+    Assertions.assertEquals(expected.length, output.index);
+    Assertions.assertArrayEquals(expected, decoded);
+  }
+
+  @Test
   void testTransformCapacityValidation() {
     byte[] src = new byte[] {1, 2, 3};
     byte[] dst = new byte[] {(byte) 0x7E, (byte) 0x7E, (byte) 0x7E};
