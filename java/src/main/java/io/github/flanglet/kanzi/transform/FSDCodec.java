@@ -169,19 +169,7 @@ public class FSDCodec implements ByteTransform {
       this.ctx.put("dataType", Global.DataType.MULTIMEDIA);
 
     final int dist = DISTANCES[minIdx];
-    int largeDeltas = 0;
-
-    // Detect best coding by sampling for large deltas
-    for (int i = 2 * count5; i < 3 * count5; i++) {
-      final int delta = (src[i] & 0xFF) - (src[i - dist] & 0xFF);
-
-      largeDeltas += (((delta + 127) < 0) || ((delta + 127) > 254)) ? 1 : 0;
-    }
-
-    // Select xor coding if large signed deltas approach the rate expected for
-    // unrelated byte pairs. With modular delta coding, large signed deltas
-    // no longer cause expansion, so the old 3% threshold is too conservative.
-    final byte coding = (largeDeltas > (count5 >> 2)) ? XOR_CODING : DELTA_CODING;
+    final byte coding = DELTA_CODING;
     // Keep triplet-correlated data interleaved since phase bucketing can
     // disrupt downstream matches for this layout.
     final boolean bucketed = (dist > 1) && (dist != 3) && (dist != 16);
@@ -214,30 +202,21 @@ public class FSDCodec implements ByteTransform {
             firstPos += dist;
 
           for (int pos = firstPos; pos < tileEnd; pos += dist) {
-            if (coding == DELTA_CODING) {
-              final int residual = ((src[pos] & 0xFF) - (src[pos - dist] & 0xFF)) & 0xFF;
-              final int zigzag = ((residual & 0x80) != 0) ? ((256 - residual) << 1) - 1
-                  : residual << 1;
-              dst[dstIdx++] = (byte) zigzag;
-            } else {
-              dst[dstIdx++] = (byte) (src[pos] ^ src[pos - dist]);
-            }
+            final int residual = ((src[pos] & 0xFF) - (src[pos - dist] & 0xFF)) & 0xFF;
+            final int zigzag = ((residual & 0x80) != 0) ? ((256 - residual) << 1) - 1
+                : residual << 1;
+            dst[dstIdx++] = (byte) zigzag;
           }
         }
       }
 
       srcIdx = srcEnd;
-    } else if (coding == DELTA_CODING) {
+    } else {
       while (srcIdx < srcEnd) {
         final int residual = ((src[srcIdx] & 0xFF) - (src[srcIdx - dist] & 0xFF)) & 0xFF;
         final int zigzag = ((residual & 0x80) != 0) ? ((256 - residual) << 1) - 1
             : residual << 1;
         dst[dstIdx++] = (byte) zigzag;
-        srcIdx++;
-      }
-    } else { // coding == XOR_CODING
-      while (srcIdx < srcEnd) {
-        dst[dstIdx++] = (byte) (src[srcIdx] ^ src[srcIdx - dist]);
         srcIdx++;
       }
     }
