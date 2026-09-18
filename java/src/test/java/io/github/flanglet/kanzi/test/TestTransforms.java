@@ -533,7 +533,7 @@ public class TestTransforms {
   @Test
   void testTextCodecSelfDescribing() {
     byte[] sample = ("the be and of in to with it that for you he have on said say at "
-        + "but we by had they as would who or can may do this was is much any from not she what ")
+        + "but we by had they as would who or can may do this was is much any from not she what.\n")
         .repeat(24).getBytes(StandardCharsets.UTF_8);
 
     for (int encType = 1; encType <= 2; encType++) {

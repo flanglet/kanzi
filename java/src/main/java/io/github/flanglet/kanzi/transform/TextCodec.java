@@ -307,6 +307,21 @@ public final class TextCodec implements ByteTransform {
       prv = cur;
     }
 
+    // Reject simple alphabets before the text heuristic. Ignore line
+    // whitespace so wrapped DNA, Base64, and numeric data are detected too.
+    final int[] freqsSimple = freqs0.clone();
+    final int nbWhitespace = freqsSimple[' '] + freqsSimple['\t']
+        + freqsSimple['\n'] + freqsSimple['\r'];
+    final int simpleCount = count - nbWhitespace;
+    freqsSimple[' '] = 0;
+    freqsSimple['\t'] = 0;
+    freqsSimple['\n'] = 0;
+    freqsSimple['\r'] = 0;
+    final Global.DataType simpleType = Global.detectSimpleType(simpleCount, freqsSimple);
+
+    if (simpleType != Global.DataType.UNDEFINED)
+      return MASK_NOT_TEXT | simpleType.ordinal();
+
     int nbTextChars = freqs0[CR] + freqs0[LF];
     int nbASCII = 0;
 
@@ -1408,7 +1423,7 @@ public final class TextCodec implements ByteTransform {
     private static int emitWordIndex(byte[] dst, int dstIdx, int wIdx) {
       // 0x80 is reserved to first symbol case flip
       if (wIdx < V7_INDEX_BASE2) {
-        dst[dstIdx] = (byte) (0x80 | (wIdx + 1));
+        dst[dstIdx] = (byte) (0x81 + wIdx);
         return dstIdx + 1;
       }
 
