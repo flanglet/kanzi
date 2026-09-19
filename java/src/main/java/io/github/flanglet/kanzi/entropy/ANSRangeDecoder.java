@@ -37,6 +37,8 @@ public class ANSRangeDecoder implements EntropyDecoder {
   private static final int DEFAULT_LOG_RANGE = 12;
   private static final int MIN_CHUNK_SIZE = 1024;
   private static final int MAX_CHUNK_SIZE = 1 << 27; // 8*MAX_CHUNK_SIZE must not overflow
+  private static final int ANS_DECODE_CHECK_INTERVAL = 128;
+  private static final int ANS_PAYLOAD_GUARD = 2 * ANS_DECODE_CHECK_INTERVAL + 2;
 
   private final InputBitStream bitstream;
   private final int[][] freqs;
@@ -225,7 +227,7 @@ public class ANSRangeDecoder implements EntropyDecoder {
           this.decodeChunkV1(block, startChunk, endChunk);
         } else {
           if (this.decodeChunkV2(block, startChunk, endChunk) == false)
-            break;
+            return -1;
         }
       }
 
@@ -358,7 +360,7 @@ public class ANSRangeDecoder implements EntropyDecoder {
     // Read chunk size
     final int sz = EntropyUtils.readVarInt(this.bitstream);
 
-    if (sz >= MAX_CHUNK_SIZE)
+    if ((sz < 0) || (sz >= MAX_CHUNK_SIZE))
       return false;
 
     // Read initial ANS states
@@ -372,15 +374,18 @@ public class ANSRangeDecoder implements EntropyDecoder {
 
     final int size = Math.min(this.chunkSize, end - start);
     final int extra = Math.max(size >> 3, Math.min(size, 1 << 16));
-    final int minBufSize = size + extra + 2; // protect against corrupted bitstream
+    final int minBufSize = size + extra + ANS_PAYLOAD_GUARD;
 
     if (this.buffer.length < minBufSize)
       this.buffer = new byte[minBufSize];
 
-    Arrays.fill(this.buffer, (byte) 0);
+    if (sz > this.buffer.length - ANS_PAYLOAD_GUARD)
+      return false;
 
-    // Read compressed data from bitstream
+    // Keep a small, zeroed guard after the declared payload. The hot symbol
+    // loop validates payload consumption only at batched boundaries.
     this.bitstream.readBits(this.buffer, 0, 8 * sz);
+    Arrays.fill(this.buffer, sz, sz + ANS_PAYLOAD_GUARD, (byte) 0);
 
     int n = 0;
     final int mask = (1 << this.logRange) - 1;
@@ -391,19 +396,26 @@ public class ANSRangeDecoder implements EntropyDecoder {
       final byte[] freq2sym = this.f2s[0];
       final Symbol[] symb = this.symbols[0];
 
-      for (int i = start; i < end4; i += 4) {
-        final int cur3 = freq2sym[st3 & mask] & 0xFF;
-        block[i] = (byte) cur3;
-        st3 = decodeSymbol(idx, st3, symb[cur3], mask);
-        final int cur2 = freq2sym[st2 & mask] & 0xFF;
-        block[i + 1] = (byte) cur2;
-        st2 = decodeSymbol(idx, st2, symb[cur2], mask);
-        final int cur1 = freq2sym[st1 & mask] & 0xFF;
-        block[i + 2] = (byte) cur1;
-        st1 = decodeSymbol(idx, st1, symb[cur1], mask);
-        final int cur0 = freq2sym[st0 & mask] & 0xFF;
-        block[i + 3] = (byte) cur0;
-        st0 = decodeSymbol(idx, st0, symb[cur0], mask);
+      for (int batch = start; batch < end4; batch += ANS_DECODE_CHECK_INTERVAL) {
+        final int endBatch = Math.min(batch + ANS_DECODE_CHECK_INTERVAL, end4);
+
+        for (int i = batch; i < endBatch; i += 4) {
+          final int cur3 = freq2sym[st3 & mask] & 0xFF;
+          block[i] = (byte) cur3;
+          st3 = decodeSymbol(idx, st3, symb[cur3], mask);
+          final int cur2 = freq2sym[st2 & mask] & 0xFF;
+          block[i + 1] = (byte) cur2;
+          st2 = decodeSymbol(idx, st2, symb[cur2], mask);
+          final int cur1 = freq2sym[st1 & mask] & 0xFF;
+          block[i + 2] = (byte) cur1;
+          st1 = decodeSymbol(idx, st1, symb[cur1], mask);
+          final int cur0 = freq2sym[st0 & mask] & 0xFF;
+          block[i + 3] = (byte) cur0;
+          st0 = decodeSymbol(idx, st0, symb[cur0], mask);
+        }
+
+        if (idx[0] > sz)
+          return false;
       }
     } else {
       final int quarter = (end4 - start) >> 2;
@@ -413,25 +425,37 @@ public class ANSRangeDecoder implements EntropyDecoder {
       int i3 = start + 3 * quarter;
       int prv0 = 0, prv1 = 0, prv2 = 0, prv3 = 0;
 
-      for (; i0 < start + quarter; i0++, i1++, i2++, i3++) {
-        final int cur3 = this.f2s[prv3][st3 & mask] & 0xFF;
-        block[i3] = (byte) cur3;
-        st3 = decodeSymbol(idx, st3, this.symbols[prv3][cur3], mask);
-        final int cur2 = this.f2s[prv2][st2 & mask] & 0xFF;
-        block[i2] = (byte) cur2;
-        st2 = decodeSymbol(idx, st2, this.symbols[prv2][cur2], mask);
-        final int cur1 = this.f2s[prv1][st1 & mask] & 0xFF;
-        block[i1] = (byte) cur1;
-        st1 = decodeSymbol(idx, st1, this.symbols[prv1][cur1], mask);
-        final int cur0 = this.f2s[prv0][st0 & mask] & 0xFF;
-        block[i0] = (byte) cur0;
-        st0 = decodeSymbol(idx, st0, this.symbols[prv0][cur0], mask);
-        prv3 = cur3;
-        prv2 = cur2;
-        prv1 = cur1;
-        prv0 = cur0;
+      for (int batch = 0; batch < quarter; batch += ANS_DECODE_CHECK_INTERVAL >> 2) {
+        final int endBatch = Math.min(batch + (ANS_DECODE_CHECK_INTERVAL >> 2), quarter);
+
+        for (; i0 < start + endBatch; i0++, i1++, i2++, i3++) {
+          final int cur3 = this.f2s[prv3][st3 & mask] & 0xFF;
+          block[i3] = (byte) cur3;
+          st3 = decodeSymbol(idx, st3, this.symbols[prv3][cur3], mask);
+          final int cur2 = this.f2s[prv2][st2 & mask] & 0xFF;
+          block[i2] = (byte) cur2;
+          st2 = decodeSymbol(idx, st2, this.symbols[prv2][cur2], mask);
+          final int cur1 = this.f2s[prv1][st1 & mask] & 0xFF;
+          block[i1] = (byte) cur1;
+          st1 = decodeSymbol(idx, st1, this.symbols[prv1][cur1], mask);
+          final int cur0 = this.f2s[prv0][st0 & mask] & 0xFF;
+          block[i0] = (byte) cur0;
+          st0 = decodeSymbol(idx, st0, this.symbols[prv0][cur0], mask);
+          prv3 = cur3;
+          prv2 = cur2;
+          prv1 = cur1;
+          prv0 = cur0;
+        }
+
+        if (idx[0] > sz)
+          return false;
       }
     }
+
+    final int tail = end - end4;
+
+    if (sz - idx[0] < tail)
+      return false;
 
     n = idx[0];
 
