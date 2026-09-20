@@ -18,8 +18,10 @@
 
 package io.github.flanglet.kanzi.transform;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Map;
-import java.util.TreeSet;
+import java.util.PriorityQueue;
 import io.github.flanglet.kanzi.ByteTransform;
 import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.Memory;
@@ -195,7 +197,8 @@ public class AliasCodec implements ByteTransform {
       }
     } else {
       // Digram encoding
-      TreeSet<Alias> t = new TreeSet<>();
+      final int maxAliases = n0;
+      PriorityQueue<Alias> t = new PriorityQueue<>(maxAliases, WORST_ALIAS_COMPARATOR);
 
       {
         // Find missing 2-byte symbols
@@ -207,7 +210,15 @@ public class AliasCodec implements ByteTransform {
           if (freqs1[i >> 8][i & 0xFF] == 0)
             continue;
 
-          t.add(new Alias(i, freqs1[i >> 8][i & 0xFF]));
+          Alias alias = new Alias(i, freqs1[i >> 8][i & 0xFF]);
+
+          if (t.size() < maxAliases) {
+            t.add(alias);
+          } else if (WORST_ALIAS_COMPARATOR.compare(alias, t.peek()) > 0) {
+            t.poll();
+            t.add(alias);
+          }
+
           n1++;
         }
 
@@ -230,10 +241,12 @@ public class AliasCodec implements ByteTransform {
       dst[output.index] = (byte) n0;
       dst[output.index + 1] = (byte) 0;
       dstIdx += 2;
+      Alias[] aliases = t.toArray(new Alias[0]);
+      Arrays.sort(aliases);
 
       // Header: emit map data
       for (int i = 0; i < n0; i++) {
-        Alias sd = t.pollFirst();
+        Alias sd = aliases[i];
         savings += sd.freq; // ignore factor 2
         final int idx = sd.val;
         map16[idx] = absent[i] | 0x200;
@@ -267,6 +280,11 @@ public class AliasCodec implements ByteTransform {
     output.index = dstIdx;
     return res;
   }
+
+  private static final Comparator<Alias> WORST_ALIAS_COMPARATOR = (first, second) -> {
+    final int r = Integer.compare(first.freq, second.freq);
+    return r != 0 ? r : Integer.compare(first.val, second.val);
+  };
 
   /**
    * Performs the inverse transformation on the input data.
