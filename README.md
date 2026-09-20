@@ -52,9 +52,7 @@ Kanzi offers a compelling alternative for specific high-performance scenarios:
 
 ## Benchmarks
 
-Kanzi version 2.5.0 
-
-java 25 2025-09-16 LTS
+Kanzi version 2.6.0 
 
 *Note: The default block size at level 9 is 32MB, severely limiting the number of threads
 in use, especially with enwik8, but all tests are performed with default values.*
@@ -62,7 +60,11 @@ in use, especially with enwik8, but all tests are performed with default values.
 
 ### silesia.tar
 
-Test machine: AMD Ryzen 9950X on Ubuntu 25.10
+Test machine: AMD Ryzen 9950X on Ubuntu 26.04
+
+openjdk version "27" 2026-09-15
+
+Median of 5 runs
 
 Download at http://sun.aei.polsl.pl/~sdeor/corpus/silesia.zip
 
@@ -70,28 +72,28 @@ Download at http://sun.aei.polsl.pl/~sdeor/corpus/silesia.zip
 |---------------------------------|-----------------|-----------------|------------------|
 |Original                         |                 |                 |   211,957,760    |
 |lz4 1.1.10 -T16 -4               |        18       |         13      |    79,910,851    |
-|**kanzi -l 1**                   |     **510**     |      **183**    |    79,331,051    |
+|**kanzi -l 1**                   |     **497**     |      **246**    |    79,184,957    |
 |zstd 1.5.8 -T16 -2               |         6       |         11      |    69,443,247    |
-|**kanzi -l 2**                   |     **702**     |      **317**    |    68,616,621    |
+|**kanzi -l 2**                   |     **693**     |      **350**    |    68,627,321    |
 |brotli 1.1.0 -2                  |       880       |        333      |    68,040,160    |
 |gzip 1.13 -9                     |     10328       |        704      |    67,651,076    |
-|**kanzi -l 3**                   |     **896**     |      **470**    |    63,966,794    |
+|**kanzi -l 3**                   |     **802**     |      **479**    |    63,093,409    |
 |zstd 1.5.8 -T16 -5               |       138       |        123      |    62,867,556    |
-|**kanzi -l 4**                   |    **1283**     |      **743**    |    61,183,757    |
+|**kanzi -l 4**                   |     **936**     |      **754**    |    60,789,646    |
 |zstd 1.5.8 -T16 -9               |       320       |        114      |    59,233,481    |
 |brotli 1.1.0 -6                  |      4039       |        299      |    58,511,709    |
 |zstd 1.5.8 -T16 -13              |      1820       |        112      |    57,843,283    |
 |brotli 1.1.0 -9                  |     23030       |        293      |    56,407,229    |
 |bzip2 1.0.8 -9                   |      8223       |       3453      |    54,588,597    |
-|**kanzi -l 5**                   |    **1717**     |      **752**    |    53,853,702    |
+|**kanzi -l 5**                   |    **1814**     |      **685**    |    53,863,205    |
 |zstd 1.5.8 -T16 -19              |     11290       |        130      |    52,830,213    |
-|**kanzi -l 6**                   |    **1913**     |      **788**    |    49,472,084    |
+|**kanzi -l 6**                   |    **2300**     |      **840**    |    49,472,110    |
 |xz 5.8.1 -9                      |     43611       |        931      |    48,802,580    |
 |bsc 3.3.11 -T16                  |      1201       |        698      |    47,900,848    |
-|**kanzi -l 7**                   |    **1684**     |     **1046**    |    47,330,422    |
+|**kanzi -l 7**                   |    **1840**     |     **1558**    |    47,330,431    |
 |bzip3 1.5.1.r3-g428f422 -j 16    |      2348       |       2218      |    47,260,281    |
-|**kanzi -l 8**                   |    **5842**     |     **6025**    |    42,962,913    |
-|**kanzi -l 9**                   |   **15069**     |    **14985**    |    41,520,670    |
+|**kanzi -l 8**                   |    **5928**     |     **6340**    |    42,962,926    |
+|**kanzi -l 9**                   |   **14693**     |    **15192**    |    41,520,677    |
 
 
 
@@ -99,20 +101,24 @@ Download at http://sun.aei.polsl.pl/~sdeor/corpus/silesia.zip
 
 Test machine: Apple M3 24 GB Sonoma 15.7.3
 
+java version "27" 2026-09-15
+
+Median of 5 runs
+
 Download at https://mattmahoney.net/dc/enwik8.zip
 
 |   Compressor    | Encoding (ms)  | Decoding (ms)  |  Size        |
 |-----------------|----------------|----------------|--------------|
 |Original         |                |                |  100,000,000 |
-|Kanzi -l 1       |       558      |        185     |   42,870,183 |
-|Kanzi -l 2       |       534      |        241     |   37,544,247 |
-|Kanzi -l 3       |       998      |        519     |   32,551,405 |
-|Kanzi -l 4       |      1073      |        694     |   29,536,581 |
-|Kanzi -l 5       |      1485      |        808     |   26,528,254 |
-|Kanzi -l 6       |      1974      |       1165     |   24,076,765 |
-|Kanzi -l 7       |      2665      |       1743     |   22,817,360 |
-|Kanzi -l 8       |      7270      |       7341     |   21,181,992 |
-|Kanzi -l 9       |     10521      |      10365     |   20,035,144 |
+|Kanzi -l 1       |       580      |        149     |   42,941,668 |
+|Kanzi -l 2       |       660      |        271     |   37,688,371 |
+|Kanzi -l 3       |       753      |        470     |   32,562,496 |
+|Kanzi -l 4       |      1052      |        679     |   29,466,291 |
+|Kanzi -l 5       |      1546      |        812     |   26,521,279 |
+|Kanzi -l 6       |      2165      |       1171     |   24,076,777 |
+|Kanzi -l 7       |      2831      |       1850     |   22,817,366 |
+|Kanzi -l 8       |      7397      |       7508     |   21,181,998 |
+|Kanzi -l 9       |     10414      |      10675     |   20,035,687 |
 
 
 ## Build 
