@@ -236,7 +236,7 @@ public class FSDCodec implements ByteTransform {
 
     final int entropy = Global.computeFirstOrderEntropy1024(count5, histo[0]);
 
-    if (entropy >= ent[0])
+    if (entropy * 100 >= ent[0] * 99)
       return false;
 
     input.index = srcIdx;
