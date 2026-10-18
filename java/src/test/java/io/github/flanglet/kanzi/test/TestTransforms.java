@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import io.github.flanglet.kanzi.ByteTransform;
+import io.github.flanglet.kanzi.Global;
 import io.github.flanglet.kanzi.SliceByteArray;
+import io.github.flanglet.kanzi.transform.AliasCodec;
 import io.github.flanglet.kanzi.transform.BWT;
 import io.github.flanglet.kanzi.transform.BWTS;
 import io.github.flanglet.kanzi.transform.FSDCodec;
@@ -337,6 +339,72 @@ public class TestTransforms {
 
       System.out.println();
     }
+  }
+
+  @Test
+  void testAliasApplicability() {
+    final int size = 65536;
+    final byte[] repetitiveSymbols = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'i', '\n'};
+    byte[] repetitive = new byte[size];
+
+    for (int i = 0; i < size; i++)
+      repetitive[i] = repetitiveSymbols[i % repetitiveSymbols.length];
+
+    Map<String, Object> repetitiveCtx = new HashMap<>();
+    repetitiveCtx.put("bsVersion", 7);
+    AliasCodec repetitiveCodec = new AliasCodec(repetitiveCtx);
+    byte[] repetitiveEncoded = new byte[repetitiveCodec.getMaxEncodedLength(size)];
+    SliceByteArray input = new SliceByteArray(repetitive, 0);
+    SliceByteArray output = new SliceByteArray(repetitiveEncoded, 0);
+
+    Assertions.assertFalse(repetitiveCodec.forward(input, output),
+        "Alias should skip highly predictable non-DNA data");
+    Assertions.assertEquals(0, input.index);
+    Assertions.assertEquals(0, output.index);
+    Assertions.assertEquals(Global.DataType.UNDEFINED, repetitiveCtx.get("dataType"));
+
+    byte[] varied = new byte[size];
+    int state = 1;
+
+    for (int i = 0; i < size; i++) {
+      state = state * 1664525 + 1013904223;
+      varied[i] = repetitiveSymbols[(state >>> 16) % repetitiveSymbols.length];
+    }
+
+    Map<String, Object> variedCtx = new HashMap<>();
+    variedCtx.put("bsVersion", 7);
+    AliasCodec variedCodec = new AliasCodec(variedCtx);
+    byte[] variedEncoded = new byte[variedCodec.getMaxEncodedLength(size)];
+    SliceByteArray variedInput = new SliceByteArray(varied, 0);
+    SliceByteArray variedOutput = new SliceByteArray(variedEncoded, 0);
+    Assertions.assertTrue(variedCodec.forward(variedInput, variedOutput),
+        "Alias should keep useful small-alphabet packing");
+    Assertions.assertEquals(size, variedInput.index);
+    Assertions.assertTrue(variedOutput.index < size);
+
+    byte[] dnaSymbols = "ACGTN".getBytes(StandardCharsets.UTF_8);
+    byte[] dna = new byte[size];
+
+    for (int i = 0; i < size; i++)
+      dna[i] = dnaSymbols[i % dnaSymbols.length];
+
+    Map<String, Object> dnaCtx = new HashMap<>();
+    dnaCtx.put("bsVersion", 7);
+    AliasCodec dnaCodec = new AliasCodec(dnaCtx);
+    byte[] dnaEncoded = new byte[dnaCodec.getMaxEncodedLength(size)];
+    SliceByteArray dnaInput = new SliceByteArray(dna, 0);
+    SliceByteArray dnaOutput = new SliceByteArray(dnaEncoded, 0);
+    Assertions.assertTrue(dnaCodec.forward(dnaInput, dnaOutput), "Alias should keep DNA packing");
+    Assertions.assertEquals(size, dnaInput.index);
+    Assertions.assertTrue(dnaOutput.index < size);
+
+    byte[] decoded = new byte[size];
+    SliceByteArray encodedInput = new SliceByteArray(dnaEncoded, dnaOutput.index, 0);
+    SliceByteArray decodedOutput = new SliceByteArray(decoded, 0);
+    Assertions.assertTrue(dnaCodec.inverse(encodedInput, decodedOutput));
+    Assertions.assertEquals(dnaOutput.index, encodedInput.index);
+    Assertions.assertEquals(size, decodedOutput.index);
+    Assertions.assertArrayEquals(dna, decoded);
   }
 
   @Test
