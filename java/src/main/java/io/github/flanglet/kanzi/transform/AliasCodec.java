@@ -36,55 +36,8 @@ import io.github.flanglet.kanzi.SliceByteArray;
  */
 public class AliasCodec implements ByteTransform {
   private static final int MIN_BLOCK_SIZE = 1024;
-  private static final int ENTROPY_SAMPLE_SIZE = 64 * 1024;
-  private static final int ENTROPY1_MAX = 352; // 2.75 bits per byte or less
   private final Map<String, Object> ctx;
   private final boolean onlyDNA;
-
-  private static boolean isHighlyPredictable(byte[] source, int sourceOffset, int sourceLength) {
-    final int sampleSize = Math.min(sourceLength, ENTROPY_SAMPLE_SIZE);
-    final int lastOffset = sourceOffset + sourceLength - sampleSize;
-    final int[] offsets = {sourceOffset, sourceOffset + (lastOffset - sourceOffset) / 2, lastOffset};
-    int previousOffset = -1;
-    int[][] histo = new int[256][256];
-
-    for (int offset : offsets) {
-      if (offset == previousOffset)
-        continue;
-
-      previousOffset = offset;
-
-      for (int[] row : histo)
-        Arrays.fill(row, 0);
-
-      Global.computeHistogramOrder1(source, offset, offset + sampleSize, histo, false);
-      long sum = 0;
-
-      for (int prev = 0; prev < 256; prev++) {
-        int total = 0;
-
-        for (int cur = 0; cur < 256; cur++)
-          total += histo[prev][cur];
-
-        if (total == 0)
-          continue;
-
-        final int logTotal = Global.log2_1024(total);
-
-        for (int cur = 0; cur < 256; cur++) {
-          final int freq = histo[prev][cur];
-
-          if (freq != 0)
-            sum += ((long) freq * (logTotal - Global.log2_1024(freq))) >> 3;
-        }
-      }
-
-      if ((int) (sum / sampleSize) <= ENTROPY1_MAX)
-        return true;
-    }
-
-    return false;
-  }
 
   /**
    * Default constructor. Creates an AliasCodec instance with no specific context and not restricted
@@ -320,14 +273,6 @@ public class AliasCodec implements ByteTransform {
         dst[output.index + 1] = (byte) 1;
         dst[dstIdx++] = src[srcIdx++];
       }
-    }
-
-    if ((dt != Global.DataType.DNA) && (n0 >= 240) && (n0 < 252)
-        && isHighlyPredictable(src, input.index, count)) {
-      if (this.ctx != null)
-        this.ctx.put("dataType", Global.DataType.UNDEFINED);
-
-      return false;
     }
 
     boolean res = (dstIdx - output.index) < count;
