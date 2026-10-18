@@ -18,6 +18,8 @@
 
 package io.github.flanglet.kanzi.transform;
 
+import java.util.Arrays;
+
 /**
  * Port to Java of the DivSufSort algorithm by Yuta Mori. DivSufSort is a fast two-stage suffix
  * sorting algorithm. The original C code is here: https://code.google.com/p/libdivsufsort/ See also
@@ -229,9 +231,26 @@ public final class DivSufSort {
 
   private int constructBWT(int[] bucketA, int[] bucketB, int n, int m, int[] indexes,
       int idxCount) {
-    int pIdx = -1;
     final int st = n / idxCount;
     final int step = (st * idxCount != n) ? st + 1 : st;
+    final boolean powerOfTwo = (step & (step - 1)) == 0;
+    int shift = 0;
+
+    if (powerOfTwo) {
+      while ((1 << shift) < step)
+        shift++;
+    }
+
+    final int mask = step - 1;
+
+    return this.constructBWTImpl(bucketA, bucketB, n, m, indexes, step, mask, shift,
+        powerOfTwo);
+  }
+
+
+  private int constructBWTImpl(int[] bucketA, int[] bucketB, int n, int m, int[] indexes,
+      int step, int mask, int shift, boolean powerOfTwo) {
+    int pIdx = -1;
 
     if (m > 0) {
       for (int c1 = 254; c1 >= 0; c1--) {
@@ -251,8 +270,12 @@ public final class DivSufSort {
             continue;
           }
 
-          if (s % step == 0)
+          if (powerOfTwo) {
+            if ((s & mask) == 0)
+              indexes[s >> shift] = j + 1;
+          } else if (s % step == 0) {
             indexes[s / step] = j + 1;
+          }
 
           s--;
           final int c0 = this.buffer[s];
@@ -278,8 +301,12 @@ public final class DivSufSort {
     int k = bucketA[c2];
 
     if (this.buffer[n - 2] < c2) {
-      if ((n - 1) % step == 0)
+      if (powerOfTwo) {
+        if (((n - 1) & mask) == 0)
+          indexes[(n - 1) >> shift] = n;
+      } else if ((n - 1) % step == 0) {
         indexes[(n - 1) / step] = n;
+      }
 
       this.sa[k++] = ~this.buffer[n - 2];
     } else {
@@ -299,8 +326,12 @@ public final class DivSufSort {
         continue;
       }
 
-      if (s % step == 0)
+      if (powerOfTwo) {
+        if ((s & mask) == 0)
+          indexes[s >> shift] = i + 1;
+      } else if (s % step == 0) {
         indexes[s / step] = i + 1;
+      }
 
       s--;
       final int c0 = this.buffer[s];
@@ -313,8 +344,12 @@ public final class DivSufSort {
       }
 
       if ((s > 0) && (this.buffer[s - 1] < c0)) {
-        if (s % step == 0)
+        if (powerOfTwo) {
+          if ((s & mask) == 0)
+            indexes[s >> shift] = k + 1;
+        } else if (s % step == 0) {
           indexes[s / step] = k + 1;
+        }
 
         s = ~this.buffer[s - 1];
       }
@@ -573,50 +608,35 @@ public final class DivSufSort {
 
 
   private int ssCompare(int pa, int pb, int p2, int depth) {
-    int u1 = depth + pa;
-    int u2 = depth + this.sa[p2];
-    final int u1n = pb + 2;
-    final int u2n = this.sa[p2 + 1] + 2;
-
-    if (u1n - u1 > u2n - u2) {
-      while ((u2 < u2n) && (this.buffer[u1] == this.buffer[u2])) {
-
-
-        u1++;
-        u2++;
-      }
-    } else {
-      while ((u1 < u1n) && (this.buffer[u1] == this.buffer[u2])) {
-        u1++;
-        u2++;
-      }
-    }
-
-    return (u1 < u1n) ? ((u2 < u2n) ? this.buffer[u1] - this.buffer[u2] : 1)
-        : ((u2 < u2n) ? -1 : 0);
+    return this.compareBytes(depth + pa, pb + 2, depth + this.sa[p2], this.sa[p2 + 1] + 2);
   }
 
 
   private int ssCompare(int p1, int p2, int depth) {
-    int u1 = depth + this.sa[p1];
-    int u2 = depth + this.sa[p2];
-    final int u1n = this.sa[p1 + 1] + 2;
-    final int u2n = this.sa[p2 + 1] + 2;
+    return this.compareBytes(depth + this.sa[p1], this.sa[p1 + 1] + 2,
+        depth + this.sa[p2], this.sa[p2 + 1] + 2);
+  }
 
-    if (u1n - u1 > u2n - u2) {
-      while ((u2 < u2n) && (this.buffer[u1] == this.buffer[u2])) {
-        u1++;
-        u2++;
-      }
+
+  private int compareBytes(int p1, int end1, int p2, int end2) {
+    final int len1 = end1 - p1;
+    final int len2 = end2 - p2;
+    final int common = Math.min(len1, len2);
+
+    if (common >= 16) {
+      final int result = Arrays.compare(this.buffer, p1, p1 + common,
+          this.buffer, p2, p2 + common);
+
+      if (result != 0)
+        return (result < 0) ? -1 : 1;
     } else {
-      while ((u1 < u1n) && (this.buffer[u1] == this.buffer[u2])) {
-        u1++;
-        u2++;
+      for (int i = 0; i < common; i++) {
+        if (this.buffer[p1 + i] != this.buffer[p2 + i])
+          return (this.buffer[p1 + i] < this.buffer[p2 + i]) ? -1 : 1;
       }
     }
 
-    return (u1 < u1n) ? ((u2 < u2n) ? this.buffer[u1] - this.buffer[u2] : 1)
-        : ((u2 < u2n) ? -1 : 0);
+    return (len1 < len2) ? -1 : ((len1 > len2) ? 1 : 0);
   }
 
 
