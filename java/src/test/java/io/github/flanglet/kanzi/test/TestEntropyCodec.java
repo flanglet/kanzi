@@ -74,6 +74,8 @@ public class TestEntropyCodec {
 
 
         testSpeed("HUFFMAN", 200);
+        System.out.println("\n\nTest Huffman1 Codec");
+        testSpeed("HUFFMAN1", 200);
         System.out.println("\n\nTest ANS0 Codec");
 
 
@@ -133,6 +135,9 @@ public class TestEntropyCodec {
       case "HUFFMAN":
         return new HuffmanEncoder(obs);
 
+      case "HUFFMAN1":
+        return new HuffmanEncoder(obs, 1, 16384);
+
       case "ANS0":
         return new ANSRangeEncoder(obs, 0);
 
@@ -174,6 +179,9 @@ public class TestEntropyCodec {
       case "HUFFMAN":
         return new HuffmanDecoder(ibs, ctx);
 
+      case "HUFFMAN1":
+        return new HuffmanDecoder(ibs, 1, 16384, ctx);
+
       case "ANS0":
         return new ANSRangeDecoder(ibs, ctx, 0);
 
@@ -204,7 +212,8 @@ public class TestEntropyCodec {
 
 
   @ParameterizedTest
-  @CsvSource({"HUFFMAN", "ANS0", "ANS1", "RANGE", "FPAQ", "CM", "TPAQ", "TPAQ", "EXPGOLOMB"})
+  @CsvSource({"HUFFMAN", "HUFFMAN1", "ANS0", "ANS1", "RANGE", "FPAQ", "CM", "TPAQ", "TPAQ",
+      "EXPGOLOMB"})
   void testCorrectness(String name) {
     // Test behavior
     System.out.println("Correctness test for " + name);
@@ -291,6 +300,76 @@ public class TestEntropyCodec {
       });
     }
   }
+
+  @Test
+  void testHuffmanOrder1Boundaries() throws Exception {
+    final int[] sizes = {0, 1, 31, 32, 33, 35, 1024, 8191, 8192, 8193, 8225, 32767, 32768,
+        32769, 32801, 131071, 131072, 131073, 262143, 262144, 262145, 262177, 524287, 524288,
+        524289, 524321};
+
+    for (int pattern = 0; pattern < 4; pattern++) {
+      for (int size : sizes) {
+        final byte[] src = new byte[size + 6];
+        final byte[] dst = new byte[size + 6];
+        Arrays.fill(src, (byte) 93);
+        Arrays.fill(dst, (byte) 93);
+        int state = 12345;
+
+        for (int i = 0; i < size; i++) {
+          state = state * 1664525 + 1013904223;
+          final int val = (pattern == 0) ? 7 : (pattern == 1) ? (i & 255)
+              : (pattern == 2) ? (state >>> 24) : (((state >>> 24) < 240) ? 0 : (state >>> 16));
+          src[i + 3] = (byte) val;
+        }
+
+        final ByteArrayOutputStream os = new ByteArrayOutputStream(16384);
+        final OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+        final HuffmanEncoder encoder = new HuffmanEncoder(obs, 1, 1024);
+        Assertions.assertEquals(size, encoder.encode(src, 3, size));
+        encoder.dispose();
+        obs.writeBits(0x12345678, 32);
+        obs.close();
+
+        final InputBitStream ibs =
+            new DefaultInputBitStream(new ByteArrayInputStream(os.toByteArray()), 16384);
+        final Map<String, Object> ctx = new HashMap<>();
+        ctx.put("bsVersion", 6);
+        final HuffmanDecoder decoder = new HuffmanDecoder(ibs, 1, 1024, ctx);
+        Assertions.assertEquals(size, decoder.decode(dst, 3, size));
+        Assertions.assertArrayEquals(src, dst);
+        Assertions.assertEquals(0x12345678, ibs.readBits(32));
+        decoder.dispose();
+        ibs.close();
+      }
+    }
+  }
+
+
+  @Test
+  void testHuffmanOrder1RejectsEmptyReferencedContext() throws Exception {
+    final ByteArrayOutputStream os = new ByteArrayOutputStream(1024);
+    final OutputBitStream obs = new DefaultOutputBitStream(os, 1024);
+    final int[] emptyAlphabet = new int[0];
+
+    for (int i = 0; i < 256; i++)
+      Assertions.assertEquals(0, EntropyUtils.encodeAlphabet(obs, emptyAlphabet, 0));
+
+    for (int i = 0; i < 4; i++)
+      EntropyUtils.writeVarInt(obs, 8);
+
+    obs.writeBits(0, 32);
+    obs.close();
+
+    final InputBitStream ibs =
+        new DefaultInputBitStream(new ByteArrayInputStream(os.toByteArray()), 1024);
+    final Map<String, Object> ctx = new HashMap<>();
+    ctx.put("bsVersion", 6);
+    final HuffmanDecoder decoder = new HuffmanDecoder(ibs, 1, 1024, ctx);
+    Assertions.assertEquals(-1, decoder.decode(new byte[32], 0, 32));
+    decoder.dispose();
+    ibs.close();
+  }
+
 
   @Test
   void testExpGolombUnsignedRoundTrip() throws Exception {

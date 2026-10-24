@@ -18,6 +18,7 @@
 
 package io.github.flanglet.kanzi.entropy;
 
+import java.util.Arrays;
 import java.util.Map;
 import io.github.flanglet.kanzi.BitStreamException;
 import io.github.flanglet.kanzi.EntropyDecoder;
@@ -52,6 +53,8 @@ public class HuffmanDecoder implements EntropyDecoder {
   private final short[] table; // decoding table: code -> size, symbol
   private byte[] buffer;
   private final int chunkSize;
+  private final int order;
+  private short[] tablesOrder1;
   private final int maxSymbolSize;
   private final int bsVersion;
 
@@ -64,7 +67,7 @@ public class HuffmanDecoder implements EntropyDecoder {
    */
   public HuffmanDecoder(InputBitStream bitstream, Map<String, Object> ctx)
       throws BitStreamException {
-    this(bitstream, HuffmanCommon.MAX_CHUNK_SIZE, ctx);
+    this(bitstream, 0, HuffmanCommon.MAX_CHUNK_SIZE, ctx);
   }
 
   /**
@@ -78,6 +81,22 @@ public class HuffmanDecoder implements EntropyDecoder {
    */
   public HuffmanDecoder(InputBitStream bitstream, int chunkSize, Map<String, Object> ctx)
       throws BitStreamException {
+    this(bitstream, 0, chunkSize, ctx);
+  }
+
+  /**
+   * Creates a Huffman decoder with the specified order and base chunk size. Order 1 scales the
+   * chunk size by 32, giving a default chunk size of 512 KiB.
+   *
+   * @param bitstream The {@link InputBitStream} to read compressed data from.
+   * @param order The model order, either 0 or 1.
+   * @param chunkSize The base size of data chunks to process.
+   * @param ctx A map containing additional context information for decompression.
+   * @throws BitStreamException if an error occurs during bitstream operations.
+   * @throws IllegalArgumentException if {@code order} or {@code chunkSize} is out of range.
+   */
+  public HuffmanDecoder(InputBitStream bitstream, int order, int chunkSize,
+      Map<String, Object> ctx) throws BitStreamException {
     if (bitstream == null)
       throw new NullPointerException("Huffman codec: Invalid null bitstream parameter");
 
@@ -88,13 +107,17 @@ public class HuffmanDecoder implements EntropyDecoder {
       throw new IllegalArgumentException(
           "Huffman codec: The chunk size must be at most " + HuffmanCommon.MAX_CHUNK_SIZE);
 
+    if ((order != 0) && (order != 1))
+      throw new IllegalArgumentException("Huffman codec: The order must be 0 or 1");
+
     this.bsVersion = (ctx == null) ? 6 : (Integer) ctx.getOrDefault("bsVersion", 6);
     this.bitstream = bitstream;
     this.sizes = new short[256];
     this.alphabet = new int[256];
     this.codes = new int[256];
     this.buffer = new byte[0];
-    this.chunkSize = chunkSize;
+    this.order = order;
+    this.chunkSize = chunkSize << (5 * order);
     this.maxSymbolSize = HuffmanCommon.MAX_SYMBOL_SIZE_V4;
     this.table = new short[1 << this.maxSymbolSize];
 
@@ -209,6 +232,9 @@ public class HuffmanDecoder implements EntropyDecoder {
 
     if (count == 0)
       return 0;
+
+    if (this.order == 1)
+      return decodeOrder1(block, blkptr, count);
 
     if (this.bsVersion < 6)
       return decodeV5(block, blkptr, count);
@@ -590,6 +616,105 @@ public class HuffmanDecoder implements EntropyDecoder {
         && (((idx1 - base1) << 3) - (bs1 + HuffmanCommon.MAX_SYMBOL_SIZE_V4) == szBits1)
         && (((idx2 - base2) << 3) - (bs2 + HuffmanCommon.MAX_SYMBOL_SIZE_V4) == szBits2)
         && (((idx3 - base3) << 3) - (bs3 + HuffmanCommon.MAX_SYMBOL_SIZE_V4) == szBits3);
+  }
+
+  // Decode four independent fragments, each with a previous-byte Huffman model.
+  private int decodeOrder1(byte[] block, int blkptr, int count) {
+    if (this.tablesOrder1 == null)
+      this.tablesOrder1 = new short[256 * (1 << 12)];
+
+    int startChunk = blkptr;
+    final int end = blkptr + count;
+
+    while (startChunk < end) {
+      final int sizeChunk = Math.min(this.chunkSize, end - startChunk);
+
+      if (sizeChunk < 32) {
+        this.bitstream.readBits(block, startChunk, 8 * sizeChunk);
+        startChunk += sizeChunk;
+        continue;
+      }
+
+      Arrays.fill(this.tablesOrder1, (short) 0);
+
+      for (int ctx = 0; ctx < 256; ctx++) {
+        final int alphabetSize = this.readLengths();
+        final int base = ctx << 12;
+
+        for (int i = 0; i < alphabetSize; i++) {
+          final int sym = this.alphabet[i];
+          final int len = this.sizes[sym];
+
+          if ((len <= 0) || (len > this.maxSymbolSize))
+            return -1;
+
+          final int begin = this.codes[sym] << (12 - len);
+          final int limit = begin + (1 << (12 - len));
+
+          if (limit > (1 << 12))
+            return -1;
+
+          final short entry = (short) ((sym << 8) | len);
+
+          for (int k = begin; k < limit; k++) {
+            if (this.tablesOrder1[base + k] != 0)
+              return -1;
+
+            this.tablesOrder1[base + k] = entry;
+          }
+        }
+      }
+
+      final int fragSize = sizeChunk >>> 2;
+      final int[] nbBits = new int[4];
+      final int maxBufSize = ((fragSize * 12 + 7) >>> 3) + 2;
+
+      if (this.buffer.length < maxBufSize)
+        this.buffer = new byte[maxBufSize];
+
+      for (int j = 0; j < 4; j++) {
+        final int bits = EntropyUtils.readVarInt(this.bitstream);
+
+        if ((bits < fragSize) || (bits > fragSize * 12))
+          return -1;
+
+        nbBits[j] = bits;
+      }
+
+      for (int j = 0; j < 4; j++) {
+        final int bits = nbBits[j];
+        final int bytes = (bits + 7) >>> 3;
+        Arrays.fill(this.buffer, 0, bytes + 2, (byte) 0);
+        this.bitstream.readBits(this.buffer, 0, bits);
+
+        int bitPosition = 0;
+        int prev = (j == 0) ? 0 : (block[startChunk + j * fragSize - 1] & 0xFF);
+        for (int i = 0; i < fragSize; i++) {
+          final int bytePos = bitPosition >>> 3;
+          final int bitOffset = bitPosition & 7;
+          final int prefix = (((this.buffer[bytePos] & 0xFF) << 16)
+              | ((this.buffer[bytePos + 1] & 0xFF) << 8)
+              | (this.buffer[bytePos + 2] & 0xFF)) >>> (12 - bitOffset) & 0xFFF;
+          final int val = this.tablesOrder1[(prev << 12) | prefix] & 0xFFFF;
+          final int len = val & 0xFF;
+
+          if ((len == 0) || ((bitPosition += len) > bits))
+            return -1;
+
+          prev = val >>> 8;
+          block[startChunk + j * fragSize + i] = (byte) prev;
+        }
+
+        if (bitPosition != bits)
+          return -1;
+      }
+
+      this.bitstream.readBits(block, startChunk + 4 * fragSize,
+          8 * (sizeChunk - (4 * fragSize)));
+      startChunk += sizeChunk;
+    }
+
+    return count;
   }
 
   /**

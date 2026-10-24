@@ -46,7 +46,10 @@ public class HuffmanEncoder implements EntropyEncoder {
   private final int[] alphabet;
   private final int[] codes;
   private final int chunkSize;
+  private final int order;
   private byte[] buffer;
+  private int[][] freqsOrder1;
+  private short[] codesOrder1;
 
   /**
    * Creates a new {@code HuffmanEncoder} with the specified output bitstream and a default chunk
@@ -56,7 +59,7 @@ public class HuffmanEncoder implements EntropyEncoder {
    * @throws BitStreamException if an error occurs during bitstream operations.
    */
   public HuffmanEncoder(OutputBitStream bitstream) throws BitStreamException {
-    this(bitstream, HuffmanCommon.MAX_CHUNK_SIZE);
+    this(bitstream, 0, HuffmanCommon.MAX_CHUNK_SIZE);
   }
 
   // The chunk size indicates how many bytes are encoded (per block) before
@@ -70,6 +73,21 @@ public class HuffmanEncoder implements EntropyEncoder {
    * @throws IllegalArgumentException if {@code chunkSize} is out of range.
    */
   public HuffmanEncoder(OutputBitStream bitstream, int chunkSize) throws BitStreamException {
+    this(bitstream, 0, chunkSize);
+  }
+
+  /**
+   * Creates a Huffman encoder with the specified order and base chunk size. Order 1 scales the
+   * chunk size by 32, giving a default chunk size of 512 KiB.
+   *
+   * @param bitstream The {@link OutputBitStream} to write compressed data to.
+   * @param order The model order, either 0 or 1.
+   * @param chunkSize The base size of data chunks to process.
+   * @throws BitStreamException if an error occurs during bitstream operations.
+   * @throws IllegalArgumentException if {@code order} or {@code chunkSize} is out of range.
+   */
+  public HuffmanEncoder(OutputBitStream bitstream, int order, int chunkSize)
+      throws BitStreamException {
     if (bitstream == null)
       throw new NullPointerException("Huffman codec: Invalid null bitstream parameter");
 
@@ -81,11 +99,15 @@ public class HuffmanEncoder implements EntropyEncoder {
       throw new IllegalArgumentException(
           "Huffman codec: The chunk size must be at most " + HuffmanCommon.MAX_CHUNK_SIZE);
 
+    if ((order != 0) && (order != 1))
+      throw new IllegalArgumentException("Huffman codec: The order must be 0 or 1");
+
     this.bitstream = bitstream;
     this.buffer = new byte[0];
     this.codes = new int[256];
     this.alphabet = new int[256];
-    this.chunkSize = chunkSize;
+    this.order = order;
+    this.chunkSize = chunkSize << (5 * order);
 
     // Default frequencies, sizes and codes
     for (int i = 0; i < 256; i++)
@@ -384,6 +406,9 @@ public class HuffmanEncoder implements EntropyEncoder {
     if (count == 0)
       return 0;
 
+    if (this.order == 1)
+      return encodeOrder1(block, blkptr, count);
+
     final int end = blkptr + count;
     int startChunk = blkptr;
     int minLenBuf = Math.max(Math.min(this.chunkSize + (this.chunkSize >> 3), 2 * count), 65536);
@@ -490,6 +515,95 @@ public class HuffmanEncoder implements EntropyEncoder {
 
     for (int i = count4; i < count; i++)
       this.bitstream.writeBits(block[blkptr + i], 8);
+  }
+
+  // Encode four independent fragments, each with a previous-byte Huffman model.
+  private int encodeOrder1(byte[] block, int blkptr, int count) {
+    if (this.freqsOrder1 == null) {
+      this.freqsOrder1 = new int[256][256];
+      this.codesOrder1 = new short[256 * 256];
+    }
+
+    int startChunk = blkptr;
+    final int end = blkptr + count;
+
+    while (startChunk < end) {
+      final int sizeChunk = Math.min(this.chunkSize, end - startChunk);
+
+      if (sizeChunk < 32) {
+        this.bitstream.writeBits(block, startChunk, 8 * sizeChunk);
+        startChunk += sizeChunk;
+        continue;
+      }
+
+      for (int i = 0; i < 256; i++)
+        Arrays.fill(this.freqsOrder1[i], 0);
+
+      Global.computeHistogramOrder1(block, startChunk, startChunk + sizeChunk,
+          this.freqsOrder1, false);
+
+      for (int ctx = 0; ctx < 256; ctx++) {
+        this.updateFrequencies(this.freqsOrder1[ctx]);
+        final int base = ctx << 8;
+
+        for (int sym = 0; sym < 256; sym++) {
+          final int code = this.codes[sym];
+          this.codesOrder1[base | sym] = (short) (((code >>> 24) << 12) | (code & 0xFFF));
+        }
+      }
+
+      final int fragSize = sizeChunk >>> 2;
+      final int stride = ((fragSize * 12 + 7) >>> 3) + 1;
+      final int minBufSize = (4 * stride) + 8;
+
+      if (this.buffer.length < minBufSize)
+        this.buffer = new byte[minBufSize];
+
+      final int[] nbBits = new int[4];
+
+      for (int j = 0; j < 4; j++) {
+        final int fragStart = startChunk + j * fragSize;
+        int prev = (j == 0) ? 0 : (block[fragStart - 1] & 0xFF);
+        int pos = j * stride;
+        int pendingBits = 0;
+        long pending = 0;
+
+        for (int i = fragStart, limit = fragStart + fragSize; i < limit; i++) {
+          final int val = block[i] & 0xFF;
+          final int code = this.codesOrder1[(prev << 8) | val] & 0xFFFF;
+          final int codeLen = code >>> 12;
+          pending = (pending << codeLen) | (code & 0xFFF);
+          pendingBits += codeLen;
+
+          while (pendingBits >= 8) {
+            pendingBits -= 8;
+            this.buffer[pos++] = (byte) (pending >>> pendingBits);
+          }
+
+          prev = val;
+        }
+
+        nbBits[j] = ((pos - (j * stride)) << 3) + pendingBits;
+
+        if (pendingBits > 0)
+          this.buffer[pos] = (byte) (pending << (8 - pendingBits));
+      }
+
+      for (int j = 0; j < 4; j++)
+        EntropyUtils.writeVarInt(this.bitstream, nbBits[j]);
+
+      for (int j = 0; j < 4; j++)
+        this.bitstream.writeBits(this.buffer, j * stride, nbBits[j]);
+
+      final int count4 = 4 * fragSize;
+
+      for (int i = count4; i < sizeChunk; i++)
+        this.bitstream.writeBits(block[startChunk + i], 8);
+
+      startChunk += sizeChunk;
+    }
+
+    return count;
   }
 
   /**

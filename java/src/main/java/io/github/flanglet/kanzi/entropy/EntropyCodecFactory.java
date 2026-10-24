@@ -37,9 +37,13 @@ public class EntropyCodecFactory {
    */
   public static final byte NONE_TYPE = 0; // No compression
   /**
-   * Type identifier for Huffman coding.
+   * Type identifier for Huffman order 0.
    */
-  public static final byte HUFFMAN_TYPE = 1; // Huffman
+  public static final byte HUFFMAN0_TYPE = 1;
+  /**
+   * Backward-compatible type identifier for Huffman order 0.
+   */
+  public static final byte HUFFMAN_TYPE = HUFFMAN0_TYPE;
   /**
    * Type identifier for Fast PAQ (order 0).
    */
@@ -73,9 +77,13 @@ public class EntropyCodecFactory {
    */
   public static final byte TPAQX_TYPE = 9; // Tangelo PAQ Extra
   /**
-   * Reserved type identifier.
+   * Type identifier for Huffman order 1.
    */
-  public static final byte RESERVED1 = 10; // Reserved
+  public static final byte HUFFMAN1_TYPE = 10;
+  /**
+   * Backward-compatible alias for the previously reserved type identifier.
+   */
+  public static final byte RESERVED1 = HUFFMAN1_TYPE;
   /**
    * Reserved type identifier.
    */
@@ -118,8 +126,11 @@ public class EntropyCodecFactory {
     switch (entropyType) {
       // Each block is decoded separately
       // Rebuild the entropy decoder to reset block statistics
-      case HUFFMAN_TYPE:
+      case HUFFMAN0_TYPE:
         return new HuffmanDecoder(ibs, ctx);
+
+      case HUFFMAN1_TYPE:
+        return new HuffmanDecoder(ibs, 1, HuffmanCommon.MAX_CHUNK_SIZE, ctx);
 
       case ANS0_TYPE:
         return new ANSRangeDecoder(ibs, ctx, 0);
@@ -169,8 +180,11 @@ public class EntropyCodecFactory {
       throw new NullPointerException("Invalid null output bitstream parameter");
 
     switch (entropyType) {
-      case HUFFMAN_TYPE:
+      case HUFFMAN0_TYPE:
         return new HuffmanEncoder(obs);
+
+      case HUFFMAN1_TYPE:
+        return new HuffmanEncoder(obs, 1, HuffmanCommon.MAX_CHUNK_SIZE);
 
       case ANS0_TYPE:
         return new ANSRangeEncoder(obs, ctx, 0);
@@ -211,8 +225,11 @@ public class EntropyCodecFactory {
    */
   public static String getName(int entropyType) {
     switch (entropyType) {
-      case HUFFMAN_TYPE:
+      case HUFFMAN0_TYPE:
         return "HUFFMAN";
+
+      case HUFFMAN1_TYPE:
+        return "HUFFMAN1";
 
       case ANS0_TYPE:
         return "ANS0";
@@ -257,7 +274,11 @@ public class EntropyCodecFactory {
 
     switch (name) {
       case "HUFFMAN":
-        return HUFFMAN_TYPE;
+      case "HUFFMAN0":
+        return HUFFMAN0_TYPE;
+
+      case "HUFFMAN1":
+        return HUFFMAN1_TYPE;
 
       case "ANS0":
         return ANS0_TYPE;
