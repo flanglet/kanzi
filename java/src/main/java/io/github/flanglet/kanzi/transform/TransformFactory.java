@@ -111,9 +111,9 @@ public class TransformFactory {
    */
   public static final short DNA_TYPE = 19;
   /**
-   * Reserved for future use.
+   * Represents the fast Lempel-Ziv transform.
    */
-  public static final short RESERVED3 = 20;
+  public static final short LZF_TYPE = 20;
   /**
    * Reserved for future use.
    */
@@ -182,6 +182,9 @@ public class TransformFactory {
 
       case "LZX":
         return LZX_TYPE;
+
+      case "LZF":
+        return LZF_TYPE;
 
       case "LZP":
         return LZP_TYPE;
@@ -325,6 +328,10 @@ public class TransformFactory {
         ctx.put("lz", LZX_TYPE);
         return new LZCodec(ctx);
 
+      case LZF_TYPE:
+        ctx.put("lz", LZF_TYPE);
+        return new LZCodec(ctx);
+
       case LZP_TYPE:
         ctx.put("lz", LZP_TYPE);
         return new LZCodec(ctx);
@@ -428,6 +435,9 @@ public class TransformFactory {
 
       case LZX_TYPE:
         return "LZX";
+
+      case LZF_TYPE:
+        return "LZF";
 
       case LZP_TYPE:
         return "LZP";

@@ -137,6 +137,11 @@ public class TestTransforms {
         ctx1.put("bsVersion", 7);
         return new LZCodec(ctx1);
 
+      case "LZF":
+        Map<String, Object> ctx3 = new HashMap<>();
+        ctx3.put("lz", TransformFactory.LZF_TYPE);
+        return new LZCodec(ctx3);
+
       case "LZP":
         Map<String, Object> ctx2 = new HashMap<>();
         ctx2.put("lz", TransformFactory.LZP_TYPE);
@@ -173,7 +178,7 @@ public class TestTransforms {
   }
 
   @ParameterizedTest
-  @CsvSource({"RANK", "MTFT", "SRT", "LZ", "LZX", "LZP", "ROLZ", "ROLZX", "ZRLT", "MM", "RLT"})
+  @CsvSource({"RANK", "MTFT", "SRT", "LZ", "LZX", "LZF", "LZP", "ROLZ", "ROLZX", "ZRLT", "MM", "RLT"})
   void testCorrectness(String name) {
     byte[] input;
     byte[] output;
@@ -337,6 +342,61 @@ public class TestTransforms {
 
       System.out.println();
     }
+  }
+
+  @Test
+  void testLZFThreeByteDistance() {
+    final int distance = 300000;
+    final int tailLength = 18;
+    final int size = distance + 6 + tailLength;
+    final byte[] expected = new byte[size];
+
+    for (int i = 0; i < distance; i++)
+      expected[i] = (byte) (i * 37 + i / 7);
+
+    System.arraycopy(expected, 0, expected, distance, 6);
+
+    for (int i = 0; i < tailLength; i++)
+      expected[distance + 6 + i] = (byte) (0x80 + i);
+
+    final byte[] encoded = new byte[5 + 1 + 4 + distance + 1 + 3 + 1 + tailLength];
+    encoded[0] = (byte) size;
+    encoded[1] = (byte) (size >>> 8);
+    encoded[2] = (byte) (size >>> 16);
+    encoded[3] = (byte) (size >>> 24);
+    encoded[4] = (byte) (((6 - 2) << 1) | 1);
+    int idx = 5;
+    encoded[idx++] = (byte) 0x3F;
+    encoded[idx++] = (byte) 255;
+    final int extra = distance - 48 - 255;
+    encoded[idx++] = (byte) (extra >>> 16);
+    encoded[idx++] = (byte) (extra >>> 8);
+    encoded[idx++] = (byte) extra;
+    System.arraycopy(expected, 0, encoded, idx, distance);
+    idx += distance;
+    final int value = distance - 8;
+    encoded[idx++] = (byte) (0xC0 | ((value & 3) << 4));
+    final int payload = value >>> 2;
+    encoded[idx++] = (byte) payload;
+    encoded[idx++] = (byte) (payload >>> 8);
+    encoded[idx++] = (byte) (payload >>> 16);
+    encoded[idx++] = (byte) (tailLength + 15);
+
+    for (int i = 0; i < tailLength; i++)
+      encoded[idx++] = expected[distance + 6 + i];
+
+    Assertions.assertEquals(encoded.length, idx);
+    final TransformFactory factory = new TransformFactory();
+    final long type = factory.getType("LZF");
+    Assertions.assertEquals("LZF", factory.getName(type));
+    final ByteTransform codec = factory.newFunction(new HashMap<>(), type);
+    final SliceByteArray input = new SliceByteArray(encoded, encoded.length, 0);
+    final byte[] decoded = new byte[size];
+    final SliceByteArray output = new SliceByteArray(decoded, 0);
+    Assertions.assertTrue(codec.inverse(input, output));
+    Assertions.assertEquals(encoded.length, input.index);
+    Assertions.assertEquals(size, output.index);
+    Assertions.assertArrayEquals(expected, decoded);
   }
 
   @Test
