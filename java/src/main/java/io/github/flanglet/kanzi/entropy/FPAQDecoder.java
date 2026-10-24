@@ -114,6 +114,23 @@ public class FPAQDecoder implements EntropyDecoder {
    */
   private final boolean isBsVersion3;
 
+  // Keep range and context state local across the bit updates in a chunk.
+  private static final class RangeState {
+    long low;
+    long high;
+    long current;
+    int index;
+    int ctx;
+
+    RangeState(long low, long high, long current) {
+      this.low = low;
+      this.high = high;
+      this.current = current;
+      this.index = 0;
+      this.ctx = 1;
+    }
+  }
+
   /**
    * Creates a new {@code FPAQDecoder}.
    *
@@ -214,23 +231,40 @@ public class FPAQDecoder implements EntropyDecoder {
           this.p = this.probs[(this.ctx & 0xFF) >>> 6];
         }
       } else {
+        final RangeState state = new RangeState(this.low, this.high, this.current);
+        int[] p = this.probs[0];
+
         for (int i = startChunk; i < endChunk; i++) {
-          this.ctx = 1;
-          this.decodeBitV2(this.p[this.ctx]);
-          this.decodeBitV2(this.p[this.ctx]);
-          this.decodeBitV2(this.p[this.ctx]);
-          this.decodeBitV2(this.p[this.ctx]);
-          this.decodeBitV2(this.p[this.ctx]);
-          this.decodeBitV2(this.p[this.ctx]);
-          this.decodeBitV2(this.p[this.ctx]);
-          this.decodeBitV2(this.p[this.ctx]);
-          block[i] = (byte) this.ctx;
+          state.ctx = 1;
+          decodeBitV2(p, state, this.sba.array, szBytes);
+          decodeBitV2(p, state, this.sba.array, szBytes);
+          decodeBitV2(p, state, this.sba.array, szBytes);
+          decodeBitV2(p, state, this.sba.array, szBytes);
+          decodeBitV2(p, state, this.sba.array, szBytes);
+          decodeBitV2(p, state, this.sba.array, szBytes);
+          decodeBitV2(p, state, this.sba.array, szBytes);
+          decodeBitV2(p, state, this.sba.array, szBytes);
+          block[i] = (byte) state.ctx;
 
-          if (this.sba.index > szBytes)
+          if (state.index > szBytes) {
+            this.low = state.low;
+            this.high = state.high;
+            this.current = state.current;
+            this.sba.index = state.index;
+            this.ctx = state.ctx;
+            this.p = p;
             return 0;
+          }
 
-          this.p = this.probs[(this.ctx & 0xFF) >>> 6];
+          p = this.probs[(state.ctx & 0xFF) >>> 6];
         }
+
+        this.low = state.low;
+        this.high = state.high;
+        this.current = state.current;
+        this.sba.index = state.index;
+        this.ctx = state.ctx;
+        this.p = p;
       }
 
       if (this.sba.index > szBytes)
@@ -278,40 +312,38 @@ public class FPAQDecoder implements EntropyDecoder {
     return bit;
   }
 
-  /**
-   * Decodes a single bit based on a given prediction using the V2 algorithm.
-   * <p>
-   * The range is split according to the prediction, and the bit is determined by the current value.
-   * The probability model for the current context is then updated based on the decoded bit.
-   * </p>
-   *
-   * @param pred The prediction value (probability) for the bit, typically in the range [0, PSCALE].
-   * @return The decoded bit (0 or 1).
-   */
-  private int decodeBitV2(int pred) {
+  /** Decodes one bit using the local state for the current chunk. */
+  private static void decodeBitV2(int[] p, RangeState state, byte[] buffer, int limit) {
     // Calculate interval split
     // Written in a way to maximize accuracy of multiplication/division
-    final long split = ((((this.high - this.low) >>> 8) * pred) >>> 8) + this.low;
-    int bit;
+    final int ctx = state.ctx;
+    final long split = ((((state.high - state.low) >>> 8) * p[ctx]) >>> 8) + state.low;
 
     // Update probabilities
-    if (split >= this.current) {
-      bit = 1;
-      this.high = split;
-      this.p[this.ctx] -= ((this.p[this.ctx] - PSCALE + 64) >> 6);
-      this.ctx = (this.ctx << 1) + 1;
+    if (split >= state.current) {
+      state.high = split;
+      p[ctx] -= ((p[ctx] - PSCALE + 64) >> 6);
+      state.ctx = (ctx << 1) + 1;
     } else {
-      bit = 0;
-      this.low = -~split;
-      this.p[this.ctx] -= (this.p[this.ctx] >> 6);
-      this.ctx = this.ctx << 1;
+      state.low = -~split;
+      p[ctx] -= (p[ctx] >> 6);
+      state.ctx = ctx << 1;
     }
 
-    // Read 32 bits from bitstream
-    while (((this.low ^ this.high) & MASK_24_56) == 0)
-      this.read();
+    // Renormalize the local range state after each bit.
+    if (((state.low ^ state.high) & MASK_24_56) == 0) {
+      state.low = (state.low << 32) & MASK_0_56;
+      state.high = ((state.high << 32) | MASK_0_32) & MASK_0_56;
+      state.current = (state.current << 32) & MASK_0_56;
 
-    return bit;
+      if (state.index + 4 > limit) {
+        state.index = limit + 1;
+      } else {
+        final long val = Memory.BigEndian.readInt32(buffer, state.index) & 0xFFFFFFFFL;
+        state.current = (state.current | val) & MASK_0_56;
+        state.index += 4;
+      }
+    }
   }
 
   /**

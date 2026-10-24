@@ -44,6 +44,7 @@ public class ANSRangeDecoder implements EntropyDecoder {
   private final int[][] freqs;
   private final byte[][] f2s; // mapping frequency -> symbol
   private final Symbol[][] symbols;
+  private int[] packed;
   private byte[] buffer;
   private final int chunkSize;
   private final int order;
@@ -348,6 +349,31 @@ public class ANSRangeDecoder implements EntropyDecoder {
     return st;
   }
 
+  private int decodeSymbolUnbranched(int[] idx, int st, Symbol sym, final int mask) {
+    // Compute next ANS state
+    // D(x) = (s, q_s (x/M) + mod(x,M) - b_s) where s is such b_s <= x mod M < b_{s+1}
+    st = sym.freq * (st >>> this.logRange) + (st & mask) - sym.cumFreq;
+
+    // Speculatively read two guarded bytes and select them only when needed.
+    final int x = (st < ANS_TOP) ? -1 : 0;
+    final int val = ((this.buffer[idx[0]] & 0xFF) << 8) | (this.buffer[idx[0] + 1] & 0xFF);
+    st = (st << (x & 16)) | (x & val);
+    idx[0] -= x + x;
+    return st;
+  }
+
+  // Decode with the order-0 table entry: symbol[8], frequency[12], and offset[12].
+  private int decodeSymbolPacked(int[] idx, int st, int entry) {
+    final int freq = (entry >>> 12) & 4095;
+    final int offset = entry & 4095;
+    st = freq * (st >>> 12) + offset;
+    final int x = (st < ANS_TOP) ? -1 : 0;
+    final int val = ((this.buffer[idx[0]] & 0xFF) << 8) | (this.buffer[idx[0] + 1] & 0xFF);
+    st = (st << (x & 16)) | (x & val);
+    idx[0] -= x + x;
+    return st;
+  }
+
   /**
    * Decodes a chunk of data using version 2 of the ANS decoding algorithm.
    *
@@ -393,29 +419,55 @@ public class ANSRangeDecoder implements EntropyDecoder {
     final int[] idx = new int[] {n};
 
     if (this.order == 0) {
-      final byte[] freq2sym = this.f2s[0];
-      final Symbol[] symb = this.symbols[0];
+      if (this.logRange == 12) {
+        final int[] packed = this.packed;
 
-      for (int batch = start; batch < end4; batch += ANS_DECODE_CHECK_INTERVAL) {
-        final int endBatch = Math.min(batch + ANS_DECODE_CHECK_INTERVAL, end4);
+        for (int batch = start; batch < end4; batch += ANS_DECODE_CHECK_INTERVAL) {
+          final int endBatch = Math.min(batch + ANS_DECODE_CHECK_INTERVAL, end4);
 
-        for (int i = batch; i < endBatch; i += 4) {
-          final int cur3 = freq2sym[st3 & mask] & 0xFF;
-          block[i] = (byte) cur3;
-          st3 = decodeSymbol(idx, st3, symb[cur3], mask);
-          final int cur2 = freq2sym[st2 & mask] & 0xFF;
-          block[i + 1] = (byte) cur2;
-          st2 = decodeSymbol(idx, st2, symb[cur2], mask);
-          final int cur1 = freq2sym[st1 & mask] & 0xFF;
-          block[i + 2] = (byte) cur1;
-          st1 = decodeSymbol(idx, st1, symb[cur1], mask);
-          final int cur0 = freq2sym[st0 & mask] & 0xFF;
-          block[i + 3] = (byte) cur0;
-          st0 = decodeSymbol(idx, st0, symb[cur0], mask);
+          for (int i = batch; i < endBatch; i += 4) {
+            final int entry3 = packed[st3 & mask];
+            block[i] = (byte) (entry3 >>> 24);
+            st3 = decodeSymbolPacked(idx, st3, entry3);
+            final int entry2 = packed[st2 & mask];
+            block[i + 1] = (byte) (entry2 >>> 24);
+            st2 = decodeSymbolPacked(idx, st2, entry2);
+            final int entry1 = packed[st1 & mask];
+            block[i + 2] = (byte) (entry1 >>> 24);
+            st1 = decodeSymbolPacked(idx, st1, entry1);
+            final int entry0 = packed[st0 & mask];
+            block[i + 3] = (byte) (entry0 >>> 24);
+            st0 = decodeSymbolPacked(idx, st0, entry0);
+          }
+
+          if (idx[0] > sz)
+            return false;
         }
+      } else {
+        final byte[] freq2sym = this.f2s[0];
+        final Symbol[] symb = this.symbols[0];
 
-        if (idx[0] > sz)
-          return false;
+        for (int batch = start; batch < end4; batch += ANS_DECODE_CHECK_INTERVAL) {
+          final int endBatch = Math.min(batch + ANS_DECODE_CHECK_INTERVAL, end4);
+
+          for (int i = batch; i < endBatch; i += 4) {
+            final int cur3 = freq2sym[st3 & mask] & 0xFF;
+            block[i] = (byte) cur3;
+            st3 = decodeSymbolUnbranched(idx, st3, symb[cur3], mask);
+            final int cur2 = freq2sym[st2 & mask] & 0xFF;
+            block[i + 1] = (byte) cur2;
+            st2 = decodeSymbolUnbranched(idx, st2, symb[cur2], mask);
+            final int cur1 = freq2sym[st1 & mask] & 0xFF;
+            block[i + 2] = (byte) cur1;
+            st1 = decodeSymbolUnbranched(idx, st1, symb[cur1], mask);
+            final int cur0 = freq2sym[st0 & mask] & 0xFF;
+            block[i + 3] = (byte) cur0;
+            st0 = decodeSymbolUnbranched(idx, st0, symb[cur0], mask);
+          }
+
+          if (idx[0] > sz)
+            return false;
+        }
       }
     } else {
       final int quarter = (end4 - start) >> 2;
@@ -486,6 +538,10 @@ public class ANSRangeDecoder implements EntropyDecoder {
     int res = 0;
     final int dim = 255 * this.order + 1;
     final int scale = 1 << this.logRange;
+    final boolean packed = (this.order == 0) && (this.logRange == 12) && (this.bsVersion != 1);
+
+    if (packed && (this.packed == null))
+      this.packed = new int[1 << 12];
 
     for (int k = 0; k < dim; k++) {
       int alphabetSize = EntropyUtils.decodeAlphabet(this.bitstream, alphabet);
@@ -519,7 +575,7 @@ public class ANSRangeDecoder implements EntropyDecoder {
           f[i] = 0;
       }
 
-      if (this.f2s[k].length < scale)
+      if ((packed == false) && (this.f2s[k].length < scale))
         this.f2s[k] = new byte[scale];
 
       final int chkSize = (alphabetSize >= 64) ? 8 : 6;
@@ -570,10 +626,20 @@ public class ANSRangeDecoder implements EntropyDecoder {
         if (f[i] == 0)
           continue;
 
-        for (int j = f[i] - 1; j >= 0; j--)
-          freq2sym[sum + j] = (byte) i;
+        if (packed) {
+          // Store symbol, frequency, and slot offset in one 32-bit table entry.
+          final int freq = Math.min(f[i], scale - 1);
+          final int entry = (i << 24) | (freq << 12);
 
-        symb[i].reset(sum, f[i], this.logRange);
+          for (int j = 0; j < f[i]; j++)
+            this.packed[sum + j] = entry | j;
+        } else {
+          for (int j = f[i] - 1; j >= 0; j--)
+            freq2sym[sum + j] = (byte) i;
+
+          symb[i].reset(sum, f[i], this.logRange);
+        }
+
         sum += f[i];
       }
 

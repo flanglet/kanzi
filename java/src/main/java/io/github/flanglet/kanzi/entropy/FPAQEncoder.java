@@ -89,7 +89,19 @@ public class FPAQEncoder implements EntropyEncoder {
   private boolean disposed;
   private SliceByteArray sba;
   private final int[][] probs; // probability of bit=1
-  private int[] p; // pointer to current prob
+
+  // Keep range state local across the bit updates in a chunk.
+  private static final class RangeState {
+    long low;
+    long high;
+    int index;
+
+    RangeState(long low, long high) {
+      this.low = low;
+      this.high = high;
+      this.index = 0;
+    }
+  }
 
   /**
    * Creates a new {@code FPAQEncoder}.
@@ -106,7 +118,6 @@ public class FPAQEncoder implements EntropyEncoder {
     this.bitstream = bitstream;
     this.sba = new SliceByteArray(new byte[0], 0);
     this.probs = new int[4][256];
-    this.p = this.probs[0];
 
     for (int i = 0; i < 4; i++)
       Arrays.fill(this.probs[i], PSCALE >> 1);
@@ -148,24 +159,28 @@ public class FPAQEncoder implements EntropyEncoder {
 
       this.sba.index = 0;
       final int endChunk = startChunk + chunkSize;
-      this.p = this.probs[0];
+      final RangeState state = new RangeState(this.low, this.high);
+      int[] p = this.probs[0];
 
       for (int i = startChunk; i < endChunk; i++) {
         final byte val = block[i];
         final int bits = (val & 0xFF) + 256;
-        this.encodeBit(val & 0x80, 1);
-        this.encodeBit(val & 0x40, bits >> 7);
-        this.encodeBit(val & 0x20, bits >> 6);
-        this.encodeBit(val & 0x10, bits >> 5);
-        this.encodeBit(val & 0x08, bits >> 4);
-        this.encodeBit(val & 0x04, bits >> 3);
-        this.encodeBit(val & 0x02, bits >> 2);
-        this.encodeBit(val & 0x01, bits >> 1);
-        this.p = this.probs[(val & 0xFF) >>> 6];
+        this.encodeBit(val & 0x80, p, 1, state);
+        this.encodeBit(val & 0x40, p, bits >> 7, state);
+        this.encodeBit(val & 0x20, p, bits >> 6, state);
+        this.encodeBit(val & 0x10, p, bits >> 5, state);
+        this.encodeBit(val & 0x08, p, bits >> 4, state);
+        this.encodeBit(val & 0x04, p, bits >> 3, state);
+        this.encodeBit(val & 0x02, p, bits >> 2, state);
+        this.encodeBit(val & 0x01, p, bits >> 1, state);
+        p = this.probs[(val & 0xFF) >>> 6];
       }
 
-      EntropyUtils.writeVarInt(this.bitstream, this.sba.index);
-      this.bitstream.writeBits(this.sba.array, 0, 8 * this.sba.index);
+      this.low = state.low;
+      this.high = state.high;
+      this.sba.index = state.index;
+      EntropyUtils.writeVarInt(this.bitstream, state.index);
+      this.bitstream.writeBits(this.sba.array, 0, 8 * state.index);
       startChunk += chunkSize;
 
       if (startChunk < end)
@@ -182,23 +197,23 @@ public class FPAQEncoder implements EntropyEncoder {
    * The probability model for the current context is then updated based on the encoded bit.
    * </p>
    */
-  private void encodeBit(int bit, int pIdx) {
+  private void encodeBit(int bit, int[] p, int pIdx, RangeState state) {
     // Calculate interval split
     // Written in a way to maximize accuracy of multiplication/division
-    final long split = (((this.high - this.low) >>> 8) * this.p[pIdx]) >>> 8;
+    final long split = (((state.high - state.low) >>> 8) * p[pIdx]) >>> 8;
 
     // Update probabilities
     if (bit == 0) {
-      this.low += (split + 1);
-      this.p[pIdx] -= (this.p[pIdx] >> 6);
+      state.low += (split + 1);
+      p[pIdx] -= (p[pIdx] >> 6);
     } else {
-      this.high = this.low + split;
-      this.p[pIdx] -= ((this.p[pIdx] - PSCALE + 64) >> 6);
+      state.high = state.low + split;
+      p[pIdx] -= ((p[pIdx] - PSCALE + 64) >> 6);
     }
 
     // Write unchanged first 32 bits to bitstream
-    while (((this.low ^ this.high) & MASK_24_56) == 0)
-      this.flush();
+    if (((state.low ^ state.high) & MASK_24_56) == 0)
+      this.flush(state);
   }
 
   /**
@@ -208,14 +223,14 @@ public class FPAQEncoder implements EntropyEncoder {
    * the most significant bits of the range to the bitstream.
    * </p>
    */
-  private void flush() {
-    if (this.sba.index + 4 > this.sba.array.length)
-      this.sba.array = Arrays.copyOf(this.sba.array, this.sba.index + 4);
+  private void flush(RangeState state) {
+    if (state.index + 4 > this.sba.array.length)
+      this.sba.array = Arrays.copyOf(this.sba.array, state.index + 4);
 
-    Memory.BigEndian.writeInt32(this.sba.array, this.sba.index, (int) (this.high >>> 24));
-    this.sba.index += 4;
-    this.low <<= 32;
-    this.high = (this.high << 32) | MASK_0_32;
+    Memory.BigEndian.writeInt32(this.sba.array, state.index, (int) (state.high >>> 24));
+    state.index += 4;
+    state.low <<= 32;
+    state.high = (state.high << 32) | MASK_0_32;
   }
 
   /**
