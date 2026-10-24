@@ -467,6 +467,33 @@ public class TestEntropyCodec {
 
 
   @Test
+  void testANS0NonDefaultLogRange() throws Exception {
+    final byte[] values = new byte[8192];
+
+    for (int i = 0; i < values.length; i++)
+      values[i] = (byte) ((i * 31 + (i >>> 3) * 7) & 0xFF);
+
+    final ByteArrayOutputStream os = new ByteArrayOutputStream(16384);
+    final OutputBitStream obs = new DefaultOutputBitStream(os, 16384);
+    final ANSRangeEncoder encoder = new ANSRangeEncoder(obs, 0, 4096, 11);
+    Assertions.assertEquals(values.length, encoder.encode(values, 0, values.length));
+    encoder.dispose();
+    obs.close();
+
+    final InputBitStream ibs = new DefaultInputBitStream(new ByteArrayInputStream(os.toByteArray()),
+        16384);
+    final Map<String, Object> ctx = new HashMap<>();
+    ctx.put("bsVersion", 6);
+    final ANSRangeDecoder decoder = new ANSRangeDecoder(ibs, ctx, 0, 4096);
+    final byte[] decoded = new byte[values.length];
+    Assertions.assertEquals(values.length, decoder.decode(decoded, 0, decoded.length));
+    Assertions.assertArrayEquals(values, decoded);
+    decoder.dispose();
+    ibs.close();
+  }
+
+
+  @Test
   void testANS1ImplicitContext() throws Exception {
     final int size = 40;
     final int[] alphabet = new int[] {1};
