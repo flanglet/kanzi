@@ -55,8 +55,14 @@ public final class LZCodec implements ByteTransform {
   public LZCodec(Map<String, Object> ctx) {
     // Encode the word indexes as varints with a token or with a mask
     final short lzType = (short) ctx.getOrDefault("lz", TransformFactory.LZ_TYPE);
-    this.delegate = (lzType == TransformFactory.LZP_TYPE) ? new LZPCodec(ctx)
-        : ((lzType == TransformFactory.LZF_TYPE) ? new LZFCodec() : new LZXCodec(ctx));
+    if (lzType == TransformFactory.LZP_TYPE)
+      this.delegate = new LZPCodec(ctx);
+    else if (lzType == TransformFactory.LZPX_TYPE)
+      this.delegate = new LZPXCodec();
+    else if (lzType == TransformFactory.LZF_TYPE)
+      this.delegate = new LZFCodec();
+    else
+      this.delegate = new LZXCodec(ctx);
   }
 
   @Override

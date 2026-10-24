@@ -117,7 +117,7 @@ public class TransformFactory {
   /**
    * Reserved for future use.
    */
-  public static final short RESERVED4 = 21;
+  public static final short LZPX_TYPE = 21;
   /**
    * Reserved for future use.
    */
@@ -188,6 +188,9 @@ public class TransformFactory {
 
       case "LZP":
         return LZP_TYPE;
+
+      case "LZPX":
+        return LZPX_TYPE;
 
       case "ROLZ":
         return ROLZ_TYPE;
@@ -336,6 +339,10 @@ public class TransformFactory {
         ctx.put("lz", LZP_TYPE);
         return new LZCodec(ctx);
 
+      case LZPX_TYPE:
+        ctx.put("lz", LZPX_TYPE);
+        return new LZCodec(ctx);
+
       case EXE_TYPE:
         return new EXECodec(ctx);
 
@@ -441,6 +448,9 @@ public class TransformFactory {
 
       case LZP_TYPE:
         return "LZP";
+
+      case LZPX_TYPE:
+        return "LZPX";
 
       case MM_TYPE:
         return "MM";
