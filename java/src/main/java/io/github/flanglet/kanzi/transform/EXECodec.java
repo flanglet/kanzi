@@ -55,7 +55,7 @@ public class EXECodec implements ByteTransform {
   private static final int ARM_CB_ADDR_SGN_MASK = 1 << 18;
   private static final int ARM_CB_OPCODE_MASK = 0x7F000000;
   private static final int ARM_OPCODE_CBZ = 0x34000000; // 8 bit opcode
-  private static final int ARM_OPCODE_CBNZ = 0x3500000; // 8 bit opcode
+  private static final int ARM_OPCODE_CBNZ = 0x35000000; // 8 bit opcode
   private static final int WIN_PE = 0x00004550;
   private static final int WIN_X86_ARCH = 0x014C;
   private static final int WIN_AMD64_ARCH = 0x8664;
@@ -181,6 +181,12 @@ public class EXECodec implements ByteTransform {
     }
 
     while ((srcIdx < this.codeEnd) && (dstIdx < dstEnd)) {
+      if ((this.codeEnd - srcIdx >= 8) && (dstEnd - dstIdx >= 8) && !exeHasSpecial(LittleEndian.readLong64(src, srcIdx))) {
+        System.arraycopy(src, srcIdx, dst, dstIdx, 8);
+        srcIdx += 8;
+        dstIdx += 8;
+        continue;
+      }
       if (src[srcIdx] == X86_TWO_BYTE_PREFIX) {
         if (srcIdx + 1 >= codeEnd) {
            boundaryReached = true;
@@ -421,6 +427,12 @@ public class EXECodec implements ByteTransform {
     }
 
     while (srcIdx < this.codeEnd) {
+      if ((this.codeEnd - srcIdx >= 8) && (output.length - dstIdx >= 8) && !exeHasSpecial(LittleEndian.readLong64(src, srcIdx))) {
+        System.arraycopy(src, srcIdx, dst, dstIdx, 8);
+        srcIdx += 8;
+        dstIdx += 8;
+        continue;
+      }
       if (src[srcIdx] == X86_TWO_BYTE_PREFIX) {
         if (srcIdx + 1 >= this.codeEnd) {
           // Accept legacy streams where a trailing 0x0F was emitted in
@@ -655,6 +667,15 @@ public class EXECodec implements ByteTransform {
     return (srcLen <= 256) ? srcLen + 32 : srcLen + srcLen / 8;
   }
 
+  private static boolean exeHasSpecial(long word) {
+    final long ones = 0x0101010101010101L;
+    final long high = 0x8080808080808080L;
+    final long a = word ^ 0x0F0F0F0F0F0F0F0FL;
+    final long b = word ^ 0x9B9B9B9B9B9B9B9BL;
+    final long c = (word & 0xFEFEFEFEFEFEFEFEL) ^ 0xE8E8E8E8E8E8E8E8L;
+    return (((a - ones) & ~a & high) | ((b - ones) & ~b & high) | ((c - ones) & ~c & high)) != 0;
+  }
+
   /**
    * Detects the type of executable (x86 or ARM64) based on the provided byte array.
    *
@@ -704,6 +725,20 @@ public class EXECodec implements ByteTransform {
     final int end = start + count;
 
     for (int i = start; i < end; i++) {
+      if (((i & 3) == 0) && (end - i >= 8) && !exeHasSpecial(LittleEndian.readLong64(src, i))) {
+        for (int j = 0; j < 8; j++)
+          histo[src[i + j] & 0xFF]++;
+        for (int j = 0; j < 8; j += 4) {
+          final int instr = LittleEndian.readInt32(src, i + j);
+          final int opcode = instr & ARM_B_OPCODE_MASK;
+          final int cbOpcode = instr & ARM_CB_OPCODE_MASK;
+          if ((opcode == ARM_OPCODE_B) || (opcode == ARM_OPCODE_BL)
+              || (cbOpcode == ARM_OPCODE_CBZ) || (cbOpcode == ARM_OPCODE_CBNZ))
+            jumpsARM64++;
+        }
+        i += 7;
+        continue;
+      }
       histo[src[i] & 0xFF]++;
 
       // X86
@@ -812,7 +847,7 @@ public class EXECodec implements ByteTransform {
               LittleEndian.readInt32(src, start + posPE + 28), true))
             return false;
 
-          this.arch = LittleEndian.readInt16(src, start + posPE + 4);
+          this.arch = LittleEndian.readInt16(src, start + posPE + 4) & 0xFFFF;
         }
 
         return true;
@@ -844,7 +879,7 @@ public class EXECodec implements ByteTransform {
               long offSection = LittleEndian.readLong64(src, entry + 0x18);
               long lenSection = LittleEndian.readLong64(src, entry + 0x20);
 
-              if ((typeSection == 1) && (lenSection >= 64)) {
+              if ((typeSection == 1) && ((LittleEndian.readLong64(src, entry + 8) & 4) != 0) && (lenSection >= 64)) {
                 if (!setCodeRange(start, count, offSection, lenSection, false))
                   return false;
               }
@@ -869,7 +904,7 @@ public class EXECodec implements ByteTransform {
               long offSection = LittleEndian.readInt32(src, entry + 0x10);
               long lenSection = LittleEndian.readInt32(src, entry + 0x14);
 
-              if ((typeSection == 1) && (lenSection >= 64)) {
+              if ((typeSection == 1) && ((LittleEndian.readInt32(src, entry + 8) & 4) != 0) && (lenSection >= 64)) {
                 if (!setCodeRange(start, count, offSection, lenSection, false))
                   return false;
               }
@@ -896,7 +931,7 @@ public class EXECodec implements ByteTransform {
               long offSection = BigEndian.readLong64(src, entry + 0x18);
               long lenSection = BigEndian.readLong64(src, entry + 0x20);
 
-              if ((typeSection == 1) && (lenSection >= 64)) {
+              if ((typeSection == 1) && ((BigEndian.readLong64(src, entry + 8) & 4) != 0) && (lenSection >= 64)) {
                 if (!setCodeRange(start, count, offSection, lenSection, false))
                   return false;
               }
@@ -921,7 +956,7 @@ public class EXECodec implements ByteTransform {
               long offSection = BigEndian.readInt32(src, entry + 0x10);
               long lenSection = BigEndian.readInt32(src, entry + 0x14);
 
-              if ((typeSection == 1) && (lenSection >= 64)) {
+              if ((typeSection == 1) && ((BigEndian.readInt32(src, entry + 8) & 4) != 0) && (lenSection >= 64)) {
                 if (!setCodeRange(start, count, offSection, lenSection, false))
                   return false;
               }
