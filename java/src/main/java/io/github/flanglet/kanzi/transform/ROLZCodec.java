@@ -267,6 +267,18 @@ public class ROLZCodec implements ByteTransform {
     private static final int MIN_MATCH7 = 7;
     private static final int MAX_MATCH = MIN_MATCH3 + 65535;
 
+    private static final class CopyingByteArrayOutputStream extends ByteArrayOutputStream {
+      CopyingByteArrayOutputStream(int size) {
+        super(size);
+      }
+
+      int copyTo(byte[] dst, int offset) {
+        final int length = this.count;
+        System.arraycopy(this.buf, 0, dst, offset, length);
+        return length;
+      }
+    }
+
     /**
      * The logarithm base 2 of the number of position checks.
      */
@@ -438,7 +450,8 @@ public class ROLZCodec implements ByteTransform {
       final SliceByteArray lenBuf = new SliceByteArray(new byte[sizeChunk / 5], 0);
       final SliceByteArray mIdxBuf = new SliceByteArray(new byte[sizeChunk / 4], 0);
       final SliceByteArray tkBuf = new SliceByteArray(new byte[sizeChunk / 4], 0);
-      ByteArrayOutputStream baos = new ByteArrayOutputStream(this.getMaxEncodedLength(sizeChunk));
+      CopyingByteArrayOutputStream baos =
+          new CopyingByteArrayOutputStream(this.getMaxEncodedLength(sizeChunk));
 
       for (int i = 0; i < this.counters.length; i++)
         this.counters[i] = 0;
@@ -626,16 +639,15 @@ public class ROLZCodec implements ByteTransform {
         }
 
         // Copy bitstream array to output
-        final byte[] buf = baos.toByteArray();
+        final int bufLength = baos.size();
 
-        if (dstIdx + buf.length > dst.length) {
+        if (dstIdx + bufLength > dst.length) {
           output.index = dstIdx;
           input.index = srcIdx;
           return false;
         }
 
-        System.arraycopy(buf, 0, dst, dstIdx, buf.length);
-        dstIdx += buf.length;
+        dstIdx += baos.copyTo(dst, dstIdx);
         startChunk = endChunk;
       }
 
