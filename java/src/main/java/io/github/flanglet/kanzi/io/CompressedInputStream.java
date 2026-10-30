@@ -680,6 +680,18 @@ public class CompressedInputStream extends InputStream {
     }
   }
 
+  private boolean isFullBlockExpected(Status status) {
+    if (this.outputSize <= 0 || status.skipped)
+      return false;
+
+    final int to = (int) this.ctx.getOrDefault("to", MAX_BLOCK_ID);
+
+    if (status.blockId >= to)
+      return false;
+
+    return status.blockId <= this.outputSize / this.blockSize;
+  }
+
   /**
    * Processes a single block of compressed data, decompressing it into the buffer.
    * 
@@ -755,7 +767,8 @@ public class CompressedInputStream extends InputStream {
           if (status.error != 0)
             throw new KanziIOException(status.msg, status.error);
 
-          if (status.decoded > this.blockSize) {
+          if (status.decoded > this.blockSize
+              || (this.isFullBlockExpected(status) && status.decoded != this.blockSize)) {
             String msg = "Block " + status.blockId + " incorrectly decompressed";
             throw new KanziIOException(msg, Error.ERR_PROCESS_BLOCK);
           }
@@ -773,7 +786,8 @@ public class CompressedInputStream extends InputStream {
             if (status.error != 0)
               throw new KanziIOException(status.msg, status.error);
 
-            if (status.decoded > this.blockSize) {
+            if (status.decoded > this.blockSize
+                || (this.isFullBlockExpected(status) && status.decoded != this.blockSize)) {
               String msg = "Block " + status.blockId + " incorrectly decompressed";
               throw new KanziIOException(msg, Error.ERR_PROCESS_BLOCK);
             }
