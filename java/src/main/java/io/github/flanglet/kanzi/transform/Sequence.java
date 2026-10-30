@@ -114,7 +114,7 @@ public class Sequence implements ByteTransform {
       sa2 = sa[saIdx ^ 1];
     }
 
-    if (saIdx != 1) {
+    if (sa1 != dst) {
       if (count > sa[1].array.length - sa[1].index)
         this.skipFlags = SKIP_MASK;
       else
