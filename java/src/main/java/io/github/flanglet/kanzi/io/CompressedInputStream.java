@@ -783,9 +783,11 @@ public class CompressedInputStream extends InputStream {
         int n = 0;
 
         for (Status res : results) {
-          System.arraycopy(res.data, 0, this.buffers[n].array, 0, res.decoded);
-          this.buffers[n].index = 0;
-          n++;
+          if (res.skipped == false) {
+            System.arraycopy(res.data, 0, this.buffers[n].array, 0, res.decoded);
+            this.buffers[n].index = 0;
+            n++;
+          }
 
           if (blockListeners.length > 0) {
             Event.HashType hashType = Event.HashType.NO_HASH;
