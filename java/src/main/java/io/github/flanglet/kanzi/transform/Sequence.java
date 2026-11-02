@@ -78,21 +78,29 @@ public class Sequence implements ByteTransform {
 
     // Process transforms sequentially
     for (int i = 0; i < this.transforms.length; i++) {
-      // Check that the output buffer has enough room. If not, allocate a new one.
-      if (sa2.length < requiredSize) {
-        sa2.length = requiredSize;
-
-        if (sa2.array.length < sa2.length)
-          sa2.array = new byte[sa2.length];
-      }
-
+      final int stageSize = this.transforms[i].getMaxEncodedLength(count);
       final int savedIIdx = sa1.index;
       final int savedOIdx = sa2.index;
+      final int requiredCapacity = savedOIdx + requiredSize;
+
+      // Keep the sequence's advertised capacity available in both alternating
+      // buffers, while limiting this transform to its own maximum output size.
+      if (sa2.length - savedOIdx < requiredSize)
+        sa2.length = requiredCapacity;
+
+      if (sa2.array.length < requiredCapacity) {
+        sa2.array = new byte[requiredCapacity];
+        sa2.length = requiredCapacity;
+      }
+
+      final int stageEnd = savedOIdx + stageSize;
+      final SliceByteArray outView = new SliceByteArray(sa2.array, stageEnd, savedOIdx);
+
       final int savedLength = sa1.length;
       sa1.length = count;
 
       // Apply forward transform
-      if (this.transforms[i].forward(sa1, sa2) == false) {
+      if (this.transforms[i].forward(sa1, outView) == false) {
         // Transform failed. Either it does not apply to this type
         // of data or a recoverable error occurred => revert
         if (sa1.array != sa2.array)
@@ -105,6 +113,7 @@ public class Sequence implements ByteTransform {
       }
 
       this.skipFlags &= ~(1 << (7 - i));
+      sa2.index = outView.index;
       count = sa2.index - savedOIdx;
       sa1.index = savedIIdx;
       sa2.index = savedOIdx;
