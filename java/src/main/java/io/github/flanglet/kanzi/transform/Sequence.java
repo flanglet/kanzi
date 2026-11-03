@@ -163,6 +163,8 @@ public class Sequence implements ByteTransform {
       return true;
     }
 
+    final int savedSrcIndex = src.index;
+    final int savedDstIndex = dst.index;
     final int blockSize = count;
     boolean res = true;
     SliceByteArray[] sa = new SliceByteArray[] {src, dst};
@@ -208,10 +210,16 @@ public class Sequence implements ByteTransform {
     }
 
     if (count > dst.length)
-      return false;
+      res = false;
 
-    src.index += blockSize;
-    dst.index += count;
+    if (res) {
+      src.index += blockSize;
+      dst.index += count;
+    } else {
+      src.index = savedSrcIndex;
+      dst.index = savedDstIndex;
+    }
+
     return res;
   }
 
