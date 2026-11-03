@@ -321,11 +321,17 @@ public class RLT implements ByteTransform {
     boolean res = true;
     byte escape = src[srcIdx++];
 
+    if (srcIdx >= srcEnd)
+      return false;
+
     if (src[srcIdx] == escape) {
       srcIdx++;
 
+      if (srcIdx >= srcEnd)
+        return false;
+
       // The data cannot start with a run but may start with an escape literal
-      if ((srcIdx < srcEnd) && (src[srcIdx] != 0))
+      if (src[srcIdx] != 0)
         return false;
 
       dst[dstIdx++] = escape;

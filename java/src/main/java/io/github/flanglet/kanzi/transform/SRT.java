@@ -194,6 +194,10 @@ public class SRT implements ByteTransform {
     if (headerSize < 0 || count < 0)
       return false;
 
+    // Empty input is represented by a zero-length transform block, not a header-only block.
+    if (count == 0)
+      return false;
+
     long totalFreq = 0;
 
     for (int i = 0; i < 256; i++) {
