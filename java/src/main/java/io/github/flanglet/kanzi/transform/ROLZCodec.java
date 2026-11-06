@@ -456,8 +456,8 @@ public class ROLZCodec implements ByteTransform {
       for (int i = 0; i < this.counters.length; i++)
         this.counters[i] = 0;
 
-      final int litOrder = (count < 1 << 17) ? 0 : 1;
-      byte flags = (byte) litOrder;
+      int litOrder = 0;
+      byte flags = 0;
       this.minMatch = MIN_MATCH3;
       int delta = 2;
 
@@ -616,6 +616,12 @@ public class ROLZCodec implements ByteTransform {
           litBuf.array[litBuf.index + i] = src[firstLitIdx + i];
 
         litBuf.index += litLen;
+
+        // Choose from the first chunk's literals and reuse the order for all chunks.
+        if (startChunk == input.index) {
+          litOrder = (litBuf.index < (1 << 17)) ? 0 : 1;
+          dst[output.index + 4] = (byte) (flags | litOrder);
+        }
 
         // Scope to deallocate resources early
         {
