@@ -1258,10 +1258,35 @@ public final class DivSufSort {
       this.swapInSA(first, a);
       int b = first;
 
-      // partition
-      while (++b < last) {
-        if ((x = this.buffer[idx + this.sa[pa + this.sa[b]]]) != v)
+      // Probe two suffixes before testing either key to overlap their dependent loads.
+      boolean mismatch = false;
+
+      while (last - b > 2) {
+        final int x0 = this.buffer[idx + this.sa[pa + this.sa[b + 1]]];
+        final int x1 = this.buffer[idx + this.sa[pa + this.sa[b + 2]]];
+
+        if (x0 != v) {
+          b++;
+          x = x0;
+          mismatch = true;
           break;
+        }
+
+        if (x1 != v) {
+          b += 2;
+          x = x1;
+          mismatch = true;
+          break;
+        }
+
+        b += 2;
+      }
+
+      if (!mismatch) {
+        while (++b < last) {
+          if ((x = this.buffer[idx + this.sa[pa + this.sa[b]]]) != v)
+            break;
+        }
       }
 
       a = b;
@@ -1280,9 +1305,34 @@ public final class DivSufSort {
 
       int c = last;
 
-      while (--c > b) {
-        if ((x = this.buffer[idx + this.sa[pa + this.sa[c]]]) != v)
+      boolean mismatch2 = false;
+
+      while (c - b > 2) {
+        final int x0 = this.buffer[idx + this.sa[pa + this.sa[c - 1]]];
+        final int x1 = this.buffer[idx + this.sa[pa + this.sa[c - 2]]];
+
+        if (x0 != v) {
+          c--;
+          x = x0;
+          mismatch2 = true;
           break;
+        }
+
+        if (x1 != v) {
+          c -= 2;
+          x = x1;
+          mismatch2 = true;
+          break;
+        }
+
+        c -= 2;
+      }
+
+      if (!mismatch2) {
+        while (--c > b) {
+          if ((x = this.buffer[idx + this.sa[pa + this.sa[c]]]) != v)
+            break;
+        }
       }
 
       int d = c;
