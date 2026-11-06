@@ -842,9 +842,70 @@ public class EXECodec implements ByteTransform {
 
         if ((posPE > 0) && (posPE <= count - 48)
             && (LittleEndian.readInt32(src, start + posPE) == WIN_PE)) {
-          if (!setCodeRange(start, count,
-              LittleEndian.readInt32(src, start + posPE + 44),
-              LittleEndian.readInt32(src, start + posPE + 28), true))
+          final int numSections = LittleEndian.readInt16(src, start + posPE + 6) & 0xFFFF;
+          final int optionalHeaderSize = LittleEndian.readInt16(src, start + posPE + 20) & 0xFFFF;
+          final long sectionTable = (long) posPE + 24 + optionalHeaderSize;
+
+          if ((numSections <= 0) || (optionalHeaderSize < 24) || (sectionTable > count)
+              || ((long) numSections > ((long) count - sectionTable) / 40))
+            return false;
+
+          final long baseCodeRVA = Integer.toUnsignedLong(
+              LittleEndian.readInt32(src, start + posPE + 44));
+          final long sizeOfCode = Integer.toUnsignedLong(
+              LittleEndian.readInt32(src, start + posPE + 28));
+          boolean foundCodeSection = false;
+
+          // Map BaseOfCode (an RVA) to the corresponding bytes on disk.
+          for (int i = 0; i < numSections; i++) {
+            final int section = (int) (sectionTable + (long) i * 40);
+            final long virtualSize = Integer.toUnsignedLong(
+                LittleEndian.readInt32(src, start + section + 8));
+            final long virtualAddress = Integer.toUnsignedLong(
+                LittleEndian.readInt32(src, start + section + 12));
+            final long rawSize = Integer.toUnsignedLong(
+                LittleEndian.readInt32(src, start + section + 16));
+            final long rawOffset = Integer.toUnsignedLong(
+                LittleEndian.readInt32(src, start + section + 20));
+            final long characteristics = Integer.toUnsignedLong(
+                LittleEndian.readInt32(src, start + section + 36));
+            final long virtualEnd = virtualAddress + Math.max(virtualSize, rawSize);
+
+            if (((characteristics & 0x20000000L) == 0) || (baseCodeRVA < virtualAddress)
+                || (baseCodeRVA >= virtualEnd))
+              continue;
+
+            final long delta = baseCodeRVA - virtualAddress;
+
+            if (delta >= rawSize)
+              continue;
+
+            final long fileOffset = rawOffset + delta;
+
+            if (fileOffset >= count)
+              continue;
+
+            long codeLength = rawSize - delta;
+
+            if ((sizeOfCode != 0) && (sizeOfCode < codeLength))
+              codeLength = sizeOfCode;
+
+            final long remaining = (long) count - fileOffset;
+
+            if (remaining < codeLength)
+              codeLength = remaining;
+
+            if (codeLength < 64)
+              continue;
+
+            if (!setCodeRange(start, count, fileOffset, codeLength, true))
+              return false;
+
+            foundCodeSection = true;
+            break;
+          }
+
+          if (!foundCodeSection)
             return false;
 
           this.arch = LittleEndian.readInt16(src, start + posPE + 4) & 0xFFFF;
