@@ -44,8 +44,12 @@ public class TestEXECodec {
     final int codeStart = 512;
     final int codeLen = 4096;
     final int posPE = 0x80;
+    final int optionalHeaderSize = 224;
+    final int section = posPE + 24 + optionalHeaderSize;
+    final int codeRVA = 0x1000;
     byte[] data = new byte[size];
     Arrays.fill(data, (byte) 0x90);
+    Arrays.fill(data, 0, codeStart, (byte) 0);
     data[0] = 'M';
     data[1] = 'Z';
     writeInt32LE(data, 60, posPE);
@@ -54,8 +58,17 @@ public class TestEXECodec {
     data[posPE + 2] = 0;
     data[posPE + 3] = 0;
     writeInt16LE(data, posPE + 4, arch);
+    writeInt16LE(data, posPE + 6, 1); // NumberOfSections
+    writeInt16LE(data, posPE + 20, optionalHeaderSize);
+    writeInt16LE(data, posPE + 24, 0x010B); // PE32
     writeInt32LE(data, posPE + 28, codeLen);
-    writeInt32LE(data, posPE + 44, codeStart);
+    // BaseOfCode is an RVA, deliberately different from the raw file offset.
+    writeInt32LE(data, posPE + 44, codeRVA);
+    writeInt32LE(data, section + 8, codeLen); // VirtualSize
+    writeInt32LE(data, section + 12, codeRVA); // VirtualAddress
+    writeInt32LE(data, section + 16, codeLen); // SizeOfRawData
+    writeInt32LE(data, section + 20, codeStart); // PointerToRawData
+    writeInt32LE(data, section + 36, 0x60000020); // Executable, readable code
     return data;
   }
 
@@ -130,6 +143,7 @@ public class TestEXECodec {
     byte[] data = createPEBlock(0x014C);
     fillX86ExpandedCode(data, 512, 4096);
     byte[] encoded = roundTrip(data);
+    Assertions.assertEquals(512, LittleEndian.readInt32(encoded, 1));
     Assertions.assertTrue(encoded.length > data.length + 9);
   }
 
