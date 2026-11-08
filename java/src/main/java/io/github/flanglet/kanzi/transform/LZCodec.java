@@ -343,7 +343,7 @@ public final class LZCodec implements ByteTransform {
           this.hashes[i] = 0;
       }
 
-      final int minBufSize = Math.max(count / 5, 256);
+      final int minBufSize = Math.max(count / 4, 256);
 
       if (this.mBuf.length < minBufSize)
         this.mBuf = new byte[minBufSize];
@@ -575,15 +575,9 @@ public final class LZCodec implements ByteTransform {
 
         if (mIdx >= this.mBuf.length - 8) {
           // Expand match buffer
-          byte[] buf1 = new byte[(this.mBuf.length * 3) / 2];
-          System.arraycopy(this.mBuf, 0, buf1, 0, this.mBuf.length);
-          this.mBuf = buf1;
-
-          if (mLenIdx >= this.mLenBuf.length - 4) {
-            byte[] buf2 = new byte[(this.mLenBuf.length * 3) / 2];
-            System.arraycopy(this.mLenBuf, 0, buf2, 0, this.mLenBuf.length);
-            this.mLenBuf = buf2;
-          }
+          byte[] buf = new byte[(this.mBuf.length * 3) / 2];
+          System.arraycopy(this.mBuf, 0, buf, 0, this.mBuf.length);
+          this.mBuf = buf;
         }
 
         // Fill this.hashes and update positions. The current position was already
@@ -732,6 +726,12 @@ public final class LZCodec implements ByteTransform {
       SliceByteArray sba2 = new SliceByteArray(src, mLenIdx);
 
       while (true) {
+        if (tkIdx >= tokenEnd) {
+          input.index = srcIdx;
+          output.index = dstIdx;
+          return false;
+        }
+
         final int token = src[tkIdx++] & 0xFF;
 
         if (token >= 32) {
@@ -903,6 +903,12 @@ public final class LZCodec implements ByteTransform {
       SliceByteArray sba2 = new SliceByteArray(src, mLenIdx);
 
       while (true) {
+        if (tkIdx >= tokenEnd) {
+          input.index = srcIdx;
+          output.index = dstIdx;
+          return false;
+        }
+
         final int token = src[tkIdx++] & 0xFF;
 
         if (token >= 32) {
@@ -1074,6 +1080,12 @@ public final class LZCodec implements ByteTransform {
       SliceByteArray sba2 = new SliceByteArray(src, mLenIdx);
 
       while (true) {
+        if (tkIdx >= tokenEnd) {
+          input.index = srcIdx;
+          output.index = dstIdx;
+          return false;
+        }
+
         final int token = src[tkIdx++] & 0xFF;
 
         if (token >= 32) {
