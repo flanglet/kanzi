@@ -1335,6 +1335,12 @@ public class CompressedInputStream extends InputStream {
                 "Entropy decoding failed");
           }
 
+          if (is.read() > encodedBlockLength) {
+            this.processedBlockId.set(CANCEL_TASKS_ID);
+            return new Status(data, currentBlockId, 0, checksum1, Error.ERR_PROCESS_BLOCK,
+                "Entropy decoding failed");
+          }
+
           ed.dispose();
           ed = null;
         }
