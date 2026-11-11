@@ -877,8 +877,9 @@ public class BWT implements ByteTransform {
       for (; c < this.lastChunk; c++) {
         final int end = Math.min(start + this.ckSize, limit - 1);
         int p = BWT.this.getPrimaryIndex(c);
+        int i = start + 1;
 
-        for (int i = start + 1; i <= end; i += 2) {
+        for (; i < end; i += 2) {
           int s = fastBits[p >> shift] & 0xFFFF;
 
           while (b[s] <= p)
@@ -887,6 +888,15 @@ public class BWT implements ByteTransform {
           this.output[i - 1] = (byte) (s >>> 8);
           this.output[i] = (byte) s;
           p = data[p];
+        }
+
+        if (i == end) {
+          int s = fastBits[p >> shift] & 0xFFFF;
+
+          while (b[s] <= p)
+            s++;
+
+          this.output[end - 1] = (byte) (s >>> 8);
         }
 
         start = end;
