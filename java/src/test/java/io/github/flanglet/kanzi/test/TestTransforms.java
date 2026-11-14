@@ -147,6 +147,11 @@ public class TestTransforms {
         ctx2.put("lz", TransformFactory.LZP_TYPE);
         return new LZCodec(ctx2);
 
+      case "LZPX":
+        Map<String, Object> ctx4 = new HashMap<>();
+        ctx4.put("lz", TransformFactory.LZPX_TYPE);
+        return new LZCodec(ctx4);
+
       case "ZRLT":
         return new ZRLT();
 
@@ -621,6 +626,140 @@ public class TestTransforms {
       Assertions.assertEquals(sample.length, reverse.index, "unexpected decoded length for codec " + encType);
       Assertions.assertArrayEquals(sample, decoded, "round-trip mismatch for codec " + encType);
     }
+  }
+
+  @Test
+  void testLZPX() {
+    final int[] sizes = new int[] {128, 1024, 65535, 65536, 65537, 131073};
+
+    for (int lzpxType = 1; lzpxType <= 2; lzpxType++) {
+      Map<String, Object> ctx = new HashMap<>();
+      ctx.put("lz", TransformFactory.LZPX_TYPE);
+      ctx.put("lzpxType", lzpxType);
+      LZCodec codec = new LZCodec(ctx);
+      int seed = 1;
+
+      for (int mode = 0; mode < 4; mode++) {
+        for (int size : sizes) {
+          byte[] src = new byte[size + 7];
+          byte[] enc = new byte[size + 9];
+          byte[] dec = new byte[size + 6];
+          Arrays.fill(dec, (byte) 0xA5);
+
+          for (int i = 0; i < size; i++) {
+            seed = seed * 1664525 + 1013904223;
+            src[i + 7] = (byte) ((mode == 0) ? 7
+                : (mode == 1) ? i % 13 : (mode == 2) ? (seed >>> 24) : ((seed >>> 24) & 3));
+          }
+
+          SliceByteArray input = new SliceByteArray(src, size, 7);
+          SliceByteArray output = new SliceByteArray(enc, size + 9, 9);
+
+          if (!codec.forward(input, output)) {
+            Assertions.assertEquals(7, input.index);
+            Assertions.assertEquals(9, output.index);
+            Assertions.assertFalse((mode < 2) && (size >= 1024));
+            continue;
+          }
+
+          final int length = output.index - 9;
+          SliceByteArray encoded = new SliceByteArray(enc, length, 9);
+          SliceByteArray decoded = new SliceByteArray(dec, size + 5, 5);
+
+          Assertions.assertTrue(codec.inverse(encoded, decoded));
+          Assertions.assertEquals(output.index, encoded.index);
+          Assertions.assertEquals(size + 5, decoded.index);
+          Assertions.assertArrayEquals(
+              Arrays.copyOfRange(src, 7, 7 + size), Arrays.copyOfRange(dec, 5, 5 + size));
+          Assertions.assertEquals((byte) 0xA5, dec[4]);
+          Assertions.assertEquals((byte) 0xA5, dec[size + 5]);
+
+          encoded.index = 9;
+          encoded.length = length - 1;
+          decoded.index = 5;
+          Assertions.assertFalse(codec.inverse(encoded, decoded));
+          Assertions.assertEquals(9, encoded.index);
+          Assertions.assertEquals(5, decoded.index);
+
+          encoded.length = length;
+          decoded.length--;
+          Assertions.assertFalse(codec.inverse(encoded, decoded));
+        }
+      }
+    }
+
+    LZCodec codec = (LZCodec) getTransform("LZPX");
+
+    // A non-default minimum length: five literals followed by a length-4
+    // overlapping match. Absent byte 0 is EOB and absent byte 1 is length 4.
+    byte[] encoded = new byte[40];
+    encoded[0] = 2;
+    encoded[13] = 2; // Literal 'a' (97)
+    for (int i = 33; i < 38; i++)
+      encoded[i] = 'a';
+    encoded[38] = 1;
+    byte[] decoded = new byte[9];
+    SliceByteArray input = new SliceByteArray(encoded, 40, 0);
+    SliceByteArray output = new SliceByteArray(decoded, 9, 0);
+    Assertions.assertTrue(codec.inverse(input, output));
+    Assertions.assertEquals(9, output.index);
+    for (int i = 0; i < 9; i++)
+      Assertions.assertEquals((byte) 'a', decoded[i]);
+
+    // A match cannot precede the four bytes needed to seed its hash context.
+    byte[] earlyMatch = new byte[37];
+    earlyMatch[33] = 1;
+    byte[] earlyMatchOutput = new byte[8];
+    SliceByteArray badInput = new SliceByteArray(earlyMatch, 37, 0);
+    SliceByteArray badOutput = new SliceByteArray(earlyMatchOutput, 8, 0);
+    Assertions.assertFalse(codec.inverse(badInput, badOutput));
+    Assertions.assertEquals(0, badInput.index);
+    Assertions.assertEquals(0, badOutput.index);
+
+    // Fewer than 4 absent codes leaves no room for EOB, short match, and both extended prefixes.
+    byte[] tooFewCodes = new byte[40];
+    Arrays.fill(tooFewCodes, (byte) 0xFF);
+    tooFewCodes[0] = 0;
+    tooFewCodes[1] = (byte) 0xF8; // absent codes: 0, 1, 2 only (nbCodes = 3)
+    for (int i = 33; i < 37; i++)
+      tooFewCodes[i] = 'a';
+    tooFewCodes[37] = 0;
+    byte[] fewCodesOut = new byte[8];
+    SliceByteArray fewCodesIn = new SliceByteArray(tooFewCodes, 38, 0);
+    SliceByteArray fewCodesOutArr = new SliceByteArray(fewCodesOut, 8, 0);
+    Assertions.assertFalse(codec.inverse(fewCodesIn, fewCodesOutArr));
+    Assertions.assertEquals(0, fewCodesIn.index);
+    Assertions.assertEquals(0, fewCodesOutArr.index);
+
+    // Truncated extended-1, truncated LEB128 extended-2, and overlong LEB128 must fail cleanly.
+    byte[] truncExt = new byte[48];
+    truncExt[13] = 2; // 'a' (97) literal; maxShort = 253, code 254 = ext1, code 255 = ext2
+    for (int i = 33; i < 37; i++)
+      truncExt[i] = 'a';
+    truncExt[37] = (byte) 254; // extended-1 token with missing offset byte
+    byte[] truncExtOut = new byte[32];
+    SliceByteArray truncExt1In = new SliceByteArray(truncExt, 38, 0);
+    SliceByteArray truncExtOutArr = new SliceByteArray(truncExtOut, 32, 0);
+    Assertions.assertFalse(codec.inverse(truncExt1In, truncExtOutArr));
+    Assertions.assertEquals(0, truncExt1In.index);
+    Assertions.assertEquals(0, truncExtOutArr.index);
+
+    truncExt[37] = (byte) 255;
+    truncExt[38] = (byte) 0x80; // extended-2 LEB128 with continuation bit at EOF
+    SliceByteArray truncExt2In = new SliceByteArray(truncExt, 39, 0);
+    Assertions.assertFalse(codec.inverse(truncExt2In, truncExtOutArr));
+    Assertions.assertEquals(0, truncExt2In.index);
+    Assertions.assertEquals(0, truncExtOutArr.index);
+
+    truncExt[39] = (byte) 0x80;
+    truncExt[40] = (byte) 0x80;
+    truncExt[41] = (byte) 0x80;
+    truncExt[42] = (byte) 0x80; // 5th LEB128 byte exceeds max shift (21)
+    truncExt[43] = 0;
+    SliceByteArray overlongIn = new SliceByteArray(truncExt, 44, 0);
+    Assertions.assertFalse(codec.inverse(overlongIn, truncExtOutArr));
+    Assertions.assertEquals(0, overlongIn.index);
+    Assertions.assertEquals(0, truncExtOutArr.index);
   }
 
 

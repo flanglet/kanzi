@@ -58,7 +58,7 @@ public final class LZCodec implements ByteTransform {
     if (lzType == TransformFactory.LZP_TYPE)
       this.delegate = new LZPCodec(ctx);
     else if (lzType == TransformFactory.LZPX_TYPE)
-      this.delegate = new LZPXCodec();
+      this.delegate = new LZPXCodec(ctx);
     else if (lzType == TransformFactory.LZF_TYPE)
       this.delegate = new LZFCodec();
     else
@@ -1801,12 +1801,9 @@ public final class LZCodec implements ByteTransform {
         bestLen -= minMatch;
 
         // Emit match length
-        while (bestLen >= 254) {
+        while ((bestLen >= 254) && (dstIdx < dstEnd)) {
           bestLen -= 254;
           dst[dstIdx++] = (byte) 0xFE;
-
-          if (dstIdx >= dstEnd)
-            break;
         }
 
         if (dstIdx >= dstEnd)

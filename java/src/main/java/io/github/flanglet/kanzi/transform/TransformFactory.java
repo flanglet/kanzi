@@ -339,9 +339,22 @@ public class TransformFactory {
         ctx.put("lz", LZP_TYPE);
         return new LZCodec(ctx);
 
-      case LZPX_TYPE:
+      case LZPX_TYPE: {
+        int lzpxType = 1;
+
+        if (ctx.containsKey("entropy")) {
+          final String lzpxEntropy = ((String) ctx.get("entropy")).toUpperCase();
+
+          // Select LZPX type based on entropy codec.
+          if (lzpxEntropy.equals("NONE") || lzpxEntropy.equals("ANS0")
+              || lzpxEntropy.equals("HUFFMAN") || lzpxEntropy.equals("RANGE"))
+            lzpxType = 2;
+        }
+
+        ctx.put("lzpxType", lzpxType);
         ctx.put("lz", LZPX_TYPE);
         return new LZCodec(ctx);
+      }
 
       case EXE_TYPE:
         return new EXECodec(ctx);
